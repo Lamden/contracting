@@ -1,6 +1,7 @@
 import tatsu
 from tatsu import parser
 from pprint import pprint
+import sys
 
 '''
     Interpreter for the CLASSIC esoteric programming language TapeBagel
@@ -13,7 +14,7 @@ class TapeBagelSemantics(object):
     def __init__(self):
         self.memory = [0, 0, 0]
         self.i = 0
-        self.alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        self.alpha = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
     def index(self, ast):
         if ast == '%%':
@@ -24,6 +25,8 @@ class TapeBagelSemantics(object):
             self.i += 1
             if self.i >= len(self.memory):
                 self.i = 0
+        elif ast == '%-':
+            self.memory[self.i] = 0
         else:
             pass
 
@@ -39,10 +42,10 @@ class TapeBagelSemantics(object):
 
     def output(self, ast):
         if ast[0] == '@':
-            print(ast[1])
+            sys.stdout.write(self.alpha[ast[1]])
 
-    def reset(self):
-        self.memory = [0, 0, 0]
+    def _default(self, ast):
+        pass
 
 
 def parse_factored():
@@ -50,18 +53,11 @@ def parse_factored():
 
     parser = tatsu.compile(grammar)
     ast = parser.parse(
-        '%% %++ %++ %++ %++ %++ %++ %++ %++ @* ## %++ %++ %++ %++ %++ @* ## %++ '
-        '%++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ @* @* ## %++ %++ %++ %++ '
-        '%++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ @* ## @* %++ %++ %++ %++ '
-        '%++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ '
-        '%++ %++ @* ## %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ '
-        '%++ %++ @* ## %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ '
-        '%++ %++ %++ %++ %++ @* ##  %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ '
-        '%++ %++ @* ## %++ %++ %++ %++ @* ##',
+        '%% %++ %++ %++ %++ %++ %++ %++ %++ @* %- %++ %++ %++ %++ %++ @* %- %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ @* @* %- %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ @* %- @* %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ @* %- %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ @* %- %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ @* %- %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ %++ @* %- %++ %++ %++ %++ @* %-',
         semantics=TapeBagelSemantics()
     )
 
-    print('# FACTORED SEMANTICS RESULT')
+    print('\n# FACTORED SEMANTICS RESULT')
     pprint(ast, width=20, indent=4)
     print()
 
