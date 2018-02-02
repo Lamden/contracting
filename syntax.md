@@ -49,6 +49,7 @@ x = get(from=<USER_PUBLIC_KEY>/<TABLE_NAME>, where=<CONDITIONAL>)
 ```
 
 ==Crypto==
+
 Some hash functions should be readily available for shorthand use from the hashlib library.
 
 Functions we need to support:
@@ -58,3 +59,12 @@ RIPEMD160
 SHA256 (SHA2)
 
 SHA3
+
+==Transactional Method Calls==
+
+Imagine calling smart contract methods like RPC or an HTTP request where:
+
+```
+tx = <USER_PUBLIC_KEY>/<CONTRACT_NAME>/<METHOD_NAME>, <ARGS>
+```
+There should be a feedback mechanism for transaction pushers so that they can tell if the TX was successful or not (perhaps).
