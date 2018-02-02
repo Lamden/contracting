@@ -45,5 +45,16 @@ We *should* be able to create relationships between tables so that complex objec
 Data could be accessed in a way such as:
 
 ```
-    x = get(from=<USER_PUBLIC_KEY>/<TABLE_NAME>, where=<CONDITIONAL>)
+x = get(from=<USER_PUBLIC_KEY>/<TABLE_NAME>, where=<CONDITIONAL>)
 ```
+
+==Crypto==
+Some hash functions should be readily available for shorthand use from the hashlib library.
+
+Functions we need to support:
+
+RIPEMD160
+
+SHA256 (SHA2)
+
+SHA3
