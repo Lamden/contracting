@@ -1,0 +1,47 @@
+@@grammar::TAPEBAGEL
+
+start
+    =
+    expression { expression } $
+    ;
+
+
+expression
+    =
+    | index
+    | integer int_op integer
+    | output
+    | reset
+    ;
+
+index
+    =
+    | '%#'
+    | '%%'
+    | '%++'
+    ;
+
+integer
+    =
+    | '*'
+    | '**'
+    | '***'
+    ;
+
+int_op
+    =
+    | '&'
+    | '+'
+    | '$'
+    | '-'
+    ;
+
+output
+    =
+    | '@' integer
+    | '@@' integer
+    ;
+
+reset
+    = '##'
+    ;
