@@ -60,6 +60,16 @@ SHA256 (SHA2)
 
 SHA3
 
+There also needs to exist methods for verifying and signing keys for the following key types:
+
+ED25519
+
+ECDSA
+
+RSA and PGP?
+
+Key generation is not supported on the blockchain side.
+
 ==Transactional Method Calls==
 
 Imagine calling smart contract methods like RPC or an HTTP request where:
