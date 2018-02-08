@@ -4,10 +4,11 @@
 
 # seneca lib is always present for import
 from seneca.storage import redis as st
-from seneca.std_lib.functools import partial
+from seneca.stdlib.functools import partial
 from seneca import crypto
 from seneca.runtime import state as rt_state
 
+# Todo: Need non "from" imports to validate AST whitelisting
 
 def get_balance(ledger, wallet_id):
     return ledger.select('balance').where(wallet_id=wallet_id).run()[0]
@@ -88,7 +89,7 @@ else:
 
     # The smart contract is being imported by another smart contract.
     # Only exports the following:
-    return map(lambda f: partial(f, ledger), [
+    exports = map(lambda f: partial(f, ledger), [
         get_balance,
         wallet_exists,
         safe_transfer_coins,
