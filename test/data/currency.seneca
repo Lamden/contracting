@@ -3,7 +3,7 @@
 ## Example currency smart contract ##
 
 # seneca lib is always present for import
-from seneca.storage import redis as st
+from seneca.storage.redis import tabular as st
 from seneca.stdlib.functools import partial
 from seneca import crypto
 from seneca.runtime import state as rt_state
@@ -52,9 +52,9 @@ if __name__ == '__main__':
     # The smart contract is being run directly for the first (and only) time.
 
     # Establish a storage space
-    ledger = st.table.create('ledger', {
-      'wallet_id': st.column(Integer, unique=True),
-      'balance': st.column(Integer),
+    ledger = st.create_table('ledger', {
+      'wallet_id': st.column(int, unique=True),
+      'balance': st.column(int),
     })
 
     primordial_account = \
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     add_coins(ledger, primordial_account, monetary_base)
 
 else:
-    ledger = st.table.get('ledger')
+    ledger = st.get_table('ledger')
 
     # Important: The add/remove/transfer functions above are not safe to
     # export. They don't do any access control checks, so we wrap transfer_coins

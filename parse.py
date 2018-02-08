@@ -86,11 +86,12 @@ assert not illegal_ast_nodes, wl_error_message
 
 
 
-
-
-
 #  * Convert the user imports to some custom function that imports from blockchain smart contracts
 #    * User will just write “import <some_contract_addr>”
+#    * https://docs.python.org/3/reference/import.html
+#    * Somewhat unrelated, when implementing custom importer for seneca smart contracts,
+#      we also need to do a custom importer in the seneca lib so we don't leak functions
+#      that don't belong in the smart contract execution scope.
 #  * Validate smart contract imports
 #    * Make sure they point to valid contracts
 #    * Traverse and make sure total imports doesn’t exceed the limit
@@ -103,10 +104,8 @@ assert not illegal_ast_nodes, wl_error_message
 #    * recursion limit (sys.setrecursionlimit(limit))
 #  * Execute
 #    Todo: Possibly with custom executer that meters execution cycles (either hard limit or Gas equivalent)
-exec(compile(a, filename="<ast>", mode="exec")) 
-
-
-
-
-
-print('\n\n\n')
+try:
+    exec(compile(a, filename="<ast>", mode="exec"))
+except:
+    print('\n\n\n')
+    raise
