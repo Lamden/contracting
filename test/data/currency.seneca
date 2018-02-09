@@ -7,6 +7,7 @@ from seneca.storage.redis import tabular as st
 from seneca.stdlib.functools import partial
 from seneca import crypto
 from seneca.runtime import state as rt_state
+from seneca.modulelib import make_exports
 
 # Todo: Need non "from" imports to validate AST whitelisting
 
@@ -24,16 +25,16 @@ def create_wallet(ledger, wallet_id):
 
 
 def add_coins(ledger, wallet_id, amount_to_add):
-    assert wallet_exists(wallet_id), "Wallet id is not present in ledger"
+    assert wallet_exists(ledger, wallet_id), "Wallet id is not present in ledger"
     assert amount_to_add >= 0, "It's not possible to 'add' a negative balance"
 
-    old_balance = get_balance(wallet_id)
+    old_balance = get_balance(ledger, wallet_id)
     ledger.update(balance=old_balance + amount_to_add) \
           .where(wallet_id=wallet_id).run()
 
 
 def remove_coins(ledger, wallet_id, amount_to_remove):
-    assert wallet_exists(wallet_id), "Wallet id is not present in ledger"
+    assert wallet_exists(ledger, wallet_id), "Wallet id is not present in ledger"
     assert amount_to_remove >= 0, "Removing negative balances not permitted"
 
     old_balance = get_balance(wallet_id)
@@ -48,7 +49,9 @@ def transfer_coins(ledger, sender_id, receiver_id, amount):
 # We use Seneca's custom export/import functions because:
 # * Python doesn't have built in support for private functions.
 # * We need to import contracts from the blockchain, not the file system.
+print(__name__)
 if __name__ == '__main__':
+    print("is main")
     # The smart contract is being run directly for the first (and only) time.
 
     # Establish a storage space
@@ -66,6 +69,7 @@ if __name__ == '__main__':
     add_coins(ledger, primordial_account, monetary_base)
 
 else:
+    print("imported as module")
     ledger = st.get_table('ledger')
 
     # Important: The add/remove/transfer functions above are not safe to
@@ -89,9 +93,17 @@ else:
 
     # The smart contract is being imported by another smart contract.
     # Only exports the following:
-    exports = map(lambda f: partial(f, ledger), [
+#     exports = map(lambda f: partial(f, ledger), [
+#         get_balance,
+#         wallet_exists,
+#         safe_transfer_coins,
+#         create_wallet,
+#     ])
+#
+#
+    exports = make_exports(
         get_balance,
         wallet_exists,
         safe_transfer_coins,
         create_wallet,
-    ])
+    )

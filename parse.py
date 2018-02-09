@@ -104,8 +104,31 @@ assert not illegal_ast_nodes, wl_error_message
 #    * recursion limit (sys.setrecursionlimit(limit))
 #  * Execute
 #    Todo: Possibly with custom executer that meters execution cycles (either hard limit or Gas equivalent)
+#pprint(a)
+
+
 try:
-    exec(compile(a, filename="<ast>", mode="exec"))
+
+
+
+    def import_as_mod(mod_ast):
+        # XXX: This is probably not the right way to do this,
+        # Look at importlib source to see how cpython does this
+        d = dict(locals(), **globals())
+        d['__name__'] = '__imported_module__'
+        exec(compile(mod_ast, filename="<ast>", mode="exec"), d, d)
+        return d['exports']
+
+
+    def import_as_main(mod_ast):
+        # XXX: This is probably not the right way to do this,
+        # Look at importlib source to see how cpython does this
+        d = dict(locals(), **globals())
+        d['__name__'] = '__main__'
+        exec(compile(mod_ast, filename="<ast>", mode="exec"), d, d)
+
+
+
 except:
     print('\n\n\n')
     raise
