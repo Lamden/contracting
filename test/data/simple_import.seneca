@@ -1,0 +1,9 @@
+from seneca.modulelib import make_exports
+import import_me_chain
+
+
+if __name__ == '__main__':
+    print(import_me_chain)
+#    print(import_me_chain.foo_1())
+else:
+    pass
