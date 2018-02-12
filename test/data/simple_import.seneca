@@ -1,9 +1,12 @@
 from seneca.modulelib import make_exports
-import import_me_chain
-
+from import_me_chain import foo_1, foo_2, foo_3, foo_4
 
 if __name__ == '__main__':
-    print(import_me_chain)
-#    print(import_me_chain.foo_1())
+    print('\nOutput from imported functions:')
+    print('\n'.join([foo_1(),
+        foo_2(),
+        foo_3(),
+        foo_4()
+    ]))
 else:
     pass

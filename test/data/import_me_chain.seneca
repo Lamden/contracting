@@ -13,9 +13,9 @@ if __name__ == '__main__':
     print(foo_1(), foo_2(), foo_3(), foo_4())
 else:
 
-    exports = make_exports(
-        foo_1,
-        foo_2,
-        foo_3,
-        foo_4,
-    )
+    exports = {
+        'foo_1': foo_1,
+        'foo_2': foo_2,
+        'foo_3': foo_3,
+        'foo_4': foo_4,
+    }
