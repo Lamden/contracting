@@ -59,7 +59,7 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
     #   leak functions that don't belong in the smart contract execution scope.
 
     #  Parse Seneca smart contract, generate AST
-    smart_contract_ast = ast.parse(test_seneca_loader(name))
+    smart_contract_ast = ast.parse(loader(name))
 
     assert type(smart_contract_ast) == ast.Module, \
       "Unexpected input, 'a' should always be an _ast.Module"
