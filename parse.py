@@ -104,7 +104,7 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
                 #   when users attempt to import stdlib or external modules.
 
                 # mount_point is th called module's name or the 'as' name for
-                #  'for' syntax: 'import foo as bar'
+                #   syntax: 'import foo as bar'
                 mount_point = \
                   imp_node.asname if imp_node.asname else imp_node.name
 
