@@ -124,7 +124,7 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
                   "Valid smart contract addresses don't contain submodules."
                 # Custom module loader - Don't append ast node to new_ast_body,
                 #   instead run module and add 'exports' to caller scope bound
-                #   to name of called module.
+                #   to keys from exports dict.
                 m_exports = module_loader(base_module, search_path,
                     is_main=False)
 
