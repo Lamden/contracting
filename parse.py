@@ -64,7 +64,7 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
     assert type(smart_contract_ast) == ast.Module, \
       "Unexpected input, 'a' should always be an _ast.Module"
 
-    # Fail if forbidden AST nodes are found, e.g. for loops
+    # Fail if forbidden AST nodes are found, e.g. for-loops
     basic_ast_whitelist.validate(smart_contract_ast)
 
     # Create a new empty scope for module execution.
@@ -78,10 +78,10 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
     # TODO: This only handles imports in the top level of body, rest are ignored
     #   Decide what should happen if the import occurs somewhere else and
     #   implement.
-    # TODO: This only handles import functionality, not security must be
+    # TODO: This only handles import functionality, not security, this must be
     #   addressed.
     # TODO: Refactor, depdupe
-    new_body = []
+    new_ast_body = []
     for item in smart_contract_ast.body:
 
         # Handle typical imports e.g. 'import foo' or 'import foo as bar'
@@ -93,10 +93,10 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
             # Don't modify seneca lib import, just append to the output AST
             if base_module == 'seneca':
                 # TODO: For security we should use a restricted module loader
-                new_body.append(item)
+                new_ast_body.append(item)
             else:
                 # Custom module loader
-                # Don't append ast node to new_body, instead run module and add
+                # Don't append ast node to new_ast_body, instead run module and add
                 # 'exports' to caller scope bound to name of called module.
                 assert len(imp_node.name.split('.')) == 1, \
                   "Valid smart contract addresses don't contain submodules."
@@ -118,11 +118,11 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
 
             # Don't modify seneca lib import, just append to the output AST
             if base_module == 'seneca':
-                new_body.append(item)
+                new_ast_body.append(item)
             else:
                 assert len(item.module.split('.')) == 1, \
                   "Valid smart contract addresses don't contain submodules."
-                # Custom module loader - Don't append ast node to new_body,
+                # Custom module loader - Don't append ast node to new_ast_body,
                 #   instead run module and add 'exports' to caller scope bound
                 #   to name of called module.
                 m_exports = module_loader(base_module, search_path,
@@ -136,19 +136,20 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
                     module_scope[mount_point] = getattr(m_exports, n.name)
         else:
             # AST node isn't an import statement, just append to the output AST
-            new_body.append(item)
+            new_ast_body.append(item)
 
     # Replace the original AST with the new one (smart contract imports removed)
-    smart_contract_ast.body = new_body
+    smart_contract_ast.body = new_ast_body
 
-    # TODO: Make sure this is a correct and safe way to do this.
+    # TODO: Make sure this is a correct and safe way to execute code.
     exec(
       compile(smart_contract_ast, filename="<ast>", mode="exec")
       , module_scope
     )
 
     # If this isn't the primary smart contract, take everythig bound to the name
-    #   'exports' and return it to be added to the callers scope, i.e. imported.
+    #   'exports' and return it, so it can be added to the callers scope, i.e.
+    #   imported.
     if not is_main:
         x = module_scope['exports']
         return namedtuple(name, x.keys())(**x)
