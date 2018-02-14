@@ -37,8 +37,10 @@ def remove_coins(ledger, wallet_id, amount_to_remove):
     assert wallet_exists(ledger, wallet_id), "Wallet id is not present in ledger"
     assert amount_to_remove >= 0, "Removing negative balances not permitted"
 
-    old_balance = get_balance(wallet_id)
+    old_balance = get_balance(ledger, wallet_id)
     assert old_balance - amount_to_remove >= 0, "No negative balances allowed"
+    ledger.update(balance=old_balance - amount_to_add) \
+          .where(wallet_id=wallet_id).run()
 
 
 def transfer_coins(ledger, sender_id, receiver_id, amount):
