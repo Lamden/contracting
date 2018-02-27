@@ -1,0 +1,6 @@
+from seneca.storage import tabular as st
+
+# create a table
+# insert some value
+# export a convienence function for reading all data (convenience because there are no security limitations on reads)
+# export a function that lets you write into db, but captures the smart contract id and includes it

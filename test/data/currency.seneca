@@ -3,7 +3,7 @@
 ## Example currency smart contract ##
 
 # seneca lib is always present for import
-from seneca.storage.redis import tabular as st
+from seneca.storage import tabular as st
 from seneca.stdlib.functools import partial
 from seneca import crypto
 from seneca.runtime import state as rt_state

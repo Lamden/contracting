@@ -1,5 +1,3 @@
-from seneca.modulelib import make_exports
-
 import import_me
 import import_me as new_name
 from import_me import foo
