@@ -16,6 +16,8 @@ import astpretty
 from collections import namedtuple
 import os
 import sys
+import importlib
+
 from parser_internal import basic_ast_whitelist
 
 seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
@@ -80,7 +82,8 @@ def ast_import_decoder(item):
         as_name = item.names[0].asname
         ret['qualified_name'] = as_name if as_name else ret['module_path']
     else:
-        ret['specific_names_in_mod'] = [(x.name, x.asname) for x in item.names]
+        # TODO: add handling for * wildcard imports
+        ret['specific_names_in_mod'] = {x.name:x.asname for x in item.names}
 
     return [ret]
 
@@ -91,7 +94,62 @@ def is_ast_import(item):
 
 
 def seneca_lib_loader(module_path):
+    x = importlib.import_module(module_path)
+    # TODO: implement complete seneca_internal
+    si = Empty()
+    si.called_by_internal = False
+    x.seneca_internal = si
+
+    assert hasattr(x, 'exports'), "Imported module %s doesn't have any exports" % module_path
+    assert x.exports is not None, "Imported module %s has exports set to None" % module_path
+    return x.exports
+
+
+class Empty(object):
     pass
+
+
+def build_import_object(call_chain):
+
+    def f(call_chain, obj):
+        if not call_chain:
+            return obj
+        else:
+            attr = call_chain.pop()
+            # TODO: come up with a cleaner way to construct object
+            outer_obj = Empty()
+            setattr(outer_obj, attr, obj)
+            return f(call_chain, outer_obj)
+
+    return f(call_chain, Empty())
+
+
+def append_sandboxed_scope(scope, import_descriptor, exports):
+    print("scope is:", scope)
+    print("import descriptor is:", import_descriptor)
+    print("exports is:", exports)
+
+    qn = import_descriptor['qualified_name']
+    if qn:
+        if '.' in qn:
+            call_chain = qn.split('.')
+            last_in_chain = call_chain.pop()
+            imp_obj = build_import_object(call_chain)
+        else:
+            print('**** Setting scope name: %s to %s' % (qn, str(exports)))
+            print(type(exports))
+            print(exports)
+            scope[qn] = namedtuple("Exports", exports.keys())(*exports.values())
+    else:
+        specific_names = import_descriptor['specific_names_in_mod']
+
+        if specific_names:
+            #Specific names is a dict, k=name, v=asname
+            for real_name, as_name in specific_names.items():
+                name = as_name if as_name else real_name
+                scope[name] = exports[real_name]
+        else:
+            scope.update(exports)
 
 
 def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
@@ -141,7 +199,6 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
     #   implement.
     # TODO: This only handles import functionality, not security, this must be
     #   addressed.
-    # TODO: Refactor, depdupe
     new_ast_body = []
     for item in smart_contract_ast.body:
         if is_ast_import(item):
@@ -150,72 +207,20 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
             for imp in import_list:
                 if imp['module_type'] == 'seneca':
                     print('seneca import not implemented')
+                    print(imp)
                     s_exports = seneca_lib_loader(imp['module_path'])
                     print(s_exports)
+                    append_sandboxed_scope(module_scope, imp, s_exports)
                     # mount_exports(module_scope, imp, s_exports)
 
                 elif imp['module_type'] == 'smart_contract':
                     print('smart_contract import not implemented')
-                    # c_exports = seneca_lib_loader(imp)
-                    # mount_exports(module_scope, imp, c_exports)
+                    c_exports = module_loader(imp['module_path'],
+                      search_path, is_main=False, loader=test_seneca_loader)
+                    append_sandboxed_scope(module_scope, imp, c_exports._asdict())
                 else:
                    # TODO: custom exception types, also, consider moving this
                    raise Exception("Dissallowed import, not from Seneca or smart contract")
-
-
-# Old massive block of code
-#        # Handle typical imports e.g. 'import foo' or 'import foo as bar'
-#        if type(item) == ast.Import:
-#            # TODO: make sure there's never more than one item in this list
-#            imp_node = item.names[0]
-#            base_module = imp_node.name.split('.')[0]
-#
-#            # TODO: change this to custom Seneca import when implemented
-#            # Don't modify seneca lib import, just append to the output AST
-#            if base_module == 'seneca':
-#                # TODO: For security we should use a restricted module loader
-#                new_ast_body.append(item)
-#            else:
-#                # Custom module loader
-#                # Don't append ast node to new_ast_body, instead run module and add
-#                # 'exports' to caller scope bound to name of called module.
-#                assert len(imp_node.name.split('.')) == 1, \
-#                  "Valid smart contract addresses don't contain submodules."
-#                # TODO: Better error message, that better explains the issue
-#                #   when users attempt to import stdlib or external modules.
-#
-#                # mount_point is th called module's name or the 'as' name for
-#                #   syntax: 'import foo as bar'
-#                mount_point = \
-#                  imp_node.asname if imp_node.asname else imp_node.name
-#
-#                # Bind called module's exports to caller's scope.
-#                module_scope[mount_point] = \
-#                  module_loader(imp_node.name, search_path, is_main=False)
-#
-#        # Handle a from-import e.g. 'from foo import bar' (optionally 'as baz')
-#        elif type(item) == ast.ImportFrom:
-#            base_module = item.module.split('.')[0]
-#
-#            # TODO: change this to custom Seneca import when implemented.
-#            # Don't modify seneca lib import, just append to the output AST
-#            if base_module == 'seneca':
-#                new_ast_body.append(item)
-#            else:
-#                assert len(item.module.split('.')) == 1, \
-#                  "Valid smart contract addresses don't contain submodules."
-#                # Custom module loader - Don't append ast node to new_ast_body,
-#                #   instead run module and add 'exports' to caller scope bound
-#                #   to keys from exports dict.
-#                m_exports = module_loader(base_module, search_path,
-#                    is_main=False)
-#
-#                for n in item.names:
-#                    # When funcs/values get imported from a module, the
-#                    #   mount_point is the name (in the callers scope) they get
-#                    #   bound to.
-#                    mount_point = n.asname if n.asname else n.name
-#                    module_scope[mount_point] = getattr(m_exports, n.name)
         else:
             # AST node isn't an import statement, just append to the output AST
             new_ast_body.append(item)

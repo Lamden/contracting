@@ -6,7 +6,7 @@ Seneca test import module, displays caller data.
 # seneca_internal.caller
 
 def _print_caller_data():
-    print(seneca_internal.caller)
+    print(seneca_internal.called_by_internal)
 
 
 exports = {
