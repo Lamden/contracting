@@ -1,0 +1,23 @@
+#from seneca.storage import orm
+# TODO: figure out why this didn't work
+#from seneca.storage import tabular as t
+import seneca.storage.tabular as t
+
+if __name__ == '__main__':
+    u = t.table('users', [
+        ('first_name', t.str_len(30)),
+        ('last_name', t.str_len(30)),
+        ('nick_name', t.str_len(30)),
+        ('balance', int)
+    ])
+
+    u.insert([{
+        'first_name': 'john',
+        'last_name': 'doe',
+        'nick_name': 'doughboy',
+        'balance': 0
+    }]).run()
+
+    r = map(str, u.select().run())
+
+    print('\n'.join(r))

@@ -51,6 +51,7 @@ EXPOSE 3306
 RUN useradd -ms /bin/bash mysql
 RUN chown -R mysql:mysql /opt/mysql/usr/local/mysql/data
 
+ARG CACHEBUST=1
 RUN cd /opt/mysql/usr/local/mysql/ && ./bin/mysqld_safe & \
 echo "Waiting for mysqld to start..." && \
 sleep 5 && \

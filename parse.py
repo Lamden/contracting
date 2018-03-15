@@ -93,11 +93,13 @@ def is_ast_import(item):
     return t == ast.ImportFrom or t == ast.Import
 
 
-def seneca_lib_loader(module_path):
+# TODO: make sure this loads modules exactly once per caller_id
+def seneca_lib_loader(module_path, caller_name):
     x = importlib.import_module(module_path)
     # TODO: implement complete seneca_internal
     si = Empty()
     si.called_by_internal = False
+    si.smart_contract_caller = caller_name
     x.seneca_internal = si
 
     assert hasattr(x, 'exports'), "Imported module %s doesn't have any exports" % module_path
@@ -206,9 +208,8 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
 
             for imp in import_list:
                 if imp['module_type'] == 'seneca':
-                    print('seneca import not implemented')
                     print(imp)
-                    s_exports = seneca_lib_loader(imp['module_path'])
+                    s_exports = seneca_lib_loader(imp['module_path'], name)
                     print(s_exports)
                     append_sandboxed_scope(module_scope, imp, s_exports)
                     # mount_exports(module_scope, imp, s_exports)
