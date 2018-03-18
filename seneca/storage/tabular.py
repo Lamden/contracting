@@ -120,8 +120,10 @@ class QuerySort(object):
         return " ORDER BY %s %s" % (self.column_name, desc)
 
 
-# TODO: genericize the is for other query types and inherit
-class SelectQuery(object):
+
+# TODO: for batching, run needs to be broken into 2 steps, create query and execute.
+
+class ConstrainableQuery(object):
     # TODO: sanitize input on everything
     def __init__(self, t_table):
         self.t_table = t_table
@@ -139,17 +141,9 @@ class SelectQuery(object):
         self.modifiers.append(QueryConstraint('greater_than', column_name, val))
         return self
 
-    def limit(self, count):
-        self.modifiers.append(QueryLimit(count))
-        return self
-
-    def order_by(self, column_name, desc=False):
-        self.modifiers.append(QuerySort(column_name, desc))
-        return self
-
     #Todo: figure out all features we want? Like? Regex? What else?
 
-    def run(self):
+    def build_where_query(self):
         where_sql = ' AND '.join(
             map(lambda x: x.to_sql(),
                 filter(lambda x: type(x) == QueryConstraint, self.modifiers)
@@ -159,18 +153,54 @@ class SelectQuery(object):
         if where_sql:
             where_sql = 'WHERE %s' % where_sql
 
+        return where_sql
+
+
+
+class DeleteQuery(ConstrainableQuery):
+    # TODO: sanitize input on everything
+
+    # TODO: further dedupe with SelectQuery and move to ConstrainableQuery
+    def run(self):
+        where_sql = self.build_where_query()
+
+        sql_expr = ' '.join(['DELETE from %s' % self.t_table.fullname, where_sql])
+
+        cur.execute(sql_expr)
+        db.commit()
+
+        numrows = cur.rowcount
+
+        return {'deleted_row_count': numrows}
+
+
+class SelectQuery(ConstrainableQuery):
+    # TODO: sanitize input on everything
+    # TODO: results should probably be returned as a list of (dict or named tuple)
+
+    def limit(self, count):
+        self.modifiers.append(QueryLimit(count))
+        return self
+
+
+    def order_by(self, column_name, desc=False):
+        self.modifiers.append(QuerySort(column_name, desc))
+        return self
+
+
+    def run(self):
+        where_sql = self.build_where_query()
+
         limit = list(filter(lambda x: type(x) == QueryLimit, self.modifiers))
         assert len(limit) <= 1, "Error, encountered multiple limit statements."
         limit_sql = '' if not limit else limit[0].to_sql()
-
 
         sort = list(filter(lambda x: type(x) == QuerySort, self.modifiers))
         assert len(limit) <= 1, "Error, encountered multiple order-by statements."
         sort_sql = '' if not sort else sort[0].to_sql()
 
 
-
-        sql_expr = ' '.join(['Select * from %s' % self.t_table.fullname, where_sql, sort_sql, limit_sql])
+        sql_expr = ' '.join(['SELECT * FROM %s' % self.t_table.fullname, where_sql, sort_sql, limit_sql])
 
         cur.execute(sql_expr)
 
@@ -206,20 +236,18 @@ class TTable(object):
         else:
             raise NotImplementedError()
 
+
     def select(self):
         return SelectQuery(self.sa_table)
+
 
     def insert(self, dict_list):
         self.call_stack.extend(['insert', dict_list])
         return self
 
-    def drop(self):
-        self.call_stack.append('drop')
-        return self
 
-    def where(self, constraint_list):
-        self.call_stack.extend(['where', constraint_list])
-        return self
+    def delete(self):
+        return DeleteQuery(self.sa_table)
 
 
     def join(self, with_table, this_on, that_on):

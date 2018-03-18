@@ -18,7 +18,10 @@ if __name__ == '__main__':
         'balance': 0
     }]).run()
 
-#    u1 = u.select_new().where_lt('id', 5).limit(3).run()
-    u1 = u.select().where_gt('id', 3).order_by('id', desc=True).limit(4).run()
+    u1 = u.select().limit(1).run()[0]
 
-    print('\n'.join(map(str, u1)))
+    print(u1)
+
+    print(u.delete().run())
+
+    print(u.select().limit(5).run())
