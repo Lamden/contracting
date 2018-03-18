@@ -28,6 +28,7 @@
 from itertools import zip_longest
 import sqlalchemy
 from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, Sequence, select
+import MySQLdb
 
 # TODO: figure out how we want to handle these.
 METADATA = MetaData()
@@ -39,9 +40,17 @@ METADATA = MetaData()
 
 # Note password is auto generated every time docker instance is built, password is hardcoded right now and must be changed to run
 # Dockerfile regenerates random password on every build.
-ENGINE = create_engine("mysql://seneca_test:enter-your-pw-here@127.0.0.1:3306/seneca_test")
+ENGINE = create_engine("mysql://seneca_test:JpJIzaoee2@127.0.0.1:3306/seneca_test")
 CONN = ENGINE.connect()
 METADATA.bind=ENGINE
+
+
+# Alternate implementation, using sql directly, ultimately we probably want this done by an outside process.
+db = MySQLdb.connect(host="127.0.0.1",    # your host, usually localhost
+                     user="seneca_test",         # your username
+                     passwd="JpJIzaoee2",  # your password
+                     db="seneca_test")        # name of the data base
+cur = db.cursor()
 
 # http://docs.sqlalchemy.org/en/latest/core/tutorial.html
 
@@ -72,6 +81,111 @@ class StrLimitLen(object):
 def str_len(l):
     return StrLimitLen(l)
 
+class QueryConstraint(object):
+    def __init__(self, qc_type, column_name, value):
+        self.qc_type = qc_type
+        self.column_name = column_name
+        self.value = value
+
+    # TODO: this should go to a serialized intermediate representation, go through access control, then converted to SQL
+    def to_sql(self):
+        qc_to_sql = {
+            # TODO: should probably add backticks to column names
+            'equals': lambda x,y: '%s = %s' % (str(x), str(y)),
+            'less_than': lambda x,y: '%s < %s' % (str(x), str(y)),
+            'greater_than': lambda x,y: '%s > %s' % (str(x), str(y)),
+        }
+
+        assert self.qc_type in qc_to_sql, "Failed to idendtify query constraint type."
+
+        return qc_to_sql[self.qc_type](self.column_name, self.value)
+
+
+class QueryLimit(object):
+    def __init__(self, quantity):
+        self.quantity = quantity
+
+    def to_sql(self):
+        return " LIMIT %d" % self.quantity
+
+
+class QuerySort(object):
+    # TODO: decide whether users are allowed to order by multiple columns, if so modify
+    def __init__(self, column_name, desc):
+        self.column_name = column_name
+        self.desc = desc
+
+    def to_sql(self):
+        desc = 'DESC' if self.desc else ''
+        return " ORDER BY %s %s" % (self.column_name, desc)
+
+
+# TODO: genericize the is for other query types and inherit
+class SelectQuery(object):
+    # TODO: sanitize input on everything
+    def __init__(self, t_table):
+        self.t_table = t_table
+        self.modifiers = []
+
+    def where_equals(self, column_name, val):
+        self.modifiers.append(QueryConstraint('equals', column_name, val))
+        return self
+
+    def where_lt(self, column_name, val):
+        self.modifiers.append(QueryConstraint('less_than', column_name, val))
+        return self
+
+    def where_gt(self, column_name, val):
+        self.modifiers.append(QueryConstraint('greater_than', column_name, val))
+        return self
+
+    def limit(self, count):
+        self.modifiers.append(QueryLimit(count))
+        return self
+
+    def order_by(self, column_name, desc=False):
+        self.modifiers.append(QuerySort(column_name, desc))
+        return self
+
+    #Todo: figure out all features we want? Like? Regex? What else?
+
+    def run(self):
+        where_sql = ' AND '.join(
+            map(lambda x: x.to_sql(),
+                filter(lambda x: type(x) == QueryConstraint, self.modifiers)
+            )
+        )
+
+        if where_sql:
+            where_sql = 'WHERE %s' % where_sql
+
+        limit = list(filter(lambda x: type(x) == QueryLimit, self.modifiers))
+        assert len(limit) <= 1, "Error, encountered multiple limit statements."
+        limit_sql = '' if not limit else limit[0].to_sql()
+
+
+        sort = list(filter(lambda x: type(x) == QuerySort, self.modifiers))
+        assert len(limit) <= 1, "Error, encountered multiple order-by statements."
+        sort_sql = '' if not sort else sort[0].to_sql()
+
+
+
+        sql_expr = ' '.join(['Select * from %s' % self.t_table.fullname, where_sql, sort_sql, limit_sql])
+
+        cur.execute(sql_expr)
+
+        numrows = cur.rowcount
+
+        # Get and display one row at a time
+        ret = []
+
+        for x in range(0, numrows):
+            ret.append(tuple(cur.fetchone()))
+
+        return ret
+
+
+
 
 # TODO: Validate assumption that this can probably never be secure as implemented
 # TODO: This is a preview of an interface, it almost certainly must be implemented
@@ -87,20 +201,26 @@ class TTable(object):
         cs = self.call_stack
         self.call_stack = []
 
-        if cs == ['select']: #Simple and temporary
-            return CONN.execute(select([temp_ref]))
-        elif cs[0] == 'insert':
+        if cs[0] == 'insert':
             CONN.execute(temp_ref.insert(), cs[1])
         else:
             raise NotImplementedError()
 
     def select(self):
-        self.call_stack.append('select')
-        return self
+        return SelectQuery(self.sa_table)
 
     def insert(self, dict_list):
         self.call_stack.extend(['insert', dict_list])
         return self
+
+    def drop(self):
+        self.call_stack.append('drop')
+        return self
+
+    def where(self, constraint_list):
+        self.call_stack.extend(['where', constraint_list])
+        return self
+
 
     def join(self, with_table, this_on, that_on):
         raise NotImplementedError()
