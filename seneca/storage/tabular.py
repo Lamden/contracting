@@ -20,14 +20,18 @@
 
 
 * Big TODOs:
-  * Make this secure. Serialized requests to a separate process, and validate before running based on caller.
-  * Do we allow joins across smart contracts? Peformance implications for sure. Will limit future architecture possibilities
-  *
-
-
+  * Make this secure.
+    * Serialized requests to a separate process
+      * Validate before running based on caller.
+      * Issue session like webserver, make sure a smart contract can't hijack a session of another one running.
+    * Input sanitization
+  * Decide: do we allow joins across smart contracts?
+    * Peformance implications for sure.
+    * It will limit future architecture possibilities
+  * Remove SQLAlchemy entirely
+  * Run batch
+  * Version one feature list. LIKE? Regex match?
 '''
-
-
 
 # TODO: verify this is being called each time it's imported.
 #print("loading tabular, TODO: make sure this loads for each and every import")
@@ -46,9 +50,11 @@ METADATA = MetaData()
 # TODO: restrictions and prefixing tables with smart_contract_caller
 # TODO: Don't hard code this
 
+TEMP_PASSWORD='tRcZUglAmO'
+
 # Note password is auto generated every time docker instance is built, password is hardcoded right now and must be changed to run
 # Dockerfile regenerates random password on every build.
-ENGINE = create_engine("mysql://seneca_test:JpJIzaoee2@127.0.0.1:3306/seneca_test")
+ENGINE = create_engine("mysql://seneca_test:%s@127.0.0.1:3306/seneca_test" % TEMP_PASSWORD)
 CONN = ENGINE.connect()
 METADATA.bind=ENGINE
 
@@ -57,7 +63,7 @@ METADATA.bind=ENGINE
 # Dockerfile regenerates random password on every build.
 db = MySQLdb.connect(host="127.0.0.1",    # your host, usually localhost
                      user="seneca_test",         # your username
-                     passwd="JpJIzaoee2",  # your password
+                     passwd=TEMP_PASSWORD,  # your password
                      db="seneca_test")        # name of the data base
 cur = db.cursor()
 
@@ -67,7 +73,6 @@ cur = db.cursor()
 def outside_table(sc_addr, name):
     """
     Always read-only. To edit another smart_contract's tables, you must use the methods that contract exports
-
     """
     pass
 
@@ -90,6 +95,14 @@ class StrLimitLen(object):
 def str_len(l):
     return StrLimitLen(l)
 
+def sql_str(x):
+    t = type(x)
+    if t == str:
+        return "'%s'" % x
+    else:
+        return str(x)
+
+
 class QueryConstraint(object):
     def __init__(self, table_name, qc_type, column_name, value):
 #        print("***QueryConstraint***")
@@ -103,9 +116,10 @@ class QueryConstraint(object):
     def to_sql(self):
         qc_to_sql = {
             # TODO: should probably add backticks to column names
-            'equals': lambda x,y: '%s.%s = %s' % (self.table_name, str(x), str(y)),
+            'equals': lambda x,y: '%s.%s = %s' % (self.table_name, str(x), sql_str(y)),
             'less_than': lambda x,y: '%s.%s < %s' % (self.table_name, str(x), str(y)),
             'greater_than': lambda x,y: '%s.%s > %s' % (self.table_name, str(x), str(y)),
+            'all_rows': lambda x,y: 'TRUE',
         }
 
         assert self.qc_type in qc_to_sql, "Failed to idendtify query constraint type."
@@ -133,8 +147,17 @@ class QuerySort(object):
         return " ORDER BY %s.%s %s" % (self.table_name, self.column_name, desc)
 
 
+def require_constraint_on_run(f):
+    '''Useful for queries that you don't want to accidentally apply to all rows, i.e. updates and deletes'''
+    def ret(obj):
+        assert list(obj.get_constraints()), "To prevent unintended modification to all rows, \
+        destructive opperations must always contain a constraint, either 'where_*(...)', or to modify \
+        all rows, use .update(...).all_rows()"
 
-# TODO: for batching, run needs to be broken into 2 steps, create query and execute.
+        return f(obj)
+
+    return ret
+
 
 class ConstrainableQuery(object):
     # TODO: sanitize input on everything
@@ -143,8 +166,6 @@ class ConstrainableQuery(object):
         self.modifiers = []
 
     def append_constraint(self, *args):
-        print("appending constraint", self.t_table.name)
-        print(*args)
         self.modifiers.append(QueryConstraint(self.t_table.name, *args))
         return self
 
@@ -157,13 +178,15 @@ class ConstrainableQuery(object):
     def where_gt(self, column_name, val):
         return self.append_constraint('greater_than', column_name, val)
 
+    def all_rows(self):
+        return self.append_constraint('all_rows', None, None)
+
     #Todo: figure out all features we want? Like? Regex? What else?
 
     def get_constraints(self):
         return map(lambda x: x.to_sql(),
             filter(lambda x: type(x) == QueryConstraint, self.modifiers)
         )
-
 
     def build_where_query_fragment(self):
         where_sql = ' AND '.join(self.get_constraints())
@@ -172,6 +195,70 @@ class ConstrainableQuery(object):
             where_sql = 'WHERE %s' % where_sql
 
         return where_sql
+
+
+class UpdateQuery(ConstrainableQuery):
+    def __init__(self, t_table, set_column_value):
+        self.set_column_value = set_column_value
+        self.t_table = t_table
+        self.modifiers = []
+
+    # Inherits where-methods from ConstrainableQuery
+
+    def build_query(self):
+        set_clauses = ', '.join(['%s=%s' % (k,sql_str(v)) for k,v in self.set_column_value.items()])
+
+        return ' '.join([
+            'UPDATE %s' % self.t_table.name,
+            'SET %s' % set_clauses,
+            self.build_where_query_fragment()
+        ])
+
+    @require_constraint_on_run
+    def run(self):
+        # There must be where constraints
+        assert list(self.get_constraints()), "To prevent unintended updates to all rows, \
+        updates must always contain a conatraint, either 'where_*(...)', or to update \
+        all rows, use .update(...).all_rows()"
+
+        sql_expr = self.build_query()
+
+        cur.execute(sql_expr)
+
+        numrows = cur.rowcount
+
+        return {'updated_rows_count': numrows}
+
+
+
+
+        '''
+    # TODO: move this method to the base query class, require all child classes to implement build_query
+    def __str__(self):
+        return self.build_query()
+
+
+    def run(self):
+        sql_expr = self.build_query()
+
+        cur.execute(sql_expr)
+
+        numrows = cur.rowcount
+
+        # Get and display one row at a time
+        ret = []
+        col_names = self.t_table.get_columns()
+
+        for x in range(0, numrows):
+            vals = cur.fetchone()
+            val_dict = dict(zip(col_names, vals))
+
+            ret.append(val_dict)
+
+        return ret
+
+        '''
+
 
 
 class JoinPartialQuery(ConstrainableQuery):
@@ -189,11 +276,6 @@ class JoinPartialQuery(ConstrainableQuery):
         self.j_type = j_type
         self.modifiers = []
 
-
-#     def is_null(self, val=True):
-# #         self.modifiers.append(QueryLimit(count))
-# #         return self
-#
 
     def build_query(self):
         return ' '.join([ self.main_query.build_query(),
@@ -264,13 +346,11 @@ class JoinPartialQuery(ConstrainableQuery):
 
 
 
-
-
-
 class DeleteQuery(ConstrainableQuery):
     # TODO: sanitize input on everything
 
     # TODO: further dedupe with SelectQuery and move to ConstrainableQuery
+    @require_constraint_on_run
     def run(self):
         where_sql = self.build_where_query_fragment()
 
@@ -375,10 +455,12 @@ class TTable(object):
     def select(self):
         return SelectQuery(self)
 
+    def update(self, set_column_value):
+        return UpdateQuery(self, set_column_value)
+
 
     def get_columns(self):
         sa_cs = self.sa_table.columns
-        #map(lambda x: x.split('.')[-1], sa_cs)
         return list(map(lambda x:x.key, sa_cs))
 
 
@@ -386,6 +468,7 @@ class TTable(object):
         # TODO: move this to a separate class
         # TODO: Don't use SQLAlchemy
         # TODO: sanitize table names, a-z, underscores, no leading underscores.
+        # TODO: Figure out what data an insert should return
         self.call_stack.extend(['insert', dict_list])
         return self
 

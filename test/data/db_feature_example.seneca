@@ -64,14 +64,11 @@ if __name__ == '__main__':
     print(q.build_query())
     print(q.run())
 
+    print(u.update({'balance': 1000, 'nick_name': 'baller'}).all_rows().run())
+    print(u.select().where_equals('nick_name', 'baller').run())
 
-#    print(u.select().easy_join(b, on_src='id', on_dest='user_id').run())
-
-    #print(q)
-    #print(q.run())
-
-    #print('\n\n')
-    #print(dir(u.sa_table))
+    print(u.delete().all_rows().run())
+    print(u.select().run())
 
     '''
     [{ id:118,
