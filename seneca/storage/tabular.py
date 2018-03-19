@@ -137,7 +137,7 @@ class ConstrainableQuery(object):
     def __init__(self, t_table):
         self.t_table = t_table
         self.modifiers = []
-        self.primary_table_name = t_table.fullname
+        self.primary_table_name = t_table.name
 
     def append_constraint(self, *args):
         self.modifiers.append(QueryConstraint(self.primary_table_name, *args))
@@ -174,7 +174,7 @@ class DeleteQuery(ConstrainableQuery):
     def run(self):
         where_sql = self.build_where_query()
 
-        sql_expr = ' '.join(['DELETE from %s' % self.t_table.fullname, where_sql])
+        sql_expr = ' '.join(['DELETE from %s' % self.t_table.name, where_sql])
 
         cur.execute(sql_expr)
         db.commit()
@@ -217,8 +217,9 @@ class SelectQuery(ConstrainableQuery):
         sort_sql = '' if not sort else sort[0].to_sql()
 
 
-        return ' '.join(['SELECT * FROM %s' % self.t_table.fullname, where_sql, sort_sql, limit_sql])
+        return ' '.join(['SELECT * FROM %s' % self.t_table.name, where_sql, sort_sql, limit_sql])
 
+    # TODO: move this method to the base query class, require all child classes to implement build_query
     def __str__(self):
         return self.build_query()
 
@@ -232,9 +233,13 @@ class SelectQuery(ConstrainableQuery):
 
         # Get and display one row at a time
         ret = []
+        col_names = self.t_table.get_columns()
 
         for x in range(0, numrows):
-            ret.append(tuple(cur.fetchone()))
+            vals = cur.fetchone()
+            val_dict = dict(zip(col_names, vals))
+
+            ret.append(val_dict)
 
         return ret
 
@@ -249,6 +254,7 @@ class TTable(object):
     def __init__(self, sa_table):
         self.sa_table = sa_table
         self.call_stack = []
+        self.name = sa_table.fullname
 
     def run(self):
         temp_ref = self.sa_table
@@ -262,7 +268,13 @@ class TTable(object):
 
 
     def select(self):
-        return SelectQuery(self.sa_table)
+        return SelectQuery(self)
+
+
+    def get_columns(self):
+        sa_cs = self.sa_table.columns
+        #map(lambda x: x.split('.')[-1], sa_cs)
+        return list(map(lambda x:x.key, sa_cs))
 
 
     def insert(self, dict_list):
@@ -274,7 +286,7 @@ class TTable(object):
 
 
     def delete(self):
-        return DeleteQuery(self.sa_table)
+        return DeleteQuery(self)
 
 
 # TODO: function decorator that adds caller data, makes sure it's populated and pre-applies it to name

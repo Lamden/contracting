@@ -38,13 +38,16 @@ if __name__ == '__main__':
 
     #list(map(add_user, range(10)))
 
-    print('***Results***')
+    #print('***Results***')
 
-    #print(u.select().limit(10).order_by('id', desc=True).run())
-    q = u.select().where_gt('id', 175).order_by('id', desc=True)
+    print(u.select().limit(10).order_by('id', desc=True).run()[0]['balance'])
+    #q = u.select().where_gt('id', 175).order_by('id', desc=True)
 
-    print(q)
-    print(q.run())
+    #print(q)
+    #print(q.run())
+
+    #print('\n\n')
+    #print(dir(u.sa_table))
 
     '''
     [{ id:118,
