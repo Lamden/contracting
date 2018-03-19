@@ -429,6 +429,53 @@ class SelectQuery(ConstrainableQuery):
         return ret
 
 
+class InsertQuery(object):
+    def __init__(self, ttable, rows_list_of_dicts):
+        self.row_data = rows_list_of_dicts
+        self.table = ttable
+
+    def get_row_keys(self):
+        return list(map(lambda x: list(x.keys()), self.row_data))
+
+    def validate_row_data(self):
+        keys_list = self.get_row_keys()
+        print(keys_list)
+        assert len(keys_list) > 0, 'Error: No keys found for insert.'
+        assert all(x == keys_list[0] for x in keys_list), 'Error: when \
+        inserting multiple records at once, all dicts must have keys much match'
+
+        # TODO: should probably validate against known table columns here
+
+
+    def build_query(self):
+        self.validate_row_data()
+
+        keys = self.get_row_keys()[0]
+
+        values_list = list(map(lambda row: [row[k] for k in keys],
+          self.row_data))
+
+        def render_row_data(r):
+            r_str = map(sql_str, r)
+            return '(%s)' % ', '.join(r_str)
+
+        # TODO: if columns are formatted like this elsewhere, abstract this logic
+        columns_str = '(%s)' % ', '.join(map(lambda x: '`%s`' % x, keys))
+        all_values_str = ', '.join(map(render_row_data, values_list))
+
+        return ' '.join([
+          'INSERT INTO %s %s' % (self.table.name, columns_str),
+          'VALUES %s' % all_values_str
+        ])
+
+    def run(self):
+        sql_expr = self.build_query()
+
+        count = cur.execute(sql_expr)
+        last_row = cur.lastrowid
+
+        return {'inserted_rows_count': count, 'last_row_inserted_id': last_row}
+
 
 
 # TODO: Validate assumption that this can probably never be secure as implemented
@@ -436,41 +483,34 @@ class SelectQuery(ConstrainableQuery):
 # in something other than Python to be secure, or we'll have to substatially change
 # how we eval and run smart contracts
 class TTable(object):
+
     def __init__(self, sa_table):
         self.sa_table = sa_table
         self.call_stack = []
         self.name = sa_table.fullname
 
-    def run(self):
-        temp_ref = self.sa_table
-        cs = self.call_stack
-        self.call_stack = []
 
-        if cs[0] == 'insert':
-            CONN.execute(temp_ref.insert(), cs[1])
-        else:
-            raise NotImplementedError()
+    def run(self):
+        raise NotImplementedError("A table can't be run directly, call a query \
+method and .run() the result.")
 
 
     def select(self):
         return SelectQuery(self)
+
 
     def update(self, set_column_value):
         return UpdateQuery(self, set_column_value)
 
 
     def get_columns(self):
+        #sqlalchemy, remove
         sa_cs = self.sa_table.columns
         return list(map(lambda x:x.key, sa_cs))
 
 
-    def insert(self, dict_list):
-        # TODO: move this to a separate class
-        # TODO: Don't use SQLAlchemy
-        # TODO: sanitize table names, a-z, underscores, no leading underscores.
-        # TODO: Figure out what data an insert should return
-        self.call_stack.extend(['insert', dict_list])
-        return self
+    def insert(self, rows_list_of_dicts):
+        return InsertQuery(self, rows_list_of_dicts)
 
 
     def delete(self):
