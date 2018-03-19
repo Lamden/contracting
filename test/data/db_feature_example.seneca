@@ -18,10 +18,45 @@ if __name__ == '__main__':
         'balance': 0
     }]).run()
 
-    u1 = u.select().limit(1).run()[0]
 
-    print(u1)
+#    u1 = u.select().limit(1).run()[0]
+#    print(u1)
+#    print(u.delete().run())
+#    print(u.select().limit(5).run())
 
-    print(u.delete().run())
+    #u.select().limit(5).join(o, on_src='id', on_dest='customer_id', alias='_orders')
 
-    print(u.select().limit(5).run())
+    def add_user(x):
+        print("****** adding user...")
+        u.insert([{
+            'first_name': 'john',
+            'last_name': 'doe',
+            'nick_name': 'doughboy',
+            'balance': 0
+        }]).run()
+
+
+    #list(map(add_user, range(10)))
+
+    print('***Results***')
+
+    #print(u.select().limit(10).order_by('id', desc=True).run())
+    q = u.select().where_gt('id', 175).order_by('id', desc=True)
+
+    print(q)
+    print(q.run())
+
+    '''
+    [{ id:118,
+        first_name:'john',
+        'last_name':'doe',
+        'nickname':'doughboy',
+        'balance':0,
+        '_joined':{
+            'orders': {
+                'date': '3/27/2018',
+                'quantity': 5
+            }
+        }
+    }]
+    '''

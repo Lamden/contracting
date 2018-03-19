@@ -17,6 +17,14 @@
 
 
 * Note: currently no foreign keys allowed in Myrocks, this is a feature under development so we may want to add it when they do.
+
+
+* Big TODOs:
+  * Make this secure. Serialized requests to a separate process, and validate before running based on caller.
+  * Do we allow joins across smart contracts? Peformance implications for sure. Will limit future architecture possibilities
+  *
+
+
 '''
 
 
@@ -82,18 +90,19 @@ def str_len(l):
     return StrLimitLen(l)
 
 class QueryConstraint(object):
-    def __init__(self, qc_type, column_name, value):
+    def __init__(self, table_name, qc_type, column_name, value):
         self.qc_type = qc_type
         self.column_name = column_name
         self.value = value
+        self.table_name = table_name
 
     # TODO: this should go to a serialized intermediate representation, go through access control, then converted to SQL
     def to_sql(self):
         qc_to_sql = {
             # TODO: should probably add backticks to column names
-            'equals': lambda x,y: '%s = %s' % (str(x), str(y)),
-            'less_than': lambda x,y: '%s < %s' % (str(x), str(y)),
-            'greater_than': lambda x,y: '%s > %s' % (str(x), str(y)),
+            'equals': lambda x,y: '%s.%s = %s' % (self.table_name, str(x), str(y)),
+            'less_than': lambda x,y: '%s.%s < %s' % (self.table_name, str(x), str(y)),
+            'greater_than': lambda x,y: '%s.%s > %s' % (self.table_name, str(x), str(y)),
         }
 
         assert self.qc_type in qc_to_sql, "Failed to idendtify query constraint type."
@@ -128,18 +137,20 @@ class ConstrainableQuery(object):
     def __init__(self, t_table):
         self.t_table = t_table
         self.modifiers = []
+        self.primary_table_name = t_table.fullname
+
+    def append_constraint(self, *args):
+        self.modifiers.append(QueryConstraint(self.primary_table_name, *args))
+        return self
 
     def where_equals(self, column_name, val):
-        self.modifiers.append(QueryConstraint('equals', column_name, val))
-        return self
+        return self.append_constraint('equals', column_name, val)
 
     def where_lt(self, column_name, val):
-        self.modifiers.append(QueryConstraint('less_than', column_name, val))
-        return self
+        return self.append_constraint('less_than', column_name, val)
 
     def where_gt(self, column_name, val):
-        self.modifiers.append(QueryConstraint('greater_than', column_name, val))
-        return self
+        return self.append_constraint('greater_than', column_name, val)
 
     #Todo: figure out all features we want? Like? Regex? What else?
 
@@ -154,7 +165,6 @@ class ConstrainableQuery(object):
             where_sql = 'WHERE %s' % where_sql
 
         return where_sql
-
 
 
 class DeleteQuery(ConstrainableQuery):
@@ -188,7 +198,14 @@ class SelectQuery(ConstrainableQuery):
         return self
 
 
-    def run(self):
+    def easy_join(self, table, on_src=None, on_dest=None, alias=None):
+        '''
+        left outer join, ordered by on_src, results
+
+        '''
+        pass
+
+    def build_query(self):
         where_sql = self.build_where_query()
 
         limit = list(filter(lambda x: type(x) == QueryLimit, self.modifiers))
@@ -200,7 +217,14 @@ class SelectQuery(ConstrainableQuery):
         sort_sql = '' if not sort else sort[0].to_sql()
 
 
-        sql_expr = ' '.join(['SELECT * FROM %s' % self.t_table.fullname, where_sql, sort_sql, limit_sql])
+        return ' '.join(['SELECT * FROM %s' % self.t_table.fullname, where_sql, sort_sql, limit_sql])
+
+    def __str__(self):
+        return self.build_query()
+
+
+    def run(self):
+        sql_expr = self.build_query()
 
         cur.execute(sql_expr)
 
@@ -242,16 +266,15 @@ class TTable(object):
 
 
     def insert(self, dict_list):
+        # TODO: move this to a separate class
+        # TODO: Don't use SQLAlchemy
+        # TODO: sanitize table names, a-z, underscores, no leading underscores.
         self.call_stack.extend(['insert', dict_list])
         return self
 
 
     def delete(self):
         return DeleteQuery(self.sa_table)
-
-
-    def join(self, with_table, this_on, that_on):
-        raise NotImplementedError()
 
 
 # TODO: function decorator that adds caller data, makes sure it's populated and pre-applies it to name
