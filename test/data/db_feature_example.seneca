@@ -11,11 +11,21 @@ if __name__ == '__main__':
         ('balance', int)
     ])
 
+    b = t.table('bid', [
+        ('user_id', int),
+        ('amount', int)
+    ])
+
     u.insert([{
         'first_name': 'john',
         'last_name': 'doe',
         'nick_name': 'doughboy',
         'balance': 0
+    }]).run()
+
+    b.insert([{
+        'user_id': 130,
+        'amount': 100
     }]).run()
 
 
@@ -40,8 +50,22 @@ if __name__ == '__main__':
 
     #print('***Results***')
 
-    print(u.select().limit(10).order_by('id', desc=True).run()[0]['balance'])
+    #print(u.select().limit(10).order_by('id', desc=True).run()[0]['balance'])
+
     #q = u.select().where_gt('id', 175).order_by('id', desc=True)
+
+    print(b.select().run())
+
+    q = (u.select()
+        .easy_join(b, on_src='id', on_dest='user_id')
+        .where_equals('amount', 100)
+        )
+
+    print(q.build_query())
+    print(q.run())
+
+
+#    print(u.select().easy_join(b, on_src='id', on_dest='user_id').run())
 
     #print(q)
     #print(q.run())

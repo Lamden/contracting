@@ -54,6 +54,7 @@ METADATA.bind=ENGINE
 
 
 # Alternate implementation, using sql directly, ultimately we probably want this done by an outside process.
+# Dockerfile regenerates random password on every build.
 db = MySQLdb.connect(host="127.0.0.1",    # your host, usually localhost
                      user="seneca_test",         # your username
                      passwd="JpJIzaoee2",  # your password
@@ -91,6 +92,8 @@ def str_len(l):
 
 class QueryConstraint(object):
     def __init__(self, table_name, qc_type, column_name, value):
+#        print("***QueryConstraint***")
+#        print(table_name, qc_type, column_name, value)
         self.qc_type = qc_type
         self.column_name = column_name
         self.value = value
@@ -120,13 +123,14 @@ class QueryLimit(object):
 
 class QuerySort(object):
     # TODO: decide whether users are allowed to order by multiple columns, if so modify
-    def __init__(self, column_name, desc):
+    def __init__(self, table_name, column_name, desc):
         self.column_name = column_name
         self.desc = desc
+        self.table_name = table_name
 
     def to_sql(self):
         desc = 'DESC' if self.desc else ''
-        return " ORDER BY %s %s" % (self.column_name, desc)
+        return " ORDER BY %s.%s %s" % (self.table_name, self.column_name, desc)
 
 
 
@@ -137,10 +141,11 @@ class ConstrainableQuery(object):
     def __init__(self, t_table):
         self.t_table = t_table
         self.modifiers = []
-        self.primary_table_name = t_table.name
 
     def append_constraint(self, *args):
-        self.modifiers.append(QueryConstraint(self.primary_table_name, *args))
+        print("appending constraint", self.t_table.name)
+        print(*args)
+        self.modifiers.append(QueryConstraint(self.t_table.name, *args))
         return self
 
     def where_equals(self, column_name, val):
@@ -154,12 +159,14 @@ class ConstrainableQuery(object):
 
     #Todo: figure out all features we want? Like? Regex? What else?
 
-    def build_where_query(self):
-        where_sql = ' AND '.join(
-            map(lambda x: x.to_sql(),
-                filter(lambda x: type(x) == QueryConstraint, self.modifiers)
-            )
+    def get_constraints(self):
+        return map(lambda x: x.to_sql(),
+            filter(lambda x: type(x) == QueryConstraint, self.modifiers)
         )
+
+
+    def build_where_query_fragment(self):
+        where_sql = ' AND '.join(self.get_constraints())
 
         if where_sql:
             where_sql = 'WHERE %s' % where_sql
@@ -167,12 +174,105 @@ class ConstrainableQuery(object):
         return where_sql
 
 
+class JoinPartialQuery(ConstrainableQuery):
+
+    def __init__(self, main_query, t_table, on_src=None, on_dest=None, alias=None, j_type='left_outer'):
+        assert on_src is not None
+        assert on_dest is not None
+
+        self.t_table = t_table
+        self.primary_table_name = main_query.t_table.name
+        self.main_query = main_query
+        self.primary_table_on = on_src
+        self.this_table_on = on_dest
+        self.alias = alias
+        self.j_type = j_type
+        self.modifiers = []
+
+
+#     def is_null(self, val=True):
+# #         self.modifiers.append(QueryLimit(count))
+# #         return self
+#
+
+    def build_query(self):
+        return ' '.join([ self.main_query.build_query(),
+                          self.build_join_on_query_fragment()
+                   ])
+
+    def build_query(self):
+        return ' '.join([self.main_query.build_select(),
+                         self.build_join_on_query_fragment(),
+                         self.build_where_query_fragment(),
+                         self.main_query.build_order(),
+                         self.main_query.build_limit()])
+
+    def build_join_on_query_fragment(self):
+        if self.j_type == 'left_outer':
+            return "LEFT JOIN %s ON %s.%s = %s.%s" % (
+                self.t_table.name,
+                self.primary_table_name,
+                self.primary_table_on,
+                self.t_table.name,
+                self.this_table_on
+            )
+
+
+        else:
+            raise NotImplementedError()
+
+
+    def build_where_query_fragment(self):
+
+        all_constraints = list(self.main_query.get_constraints()) + list(self.get_constraints())
+
+        where_sql = ' AND '.join(all_constraints)
+
+        if where_sql:
+            where_sql = 'WHERE %s' % where_sql
+
+        return where_sql
+
+    def limit(self, val):
+        self.main_query.limit(val)
+        return self
+
+
+    def order_by(self, column_name, desc=False):
+        self.main_query.modifiers.append(QuerySort(self.t_table.name, column_name, desc))
+        return self
+
+
+    def run(self):
+        sql_expr = self.build_query()
+
+        cur.execute(sql_expr)
+
+        numrows = cur.rowcount
+
+        # Get and display one row at a time
+        ret = []
+        col_names = self.t_table.get_columns()
+
+        for x in range(0, numrows):
+            vals = cur.fetchone()
+            #val_dict = dict(zip(col_names, vals))
+
+            ret.append(vals)
+
+        return ret
+
+
+
+
+
+
 class DeleteQuery(ConstrainableQuery):
     # TODO: sanitize input on everything
 
     # TODO: further dedupe with SelectQuery and move to ConstrainableQuery
     def run(self):
-        where_sql = self.build_where_query()
+        where_sql = self.build_where_query_fragment()
 
         sql_expr = ' '.join(['DELETE from %s' % self.t_table.name, where_sql])
 
@@ -198,26 +298,31 @@ class SelectQuery(ConstrainableQuery):
         return self
 
 
-    def easy_join(self, table, on_src=None, on_dest=None, alias=None):
+    def easy_join(self, secondary_table, on_src=None, on_dest=None, alias=None):
         '''
         left outer join, ordered by on_src, results
-
         '''
-        pass
+        return JoinPartialQuery(self, secondary_table, on_src, on_dest, alias)
 
-    def build_query(self):
-        where_sql = self.build_where_query()
 
+    def build_select(self):
+        return 'SELECT * FROM %s' % self.t_table.name
+
+    def build_limit(self):
         limit = list(filter(lambda x: type(x) == QueryLimit, self.modifiers))
         assert len(limit) <= 1, "Error, encountered multiple limit statements."
-        limit_sql = '' if not limit else limit[0].to_sql()
+        return '' if not limit else limit[0].to_sql()
 
+    def build_order(self):
         sort = list(filter(lambda x: type(x) == QuerySort, self.modifiers))
-        assert len(limit) <= 1, "Error, encountered multiple order-by statements."
-        sort_sql = '' if not sort else sort[0].to_sql()
+        assert len(sort) <= 1, "Error, encountered multiple order-by statements."
+        return '' if not sort else sort[0].to_sql()
 
-
-        return ' '.join(['SELECT * FROM %s' % self.t_table.name, where_sql, sort_sql, limit_sql])
+    def build_query(self):
+        return ' '.join([self.build_select(),
+                         self.build_where_query_fragment(),
+                         self.build_order(),
+                         self.build_limit()])
 
     # TODO: move this method to the base query class, require all child classes to implement build_query
     def __str__(self):
@@ -292,6 +397,7 @@ class TTable(object):
 # TODO: function decorator that adds caller data, makes sure it's populated and pre-applies it to name
 # @safe_name_prefix
 def table(t_name, column_tup_list):
+    # TODO: convert from sqlalchemy, make serializable
     """
     Create or retrieve table (always prepended with caller smart contract address).
     examples:
@@ -356,11 +462,6 @@ def table(t_name, column_tup_list):
     MetaData.create_all(METADATA, checkfirst=True)
 
     return TTable(table)
-
-
-
-
-
 
 
 exports = {
