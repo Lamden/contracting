@@ -24,13 +24,15 @@ seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
 
 # Convenience diagnostic function
 def pprint(*args, **kwargs):
-    return astpretty.pprint(*args, **kwargs)
+    #return astpretty.pprint(*args, **kwargs)
+    pass
 
 # Convenience diagnostic function
 def dprint(x):
     xs = dir(x)
     for x in xs:
-        print(x)
+        #print(x)
+        pass
 
 
 # Load module from file, return code as string
@@ -38,7 +40,7 @@ def dprint(x):
 #   which will pull module code from block chain.
 def test_seneca_loader(mod_name):
     m_path = os.path.join(sc_dir, (mod_name + '.seneca'))
-    print("Loading %s" % m_path)
+    # print("Loading %s" % m_path)
     return open(m_path, 'r').read()
 
 
@@ -127,9 +129,9 @@ def build_import_object(call_chain):
 
 
 def append_sandboxed_scope(scope, import_descriptor, exports):
-    print("scope is:", scope)
-    print("import descriptor is:", import_descriptor)
-    print("exports is:", exports)
+    # print("scope is:", scope)
+    # print("import descriptor is:", import_descriptor)
+    # print("exports is:", exports)
 
     qn = import_descriptor['qualified_name']
     if qn:
@@ -138,9 +140,9 @@ def append_sandboxed_scope(scope, import_descriptor, exports):
             last_in_chain = call_chain.pop()
             imp_obj = build_import_object(call_chain)
         else:
-            print('**** Setting scope name: %s to %s' % (qn, str(exports)))
-            print(type(exports))
-            print(exports)
+            # print('**** Setting scope name: %s to %s' % (qn, str(exports)))
+            # print(type(exports))
+            # print(exports)
             scope[qn] = namedtuple("Exports", exports.keys())(*exports.values())
     else:
         specific_names = import_descriptor['specific_names_in_mod']
@@ -208,14 +210,14 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
 
             for imp in import_list:
                 if imp['module_type'] == 'seneca':
-                    print(imp)
+                    # print(imp)
                     s_exports = seneca_lib_loader(imp['module_path'], name)
-                    print(s_exports)
+                    # print(s_exports)
                     append_sandboxed_scope(module_scope, imp, s_exports)
                     # mount_exports(module_scope, imp, s_exports)
 
                 elif imp['module_type'] == 'smart_contract':
-                    print('smart_contract import not implemented')
+                    # print('smart_contract import not implemented')
                     c_exports = module_loader(imp['module_path'],
                       search_path, is_main=False, loader=test_seneca_loader)
                     append_sandboxed_scope(module_scope, imp, c_exports._asdict())
@@ -244,7 +246,7 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
 
 
 # Run
-print("Starting Seneca...")
+print("\nStarting Seneca...")
 sc_main = sys.argv[1]
 sc_dir = sys.argv[2]
 

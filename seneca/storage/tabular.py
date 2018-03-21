@@ -41,8 +41,7 @@
 #print("caller: %s" % seneca_internal.smart_contract_caller)
 
 from itertools import zip_longest
-#import sqlalchemy
-#from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, Sequence, select
+import warnings
 import MySQLdb
 
 # TODO: figure out how we want to handle these.
@@ -64,11 +63,11 @@ TEMP_PASSWORD='tRcZUglAmO'
 
 # Alternate implementation, using sql directly, ultimately we probably want this done by an outside process.
 # Dockerfile regenerates random password on every build.
-db = MySQLdb.connect(host="127.0.0.1",    # your host, usually localhost
+conn = MySQLdb.connect(host="127.0.0.1",    # your host, usually localhost
                      user="seneca_test",         # your username
                      passwd=TEMP_PASSWORD,  # your password
                      db="seneca_test")        # name of the data base
-cur = db.cursor()
+cur = conn.cursor()
 
 # http://docs.sqlalchemy.org/en/latest/core/tutorial.html
 
@@ -227,6 +226,7 @@ class UpdateQuery(ConstrainableQuery):
         sql_expr = self.build_query()
 
         cur.execute(sql_expr)
+        conn.commit()
 
         numrows = cur.rowcount
 
@@ -245,6 +245,7 @@ class UpdateQuery(ConstrainableQuery):
         sql_expr = self.build_query()
 
         cur.execute(sql_expr)
+        #?? conn.commit()
 
         numrows = cur.rowcount
 
@@ -278,6 +279,8 @@ class JoinPartialQuery(ConstrainableQuery):
         self.alias = alias
         self.j_type = j_type
         self.modifiers = []
+
+
 
 
     def build_query(self):
@@ -329,21 +332,37 @@ class JoinPartialQuery(ConstrainableQuery):
 
 
     def run(self):
+        #print('Joining...')
         sql_expr = self.build_query()
+        #print(sql_expr)
 
         cur.execute(sql_expr)
-
         numrows = cur.rowcount
 
         # Get and display one row at a time
         ret = []
         col_names = self.table.column_names
 
+        # TODO: Don't conflate table column list from query columns, only the same if it's 'select *'
+        # Currently 'select *' is all that's supported, but that could change.
+        self.table.column_names
+        self.main_query.table.column_names
+
         for x in range(0, numrows):
             vals = cur.fetchone()
+
+            assert len(vals) == len(self.main_query.table.column_names) + \
+              len(self.table.column_names), 'Malformed data received from MyRocks server.'
+
+            # Main table results
+            r = dict(zip(self.main_query.table.column_names, vals))
+
+            # Joined results
+            r['_joined'] = {self.table.name: dict(zip(self.table.column_names, vals[(-(len(self.table.column_names))):]))}
+
             #val_dict = dict(zip(col_names, vals))
 
-            ret.append(vals)
+            ret.append(r)
 
         return ret
 
@@ -360,7 +379,7 @@ class DeleteQuery(ConstrainableQuery):
         sql_expr = ' '.join(['DELETE from %s' % self.table.name, where_sql])
 
         cur.execute(sql_expr)
-        db.commit()
+        conn.commit()
 
         numrows = cur.rowcount
 
@@ -442,7 +461,6 @@ class InsertQuery(object):
 
     def validate_row_data(self):
         keys_list = self.get_row_keys()
-        print(keys_list)
         assert len(keys_list) > 0, 'Error: No keys found for insert.'
         assert all(x == keys_list[0] for x in keys_list), 'Error: when \
         inserting multiple records at once, all dicts must have keys much match'
@@ -475,6 +493,7 @@ class InsertQuery(object):
         sql_expr = self.build_query()
 
         count = cur.execute(sql_expr)
+        conn.commit()
         last_row = cur.lastrowid
 
         return {'inserted_rows_count': count, 'last_row_inserted_id': last_row}
@@ -509,7 +528,7 @@ class Table(object):
         self.column_spec = column_spec
         self._create(if_not_exists=True)
 
-        self.column_names = [x[0] for x in column_spec]
+        self.column_names = ['id'] + [x[0] for x in column_spec]
 
 
     def _create(self, if_not_exists=True):
@@ -538,7 +557,12 @@ class Table(object):
             table_description,
         ])
 
-        return cur.execute(query)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            ret = cur.execute(query)
+            conn.commit()
+            return ret
+
 
 
 # TBD:

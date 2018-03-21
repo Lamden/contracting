@@ -7,53 +7,39 @@ if __name__ == '__main__':
     u = Table('users', [
         ('first_name', str_len(30)),
         ('last_name', str_len(30)),
-        ('nick_name', str_len(30), True), #Nicknames have a unique constraint, go figure.
+        ('nick_name', str_len(30)),
         ('balance', int)
     ])
-
-    x = Table('t_name', [
-        ('some_str', str_len(50)),
-        ('some_int', int),
-    ])#.run_create()
 
     b = Table('bid', [
         ('user_id', int),
         ('amount', int)
-    ])#.create().run()
-
-    # run_list_tables()
-    # list_tables().run()
-    # list_tables()
-    # run_new_table()
-    # db.drop_table(bid).run()
-    # b.run_drop()
-
-    q = u.insert([{
-        'first_name': 'john',
-        'last_name': 'doe',
-        'nick_name': 'doughboy',
-        'balance': 0
-    },
-    {
-        'first_name': 'john',
-        'last_name': 'doe',
-        'nick_name': 'doughboy',
-        'balance': 0
-    }
     ])
 
-    u.insert([{
-        'first_name': 'john',
-        'last_name': 'doe',
-        'nick_name': 'doughboy',
+
+    u1 = u.insert([{
+        'first_name': 'Test',
+        'last_name': 'User',
+        'nick_name': 't',
         'balance': 0
     }]).run()
 
-    b.insert([{
-        'user_id': 130,
+    q = u.select().where_equals('id', u1['last_row_inserted_id'])
+    print(q.run())
+
+
+    b1 = b.insert([{
+        'user_id': u1['last_row_inserted_id'],
         'amount': 100
     }]).run()
 
+
+    q1 = u.select().easy_join(b, on_src='id', on_dest='user_id')
+    print(q1.run())
+
+
+    u.delete().all_rows().run()
+    b.delete().all_rows().run()
 
 # Add some users
 #    def add_user(x):
@@ -67,21 +53,20 @@ if __name__ == '__main__':
 #    list(map(add_user, range(10)))
 #
 
-    print(b.select().run())
 
-    q = (u.select()
-        .easy_join(b, on_src='id', on_dest='user_id')
-        )
-
-    print(q.build_query())
-    print(q.run())
-
-    print(u.update({'balance': 1000, 'nick_name': 'baller'}).all_rows().run())
-    print(u.select().where_equals('nick_name', 'baller').run())
-
-    print(u.delete().all_rows().run())
-    print(u.select().run())
-
+#    q = (u.select()
+#        .easy_join(b, on_src='id', on_dest='user_id')
+#        )
+#
+#    print(q.build_query())
+#    print(q.run())
+#
+#    print(u.update({'balance': 1000, 'nick_name': 'baller'}).all_rows().run())
+#    print(u.select().where_equals('nick_name', 'baller').run())
+#
+#    print(u.delete().all_rows().run())
+#    print(u.select().run())
+#
     '''
     [{ id:118,
         first_name:'john',
