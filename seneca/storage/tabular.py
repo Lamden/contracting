@@ -3,7 +3,6 @@
 * Uses myrocks to support SQL operations on rocksdb
 * Right now relying on yet to be built execution environment to force squential evaluation of contracts
   * Not doing any concurrency control/transactions. Consistency maintained by that sequential evaluation
-* Implementing prototype with SQL alchemy
 
 * Must start work on Seneca import system so we can inject caller address here.
   * Must not be a singleton like standard Python imports because it's very possible this lib will be called by multiple smart contracts in chain and need to give each its own instance
@@ -14,10 +13,7 @@
   * Probably do not want this for data access
 
 * Maybe provide a transaction interface for performance (or if some kind of parallel execution is eventually allowed.)
-
-
 * Note: currently no foreign keys allowed in Myrocks, this is a feature under development so we may want to add it when they do.
-
 
 * Big TODOs:
   * Make this secure.
@@ -28,7 +24,6 @@
   * Decide: do we allow joins across smart contracts?
     * Peformance implications for sure.
     * It will limit future architecture possibilities
-  * Remove SQLAlchemy entirely
   * Run batch
   * Version one feature list. LIKE? Regex match?
 
@@ -44,32 +39,16 @@ from itertools import zip_longest
 import warnings
 import MySQLdb
 
-# TODO: figure out how we want to handle these.
-#METADATA = MetaData()
 # TODO: Replace this with the real engine from Cilantro
 
-
-# TODO: restrictions and prefixing tables with smart_contract_caller
-# TODO: Don't hard code this
-
+# Dockerfile regenerates random password on every build.
 TEMP_PASSWORD='tRcZUglAmO'
 
-# Note password is auto generated every time docker instance is built, password is hardcoded right now and must be changed to run
-# Dockerfile regenerates random password on every build.
-#ENGINE = create_engine("mysql://seneca_test:%s@127.0.0.1:3306/seneca_test" % TEMP_PASSWORD)
-#CONN = ENGINE.connect()
-#METADATA.bind=ENGINE
-
-
-# Alternate implementation, using sql directly, ultimately we probably want this done by an outside process.
-# Dockerfile regenerates random password on every build.
 conn = MySQLdb.connect(host="127.0.0.1",    # your host, usually localhost
                      user="seneca_test",         # your username
                      passwd=TEMP_PASSWORD,  # your password
                      db="seneca_test")        # name of the data base
 cur = conn.cursor()
-
-# http://docs.sqlalchemy.org/en/latest/core/tutorial.html
 
 
 def outside_table(sc_addr, name):
@@ -78,26 +57,32 @@ def outside_table(sc_addr, name):
     """
     pass
 
+
 def run_batch(ops):
-    """
-    """
     # TODO: This should be implemnted more efficiently than just running each command individually.
     for o in ops:
         o.run()
 
 
-def tup_defaults(t, prototype):
-    return tuple(map(lambda x_y: x_y[0] if x_y[0] else x_y[1], zip_longest(t, prototype)))
-
-
 class StrLimitLen(object):
+    """A simple object that is passed as a type in column definitions, it
+    represents a string with a fixed length
+    """
     def __init__(self, l):
         self.length_limit = l
 
+
 def str_len(l):
+    """Utility function so StrLimitLen is invoked in lower case to look more
+    like 'int' and other built in types.
+    """
     return StrLimitLen(l)
 
+
 def sql_str(x):
+    """ Convert python types to valid strings for sql values, currently used to
+    quote strings.
+    """
     t = type(x)
     if t == str:
         return "'%s'" % x
@@ -106,9 +91,10 @@ def sql_str(x):
 
 
 class QueryConstraint(object):
+    """Represents the contents of an SQL where clause, '=', '>', '<', and (maybe
+    other stuff eventually).
+    """
     def __init__(self, table_name, qc_type, column_name, value):
-#        print("***QueryConstraint***")
-#        print(table_name, qc_type, column_name, value)
         self.qc_type = qc_type
         self.column_name = column_name
         self.value = value
@@ -150,7 +136,8 @@ class QuerySort(object):
 
 
 def require_constraint_on_run(f):
-    '''Useful for queries that you don't want to accidentally apply to all rows, i.e. updates and deletes'''
+    '''Function decorator: useful for query methods, which would be bad to run
+    accidentally when applied to all rows, i.e. updates and deletes'''
     def ret(obj):
         assert list(obj.get_constraints()), "To prevent unintended modification to all rows, \
         destructive opperations must always contain a constraint, either 'where_*(...)', or to modify \
@@ -281,12 +268,11 @@ class JoinPartialQuery(ConstrainableQuery):
         self.modifiers = []
 
 
-
-
     def build_query(self):
         return ' '.join([ self.main_query.build_query(),
                           self.build_join_on_query_fragment()
                    ])
+
 
     def build_query(self):
         return ' '.join([self.main_query.build_select(),
@@ -294,6 +280,7 @@ class JoinPartialQuery(ConstrainableQuery):
                          self.build_where_query_fragment(),
                          self.main_query.build_order(),
                          self.main_query.build_limit()])
+
 
     def build_join_on_query_fragment(self):
         if self.j_type == 'left_outer':
@@ -304,8 +291,6 @@ class JoinPartialQuery(ConstrainableQuery):
                 self.table.name,
                 self.this_table_on
             )
-
-
         else:
             raise NotImplementedError()
 
@@ -320,6 +305,7 @@ class JoinPartialQuery(ConstrainableQuery):
             where_sql = 'WHERE %s' % where_sql
 
         return where_sql
+
 
     def limit(self, val):
         self.main_query.limit(val)
@@ -358,19 +344,16 @@ class JoinPartialQuery(ConstrainableQuery):
             r = dict(zip(self.main_query.table.column_names, vals))
 
             # Joined results
+            # TODO: make sure column names with leading underscores are disallowed
             r['_joined'] = {self.table.name: dict(zip(self.table.column_names, vals[(-(len(self.table.column_names))):]))}
-
-            #val_dict = dict(zip(col_names, vals))
 
             ret.append(r)
 
         return ret
 
 
-
 class DeleteQuery(ConstrainableQuery):
     # TODO: sanitize input on everything
-
     # TODO: further dedupe with SelectQuery and move to ConstrainableQuery
     @require_constraint_on_run
     def run(self):
@@ -410,15 +393,18 @@ class SelectQuery(ConstrainableQuery):
     def build_select(self):
         return 'SELECT * FROM %s' % self.table.name
 
+
     def build_limit(self):
         limit = list(filter(lambda x: type(x) == QueryLimit, self.modifiers))
         assert len(limit) <= 1, "Error, encountered multiple limit statements."
         return '' if not limit else limit[0].to_sql()
 
+
     def build_order(self):
         sort = list(filter(lambda x: type(x) == QuerySort, self.modifiers))
         assert len(sort) <= 1, "Error, encountered multiple order-by statements."
         return '' if not sort else sort[0].to_sql()
+
 
     def build_query(self):
         return ' '.join([self.build_select(),
@@ -456,8 +442,10 @@ class InsertQuery(object):
         self.row_data = rows_list_of_dicts
         self.table = ttable
 
+
     def get_row_keys(self):
         return list(map(lambda x: list(x.keys()), self.row_data))
+
 
     def validate_row_data(self):
         keys_list = self.get_row_keys()
@@ -476,9 +464,11 @@ class InsertQuery(object):
         values_list = list(map(lambda row: [row[k] for k in keys],
           self.row_data))
 
+
         def render_row_data(r):
             r_str = map(sql_str, r)
             return '(%s)' % ', '.join(r_str)
+
 
         # TODO: if columns are formatted like this elsewhere, abstract this logic
         columns_str = '(%s)' % ', '.join(map(lambda x: '`%s`' % x, keys))
@@ -488,6 +478,7 @@ class InsertQuery(object):
           'INSERT INTO %s %s' % (self.table.name, columns_str),
           'VALUES %s' % all_values_str
         ])
+
 
     def run(self):
         sql_expr = self.build_query()
@@ -517,11 +508,15 @@ def to_sql_type_str(x):
         raise ValueError("Unsupported column type.")
     # TODO: decimal, date time
 
+
 def join_non_empty(s, xs):
     return s.join(list(filter(lambda x:x, xs)))
 
 
 class Table(object):
+    """Represents a MyRocks table. Creating this object in a smart contract will
+    automatically create the table as well.
+    """
 
     def __init__(self, name, column_spec):
         self.name = safe_table_name(name) # VERY IMPORTANT
@@ -564,22 +559,6 @@ class Table(object):
             return ret
 
 
-
-# TBD:
-#    def run_drop(self):
-#        # Needs .run()
-#        raise NotImplementedError()
-#
-#
-#    def run_add_column(self, *args):
-#        # Add, run_drop methods, and .run()
-#        raise NotImplementedError()
-#
-#
-#    def run_drop_column(self, name):
-#        raise NotImplementedError()
-#
-#
     def select(self):
         return SelectQuery(self)
 
@@ -594,8 +573,6 @@ class Table(object):
 
     def delete(self):
         return DeleteQuery(self)
-
-
 
 
 exports = {
