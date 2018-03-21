@@ -31,6 +31,9 @@
   * Remove SQLAlchemy entirely
   * Run batch
   * Version one feature list. LIKE? Regex match?
+
+  * Outside table foreign table, something
+  *
 '''
 
 # TODO: verify this is being called each time it's imported.
@@ -38,8 +41,8 @@
 #print("caller: %s" % seneca_internal.smart_contract_caller)
 
 from itertools import zip_longest
-import sqlalchemy
-from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, Sequence, select
+#import sqlalchemy
+#from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, Sequence, select
 import MySQLdb
 
 # TODO: figure out how we want to handle these.
