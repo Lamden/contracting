@@ -46,7 +46,7 @@ from itertools import zip_longest
 import MySQLdb
 
 # TODO: figure out how we want to handle these.
-METADATA = MetaData()
+#METADATA = MetaData()
 # TODO: Replace this with the real engine from Cilantro
 
 
@@ -57,9 +57,9 @@ TEMP_PASSWORD='tRcZUglAmO'
 
 # Note password is auto generated every time docker instance is built, password is hardcoded right now and must be changed to run
 # Dockerfile regenerates random password on every build.
-ENGINE = create_engine("mysql://seneca_test:%s@127.0.0.1:3306/seneca_test" % TEMP_PASSWORD)
-CONN = ENGINE.connect()
-METADATA.bind=ENGINE
+#ENGINE = create_engine("mysql://seneca_test:%s@127.0.0.1:3306/seneca_test" % TEMP_PASSWORD)
+#CONN = ENGINE.connect()
+#METADATA.bind=ENGINE
 
 
 # Alternate implementation, using sql directly, ultimately we probably want this done by an outside process.
@@ -164,12 +164,12 @@ def require_constraint_on_run(f):
 
 class ConstrainableQuery(object):
     # TODO: sanitize input on everything
-    def __init__(self, t_table):
-        self.t_table = t_table
+    def __init__(self, table):
+        self.table = table
         self.modifiers = []
 
     def append_constraint(self, *args):
-        self.modifiers.append(QueryConstraint(self.t_table.name, *args))
+        self.modifiers.append(QueryConstraint(self.table.name, *args))
         return self
 
     def where_equals(self, column_name, val):
@@ -201,9 +201,9 @@ class ConstrainableQuery(object):
 
 
 class UpdateQuery(ConstrainableQuery):
-    def __init__(self, t_table, set_column_value):
+    def __init__(self, table, set_column_value):
         self.set_column_value = set_column_value
-        self.t_table = t_table
+        self.table = table
         self.modifiers = []
 
     # Inherits where-methods from ConstrainableQuery
@@ -212,7 +212,7 @@ class UpdateQuery(ConstrainableQuery):
         set_clauses = ', '.join(['%s=%s' % (k,sql_str(v)) for k,v in self.set_column_value.items()])
 
         return ' '.join([
-            'UPDATE %s' % self.t_table.name,
+            'UPDATE %s' % self.table.name,
             'SET %s' % set_clauses,
             self.build_where_query_fragment()
         ])
@@ -250,7 +250,7 @@ class UpdateQuery(ConstrainableQuery):
 
         # Get and display one row at a time
         ret = []
-        col_names = self.t_table.get_columns()
+        col_names = self.table.get_columns()
 
         for x in range(0, numrows):
             vals = cur.fetchone()
@@ -266,12 +266,12 @@ class UpdateQuery(ConstrainableQuery):
 
 class JoinPartialQuery(ConstrainableQuery):
 
-    def __init__(self, main_query, t_table, on_src=None, on_dest=None, alias=None, j_type='left_outer'):
+    def __init__(self, main_query, table, on_src=None, on_dest=None, alias=None, j_type='left_outer'):
         assert on_src is not None
         assert on_dest is not None
 
-        self.t_table = t_table
-        self.primary_table_name = main_query.t_table.name
+        self.table = table
+        self.primary_table_name = main_query.table.name
         self.main_query = main_query
         self.primary_table_on = on_src
         self.this_table_on = on_dest
@@ -295,10 +295,10 @@ class JoinPartialQuery(ConstrainableQuery):
     def build_join_on_query_fragment(self):
         if self.j_type == 'left_outer':
             return "LEFT JOIN %s ON %s.%s = %s.%s" % (
-                self.t_table.name,
+                self.table.name,
                 self.primary_table_name,
                 self.primary_table_on,
-                self.t_table.name,
+                self.table.name,
                 self.this_table_on
             )
 
@@ -324,7 +324,7 @@ class JoinPartialQuery(ConstrainableQuery):
 
 
     def order_by(self, column_name, desc=False):
-        self.main_query.modifiers.append(QuerySort(self.t_table.name, column_name, desc))
+        self.main_query.modifiers.append(QuerySort(self.table.name, column_name, desc))
         return self
 
 
@@ -337,7 +337,7 @@ class JoinPartialQuery(ConstrainableQuery):
 
         # Get and display one row at a time
         ret = []
-        col_names = self.t_table.get_columns()
+        col_names = self.table.column_names
 
         for x in range(0, numrows):
             vals = cur.fetchone()
@@ -357,7 +357,7 @@ class DeleteQuery(ConstrainableQuery):
     def run(self):
         where_sql = self.build_where_query_fragment()
 
-        sql_expr = ' '.join(['DELETE from %s' % self.t_table.name, where_sql])
+        sql_expr = ' '.join(['DELETE from %s' % self.table.name, where_sql])
 
         cur.execute(sql_expr)
         db.commit()
@@ -389,7 +389,7 @@ class SelectQuery(ConstrainableQuery):
 
 
     def build_select(self):
-        return 'SELECT * FROM %s' % self.t_table.name
+        return 'SELECT * FROM %s' % self.table.name
 
     def build_limit(self):
         limit = list(filter(lambda x: type(x) == QueryLimit, self.modifiers))
@@ -421,7 +421,7 @@ class SelectQuery(ConstrainableQuery):
 
         # Get and display one row at a time
         ret = []
-        col_names = self.t_table.get_columns()
+        col_names = self.table.column_names
 
         for x in range(0, numrows):
             vals = cur.fetchone()
@@ -485,31 +485,83 @@ class InsertQuery(object):
 # TODO: This is a preview of an interface, it almost certainly must be implemented
 # in something other than Python to be secure, or we'll have to substatially change
 # how we eval and run smart contracts
-class TTable(object):
-
-    def __init__(self, sa_table):
-        self.sa_table = sa_table
-        self.call_stack = []
-        self.name = sa_table.fullname
+def safe_table_name(name):
+    return "%s_%s" % (seneca_internal.smart_contract_caller, name)
 
 
-    def run(self):
-        raise NotImplementedError("A table can't be run directly, call a query \
-method and .run() the result.")
+def to_sql_type_str(x):
+    if x is int:
+        return 'BIGINT'
+    elif type(x) == StrLimitLen:
+        return 'VARCHAR(%d)' % x.length_limit
+    else:
+        raise ValueError("Unsupported column type.")
+    # TODO: decimal, date time
+
+def join_non_empty(s, xs):
+    return s.join(list(filter(lambda x:x, xs)))
 
 
+class Table(object):
+
+    def __init__(self, name, column_spec):
+        self.name = safe_table_name(name) # VERY IMPORTANT
+        self.column_spec = column_spec
+        self._create(if_not_exists=True)
+
+        self.column_names = [x[0] for x in column_spec]
+
+
+    def _create(self, if_not_exists=True):
+        # TODO: sanitize column names
+
+        id_column_str = 'id int AUTO_INCREMENT NOT NULL'
+        column_spec_strs = list(map(
+            lambda x:'%s %s' % (x[0], to_sql_type_str(x[1]))
+            , self.column_spec
+        ))
+
+        unique_columns = [x[0] for x in self.column_spec if len(x) == 3 and x[2]]
+
+        unique_constraint_str = '' if not unique_columns else \
+          'CONSTRAINT %s UNIQUE (%s)' % (self.name, ','.join(unique_columns))
+
+
+        table_description = '(%s)' % join_non_empty(',\n', [ id_column_str,
+                                                             *column_spec_strs,
+                                                             unique_constraint_str,
+                                                             'PRIMARY KEY (id)'])
+        query = ' '.join([
+            'CREATE TABLE',
+            'IF NOT EXISTS' if if_not_exists else '',
+            self.name,
+            table_description,
+        ])
+
+        return cur.execute(query)
+
+
+# TBD:
+#    def run_drop(self):
+#        # Needs .run()
+#        raise NotImplementedError()
+#
+#
+#    def run_add_column(self, *args):
+#        # Add, run_drop methods, and .run()
+#        raise NotImplementedError()
+#
+#
+#    def run_drop_column(self, name):
+#        raise NotImplementedError()
+#
+#
     def select(self):
         return SelectQuery(self)
 
 
     def update(self, set_column_value):
         return UpdateQuery(self, set_column_value)
-
-
-    def get_columns(self):
-        #sqlalchemy, remove
-        sa_cs = self.sa_table.columns
-        return list(map(lambda x:x.key, sa_cs))
 
 
     def insert(self, rows_list_of_dicts):
@@ -520,79 +572,11 @@ method and .run() the result.")
         return DeleteQuery(self)
 
 
-# TODO: function decorator that adds caller data, makes sure it's populated and pre-applies it to name
-# @safe_name_prefix
-def table(t_name, column_tup_list):
-    # TODO: convert from sqlalchemy, make serializable
-    """
-    Create or retrieve table (always prepended with caller smart contract address).
-    examples:
-
-    u = st.table('users', [
-        ('first_name', str_len(30)),
-        ('last_name', str_len(30)),
-        ('nick_name', str_len(30), True),
-        ('balance', int)
-    ])
-    # Will always prepend table name with smart contract ID
-    # outside_table(sc_addr, name)
-
-    u.update(???).where(???).values(????).run()
-    u.insert(????).run()
-    u.insert(????).run()
-    x = u.select(????).whatever().whatever().run()
-
-    st.run(u.select([u.c.id])
-           .where(users.c.id == )
-
-    """
-    # TODO: make sure metadata is safely handled and isn't leaking anywhere it shouldn't
-    # TODO: Thinking name prefix safety is only for inserts, and drops, confirm.
-    # TODO: safely apply whitelist to name, only allow a-z,0-9,_,-  and any mysql rules on names
-    # TODO: see if we can restrict users from accessing closure scope on return functions, if we cannot, this must be implemented differently,
-    # ultimately we may have to reimplment all this in our own interpreter.
-
-    sc_id = seneca_internal.smart_contract_caller
-
-    assert sc_id is not None, \
-      "Something went wrong. This module should only every be called by smart contracts, the caller cannot be identified"
-
-    safe_name = "%s_%s" % (seneca_internal.smart_contract_caller, t_name)
-    t_name = None # Unsetting t_name so it cannot accidentally be used
-    # Replace this and above logic with decorator function would be better
-
-    def convert_to_sa_type(x):
-        if x is int:
-            return Integer
-        elif type(x) == StrLimitLen:
-            return String(x.length_limit)
-        else:
-            raise ValueError("Unsupported column type.")
-
-
-    def create_column(c_tup):
-        c_name, c_type, unique_con = tup_defaults(c_tup, (None, None, False))
-        return Column(c_name, convert_to_sa_type(c_type), unique=unique_con)
-
-    table = Table(safe_name, METADATA ,
-       Column('id', Integer, Sequence('user_id_seq'), primary_key=True),
-       *map(create_column, column_tup_list),
-       # TODO: decide if we actually want autoload enabled
-#       autoload_with=ENGINE,
-#       check_exists=True,
-#       autoload=True
-    )
-
-    # TODO: figure out what happens if the table already exists and make changes as needed
-#    table.create(ENGINE)
-    MetaData.create_all(METADATA, checkfirst=True)
-
-    return TTable(table)
 
 
 exports = {
     'outside_table': outside_table,
     'run_batch': run_batch,
     'str_len': str_len,
-    'table': table,
+    'Table': Table,
 }

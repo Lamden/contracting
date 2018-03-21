@@ -38,6 +38,7 @@ permitted_ast_types = {
         ast.UnaryOp,
         ast.Pass,
         ast.Tuple,
+        ast.Div,
     }
 
 def validate(a):

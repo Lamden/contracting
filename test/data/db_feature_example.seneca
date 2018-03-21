@@ -1,19 +1,45 @@
 #from seneca.storage import orm
 # TODO: figure out why this didn't work
 #from seneca.storage import tabular as t
-import seneca.storage.tabular as t
+from seneca.storage.tabular import Table, str_len
 
 if __name__ == '__main__':
-    u = t.table('users', [
-        ('first_name', t.str_len(30)),
-        ('last_name', t.str_len(30)),
-        ('nick_name', t.str_len(30)),
+    u = Table('users', [
+        ('first_name', str_len(30)),
+        ('last_name', str_len(30)),
+        ('nick_name', str_len(30), True), #Nicknames have a unique constraint, go figure.
         ('balance', int)
     ])
 
-    b = t.table('bid', [
+    x = Table('t_name', [
+        ('some_str', str_len(50)),
+        ('some_int', int),
+    ])#.run_create()
+
+    b = Table('bid', [
         ('user_id', int),
         ('amount', int)
+    ])#.create().run()
+
+    # run_list_tables()
+    # list_tables().run()
+    # list_tables()
+    # run_new_table()
+    # db.drop_table(bid).run()
+    # b.run_drop()
+
+    q = u.insert([{
+        'first_name': 'john',
+        'last_name': 'doe',
+        'nick_name': 'doughboy',
+        'balance': 0
+    },
+    {
+        'first_name': 'john',
+        'last_name': 'doe',
+        'nick_name': 'doughboy',
+        'balance': 0
+    }
     ])
 
     u.insert([{
@@ -29,36 +55,22 @@ if __name__ == '__main__':
     }]).run()
 
 
-#    u1 = u.select().limit(1).run()[0]
-#    print(u1)
-#    print(u.delete().run())
-#    print(u.select().limit(5).run())
-
-    #u.select().limit(5).join(o, on_src='id', on_dest='customer_id', alias='_orders')
-
-    def add_user(x):
-        print("****** adding user...")
-        u.insert([{
-            'first_name': 'john',
-            'last_name': 'doe',
-            'nick_name': 'doughboy',
-            'balance': 0
-        }]).run()
-
-
-    #list(map(add_user, range(10)))
-
-    #print('***Results***')
-
-    #print(u.select().limit(10).order_by('id', desc=True).run()[0]['balance'])
-
-    #q = u.select().where_gt('id', 175).order_by('id', desc=True)
+# Add some users
+#    def add_user(x):
+#        print("****** adding user...")
+#        u.insert([{
+#            'first_name': 'john',
+#            'last_name': 'doe',
+#            'nick_name': 'doughboy',
+#            'balance': 0
+#        }]).run()
+#    list(map(add_user, range(10)))
+#
 
     print(b.select().run())
 
     q = (u.select()
         .easy_join(b, on_src='id', on_dest='user_id')
-        .where_equals('amount', 100)
         )
 
     print(q.build_query())
