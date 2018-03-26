@@ -28,7 +28,19 @@
   * Version one feature list. LIKE? Regex match?
 
   * Outside table foreign table, something
-  *
+  * Warning for queries created and never run. Though the syntax is consistent, and a finalizer like run() is necessary
+  for queries created by chained methods, else how would we know to runs a .select() when it's unknown if the author will
+  be adding a .where_equals() or running as is.
+    * Plugin to traverse the AST, count up queries, then count up run() invocations and warn if they don't add up.
+
+  * User types to designate safe and unsafe names (tables, columns, etc)
+  * Make sure we're using cursor correctly
+
+TODO:
+  * Table alteration methods
+    * Decide whether or not they should be methods or module functions
+    * drop table, add column, drop column
+    * decide what invocation should look like ".run()"? run_<some_name> (no 'run')
 '''
 
 # TODO: verify this is being called each time it's imported.
@@ -42,7 +54,7 @@ import MySQLdb
 # TODO: Replace this with the real engine from Cilantro
 
 # Dockerfile regenerates random password on every build.
-TEMP_PASSWORD='tRcZUglAmO'
+TEMP_PASSWORD='C0PZNh5p9j'
 
 conn = MySQLdb.connect(host="127.0.0.1",    # your host, usually localhost
                      user="seneca_test",         # your username
@@ -62,6 +74,36 @@ def run_batch(ops):
     # TODO: This should be implemnted more efficiently than just running each command individually.
     for o in ops:
         o.run()
+
+
+def _run_read(q):
+    cur.execute(q)
+    return cur
+
+
+def _run_write(q):
+    cur.execute(q)
+    conn.commit()
+    return cur
+
+
+def _run_writes(qs):
+    for q in qs:
+        cur.execute(q)
+    conn.commit()
+    return cur
+
+
+def surround(s, x):
+    return s + x + s
+
+
+def in_quotes(x):
+    return surround('\'', x)
+
+
+def in_backticks(x):
+    return surround('`', x)
 
 
 class StrLimitLen(object):
@@ -96,7 +138,7 @@ class QueryConstraint(object):
     """
     def __init__(self, table_name, qc_type, column_name, value):
         self.qc_type = qc_type
-        self.column_name = column_name
+        self.column_name = safe_column_name(column_name)
         self.value = value
         self.table_name = table_name
 
@@ -126,7 +168,7 @@ class QueryLimit(object):
 class QuerySort(object):
     # TODO: decide whether users are allowed to order by multiple columns, if so modify
     def __init__(self, table_name, column_name, desc):
-        self.column_name = column_name
+        self.column_name = safe_column_name(column_name)
         self.desc = desc
         self.table_name = table_name
 
@@ -158,14 +200,15 @@ class ConstrainableQuery(object):
         self.modifiers.append(QueryConstraint(self.table.name, *args))
         return self
 
+    # TODO: create safe_val function and apply to all vals below
     def where_equals(self, column_name, val):
-        return self.append_constraint('equals', column_name, val)
+        return self.append_constraint('equals', safe_column_name(column_name), val)
 
     def where_lt(self, column_name, val):
-        return self.append_constraint('less_than', column_name, val)
+        return self.append_constraint('less_than', safe_column_name(column_name), val)
 
     def where_gt(self, column_name, val):
-        return self.append_constraint('greater_than', column_name, val)
+        return self.append_constraint('greater_than', safe_column_name(column_name), val)
 
     def all_rows(self):
         return self.append_constraint('all_rows', None, None)
@@ -188,7 +231,7 @@ class ConstrainableQuery(object):
 
 class UpdateQuery(ConstrainableQuery):
     def __init__(self, table, set_column_value):
-        self.set_column_value = set_column_value
+        self.set_column_value = safe_column_name(set_column_value)
         self.table = table
         self.modifiers = []
 
@@ -313,7 +356,7 @@ class JoinPartialQuery(ConstrainableQuery):
 
 
     def order_by(self, column_name, desc=False):
-        self.main_query.modifiers.append(QuerySort(self.table.name, column_name, desc))
+        self.main_query.modifiers.append(QuerySort(self.table.name, safe_column_name(column_name), desc))
         return self
 
 
@@ -491,12 +534,22 @@ class InsertQuery(object):
 
 
 
+# TODO: enforce a unique delimiter that is dissalowed in user content to prevent strategic collisions, maybe dollar
 # TODO: Validate assumption that this can probably never be secure as implemented
 # TODO: This is a preview of an interface, it almost certainly must be implemented
 # in something other than Python to be secure, or we'll have to substatially change
 # how we eval and run smart contracts
 def safe_table_name(name):
-    return "%s_%s" % (seneca_internal.smart_contract_caller, name)
+    return "%s$%s" % (seneca_internal.smart_contract_caller, name)
+
+
+def safe_column_name(name):
+    # TODO: apply whitelist
+    return name
+
+
+def safe_constraint_name(tbl_name, col_name):
+    return '%s$%s' % (safe_table_name(tbl_name), safe_column_name(col_name))
 
 
 def to_sql_type_str(x):
@@ -509,8 +562,85 @@ def to_sql_type_str(x):
     # TODO: decimal, date time
 
 
-def join_non_empty(s, xs):
-    return s.join(list(filter(lambda x:x, xs)))
+def join_non_empty(d, xs):
+    return d.join(list(filter(lambda x:x, xs)))
+
+
+def create_table(*args, **kwargs):
+    """Table factory, currently just runs Table constructor, may add more stuff later."""
+    return Table(*args, **kwargs)
+
+
+def make_unique_constraint_name(safe_table_name, raw_column_name):
+    return 'seneca_unique$%s$%s' % (safe_table_name, raw_column_name)
+
+
+def _just_drop_table(safe_name):
+    q = 'DROP TABLE %s;' % safe_name
+    print(q)
+    _run_write(q)
+
+
+def drop_table(unsafe_unknown_type_t):
+    is_table = False
+
+    if type(unsafe_unknown_type_t) == Table:
+        unsafe_t_str = unsafe_unknown_type_t._unsafe_name_without_prefix
+        is_table = True
+    elif type(unsafe_unknown_type_t) == str:
+        unsafe_t_str = unsafe_unknown_type_t
+    else:
+        raise TypeError("%s only exepts Tables and strings (table names)" % func.__name__)
+
+    _just_drop_table(safe_table_name(unsafe_t_str))
+
+    if is_table:
+        del(unsafe_unknown_type_t)
+
+
+def add_column(table, column_desc):
+    # TODO: validate column name and table name
+    column_name = column_desc[0]
+    column_type = column_desc[1]
+    column_is_unique = len(column_desc) == 3 and column_desc[2]
+
+    qs = []
+
+    qs.append(' '.join([ 'ALTER TABLE',
+                            table.name,
+                            'ADD COLUMN',
+                            column_name,
+                            to_sql_type_str(column_type),
+                            'AFTER',
+                            table.column_names[-1]
+    ]))
+
+    if column_is_unique:
+        qs.append(' '.join([ 'ALTER TABLE',
+                            table.name,
+                            'ADD CONSTRAINT',
+                            make_unique_constraint_name(table.name, column_name),
+                            'UNIQUE (',
+                            column_name,
+                            ');'
+        ]))
+
+    _run_writes(qs)
+    table.column_names.append(column_name)
+
+
+def drop_column(table, column_name):
+    # TODO: validate column name and table name
+    drop_column_query = ' '.join([ 'ALTER TABLE',
+                                    table.name,
+                                    'DROP COLUMN',
+                                    column_name,
+                                    ';',
+    ])
+    res = _run_write(drop_column_query)
+
+    # update table columns
+    table.column_names = list(filter(lambda x: x != column_name, table.column_names))
 
 
 class Table(object):
@@ -520,6 +650,7 @@ class Table(object):
 
     def __init__(self, name, column_spec):
         self.name = safe_table_name(name) # VERY IMPORTANT
+        self._unsafe_name_without_prefix = name
         self.column_spec = column_spec
         self._create(if_not_exists=True)
 
@@ -535,22 +666,32 @@ class Table(object):
             , self.column_spec
         ))
 
-        unique_columns = [x[0] for x in self.column_spec if len(x) == 3 and x[2]]
 
-        unique_constraint_str = '' if not unique_columns else \
-          'CONSTRAINT %s UNIQUE (%s)' % (self.name, ','.join(unique_columns))
+        def make_constraint(x):
+            return 'CONSTRAINT %s UNIQUE (%s)' % (
+              make_unique_constraint_name(self.name, x), x
+            )
 
+        unique_constraints = [ make_constraint(x[0]) for x in self.column_spec if len(x) == 3 and x[2]]
 
-        table_description = '(%s)' % join_non_empty(',\n', [ id_column_str,
-                                                             *column_spec_strs,
-                                                             unique_constraint_str,
-                                                             'PRIMARY KEY (id)'])
-        query = ' '.join([
-            'CREATE TABLE',
+        # Everything inside perens needs commas
+        #
+
+        query = join_non_empty(' ',
+          [ 'CREATE TABLE',
             'IF NOT EXISTS' if if_not_exists else '',
             self.name,
-            table_description,
+            '\n(',
+            join_non_empty(',\n',
+            [ id_column_str,
+              *column_spec_strs,
+              *unique_constraints,
+              'PRIMARY KEY (id)',
+            ]),
+            '\n);',
         ])
+
+        print(query)
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -579,5 +720,8 @@ exports = {
     'outside_table': outside_table,
     'run_batch': run_batch,
     'str_len': str_len,
-    'Table': Table,
+    'create_table': create_table,
+    'drop_table': drop_table,
+    'add_column': add_column,
+    'drop_column': drop_column
 }

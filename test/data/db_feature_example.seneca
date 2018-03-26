@@ -1,17 +1,18 @@
 #from seneca.storage import orm
 # TODO: figure out why this didn't work
 #from seneca.storage import tabular as t
-from seneca.storage.tabular import Table, str_len
+from seneca.storage.tabular import create_table, str_len, add_column, drop_column, drop_table
 
 if __name__ == '__main__':
-    u = Table('users', [
-        ('first_name', str_len(30)),
-        ('last_name', str_len(30)),
+    drop_table('users')
+    u = create_table('users', [
+        ('first_name', str_len(30), True),
+        ('last_name', str_len(30), True),
         ('nick_name', str_len(30)),
         ('balance', int)
     ])
 
-    b = Table('bid', [
+    b = create_table('bid', [
         ('user_id', int),
         ('amount', int)
     ])
@@ -40,6 +41,23 @@ if __name__ == '__main__':
 
     u.delete().all_rows().run()
     b.delete().all_rows().run()
+
+    drop_column(u, 'first_name')
+    add_column(u, ('given_name', str_len(30)))
+    add_column(u, ('unique_given_name', str_len(30), True))
+    print(u.column_names)
+
+
+#    drop_table(b)
+#    drop_table(u)
+
+#   b = create_table('bid', [
+#       ('user_id', int),
+#       ('amount', int)
+#   ])
+#   drop_table(u)
+#   add_column(u, ('balance', int) )
+#   drop_column(u, 'column_name')
 
 # Add some users
 #    def add_user(x):
