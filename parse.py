@@ -22,18 +22,6 @@ from parser_internal import basic_ast_whitelist
 
 seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
 
-# Convenience diagnostic function
-def pprint(*args, **kwargs):
-    #return astpretty.pprint(*args, **kwargs)
-    pass
-
-# Convenience diagnostic function
-def dprint(x):
-    xs = dir(x)
-    for x in xs:
-        #print(x)
-        pass
-
 
 # Load module from file, return code as string
 # In real application, a different function will be provided from Cilantro,
@@ -45,6 +33,11 @@ def test_seneca_loader(mod_name):
 
 
 def ast_import_decoder(item):
+    """Analyzes import statement in smart contract.
+    Decide if the import is valid and supported.
+    Figure out whether the module being imported is a smart contract or a Seneca lib
+    Return a dict with detailed information about the import.
+    """
     def is_seneca(module_path):
         return module_path.split('.')[0] == 'seneca'
 
@@ -129,10 +122,13 @@ def build_import_object(call_chain):
 
 
 def append_sandboxed_scope(scope, import_descriptor, exports):
-    # print("scope is:", scope)
-    # print("import descriptor is:", import_descriptor)
-    # print("exports is:", exports)
+    """ Given:
+    * A scope (which will be bound to a smart contract to be run)
+    * import_descriptor, which has info on how the objects should be bound to the scope, e.g. 'as' another name, non-qualified, etc
+    * exports, objects exported from a called module, ready to be bound to a scope
 
+    Doesn't return anything, just mutates the scope as needed.
+    """
     qn = import_descriptor['qualified_name']
     if qn:
         if '.' in qn:
@@ -156,7 +152,9 @@ def append_sandboxed_scope(scope, import_descriptor, exports):
             scope.update(exports)
 
 
-def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
+def module_runner(name, user, is_main=False, loader=None, down_stream_loader=None):
+    # TODO: remove search_path in module_runner invocation below.
+    """
     # TODO: Refactor
     # TODO: make sure we can do 'from foo import *'
     # TODO: Seneca lib loader
@@ -180,6 +178,13 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
     #   caller.
     # TODO: # We probably need a custom importer in the seneca lib so we don't
     #   leak functions that don't belong in the smart contract execution scope.
+    """
+
+    assert loader is not None, 'No module loader provided'
+
+    if not down_stream_loader:
+        # If no down_stream_loader specified, default to the loader
+        down_stream_loader = loader
 
     #  Parse Seneca smart contract, generate AST
     smart_contract_ast = ast.parse(loader(name))
@@ -218,8 +223,8 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
 
                 elif imp['module_type'] == 'smart_contract':
                     # print('smart_contract import not implemented')
-                    c_exports = module_loader(imp['module_path'],
-                      search_path, is_main=False, loader=test_seneca_loader)
+                    c_exports = module_runner(imp['module_path'], user
+                      is_main=False, loader=down_stream_loader)
                     append_sandboxed_scope(module_scope, imp, c_exports._asdict())
                 else:
                    # TODO: custom exception types, also, consider moving this
@@ -245,9 +250,7 @@ def module_loader(name, search_path, is_main=False, loader=test_seneca_loader):
         return namedtuple(name, x.keys())(**x)
 
 
-# Run
-print("\nStarting Seneca...")
-sc_main = sys.argv[1]
-sc_dir = sys.argv[2]
-
-module_loader(sc_main, sc_dir, is_main=True)
+if __name__ == '__main__':
+    # Run
+    print("\nStarting Seneca...")
+    #module_runner(sc_main, user, sc_dir, is_main=True)
