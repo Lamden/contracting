@@ -41,6 +41,7 @@ TODO:
     * Decide whether or not they should be methods or module functions
     * drop table, add column, drop column
     * decide what invocation should look like ".run()"? run_<some_name> (no 'run')
+  * get_table method that populates table object with data from table in db
 '''
 
 # TODO: verify this is being called each time it's imported.
