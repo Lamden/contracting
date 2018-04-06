@@ -15,7 +15,6 @@ import ast
 import astpretty
 from collections import namedtuple
 import os
-import sys
 import importlib
 
 from parser_internal import basic_ast_whitelist
@@ -26,7 +25,7 @@ seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
 # Load module from file, return code as string
 # In real application, a different function will be provided from Cilantro,
 #   which will pull module code from block chain.
-def test_seneca_loader(mod_name):
+def test_seneca_loader(sc_dir, mod_name):
     m_path = os.path.join(sc_dir, (mod_name + '.seneca'))
     # print("Loading %s" % m_path)
     return open(m_path, 'r').read()
@@ -223,8 +222,8 @@ def module_runner(name, user, is_main=False, loader=None, down_stream_loader=Non
 
                 elif imp['module_type'] == 'smart_contract':
                     # print('smart_contract import not implemented')
-                    c_exports = module_runner(imp['module_path'], user
-                      is_main=False, loader=down_stream_loader)
+                    c_exports = module_runner(imp['module_path'], user, \
+                       is_main=False, loader=down_stream_loader)
                     append_sandboxed_scope(module_scope, imp, c_exports._asdict())
                 else:
                    # TODO: custom exception types, also, consider moving this
@@ -253,4 +252,8 @@ def module_runner(name, user, is_main=False, loader=None, down_stream_loader=Non
 if __name__ == '__main__':
     # Run
     print("\nStarting Seneca...")
-    #module_runner(sc_main, user, sc_dir, is_main=True)
+
+    loader = lambda x: test_seneca_loader(sys.argv[1], x)
+
+    module_runner(sys.argv[2], 'tester', is_main=True, loader=loader, down_stream_loader=None)
+
