@@ -1,6 +1,6 @@
 from seneca.storage.tabular import create_table, get_table, str_len, add_column, drop_column, drop_table
 import seneca.runtime.state as st
-from seneca.modulelib import export, auto_exports
+from seneca.modulelib import export, make_exports
 
 # TODO: Implement per-table permissions
 
@@ -70,13 +70,13 @@ def delete_role(r):
 @export
 def update_role(name, create_table, drop_table, edit_users, edit_roles, edit_data):
     assert_has_perm('edit_roles')
-    return roles.update.where_equals('role', name).([{
+    return roles.update([{
         'create_table': create_table,
         'drop_table': drop_table,
         'edit_users': edit_users,
         'edit_roles': edit_roles,
         'edit_data': edit_data,
-    }]).run()
+    }]).where_equals('role', name).run()
 
 
 @export
@@ -150,6 +150,7 @@ if __name__ == '__main__':
     # Create first user, the author of this contract, and give that user admin perms
     _insert_role('admin', True, True, True, True, True)
     _insert_user(st.user, 'admin')
+    print(make_exports())
 else:
     exports = auto_export()
 
