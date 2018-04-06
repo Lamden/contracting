@@ -17,3 +17,10 @@ def export(f):
 def make_exports():
     return _exports_dict
 
+
+
+
+exports = {
+    'make_exports': make_exports,
+    'export': export
+}

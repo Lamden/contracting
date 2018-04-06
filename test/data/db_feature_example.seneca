@@ -4,7 +4,7 @@
 from seneca.storage.tabular import create_table, str_len, add_column, drop_column, drop_table
 
 if __name__ == '__main__':
-    drop_table('users')
+    #drop_table('users')
     u = create_table('users', [
         ('first_name', str_len(30), True),
         ('last_name', str_len(30), True),
