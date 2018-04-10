@@ -20,17 +20,6 @@ import importlib
 
 from parser_internal import basic_ast_whitelist
 
-seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
-
-
-# Load module from file, return code as string
-# In real application, a different function will be provided from Cilantro,
-#   which will pull module code from block chain.
-def test_seneca_loader(mod_name):
-    m_path = os.path.join(sc_dir, (mod_name + '.seneca'))
-    # print("Loading %s" % m_path)
-    return open(m_path, 'r').read()
-
 
 def ast_import_decoder(item):
     """Analyzes import statement in smart contract.
@@ -89,17 +78,23 @@ def is_ast_import(item):
 
 
 # TODO: make sure this loads modules exactly once per caller_id
-def seneca_lib_loader(module_path, caller_name):
-    x = importlib.import_module(module_path)
-    # TODO: implement complete seneca_internal
-    si = Empty()
-    si.called_by_internal = False
-    si.smart_contract_caller = caller_name
-    x.seneca_internal = si
+def seneca_lib_loader(module_path, global_run_data, this_contract_run_data):
+    print('Importing module %s' % module_path)
 
-    assert hasattr(x, 'exports'), "Imported module %s doesn't have any exports" % module_path
-    assert x.exports is not None, "Imported module %s has exports set to None" % module_path
-    return x.exports
+    x = importlib.import_module(module_path)
+
+    if not module_path == 'seneca.runtime':
+        # TODO: implement complete seneca_internal
+        si = Empty()
+        si.called_by_internal = False
+        x.seneca_internal = si
+
+        assert hasattr(x, 'exports'), "Imported module %s doesn't have any exports" % module_path
+        assert x.exports is not None, "Imported module %s has exports set to None" % module_path
+
+        return x.exports
+    else:
+        return x.make_exports(global_run_data, this_contract_run_data)
 
 
 class Empty(object):
@@ -152,12 +147,11 @@ def append_sandboxed_scope(scope, import_descriptor, exports):
             scope.update(exports)
 
 
-def module_runner(name, user, is_main=False, loader=None, down_stream_loader=None):
+def execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=False, module_loader=None):
     # TODO: remove search_path in module_runner invocation below.
     """
     # TODO: Refactor
     # TODO: make sure we can do 'from foo import *'
-    # TODO: Seneca lib loader
     # TODO: complex validation
     # TODO: Blacklist built-in functions we don't want
     #   Or just override __built_ins__ with a restricted list
@@ -178,8 +172,9 @@ def module_runner(name, user, is_main=False, loader=None, down_stream_loader=Non
     #   caller.
     # TODO: # We probably need a custom importer in the seneca lib so we don't
     #   leak functions that don't belong in the smart contract execution scope.
+    # TODO: see what is leaked through stack frame/ global frame
+    # TODO: see what we can limit through editing builtins
     """
-
     assert loader is not None, 'No module loader provided'
 
     if not down_stream_loader:
@@ -216,15 +211,20 @@ def module_runner(name, user, is_main=False, loader=None, down_stream_loader=Non
             for imp in import_list:
                 if imp['module_type'] == 'seneca':
                     # print(imp)
-                    s_exports = seneca_lib_loader(imp['module_path'], name)
+                    s_exports = seneca_lib_loader(imp['module_path'], global_run_data, this_contract_run_data):
                     # print(s_exports)
                     append_sandboxed_scope(module_scope, imp, s_exports)
                     # mount_exports(module_scope, imp, s_exports)
 
                 elif imp['module_type'] == 'smart_contract':
                     # print('smart_contract import not implemented')
-                    c_exports = module_runner(imp['module_path'], user
-                      is_main=False, loader=down_stream_loader)
+                    downstream_contract_run_data, downstream_contract_str = module_loader(contract_id)
+                    c_exports = execute_contract(global_run_data,
+                                                 downstream_contract_run_data,
+                                                 downstream_contract_str,
+                                                 is_main=False,
+                                                 module_loader=module_loader)
+
                     append_sandboxed_scope(module_scope, imp, c_exports._asdict())
                 else:
                    # TODO: custom exception types, also, consider moving this
@@ -248,9 +248,3 @@ def module_runner(name, user, is_main=False, loader=None, down_stream_loader=Non
     if not is_main:
         x = module_scope['exports']
         return namedtuple(name, x.keys())(**x)
-
-
-if __name__ == '__main__':
-    # Run
-    print("\nStarting Seneca...")
-    #module_runner(sc_main, user, sc_dir, is_main=True)
