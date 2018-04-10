@@ -15,10 +15,20 @@ import ast
 import astpretty
 from collections import namedtuple
 import os
-import sys
 import importlib
 
 from parser_internal import basic_ast_whitelist
+
+seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
+
+
+# Load module from file, return code as string
+# In real application, a different function will be provided from Cilantro,
+#   which will pull module code from block chain.
+def test_seneca_loader(sc_dir, mod_name):
+    m_path = os.path.join(sc_dir, (mod_name + '.seneca'))
+    # print("Loading %s" % m_path)
+    return open(m_path, 'r').read()
 
 
 def ast_import_decoder(item):
@@ -248,3 +258,4 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
     if not is_main:
         x = module_scope['exports']
         return namedtuple(name, x.keys())(**x)
+

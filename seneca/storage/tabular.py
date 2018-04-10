@@ -41,6 +41,7 @@ TODO:
     * Decide whether or not they should be methods or module functions
     * drop table, add column, drop column
     * decide what invocation should look like ".run()"? run_<some_name> (no 'run')
+  * get_table method that populates table object with data from table in db
 '''
 
 # TODO: verify this is being called each time it's imported.
@@ -571,6 +572,10 @@ def create_table(*args, **kwargs):
     return Table(*args, **kwargs)
 
 
+def get_table(name):
+    return Table.generate_from_db_table(name)
+
+
 def make_unique_constraint_name(safe_table_name, raw_column_name):
     return 'seneca_unique$%s$%s' % (safe_table_name, raw_column_name)
 
@@ -656,6 +661,19 @@ class Table(object):
 
         self.column_names = ['id'] + [x[0] for x in column_spec]
 
+    @classmethod
+    def generate_from_db_table(cls, name):
+        #Generate column spec
+
+        #TODO: describe table
+        #TODO: for each colum, get name, convert sql type to python type
+        #TODO: probably should get unique constraint as well, but now not critical
+        #TODO: build column spec
+        raise NotImplementedError
+        column_spec = '...'
+
+        return cls(name, column_spec)
+
 
     def _create(self, if_not_exists=True):
         # TODO: sanitize column names
@@ -723,5 +741,6 @@ exports = {
     'create_table': create_table,
     'drop_table': drop_table,
     'add_column': add_column,
-    'drop_column': drop_column
+    'drop_column': drop_column,
+    'get_table': get_table
 }

@@ -39,6 +39,11 @@ permitted_ast_types = {
         ast.Pass,
         ast.Tuple,
         ast.Div,
+        ast.In,
+        ast.NotIn,
+        ast.Gt,
+        ast.Lt,
+        ast.Starred
     }
 
 def validate(a):
