@@ -93,7 +93,9 @@ def seneca_lib_loader(module_path, global_run_data, this_contract_run_data):
 
     x = importlib.import_module(module_path)
 
-    if not module_path == 'seneca.runtime':
+    if module_path == 'seneca.runtime':
+        return x.make_exports(global_run_data, this_contract_run_data)
+    else:
         # TODO: implement complete seneca_internal
         si = Empty()
         si.called_by_internal = False
@@ -103,8 +105,6 @@ def seneca_lib_loader(module_path, global_run_data, this_contract_run_data):
         assert x.exports is not None, "Imported module %s has exports set to None" % module_path
 
         return x.exports
-    else:
-        return x.make_exports(global_run_data, this_contract_run_data)
 
 
 class Empty(object):
@@ -185,14 +185,10 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
     # TODO: see what is leaked through stack frame/ global frame
     # TODO: see what we can limit through editing builtins
     """
-    assert loader is not None, 'No module loader provided'
-
-    if not down_stream_loader:
-        # If no down_stream_loader specified, default to the loader
-        down_stream_loader = loader
+    assert module_loader is not None, 'No module loader provided'
 
     #  Parse Seneca smart contract, generate AST
-    smart_contract_ast = ast.parse(loader(name))
+    smart_contract_ast = ast.parse(contract_str)
 
     assert type(smart_contract_ast) == ast.Module, \
       "Unexpected input, 'a' should always be an _ast.Module"
@@ -221,7 +217,7 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
             for imp in import_list:
                 if imp['module_type'] == 'seneca':
                     # print(imp)
-                    s_exports = seneca_lib_loader(imp['module_path'], global_run_data, this_contract_run_data):
+                    s_exports = seneca_lib_loader(imp['module_path'], global_run_data, this_contract_run_data)
                     # print(s_exports)
                     append_sandboxed_scope(module_scope, imp, s_exports)
                     # mount_exports(module_scope, imp, s_exports)
@@ -258,4 +254,3 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
     if not is_main:
         x = module_scope['exports']
         return namedtuple(name, x.keys())(**x)
-

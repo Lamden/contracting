@@ -44,18 +44,19 @@ TODO:
   * get_table method that populates table object with data from table in db
 '''
 
+# TODO: make names of conversion functions uniform so it's easy to see where they are and add new types
+# TODO: configurable verbosity
 # TODO: verify this is being called each time it's imported.
-#print("loading tabular, TODO: make sure this loads for each and every import")
-#print("caller: %s" % seneca_internal.smart_contract_caller)
 
 from itertools import zip_longest
 import warnings
 import MySQLdb
+import datetime
 
 # TODO: Replace this with the real engine from Cilantro
 
 # Dockerfile regenerates random password on every build.
-TEMP_PASSWORD='C0PZNh5p9j'
+TEMP_PASSWORD='H9ECjzW03N'
 
 conn = MySQLdb.connect(host="127.0.0.1",    # your host, usually localhost
                      user="seneca_test",         # your username
@@ -121,14 +122,25 @@ def str_len(l):
     """
     return StrLimitLen(l)
 
+def sql_escapes(s):
+    # TODO: make sure everything I need is here.
+    import re
+    return re.sub("'", "''", s)
+
+
 
 def sql_str(x):
-    """ Convert python types to valid strings for sql values, currently used to
+    """ Casting python types to valid strings for sql values, currently used to
     quote strings.
     """
     t = type(x)
     if t == str:
+        return "'%s'" % sql_escapes(x)
+    elif t == datetime.datetime:
+        # TODO: figure out local time
         return "'%s'" % x
+    elif x is None:
+        return 'NULL'
     else:
         return str(x)
 
@@ -362,9 +374,7 @@ class JoinPartialQuery(ConstrainableQuery):
 
 
     def run(self):
-        #print('Joining...')
         sql_expr = self.build_query()
-        #print(sql_expr)
 
         cur.execute(sql_expr)
         numrows = cur.rowcount
@@ -385,6 +395,7 @@ class JoinPartialQuery(ConstrainableQuery):
               len(self.table.column_names), 'Malformed data received from MyRocks server.'
 
             # Main table results
+            # TODO: make sure the correct types are being returned.
             r = dict(zip(self.main_query.table.column_names, vals))
 
             # Joined results
@@ -473,6 +484,7 @@ class SelectQuery(ConstrainableQuery):
         col_names = self.table.column_names
 
         for x in range(0, numrows):
+            # TODO: casting function from SQL data to Python types goes here.
             vals = cur.fetchone()
             val_dict = dict(zip(col_names, vals))
 
@@ -541,7 +553,11 @@ class InsertQuery(object):
 # in something other than Python to be secure, or we'll have to substatially change
 # how we eval and run smart contracts
 def safe_table_name(name):
-    return "%s$%s" % (seneca_internal.smart_contract_caller, name)
+    # TODO: Refactor this library, split out the functionality used by smart contracts and internally
+    if 'seneca_internal' in globals():
+        return "%s$%s" % (seneca_internal.smart_contract_caller, name)
+    else:
+         return name
 
 
 def safe_column_name(name):
@@ -554,10 +570,16 @@ def safe_constraint_name(tbl_name, col_name):
 
 
 def to_sql_type_str(x):
+    # return values used when creating queries (that will be casting python data types to sql)
     if x is int:
         return 'BIGINT'
     elif type(x) == StrLimitLen:
         return 'VARCHAR(%d)' % x.length_limit
+    # TODO: decide if this is a gotcha.
+    elif x is str:
+        return 'TEXT'
+    elif x is datetime.datetime:
+        return 'DATETIME'
     else:
         raise ValueError("Unsupported column type.")
     # TODO: decimal, date time
@@ -569,7 +591,7 @@ def join_non_empty(d, xs):
 
 def create_table(*args, **kwargs):
     """Table factory, currently just runs Table constructor, may add more stuff later."""
-    return Table(*args, **kwargs)
+    return Table.generate_from_unsafe_name(*args, **kwargs)
 
 
 def get_table(name):
@@ -582,7 +604,6 @@ def make_unique_constraint_name(safe_table_name, raw_column_name):
 
 def _just_drop_table(safe_name):
     q = 'DROP TABLE %s;' % safe_name
-    print(q)
     _run_write(q)
 
 
@@ -654,12 +675,16 @@ class Table(object):
     """
 
     def __init__(self, name, column_spec):
-        self.name = safe_table_name(name) # VERY IMPORTANT
-        self._unsafe_name_without_prefix = name
+        self.name = name # VERY IMPORTANT
         self.column_spec = column_spec
         self._create(if_not_exists=True)
 
         self.column_names = ['id'] + [x[0] for x in column_spec]
+
+    @classmethod
+    def generate_from_unsafe_name(cls, name, column_spec):
+        safe_name = safe_table_name(name)
+        return cls(safe_name, column_spec)
 
     @classmethod
     def generate_from_db_table(cls, name):
@@ -672,7 +697,7 @@ class Table(object):
         raise NotImplementedError
         column_spec = '...'
 
-        return cls(name, column_spec)
+        return generate_from_unsafe_name(cls, name, column_spec)
 
 
     def _create(self, if_not_exists=True):
@@ -708,8 +733,6 @@ class Table(object):
             ]),
             '\n);',
         ])
-
-        print(query)
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')

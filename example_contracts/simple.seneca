@@ -1,10 +1,4 @@
-import seneca.stdlib
-from seneca.storage import tabular as db
-# from foo import bar
-# from foo import bar, baz
-# from foo import *
-# import foo, bar
+import seneca.runtime as rt
 
-import seneca.test_stub as t
-
-t.print_caller_data()
+print('this contract author: ', rt.this_contract.author)
+print('root contract author: ', rt.root_contract.author)
