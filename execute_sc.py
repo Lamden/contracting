@@ -96,9 +96,10 @@ def seneca_lib_loader(module_path, global_run_data, this_contract_run_data):
     if module_path == 'seneca.runtime':
         return x.make_exports(global_run_data, this_contract_run_data)
     else:
-        # TODO: implement complete seneca_internal
+        # TODO: implement complete seneca_internal and DRY this out, make internal attrs match runtime.py
         si = Empty()
         si.called_by_internal = False
+        si.smart_contract_caller = global_run_data['caller_user_id']
         x.seneca_internal = si
 
         assert hasattr(x, 'exports'), "Imported module %s doesn't have any exports" % module_path

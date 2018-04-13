@@ -35,6 +35,7 @@
 
   * User types to designate safe and unsafe names (tables, columns, etc)
   * Make sure we're using cursor correctly
+  * Add ID to column spec
 
 TODO:
   * Table alteration methods
@@ -84,6 +85,7 @@ def _run_read(q):
 
 
 def _run_write(q):
+    #print("Running query: %s" % q)
     cur.execute(q)
     conn.commit()
     return cur
@@ -134,15 +136,28 @@ def sql_str(x):
     quote strings.
     """
     t = type(x)
-    if t == str:
+    if t is str:
         return "'%s'" % sql_escapes(x)
-    elif t == datetime.datetime:
+    elif t is datetime.datetime:
         # TODO: figure out local time
         return "'%s'" % x
     elif x is None:
         return 'NULL'
+    elif t is bool:
+        if x:
+            return '1'
+        else:
+            return '0'
     else:
         return str(x)
+
+def cast_sql_to_python(sql_val, python_type):
+    # TODO: Do this properly, note mysql api at least casts ints and strings properly, other types we have to check
+    if python_type is bool:
+        return bool(sql_val)
+    else:
+        return sql_val
+
 
 
 class QueryConstraint(object):
@@ -483,10 +498,17 @@ class SelectQuery(ConstrainableQuery):
         ret = []
         col_names = self.table.column_names
 
+        # XXX: how did we end up with nested tuples, TODO: fix this
+        def get_type(*args):
+            return args[0][1]
+
+        # TODO: when Column spec includes ID, remove this
+        col_type_list = [int] + list(map(get_type, self.table.column_spec))
+
         for x in range(0, numrows):
-            # TODO: casting function from SQL data to Python types goes here.
             vals = cur.fetchone()
-            val_dict = dict(zip(col_names, vals))
+            cast_vals = [cast_sql_to_python(v,t) for (v,t) in zip(vals, col_type_list)]
+            val_dict = dict(zip(col_names, cast_vals))
 
             ret.append(val_dict)
 
@@ -536,6 +558,11 @@ class InsertQuery(object):
         ])
 
 
+    # TODO: move this method to the base query class, require all child classes to implement build_query
+    def __str__(self):
+        return self.build_query()
+
+
     def run(self):
         sql_expr = self.build_query()
 
@@ -580,7 +607,10 @@ def to_sql_type_str(x):
         return 'TEXT'
     elif x is datetime.datetime:
         return 'DATETIME'
+    elif x is bool:
+        return 'BOOLEAN'
     else:
+        print(x)
         raise ValueError("Unsupported column type.")
     # TODO: decimal, date time
 

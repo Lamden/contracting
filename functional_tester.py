@@ -17,6 +17,8 @@ from datetime import datetime
 # TODO: don't know if we should actually be calling seneca libs from both smart contracts and underlying code, consider revision
 import seneca.storage.tabular as t
 
+
+## Setup steps ##
 contract_file_path = './example_contracts/'
 
 t.drop_table('smart_contracts')
@@ -28,6 +30,7 @@ contract_table = t.Table('smart_contracts', [
     ('execution_datetime', datetime),
     ('execution_status', t.str_len(30)),
 ])
+## End setup ##
 
 
 def get_contract_str_from_fs(file_name):
@@ -67,6 +70,7 @@ def finalize_contract_record(contract_id, passed, contract_address):
 
 
 def run_contract_file_as_user(contract_file_name, user_id, contract_address):
+    print('Running contract: %s' % contract_file_name)
     contract_str = get_contract_str_from_fs(contract_file_name)
 
     contract_id = store_contract(contract_str, user_id, contract_address)
@@ -100,7 +104,9 @@ def print_status():
         print('\texecution_datetime: ', r['execution_datetime'])
 
 if __name__ == '__main__':
-    run_contract_file_as_user('simple.seneca', 'test_user_1', 'simple')
+    print('\n\n\n\n*** Starting functional testing ***\n')
+    run_contract_file_as_user('rbac.seneca', 'test_user_1', 'simple')
 
-    print('\n*** Functional Testing completed ***')
+    print('Results:')
     print_status()
+    print('\n*** Functional testing completed ***')

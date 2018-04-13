@@ -43,7 +43,12 @@ permitted_ast_types = {
         ast.NotIn,
         ast.Gt,
         ast.Lt,
-        ast.Starred
+        ast.Starred,
+        ast.Mod,
+        ast.NotEq,
+        # TODO: Decide if we actually want these
+        ast.ExceptHandler,
+        ast.Try,
     }
 
 def validate(a):
