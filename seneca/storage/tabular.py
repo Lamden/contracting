@@ -4,6 +4,75 @@
 * Right now relying on yet to be built execution environment to force squential evaluation of contracts
   * Not doing any concurrency control/transactions. Consistency maintained by that sequential evaluation
 
+
+# v2 #
+* mysql-base lib
+  * Defines serializable query class
+  * Functions for stuff like sanitizing data
+  * Actually runs queries from query object
+
+* mysql-point-in-time (commit/rollback to PIT)
+  * stuff to figure out
+    * Does MyRocks store nulls efficiently?
+      If no, rollback row data shouldn't live in same table
+      * In that case, does myrocks store empty tables efficiently, can it move rows betweeen tables efficiently
+        If so, store rollback data in dedicated tables.
+  * additional data
+    * Rollback/commit instructions table (not specific to any contract)
+      * Rollback pending changes
+      * Commit changes
+    * Duplicate columns in tables, use a disallowed character with label, something like original_data$<column_name>
+  * decorates base lib functions
+    * select
+      * hides restricted data
+        * original_data columns
+        * soft-deleted rows where rollback_action = undelete
+        * soft-deleted columns
+        * block access to soft deleted tables
+    * create table
+      * Restricts characters for Scratch namespacing
+      * Additional columns for
+        * rollback_action [restore, delete, undelete]
+        * original_data$<column_name> for every column
+    * insert row
+      * Insert normally, but include rollback_action = delete
+      * Obviously don't allow data writes to original_data fields
+    * delete row
+      * If rollback_action is null
+        * Set rollback_action = undelete
+        * move data to original_data columns (needed for columns with unique constraint)
+    * update row
+      * If rollback_action is null
+        * Set rollback_action = restore
+        * move data to original_data columns
+    * Add column
+      * add drop column x on table y command to rollback table unless column with same name already dropped
+        * i.e. if a column is dropped and readded and dropped again in the same scratch window, just throw it out
+          * remember this is a point-in-time snapshot, not an undo-stack
+    * drop column
+      * if column existed before window save with prepended name
+    * drop table
+      * if table existed before scratch window, move it to a temporary name
+  * additional functionality for
+    * begin_scratch(window_id)
+      * creates scratch_data table if none exists
+    * commit_scratch(window_id)
+    * rollback_scratch(window_id)
+
+* Tabular2
+  * When delete column, delete from table object
+  * have to change the way we auto increment id, has to be compatible with rollback
+  * Works with both mysql-base and mysql-pit
+
+* KV
+  * Defines a KV table
+* Unclasified
+  * Name spacing
+
+## Questions ##
+* How do we track table creation
+*
+
 * Must start work on Seneca import system so we can inject caller address here.
   * Must not be a singleton like standard Python imports because it's very possible this lib will be called by multiple smart contracts in chain and need to give each its own instance
   * Alternatively, it could just always pass smart_contract_id as first arg
@@ -582,7 +651,7 @@ class InsertQuery(object):
 def safe_table_name(name):
     # TODO: Refactor this library, split out the functionality used by smart contracts and internally
     if 'seneca_internal' in globals():
-        return "%s$%s" % (seneca_internal.smart_contract_caller, name)
+        return "%s$%s" % (seneca_internal.this_contract_address, name)
     else:
          return name
 
