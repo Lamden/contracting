@@ -100,6 +100,7 @@ def seneca_lib_loader(module_path, global_run_data, this_contract_run_data):
         si = Empty()
         si.called_by_internal = False
         si.smart_contract_caller = global_run_data['caller_user_id']
+        si.this_contract_address = this_contract_run_data['contract_id']
         x.seneca_internal = si
 
         assert hasattr(x, 'exports'), "Imported module %s doesn't have any exports" % module_path
@@ -158,7 +159,7 @@ def append_sandboxed_scope(scope, import_descriptor, exports):
             scope.update(exports)
 
 
-def execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=False, module_loader=None):
+def execute_contract(g lobal_run_data, this_contract_run_data, contract_str, is_main=False, module_loader=None):
     # TODO: remove search_path in module_runner invocation below.
     """
     # TODO: Refactor
@@ -225,7 +226,7 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
 
                 elif imp['module_type'] == 'smart_contract':
                     # print('smart_contract import not implemented')
-                    downstream_contract_run_data, downstream_contract_str = module_loader(contract_id)
+                    downstream_contract_run_data, downstream_contract_str = module_loader(imp['module_path'])
                     c_exports = execute_contract(global_run_data,
                                                  downstream_contract_run_data,
                                                  downstream_contract_str,

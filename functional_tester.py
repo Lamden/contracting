@@ -82,7 +82,8 @@ def run_contract_file_as_user(contract_file_name, user_id, contract_address):
 
     this_contract_run_data = {
         'author': user_id,
-        'execution_datetime': None
+        'execution_datetime': None,
+        'contract_id': contract_address
     }
 
     try:
@@ -105,8 +106,10 @@ def print_status():
 
 if __name__ == '__main__':
     print('\n\n\n\n*** Starting functional testing ***\n')
-    run_contract_file_as_user('rbac.seneca', 'test_user_1', 'simple')
+    run_contract_file_as_user('rbac.seneca', 'this_is_user_id', 'this_is_rbac_contract_id')
 
+
+    #run_contract_file_as_user('using_rbac_1.seneca', 'this_is_user_id', 'using_rbac_1_id')
     print('Results:')
     print_status()
     print('\n*** Functional testing completed ***')
