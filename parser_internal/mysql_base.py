@@ -85,3 +85,8 @@ def get_py_to_sql_cast_func(py_type):
 def cast_py_to_sql(py_val):
     '''Convenience function'''
     return get_py_to_sql_cast_func(type(py_val))(py_val)
+
+
+def escape_sql_pattern(raw_string):
+    # TODO: Make sure this is exhaustive.
+    return raw_string.replace('_', '\\_').replace('%', '\\%')

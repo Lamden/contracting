@@ -1,27 +1,25 @@
 '''
-* mysql-base lib
-  * Defines serializable query class
-  * Functions for stuff like sanitizing data
-  * Actually runs queries from query object
+Module is responsible for defining serializable query classes
 
-classes
-read_query
-write_row_query
-insert_row
-edit_table
-
-* TODO: should all references to columns be column definitions
+* TODO: Type annoations
 * TODO: have to be very careful with joins and '.' in fields, else people will
  potentially be able to write into other tabless
 * TODO: consider using an abstract base class.
 * TODO: replace asserts with raising custom exception type.
+* TODO: figure out escaping/backticks
+
+NOTE: This module doesn't handle security, that must be done upstream.
+
+NOTE: We don't enforce caller to have any criteria, i.e. without "WHERE" all
+rows will be updated, this enforcement should be added in a higher level API to
+prevent accidental updates of all records.
 '''
 
 from typing import Type, Dict, Tuple, List
 #cls: Type[A]
 
 import mysql_query_fragments as frag
-from mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql
+from mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern
 from util import *
 
 
@@ -33,7 +31,11 @@ class ColumnDefinition(object):
         pass
 
     def to_sql(self):
-        return '%s %s' % (self.name, self.sql_type)
+        return intercalate(' ', [
+          self.name,
+          str(self.sql_type),
+          'UNIQUE' if self.is_unique else None,
+        ])
 
 
 class AutoIncrementColumn(ColumnDefinition):
@@ -76,6 +78,21 @@ def format_where_clause(crit):
         return None
 
 
+class DeleteRows(object):
+    '''
+    DELETE FROM somelog WHERE user = 'jcole'
+    '''
+    @auto_set_fields
+    def __init__(self, table_name, criteria):
+        pass
+
+    def to_sql(self):
+        return intercalate('\n',[
+          'DELETE FROM %s' % self.table_name,
+          'WHERE %s' % self.criteria.to_sql() if self.criteria else None
+        ]) + ';'
+
+
 class UpdateRows(object):
     '''
     UPDATE table_name
@@ -88,9 +105,6 @@ class UpdateRows(object):
         pass
 
     def to_sql(self):
-        # NOTE: We don't enforce caller to have any criteria, i.e. without
-        # "WHERE" all rows will be updated, this enforcement should be added
-        # In a higher level API to prevent accidental updates of all records.
         assignment_strs = ['%s=%s' % (k, cast_py_to_sql(v)) for (k,v) in self.column_value_dict.items()]
 
 
@@ -98,7 +112,7 @@ class UpdateRows(object):
           'UPDATE %s' % self.table_name,
           'SET %s' % intercalate(', ', assignment_strs),
           format_where_clause(self.criteria),
-        ])
+        ]) + ';'
 
 
 class InsertRows(object):
@@ -136,8 +150,7 @@ class InsertRows(object):
           '(%s)' % ', '.join(self.column_names),
           'VALUES',
           ', '.join(formatted_values_lists),
-          ';'
-        ])
+        ]) + ';'
 
 
 class SelectRows(object):
@@ -147,8 +160,15 @@ class SelectRows(object):
     SELECT t1.name, t2.salary FROM employee AS t1, info AS t2
     WHERE t1.name = t2.name;
     '''
+
+    # TODO: add orderby and limit
     @auto_set_fields
-    def __init__(self, table_name, column_names, criteria):
+    def __init__(self,
+                table_name,
+                column_names,
+                criteria,
+                order_on_name,
+                limit_to):
         pass
 
     @staticmethod
@@ -164,39 +184,78 @@ class SelectRows(object):
           'SELECT %s' % self.format_column_names(self.column_names),
           'FROM %s' % self.table_name,
           format_where_clause(self.criteria),
-        ])
+          'ORDER BY %s' % self.order_on_name if self.order_on_name else None,
+          'LIMIT %d' % self.limit_to if self.limit_to else None,
+        ]) + ';'
 
 
 class DescribeTable(object):
     '''
-
+    DESCRIBE pet;
     '''
-    pass
+    @auto_set_fields
+    def __init__(self, table_name):
+        pass
+
+    def to_sql(self):
+        return 'DESCRIBE %s;' % self.table_name
+
+
+class ListTables(object):
+    '''
+    SHOW TABLES LIKE 'someprefix\_%'
+    '''
+    @auto_set_fields
+    def __init__(self, prefix):
+        pass
+
+    @staticmethod
+    def format_prefix(pf):
+        if pf:
+#            return 'LIKE \'%s\\_\%\'' % pf
+            return 'LIKE \'{0}%'.format(escape_sql_pattern(pf))
+        else:
+            return None
+
+    def to_sql(self):
+        return intercalate(' ', [
+            'SHOW TABLES',
+            self.format_prefix(self.prefix),
+        ]) + ';'
+
 
 
 class AddTableColumn(object):
     '''
-    ALTER TABLE table_name;
-    ALTER COLUMN column_name datatype;
+    ALTER TABLE table_name
+    ADD column_name datatype;
     '''
-    def __init__(self, **kwargs):
-        attrs = [ 'table_name',
-                      'column_name',
-                      'column_type',
-                      'column_is_unique',
-        ]
-
-    def to_sql():
+    @auto_set_fields
+    def __init__(self, table_name, column_def):
         pass
+
+    def to_sql(self):
+        #name, sql_type, is_unique
+        return intercalate('\n',[
+          'ALTER TABLE %s' % self.table_name,
+          'ADD %s' % self.column_def.to_sql()
+        ]) + ';'
 
 
 class DropTableColumn(object):
-        @auto_set_fields
-        def __init__(self, table_name, column_name):
-            pass
+    '''
+    ALTER TABLE table_name
+    DROP COLUMN column_name;
+    '''
+    @auto_set_fields
+    def __init__(self, table_name, column_name):
+        pass
 
-        def to_sql():
-            pass
+    def to_sql(self):
+        return intercalate('\n', [
+          'ALTER TABLE %s' % self.table_name,
+          'DROP COLUMN %s' % self.column_name
+        ]) + ';'
 
 
 class DropTable(object):
@@ -214,11 +273,10 @@ class DropTable(object):
 class CreateTable(object):
     ''' Example:
     CREATE TABLE test_users (
-    id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY_KEY,
-    username VARCHAR(30),
+    id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(30) UNIQUE,
     first_name VARCHAR(30),
     balance BIGINT,
-    CONSTRAINT UC_test_users UNIQUE (id,username)
     );
     '''
     @auto_set_fields
@@ -227,21 +285,13 @@ class CreateTable(object):
 
     def to_sql(self):
         column_def_strs = (
-          [self.primary_key_column_def.to_sql() + ' PRIMARY_KEY'] +
+          [self.primary_key_column_def.to_sql() + ' PRIMARY KEY'] +
           list(map(lambda x: x.to_sql(), self.other_column_defs))
         )
 
-        unique_column_names = [self.primary_key_column_def.name] + \
-          [x.name for x in self.other_column_defs if x.is_unique]
-
-        constraint_sql = 'CONSTRAINT UC_%s UNIQUE (%s)' % \
-          (self.table_name, ','.join(unique_column_names))
-
-        table_spec = ',\n'.join(column_def_strs + [constraint_sql])
-
         return '\n'.join([
           'CREATE TABLE %s (' % self.table_name,
-          table_spec,
+          intercalate(',\n', column_def_strs),
           ');'
         ])
 
@@ -251,6 +301,7 @@ if __name__ == '__main__':
       'test_users',
       AutoIncrementColumn('id'),
       [ ColumnDefinition('username', SQLType('VARCHAR', 30), True),
+        ColumnDefinition('drivers_licence_unmber', SQLType('VARCHAR', 30), True),
         ColumnDefinition('first_name', SQLType('VARCHAR', 30), False),
         ColumnDefinition('balance', SQLType('BIGINT'), False),
       ]
@@ -263,23 +314,57 @@ if __name__ == '__main__':
 
     print(DropTable('test_users').to_sql())
 
-
-    print(QueryCriterion('equals', 'username', 'tester').to_sql())
-
-    print(SelectRows('test_users', [], None).to_sql())
+    print(SelectRows('test_users', [], None, None, None).to_sql())
     print(SelectRows('test_users', [],
-      QueryCriterion('equals', 'username', 'tester')
+      QueryCriterion('equals', 'username', 'tester'),
+      None,
+      None,
     ).to_sql())
 
     print(SelectRows('test_users', [],
-      QueryCriterion('gt', 'balance', 10)
+      QueryCriterion('gt', 'balance', 10),
+      None,
+      None,
     ).to_sql())
 
     print(SelectRows('test_users', ['username', 'balance'],
-      QueryCriterion('gt', 'balance', 10)
+      QueryCriterion('gt', 'balance', 10),
+      None,
+      None,
     ).to_sql())
+
+    print(SelectRows('test_users', ['username', 'balance'],
+      QueryCriterion('gt', 'balance', 10),
+      'balance',
+      None,
+    ).to_sql())
+
+    print(SelectRows('test_users', ['username', 'balance'],
+      QueryCriterion('gt', 'balance', 10),
+      None,
+      5,
+    ).to_sql())
+
+    print(SelectRows('test_users', ['username', 'balance'],
+      QueryCriterion('gt', 'balance', 10),
+      'balance',
+      5,
+    ).to_sql())
+
+
 
     print(UpdateRows('test_users',
       QueryCriterion('equals', 'username', 'tester'),
       {'balance': 0, 'status':'broke'}
     ).to_sql())
+
+    print(ListTables(None).to_sql())
+    print(ListTables('tester_').to_sql())
+
+    print(DescribeTable('test_users').to_sql())
+
+    print(AddTableColumn('test_users', ColumnDefinition('balance2', SQLType('BIGINT'), False)).to_sql())
+    print(AddTableColumn('test_users', ColumnDefinition('secondary_id', SQLType('VARCHAR', 30), True)).to_sql())
+    print(DropTableColumn('test_users', 'balance2').to_sql())
+
+    print(DeleteRows('test_users', QueryCriterion('equals', 'username', 'test')).to_sql())
