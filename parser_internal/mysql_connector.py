@@ -10,14 +10,18 @@ write_row_query
 insert_row
 edit_table
 
+* TODO: should all references to columns be column definitions
+* TODO: have to be very careful with joins and '.' in fields, else people will
+ potentially be able to write into other tabless
 * TODO: consider using an abstract base class.
+* TODO: replace asserts with raising custom exception type.
 '''
 
 from typing import Type, Dict, Tuple, List
 #cls: Type[A]
 
 import mysql_query_fragments as frag
-from mysql_base import SQLType, get_py_to_sql_cast_func
+from mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql
 from util import *
 
 
@@ -33,7 +37,7 @@ class ColumnDefinition(object):
 
 
 class AutoIncrementColumn(ColumnDefinition):
-    '''A specific column definition for auto increment columns.'''
+    '''A specific column definition for auto increment columns, intended for IDs.'''
 
     @auto_set_fields
     def __init__(self, name: str):
@@ -42,6 +46,28 @@ class AutoIncrementColumn(ColumnDefinition):
 
     def to_sql(self):
         return '%s %s unsigned NOT NULL AUTO_INCREMENT' % (self.name, self.sql_type)
+
+
+class QueryCriterion(object):
+    cr_types_to_strs = {
+        'equals': '=',
+        'lt': '<',
+        'gt': '>',
+    }
+
+    @auto_set_fields
+    def __init__(self, constraint_type, field_name, comparison_value):
+        assert self.constraint_type in list(self.cr_types_to_strs.keys()), "Invalid constraint type."
+
+    def to_sql(self):
+        return "%s %s %s" % (self.field_name,
+                             self.cr_types_to_strs[self.constraint_type],
+                             cast_py_to_sql(self.comparison_value),
+                            )
+
+
+# TODO: Criteria conjuntion class, should be in class hierarchy with QueryCriterion, probably as a child
+
 
 
 class UpdateRows(object):
@@ -75,7 +101,7 @@ class InsertRows(object):
         for value_list in self.list_of_values_lists:
             assert len(value_list) == correct_len
 
-        casting_funcs = [get_py_to_sql_cast_func(x) for x in self.list_of_values_lists[0]]
+        casting_funcs = [get_py_to_sql_cast_func(type(x)) for x in self.list_of_values_lists[0]]
 
         def apply_funcs(xs):
             ''' Apply list of functions over a list of values '''
@@ -85,7 +111,6 @@ class InsertRows(object):
             return '(%s)' % ', '.join(xs)
 
         convert_data_list_to_string = compose(format_values, apply_funcs)
-        
         formatted_values_lists = [convert_data_list_to_string(x) for x in self.list_of_values_lists]
 
         return '\n'.join([
@@ -108,14 +133,37 @@ class DescribeTable(object):
 
 
 class SelectRows(object):
-    def __init__(self, **kwargs):
-        attrs = [ 'table_name',
-                  'fields',
-                  'constraints',
-        ]
+    ''' empty list of column names = *
 
-    def to_sql():
+    '''
+    '''
+    SELECT t1.name, t2.salary FROM employee AS t1, info AS t2
+    WHERE t1.name = t2.name;
+    '''
+    @auto_set_fields
+    def __init__(self, table_name, column_names, criteria):
         pass
+
+    @staticmethod
+    def format_column_names(c_names):
+        if not c_names:
+            return '*'
+        else:
+            return ', '.join(c_names)
+
+    @staticmethod
+    def format_where_clause(crit):
+        if crit:
+            return 'WHERE %s' % crit.to_sql()
+        else:
+            return None
+
+    def to_sql(self):
+        return intercalate('\n', [
+          'SELECT %s' % self.format_column_names(self.column_names),
+          'FROM %s' % self.table_name,
+          self.format_where_clause(self.criteria),
+        ])
 
     def run():
         pass
@@ -219,3 +267,21 @@ if __name__ == '__main__':
         [['tester', 'test', 500],
          ['tester2', 'two', 200],
         ]).to_sql())
+
+    print(DropTable('test_users').to_sql())
+
+
+    print(QueryCriterion('equals', 'username', 'tester').to_sql())
+
+    print(SelectRows('test_users', [], None).to_sql())
+    print(SelectRows('test_users', [],
+      QueryCriterion('equals', 'username', 'tester')
+    ).to_sql())
+
+    print(SelectRows('test_users', [],
+      QueryCriterion('gt', 'balance', 10)
+    ).to_sql())
+
+    print(SelectRows('test_users', ['username', 'balance'],
+      QueryCriterion('gt', 'balance', 10)
+    ).to_sql())

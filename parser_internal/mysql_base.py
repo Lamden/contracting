@@ -65,7 +65,7 @@ class SQLType(object):
 
 
 
-def get_py_to_sql_cast_func(py_val):
+def get_py_to_sql_cast_func(py_type):
     casting_func_dict = {
       int: lambda x: str(x),
       str: lambda x: '\'%s\'' % x,
@@ -73,11 +73,15 @@ def get_py_to_sql_cast_func(py_val):
       bool: lambda x: 1 if x else 0,
     }
 
-    t = type(py_val)
-    if t in casting_func_dict.keys():
-        return casting_func_dict[t]
-    elif issublass(t, FixedStr):
+    if py_type in casting_func_dict.keys():
+        return casting_func_dict[py_type]
+    elif issublass(py_type, FixedStr):
         return casting_func_dict[str] # XXX: same casting method to TEXT and to VARCHAR(x)
     else:
         # TODO: custom exception types
         raise Exception('Unsupported type, cannot convert to SQL str')
+
+
+def cast_py_to_sql(py_val):
+    '''Convenience function'''
+    return get_py_to_sql_cast_func(type(py_val))(py_val)

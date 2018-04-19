@@ -34,3 +34,7 @@ def f_apply(f,x):
 
 def compose(f,g):
     return lambda x: f(g(x))
+
+def intercalate(x, ys):
+    '''Like join, but filters Falsey values'''
+    return x.join([x for x in ys if x])
