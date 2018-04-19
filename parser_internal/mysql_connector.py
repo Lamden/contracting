@@ -101,10 +101,6 @@ class UpdateRows(object):
         ])
 
 
-    def run():
-        pass
-
-
 class InsertRows(object):
     '''
     INSERT INTO table_name
@@ -143,9 +139,6 @@ class InsertRows(object):
           ';'
         ])
 
-    def run(self):
-        pass
-
 
 class SelectRows(object):
     ''' empty list of column names = *
@@ -173,10 +166,6 @@ class SelectRows(object):
           format_where_clause(self.criteria),
         ])
 
-    def run():
-        pass
-
-
 
 class DescribeTable(object):
     '''
@@ -200,9 +189,6 @@ class AddTableColumn(object):
     def to_sql():
         pass
 
-    def run():
-        pass
-
 
 class DropTableColumn(object):
         @auto_set_fields
@@ -210,9 +196,6 @@ class DropTableColumn(object):
             pass
 
         def to_sql():
-            pass
-
-        def run():
             pass
 
 
@@ -226,9 +209,6 @@ class DropTable(object):
 
     def to_sql(self):
         return 'DROP TABLE %s;' % self.table_name
-
-    def run(self):
-        pass
 
 
 class CreateTable(object):
@@ -264,9 +244,6 @@ class CreateTable(object):
           table_spec,
           ');'
         ])
-
-    def run(self):
-        pass
 
 
 if __name__ == '__main__':
