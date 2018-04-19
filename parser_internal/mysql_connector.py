@@ -68,16 +68,38 @@ class QueryCriterion(object):
 
 # TODO: Criteria conjuntion class, should be in class hierarchy with QueryCriterion, probably as a child
 
+# Function shared between InsertRows and SelectRows
+def format_where_clause(crit):
+    if crit:
+        return 'WHERE %s' % crit.to_sql()
+    else:
+        return None
 
 
 class UpdateRows(object):
+    '''
+    UPDATE table_name
+    SET column1=value, column2=value2,...
+    WHERE some_column=some_value
+    '''
 
     @auto_set_fields
-    def __init__(self, table_name, constraints, data):
+    def __init__(self, table_name, criteria, column_value_dict):
         pass
 
-    def to_sql():
-        pass
+    def to_sql(self):
+        # NOTE: We don't enforce caller to have any criteria, i.e. without
+        # "WHERE" all rows will be updated, this enforcement should be added
+        # In a higher level API to prevent accidental updates of all records.
+        assignment_strs = ['%s=%s' % (k, cast_py_to_sql(v)) for (k,v) in self.column_value_dict.items()]
+
+
+        return intercalate('\n', [
+          'UPDATE %s' % self.table_name,
+          'SET %s' % intercalate(', ', assignment_strs),
+          format_where_clause(self.criteria),
+        ])
+
 
     def run():
         pass
@@ -125,16 +147,8 @@ class InsertRows(object):
         pass
 
 
-class DescribeTable(object):
-    '''
-
-    '''
-    pass
-
-
 class SelectRows(object):
     ''' empty list of column names = *
-
     '''
     '''
     SELECT t1.name, t2.salary FROM employee AS t1, info AS t2
@@ -151,22 +165,24 @@ class SelectRows(object):
         else:
             return ', '.join(c_names)
 
-    @staticmethod
-    def format_where_clause(crit):
-        if crit:
-            return 'WHERE %s' % crit.to_sql()
-        else:
-            return None
 
     def to_sql(self):
         return intercalate('\n', [
           'SELECT %s' % self.format_column_names(self.column_names),
           'FROM %s' % self.table_name,
-          self.format_where_clause(self.criteria),
+          format_where_clause(self.criteria),
         ])
 
     def run():
         pass
+
+
+
+class DescribeTable(object):
+    '''
+
+    '''
+    pass
 
 
 class AddTableColumn(object):
@@ -284,4 +300,9 @@ if __name__ == '__main__':
 
     print(SelectRows('test_users', ['username', 'balance'],
       QueryCriterion('gt', 'balance', 10)
+    ).to_sql())
+
+    print(UpdateRows('test_users',
+      QueryCriterion('equals', 'username', 'tester'),
+      {'balance': 0, 'status':'broke'}
     ).to_sql())
