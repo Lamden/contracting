@@ -26,3 +26,11 @@ def snd(tup):
 def swap(tup):
     x, y = tup
     return y, x
+
+
+def f_apply(f,x):
+    return f(x)
+
+
+def compose(f,g):
+    return lambda x: f(g(x))

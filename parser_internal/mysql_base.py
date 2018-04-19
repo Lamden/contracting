@@ -36,8 +36,8 @@ sql_python_type_alist = [ ('BIGINT', int),
                           ('BOOLEAN', bool)
 ]
 
-valid_mysql_types = list(map(fst, sql_python_type_alist))
-supported_python_types = list(map(snd, sql_python_type_alist))
+valid_mysql_types = [x[0] for x in sql_python_type_alist]
+supported_python_types = [x[1] for x in sql_python_type_alist]
 mysql_py_dict = dict(sql_python_type_alist)
 py_mysql_dict = dict(map(swap, sql_python_type_alist))
 
@@ -62,3 +62,22 @@ class SQLType(object):
             return '%s(%d)' % (self.sql_type[0], self.sql_type[1])
         else:
             return self.sql_type
+
+
+
+def get_py_to_sql_cast_func(py_val):
+    casting_func_dict = {
+      int: lambda x: str(x),
+      str: lambda x: '\'%s\'' % x,
+      datetime.datetime: lambda x: x.strftime('%Y-%m-%d %H:%M:%S'),
+      bool: lambda x: 1 if x else 0,
+    }
+
+    t = type(py_val)
+    if t in casting_func_dict.keys():
+        return casting_func_dict[t]
+    elif issublass(t, FixedStr):
+        return casting_func_dict[str] # XXX: same casting method to TEXT and to VARCHAR(x)
+    else:
+        # TODO: custom exception types
+        raise Exception('Unsupported type, cannot convert to SQL str')
