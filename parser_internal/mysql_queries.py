@@ -304,6 +304,59 @@ class SelectRows(object):
         ]) + ';'
 
 
+class SelectCountUnique(object):
+    '''
+    >>> print(SelectCountUnique('test_users', 'status', None).to_sql())
+    SELECT status, COUNT(*)
+    FROM test_users
+    GROUP BY status;
+
+    >>> print(SelectCountUnique('test_users', 'status',
+    ... QueryCriterion('equals', 'firstname', 'john')
+    ... ).to_sql())
+    SELECT status, COUNT(*)
+    FROM test_users
+    WHERE firstname = 'john'
+    GROUP BY status;
+    '''
+    @auto_set_fields
+    def __init__(self, table_name, unique_column, criteria):
+        pass
+
+    def to_sql(self):
+        return intercalate('\n', [
+          'SELECT %s, COUNT(*)' % self.unique_column,
+          'FROM %s' % self.table_name,
+          format_where_clause(self.criteria),
+          'GROUP BY %s' % self.unique_column
+        ]) + ';'
+
+
+class SelectCount(object):
+    '''
+    >>> print(SelectCount('test_users', None).to_sql())
+    SELECT COUNT(*)
+    FROM test_users;
+
+    >>> print(SelectCount('test_users',
+    ... QueryCriterion('equals', 'firstname', 'john')
+    ... ).to_sql())
+    SELECT COUNT(*)
+    FROM test_users
+    WHERE firstname = 'john';
+    '''
+    @auto_set_fields
+    def __init__(self, table_name, criteria):
+        pass
+
+    def to_sql(self):
+        return intercalate('\n', [
+          'SELECT COUNT(*)',
+          'FROM %s' % self.table_name,
+          format_where_clause(self.criteria),
+        ]) + ';'
+
+
 class DescribeTable(object):
     '''
     >>> print(DescribeTable('test_users').to_sql())
