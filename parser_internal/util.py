@@ -1,15 +1,21 @@
 from functools import wraps
-from inspect import signature
+from inspect import signature, _empty
 
 def auto_set_fields(f):
     f_sig = signature(f)
 
     @wraps(f)
     def wrapper(*args, **kwargs):
-        fields = dict(f_sig.bind(*args, **kwargs).arguments)
-        self = fields.pop('self')
+        caller_specified_fields = dict(f_sig.bind(*args, **kwargs).arguments)
+        self = caller_specified_fields.pop('self')
 
-        for k, v in fields.items():
+        f_defaults = {k: v.default for k, v in \
+                       signature(f).parameters.items() \
+                       if not v.default is _empty}
+
+        f_defaults.update(caller_specified_fields)
+        # Set default values
+        for k, v in f_defaults.items():
             setattr(self, k, v)
 
         return f(*args, **kwargs)

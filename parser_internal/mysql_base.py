@@ -23,8 +23,8 @@ class FixedStr(object) :
             def __str__(self):
                 return self.str
 
-        NewClass.__name__ = name
-        NewClass.__str__ = lambda:name
+        NewClass.__name__ = NewClass.name
+        NewClass.__str__ = lambda:NewClass.name
 
         return NewClass
 
@@ -33,7 +33,8 @@ sql_python_type_alist = [ ('BIGINT', int),
                           ('VARCHAR', FixedStr),
                           ('TEXT', str),
                           ('DATETIME', datetime.datetime),
-                          ('BOOLEAN', bool)
+                          ('BOOLEAN', bool),
+                          ('DOUBLE', float),
 ]
 
 valid_mysql_types = [x[0] for x in sql_python_type_alist]
@@ -68,6 +69,7 @@ class SQLType(object):
 def get_py_to_sql_cast_func(py_type):
     casting_func_dict = {
       int: lambda x: str(x),
+      float: lambda x: str(x),
       str: lambda x: '\'%s\'' % x,
       datetime.datetime: lambda x: x.strftime('%Y-%m-%d %H:%M:%S'),
       bool: lambda x: 1 if x else 0,

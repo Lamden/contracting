@@ -57,7 +57,7 @@ class SelectRows(object):
     * If user manually adds $spits_preserve$* and spits_rollback_strategy, fail.
       * Figure out how to propagte the failure without making the abstraction leaky
     * AND or if none exists, add to criteria 'NOT spits_rollback_strategy=undelete'
-    
+
 class DescribeTable(object):
     * Describe normally, but omit $spits_preserve$* and $spits_rollback_strategy$
 
