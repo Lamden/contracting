@@ -174,7 +174,6 @@ class UpdateRows(Query):
     def to_sql(self):
         assignment_strs = ['%s=%s' % (k, cast_py_to_sql(v)) for (k,v) in self.column_value_dict.items()]
 
-
         return intercalate('\n', [
           'UPDATE %s' % self.table_name,
           'SET %s' % intercalate(', ', assignment_strs),
@@ -298,8 +297,8 @@ class SelectRows(Query):
                 table_name,
                 column_names,
                 criteria,
-                order_on_name,
-                limit_to):
+                order_on_name=None,
+                limit_to=None):
         pass
 
     @staticmethod
