@@ -8,6 +8,8 @@ Defines serializable query classes, which contain methods to generate SQL.
 * TODO: replace asserts with raising custom exception type.
 * TODO: figure out escaping/backticks
 * TODO: Some basic joins?
+* TODO: columnRows data type, fixed length, enter data positionally or dict, nice print
+* TODO: Handle column name _count
 
 * TODO: maybe do table exists
 
@@ -29,7 +31,7 @@ class QueryComponent(object):
 from typing import Type, Dict, Tuple, List
 #cls: Type[A]
 
-from mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern
+from mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern, TabularKVs
 from util import *
 
 ### Query Parts ###
@@ -193,9 +195,12 @@ class InsertRows(Query):
     VALUES
     ('tester', 'test', 500), ('tester2', 'two', 200);
     '''
-    @auto_set_fields
     def __init__(self, table_name, column_names, list_of_values_lists):
-        pass
+        self.table_name = table_name
+        # NOTE: Casting lists to tuples to ensure consistent types
+        self.column_names = tuple(column_names)
+        self.list_of_values_lists = list(map(tuple, list_of_values_lists))
+
 
     def to_sql(self):
         correct_len = len(self.column_names)
@@ -318,14 +323,14 @@ class SelectRows(Query):
 class CountUniqueRows(Query):
     '''
     >>> print(CountUniqueRows('test_users', 'status', None).to_sql())
-    SELECT status, COUNT(*)
+    SELECT status, COUNT(*) as _count
     FROM test_users
     GROUP BY status;
 
     >>> print(CountUniqueRows('test_users', 'status',
     ... QueryCriterion('equals', 'firstname', 'john')
     ... ).to_sql())
-    SELECT status, COUNT(*)
+    SELECT status, COUNT(*) as _count
     FROM test_users
     WHERE firstname = 'john'
     GROUP BY status;
@@ -336,7 +341,7 @@ class CountUniqueRows(Query):
 
     def to_sql(self):
         return intercalate('\n', [
-          'SELECT %s, COUNT(*)' % self.unique_column,
+          'SELECT %s, COUNT(*) as _count' % self.unique_column,
           'FROM %s' % self.table_name,
           format_where_clause(self.criteria),
           'GROUP BY %s' % self.unique_column
@@ -346,13 +351,13 @@ class CountUniqueRows(Query):
 class CountRows(Query):
     '''
     >>> print(CountRows('test_users', None).to_sql())
-    SELECT COUNT(*)
+    SELECT COUNT(*) as _count
     FROM test_users;
 
     >>> print(CountRows('test_users',
     ... QueryCriterion('equals', 'firstname', 'john')
     ... ).to_sql())
-    SELECT COUNT(*)
+    SELECT COUNT(*) as _count
     FROM test_users
     WHERE firstname = 'john';
     '''
@@ -362,7 +367,7 @@ class CountRows(Query):
 
     def to_sql(self):
         return intercalate('\n', [
-          'SELECT COUNT(*)',
+          'SELECT COUNT(*) as _count',
           'FROM %s' % self.table_name,
           format_where_clause(self.criteria),
         ]) + ';'
