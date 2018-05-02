@@ -1,5 +1,5 @@
 '''
-Module is responsible for defining serializable query classes
+Defines serializable query classes, which contain methods to generate SQL.
 
 * TODO: Type annoations
 * TODO: have to be very careful with joins and '.' in fields, else people will
@@ -7,6 +7,9 @@ Module is responsible for defining serializable query classes
 * TODO: consider using an abstract base class.
 * TODO: replace asserts with raising custom exception type.
 * TODO: figure out escaping/backticks
+* TODO: Some basic joins?
+
+* TODO: maybe do table exists
 
 NOTE: This module doesn't handle security, that must be done upstream.
 
@@ -15,14 +18,22 @@ rows will be updated, this enforcement should be added in a higher level API to
 prevent accidental updates of all records.
 '''
 
+class Query(object):
+    pass
+
+
+class QueryComponent(object):
+    pass
+
+
 from typing import Type, Dict, Tuple, List
 #cls: Type[A]
 
 from mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern
 from util import *
 
-
-class ColumnDefinition(object):
+### Query Parts ###
+class ColumnDefinition(QueryComponent):
     '''Describes a column name, type, and unique constraint
     (Covered in other tests)
     '''
@@ -51,7 +62,7 @@ class AutoIncrementColumn(ColumnDefinition):
         return '%s %s unsigned NOT NULL AUTO_INCREMENT' % (self.name, self.sql_type)
 
 
-class QueryCriterion(object):
+class QueryCriterion(QueryComponent):
     '''
     >>> QueryCriterion('equals', 'username', 'tester').to_sql()
     "username = 'tester'"
@@ -72,7 +83,7 @@ class QueryCriterion(object):
                              cast_py_to_sql(self.comparison_value),
                             )
 
-class InvertedCriterion(object):
+class InvertedCriterion(QueryComponent):
     '''
     >>> InvertedCriterion(QueryCriterion('equals', 'username', 'tester')).to_sql()
     "(NOT username = 'tester')"
@@ -85,7 +96,7 @@ class InvertedCriterion(object):
         return "(NOT %s)" % self.criterion.to_sql()
 
 
-class AndedCriteria(object):
+class AndedCriteria(QueryComponent):
     '''
     >>> AndedCriteria(
     ...   [ QueryCriterion('equals', 'username', 'tester'),
@@ -101,7 +112,7 @@ class AndedCriteria(object):
         return "(%s)" % ' AND '.join([x.to_sql() for x in self.criteria])
 
 
-class OredCriteria(object):
+class OredCriteria(QueryComponent):
     '''
     >>> OredCriteria(
     ...   [ QueryCriterion('equals', 'username', 'tester'),
@@ -124,8 +135,8 @@ def format_where_clause(crit):
     else:
         return None
 
-
-class DeleteRows(object):
+### Queries ###
+class DeleteRows(Query):
     '''
     >>> print(DeleteRows('test_users', QueryCriterion('equals', 'username', 'test')).to_sql())
     DELETE FROM test_users
@@ -142,7 +153,7 @@ class DeleteRows(object):
         ]) + ';'
 
 
-class UpdateRows(object):
+class UpdateRows(Query):
     '''
     >>> print(UpdateRows('test_users',
     ...   QueryCriterion('equals', 'username', 'tester'),
@@ -171,7 +182,7 @@ class UpdateRows(object):
         ]) + ';'
 
 
-class InsertRows(object):
+class InsertRows(Query):
     '''
     >>> print(InsertRows('test_users', ['username', 'first_name', 'balance'],
     ...   [['tester', 'test', 500],
@@ -212,7 +223,7 @@ class InsertRows(object):
         ]) + ';'
 
 
-class SelectRows(object):
+class SelectRows(Query):
     '''
     >>> print(SelectRows('test_users', [], None, None, None).to_sql())
     SELECT *
@@ -304,14 +315,14 @@ class SelectRows(object):
         ]) + ';'
 
 
-class SelectCountUnique(object):
+class CountUniqueRows(Query):
     '''
-    >>> print(SelectCountUnique('test_users', 'status', None).to_sql())
+    >>> print(CountUniqueRows('test_users', 'status', None).to_sql())
     SELECT status, COUNT(*)
     FROM test_users
     GROUP BY status;
 
-    >>> print(SelectCountUnique('test_users', 'status',
+    >>> print(CountUniqueRows('test_users', 'status',
     ... QueryCriterion('equals', 'firstname', 'john')
     ... ).to_sql())
     SELECT status, COUNT(*)
@@ -332,13 +343,13 @@ class SelectCountUnique(object):
         ]) + ';'
 
 
-class SelectCount(object):
+class CountRows(Query):
     '''
-    >>> print(SelectCount('test_users', None).to_sql())
+    >>> print(CountRows('test_users', None).to_sql())
     SELECT COUNT(*)
     FROM test_users;
 
-    >>> print(SelectCount('test_users',
+    >>> print(CountRows('test_users',
     ... QueryCriterion('equals', 'firstname', 'john')
     ... ).to_sql())
     SELECT COUNT(*)
@@ -357,7 +368,7 @@ class SelectCount(object):
         ]) + ';'
 
 
-class DescribeTable(object):
+class DescribeTable(Query):
     '''
     >>> print(DescribeTable('test_users').to_sql())
     DESCRIBE test_users;
@@ -370,7 +381,7 @@ class DescribeTable(object):
         return 'DESCRIBE %s;' % self.table_name
 
 
-class ListTables(object):
+class ListTables(Query):
     '''
     >>> print(ListTables(None).to_sql())
     SHOW TABLES;
@@ -397,7 +408,7 @@ class ListTables(object):
 
 
 
-class AddTableColumn(object):
+class AddTableColumn(Query):
     '''
     >>> print(AddTableColumn('test_users', ColumnDefinition('balance2', SQLType('BIGINT'), False)).to_sql())
     ALTER TABLE test_users
@@ -418,7 +429,7 @@ class AddTableColumn(object):
         ]) + ';'
 
 
-class DropTableColumn(object):
+class DropTableColumn(Query):
     '''
     >>> print(DropTableColumn('test_users', 'balance2').to_sql())
     ALTER TABLE test_users
@@ -435,7 +446,7 @@ class DropTableColumn(object):
         ]) + ';'
 
 
-class DropTable(object):
+class DropTable(Query):
     '''
     >>> print(DropTable('test_users').to_sql())
     DROP TABLE test_users;
@@ -448,7 +459,7 @@ class DropTable(object):
         return 'DROP TABLE %s;' % self.table_name
 
 
-class CreateTable(object):
+class CreateTable(Query):
     '''
     >>> print(CreateTable(
     ...       'test_users',
@@ -458,7 +469,7 @@ class CreateTable(object):
     ...         ColumnDefinition('first_name', SQLType('VARCHAR', 30), False),
     ...         ColumnDefinition('balance', SQLType('BIGINT'), False),
     ... ]).to_sql())
-    CREATE TABLE test_users  (
+    CREATE TABLE test_users (
     id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(30) UNIQUE,
     drivers_licence_unmber VARCHAR(30) UNIQUE,
@@ -480,7 +491,7 @@ class CreateTable(object):
         ine = 'IF NOT EXISTS' if self.if_not_exists else ''
 
         return '\n'.join([
-          'CREATE TABLE %s %s (' % (self.table_name, ine),
+          'CREATE TABLE %s (' % intercalate(' ', [ine, self.table_name]),
           intercalate(',\n', column_def_strs),
           ');'
         ])

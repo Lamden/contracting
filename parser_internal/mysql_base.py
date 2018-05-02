@@ -1,5 +1,5 @@
 '''
-Sortable fragments representing parts of an SQL query
+Utility functions and components to support creation of MySQL queries
 '''
 from util import auto_set_fields, fst, snd, swap
 from enum import Enum
