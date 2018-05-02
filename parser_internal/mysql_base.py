@@ -4,6 +4,7 @@ Utility functions and components to support creation of MySQL queries
 from util import auto_set_fields, fst, snd, swap
 from enum import Enum
 import datetime
+from terminaltables import AsciiTable
 
 # Python type factory representing fixed length strings, outputted classes have a set length
 class FixedStr(object) :
@@ -92,3 +93,76 @@ def cast_py_to_sql(py_val):
 def escape_sql_pattern(raw_string):
     # TODO: Make sure this is exhaustive.
     return raw_string.replace('_', '\\_').replace('%', '\\%')
+
+class TabularKVs():
+    def __init__(self, keys, rows):
+        self.keys = tuple(keys)
+        self.key_type = type(keys[0])
+        self.record_len = len(keys)
+        self.rows = list([self.format_row(x) for x in rows])
+
+    # TODO: def format_keys, should verify no duplicates and all keys are of same type
+    # TODO: fast_init method that skips all unecessary steps
+
+    def format_row(self, row):
+        assert len(row) == self.record_len
+        t = type(row)
+
+        if t == tuple:
+            return row
+        elif t == list:
+            return tuple(row)
+        elif t == dict:
+            return self.row_from_dict(row)
+        else:
+            raise Exception('Unsupported type.')
+
+    def __len__(self):
+        return len(self.rows)
+
+    def row_from_dict(self, d):
+        assert sorted(d.keys()) == sorted(self.keys)
+        return tuple([d[k] for k in self.keys])
+
+    def append(self, v):
+        self.rows.append(self.format_row(v))
+
+    def row_to_dict(self, r):
+        return dict(zip(self.keys, r))
+
+    # TODO: Decide if the current __repr__ and __str__ are user friendly
+    def __str__(self):
+        #https://stackoverflow.com/questions/5909873/how-can-i-pretty-print-ascii-tables-with-python
+        table_data = [list(self.keys)] + list(map(list, self.rows))
+        table = AsciiTable(table_data)
+        return table.table
+
+    def __repr__(self):
+        return '\n'.join(list([str(self.row_to_dict(x)) for x in self.rows]))
+
+    def __setitem__(self, key, val):
+        self.rows[key] = self.format_row(val)
+
+    def __getitem__(self, key):
+        return self.row_to_dict(self.rows[key])
+
+    def select(self, *keys):
+        indices = [self.keys.index(k) for k in keys]
+        return [[r[i] for i in indices] for r in self.rows]
+
+
+
+if __name__ == '__main__':
+    tkv = TabularKVs(('a','b','c'), [(1,2,3),(4,5,6)])
+    print(tkv)
+    print(len(tkv))
+    tkv.append((7,8,9))
+    print(tkv)
+    tkv.append([10,11,12])
+    print(tkv)
+    tkv.append({'c':15, 'b':14, 'a':13})
+    print(tkv)
+    print(tkv[0])
+    tkv[0] = (101,102,103)
+    print(tkv)
+    print(tkv.select('a','c'))
