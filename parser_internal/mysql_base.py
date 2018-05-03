@@ -1,5 +1,14 @@
 '''
 Utility functions and components to support creation of MySQL queries
+
+
+def in_quotes(x):
+    return surround('\'', x)
+
+
+def in_backticks(x):
+    return surround('`', x)
+
 '''
 from util import auto_set_fields, fst, snd, swap
 from enum import Enum

@@ -10,8 +10,12 @@ Defines serializable query classes, which contain methods to generate SQL.
 * TODO: Some basic joins?
 * TODO: columnRows data type, fixed length, enter data positionally or dict, nice print
 * TODO: Handle column name _count
+* TODO: non_nullable column defs
 
 * TODO: maybe do table exists
+* TODO: order_by_desc
+* TODO: get_table
+* TODO: add order_by and limit to delete query
 
 NOTE: This module doesn't handle security, that must be done upstream.
 
@@ -298,6 +302,7 @@ class SelectRows(Query):
                 column_names,
                 criteria,
                 order_on_name=None,
+                order_desc=False,
                 limit_to=None):
         pass
 
