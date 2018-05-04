@@ -81,7 +81,7 @@ def get_py_to_sql_cast_func(py_type):
       int: lambda x: str(x),
       float: lambda x: str(x),
       str: lambda x: '\'%s\'' % x,
-      datetime.datetime: lambda x: x.strftime('%Y-%m-%d %H:%M:%S'),
+      datetime.datetime: lambda x:'\'%s\'' % x.strftime('%Y-%m-%d %H:%M:%S'),
       bool: lambda x: 1 if x else 0,
     }
 

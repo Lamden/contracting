@@ -70,13 +70,16 @@ class AutoIncrementColumn(ColumnDefinition):
 
 class QueryCriterion(QueryComponent):
     '''
-    >>> QueryCriterion('equals', 'username', 'tester').to_sql()
+    >>> QueryCriterion('eq', 'username', 'tester').to_sql()
     "username = 'tester'"
     '''
     cr_types_to_strs = {
-        'equals': '=',
+        'eq': '=',
+        'ne': '!=',
         'lt': '<',
         'gt': '>',
+        'le': '<=',
+        'ge': '>=',
     }
 
     @auto_set_fields
@@ -91,7 +94,7 @@ class QueryCriterion(QueryComponent):
 
 class InvertedCriterion(QueryComponent):
     '''
-    >>> InvertedCriterion(QueryCriterion('equals', 'username', 'tester')).to_sql()
+    >>> InvertedCriterion(QueryCriterion('eq', 'username', 'tester')).to_sql()
     "(NOT username = 'tester')"
     '''
     @auto_set_fields
@@ -105,7 +108,7 @@ class InvertedCriterion(QueryComponent):
 class AndedCriteria(QueryComponent):
     '''
     >>> AndedCriteria(
-    ...   [ QueryCriterion('equals', 'username', 'tester'),
+    ...   [ QueryCriterion('eq', 'username', 'tester'),
     ...     QueryCriterion('gt', 'balance', 50)
     ... ]).to_sql()
     "(username = 'tester' AND balance > 50)"
@@ -121,7 +124,7 @@ class AndedCriteria(QueryComponent):
 class OredCriteria(QueryComponent):
     '''
     >>> OredCriteria(
-    ...   [ QueryCriterion('equals', 'username', 'tester'),
+    ...   [ QueryCriterion('eq', 'username', 'tester'),
     ...     QueryCriterion('gt', 'balance', 50)
     ... ]).to_sql()
     "(username = 'tester' OR balance > 50)"
@@ -141,28 +144,43 @@ def format_where_clause(crit):
     else:
         return None
 
+def make_order_by(by, desc):
+    if by:
+        ret = 'ORDER BY %s' % by
+        if desc:
+            return '%s DESC' % ret
+        else:
+            return ret
+    else:
+        assert desc is None, "Malformed order by, it only contains DESC value"
+        return None
+
 ### Queries ###
 class DeleteRows(Query):
     '''
-    >>> print(DeleteRows('test_users', QueryCriterion('equals', 'username', 'test')).to_sql())
+    >>> print(DeleteRows('test_users', QueryCriterion('eq', 'username', 'test')).to_sql())
     DELETE FROM test_users
     WHERE username = 'test';
     '''
     @auto_set_fields
-    def __init__(self, table_name, criteria):
+    def __init__(self, table_name, criteria, order_by=None, order_desc=False, limit=None):
         pass
 
     def to_sql(self):
+        order_by_str = make_order_by(self.order_by, self.order_desc)
+
         return intercalate('\n',[
           'DELETE FROM %s' % self.table_name,
-          'WHERE %s' % self.criteria.to_sql() if self.criteria else None
+          'WHERE %s' % self.criteria.to_sql() if self.criteria else None,
+          order_by_str,
+          'LIMIT %d' % self.limit if self.limit else None,
         ]) + ';'
 
 
 class UpdateRows(Query):
     '''
     >>> print(UpdateRows('test_users',
-    ...   QueryCriterion('equals', 'username', 'tester'),
+    ...   QueryCriterion('eq', 'username', 'tester'),
     ...   {'balance': 0, 'status':'broke'}
     ... ).to_sql())
     ...
@@ -171,19 +189,20 @@ class UpdateRows(Query):
     WHERE username = 'tester';
     '''
     @auto_set_fields
-    def __init__(self, table_name, criteria, column_value_dict, limit_to=None, order_on_name=None):
+    def __init__(self, table_name, criteria, column_value_dict, order_by=None, order_desc=False, limit=None):
         # NOTE: doesn't really matter for this smart contracts, but orderby would be hel
         pass
 
     def to_sql(self):
         assignment_strs = ['%s=%s' % (k, cast_py_to_sql(v)) for (k,v) in self.column_value_dict.items()]
+        order_by_str = make_order_by(self.order_by, self.order_desc)
 
         return intercalate('\n', [
           'UPDATE %s' % self.table_name,
           'SET %s' % intercalate(', ', assignment_strs),
           format_where_clause(self.criteria),
-          'ORDER BY %s' % self.order_on_name if self.order_on_name else None,
-          'LIMIT %d' % self.limit_to if self.limit_to else None,
+          order_by_str,
+          'LIMIT %d' % self.limit if self.limit else None,
         ]) + ';'
 
 
@@ -237,7 +256,7 @@ class SelectRows(Query):
     SELECT *
     FROM test_users;
     >>> print(SelectRows('test_users', [],
-    ...  QueryCriterion('equals', 'username', 'tester'),
+    ...  QueryCriterion('eq', 'username', 'tester'),
     ...  None,
     ...  None,
     ... ).to_sql())
@@ -301,9 +320,9 @@ class SelectRows(Query):
                 table_name,
                 column_names,
                 criteria,
-                order_on_name=None,
+                order_by=None,
                 order_desc=False,
-                limit_to=None):
+                limit=None):
         pass
 
     @staticmethod
@@ -315,12 +334,14 @@ class SelectRows(Query):
 
 
     def to_sql(self):
+        order_by_str = make_order_by(self.order_by, self.order_desc)
+
         return intercalate('\n', [
           'SELECT %s' % self.format_column_names(self.column_names),
           'FROM %s' % self.table_name,
           format_where_clause(self.criteria),
-          'ORDER BY %s' % self.order_on_name if self.order_on_name else None,
-          'LIMIT %d' % self.limit_to if self.limit_to else None,
+          order_by_str,
+          'LIMIT %d' % self.limit if self.limit else None,
         ]) + ';'
 
 
@@ -332,7 +353,7 @@ class CountUniqueRows(Query):
     GROUP BY status;
 
     >>> print(CountUniqueRows('test_users', 'status',
-    ... QueryCriterion('equals', 'firstname', 'john')
+    ... QueryCriterion('eq', 'firstname', 'john')
     ... ).to_sql())
     SELECT status, COUNT(*) as _count
     FROM test_users
@@ -359,7 +380,7 @@ class CountRows(Query):
     FROM test_users;
 
     >>> print(CountRows('test_users',
-    ... QueryCriterion('equals', 'firstname', 'john')
+    ... QueryCriterion('eq', 'firstname', 'john')
     ... ).to_sql())
     SELECT COUNT(*) as _count
     FROM test_users
