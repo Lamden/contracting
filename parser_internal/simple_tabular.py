@@ -51,7 +51,38 @@ u = create_table('users', [
 '''
 
 def fallback_executer(query):
-    print('No executer provided, echoing query:\n%s\n' % query)
+    print('> No executer has been provided, echoing query:\n%s\n' % query)
+
+
+def runner(f):
+    def wrap(obj_self, *args):
+        isql_obj = f(obj_self)
+
+        if len(args) == 0:
+            fallback_executer(isql_obj.to_sql())
+        elif len(args) == 1:
+            executer = args[0]
+            executer(inter.to_sql())
+        else:
+            raise TypeError("Too many arguments. 0 or 1 args + self allowed.")
+
+    return wrap
+
+# TODO: dedupe with runner()
+def static_runner(f):
+    def wrap(*args):
+        isql_obj = f()
+
+        if len(args) == 0:
+            fallback_executer(isql_obj.to_sql())
+        elif len(args) == 1:
+            executer = args[0]
+            executer(inter.to_sql())
+        else:
+            raise TypeError("Too many arguments. 0 or 1 args + self allowed.")
+
+    return wrap
+
 
 
 class Column(object):
@@ -79,9 +110,10 @@ class Column(object):
 
     def to_intermediate_def(self):
         assert self.type, "When defining table column, a type must be declared"
-        sql_type = py_mysql_dict(self.type)
+        sql_type = isql.py_mysql_dict[self.type]
 
         return isql.ColumnDefinition(self.name, sql_type, unique=self.unique, nullable=self.nullable)
+
 
 class AutoIncrementColumn(Column):
     @auto_set_fields
@@ -90,8 +122,6 @@ class AutoIncrementColumn(Column):
 
     def to_intermediate_def(self):
         return isql.AutoIncrementColumn(self.name)
-
-
 
 
 def and_(*args):
@@ -113,7 +143,8 @@ class QueryComponent(object):
     def _supplemental_init(self, *args, **kwargs):
         pass
 
-    def run(self, *args):
+    @runner
+    def run(self):
         # Get the top level query component, a SQL method (select, update, etc.)
         tlqcs = [x for x in self.call_stack if issubclass(type(x), TopLevelQueryComponent)]
         ensure_len(1, tlqcs) # There should only ever be one method/verb per query.
@@ -121,16 +152,8 @@ class QueryComponent(object):
         # The SQL method/verb is the only query component that can generate a full
         # Intermediate representation of the query.
         inter = sql_verb.to_intermediate(self.call_stack)
+        return inter
 
-        if len(args) == 0:
-            fallback_executer(inter.to_sql())
-        elif len(args) == 1:
-            executer = args[0]
-            executer(inter.to_sql())
-        else:
-            raise TypeError("Too many arguments. 0 or 1 args + self allowed.")
-
-        return(inter)
 
     def __str__(self):
         d1 = self.__dict__.copy()
@@ -257,6 +280,7 @@ class Table(object):
     # * create with full column spec (including primary key column)
     # * create conveniently with id field already specced
     def __init__(self, name, primary_column, other_columns):
+        self.call_stack = [self]
         self._name = name
         self.primary_key_column = primary_column
         self.other_columns = other_columns
@@ -297,32 +321,42 @@ class Table(object):
     def __repr__(self):
         return self.__str__()
 
-#
-#    # alias everywhere
-#    user_table.select().where(
-#        and_(
-#          column('balance') == foo,
-#          column('first_name') == bar
-#        )
-#    )
-#
-#    user_table.select().where(col('balance') == x)
-#    select_query = [(where, False), (order_by, False), (limit, False)]
-#    insert_query = [(where, False), (order_by, False), (limit, False)]
-#
-#    table_obj_call_chain = ('base', no_op, [ ('insert', insert_function,),
-#                           ('select'),
-#                           ('update'),
-#                           ('delete')
-#                         ],
-#                  True )
-#    [
-#        ('insert', True),
-#        ('select', True),
-#        ('update', True),
-#        ('delete', True),
-#    ]
+    def _to_intermediate_create(self, if_not_exists=False):
+        return isql.CreateTable(self._name,
+                                self.primary_key_column.to_intermediate_def(),
+                                list(map(
+                                  lambda x: x.to_intermediate_def(),
+                                  self.other_columns
+                                )),
+                                if_not_exists=if_not_exists
+                               )
+
+    def _to_itermediate_drop(self):
+        return isql.DropTable(self._name)
+
+
+class SimpleRunnable():
+    @auto_set_fields
+    def __init__(self, run):
+        pass
+
+    def run(*args, **kwargs):
+        return self.run(*args, **kwargs)
+
+
+def create_table_query(table):
+    return SimpleRunnable(static_runner(
+        lambda : table._to_intermediate_create()
+    ))
+
+def drop_table_query(table):
+    return SimpleRunnable(static_runner(
+        lambda : table._to_itermediate_drop()
+    ))
+
+
 if __name__ == '__main__':
+    import sys
 
     u = Table('users', AutoIncrementColumn('id'),[
         Column('name', str),
@@ -331,9 +365,15 @@ if __name__ == '__main__':
         Column('creation_date', datetime)
     ])
 
-
-
+    create_table_query(u).run()
     u.delete().run()
+    drop_table_query(u).run()
+
+
+
+
+
+    sys.exit()
     u.delete().where(Column('balance') > 5).run()
     u.delete().where(
         and_(
@@ -358,11 +398,11 @@ if __name__ == '__main__':
 
 
     u.select().where(
-        nou_(Column('abc') >= 5)
-    ).limiu(5).run()
+        not_(Column('abc') >= 5)
+    ).limit(5).run()
 
     u.select().where(
-        nou_(
+        not_(
             and_(
                 Column('balance') > 5,
                 Column('balance') <= 200
@@ -374,9 +414,6 @@ if __name__ == '__main__':
     # should fail: Table('fake_column_spec').run()
     u.select().run()
     u.select('username', 'balance').run()
-
-
-
 
 
     #drop_table('users')

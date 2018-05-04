@@ -87,7 +87,7 @@ def get_py_to_sql_cast_func(py_type):
 
     if py_type in casting_func_dict.keys():
         return casting_func_dict[py_type]
-    elif issublass(py_type, FixedStr):
+    elif issubclass(py_type, FixedStr):
         return casting_func_dict[str] # XXX: same casting method to TEXT and to VARCHAR(x)
     else:
         # TODO: custom exception types

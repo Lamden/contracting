@@ -35,7 +35,7 @@ class QueryComponent(object):
 from typing import Type, Dict, Tuple, List
 #cls: Type[A]
 
-from mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern, TabularKVs
+from mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern, TabularKVs, py_mysql_dict
 from util import *
 
 ### Query Parts ###
@@ -44,14 +44,15 @@ class ColumnDefinition(QueryComponent):
     (Covered in other tests)
     '''
     @auto_set_fields
-    def __init__(self, name, sql_type, is_unique=False):
+    def __init__(self, name, sql_type, unique=False, nullable=True):
         pass
 
     def to_sql(self):
         return intercalate(' ', [
           self.name,
           str(self.sql_type),
-          'UNIQUE' if self.is_unique else None,
+          'NOT NULL' if not self.nullable else None,
+          'UNIQUE' if self.unique else None,
         ])
 
 
@@ -72,6 +73,13 @@ class QueryCriterion(QueryComponent):
     '''
     >>> QueryCriterion('eq', 'username', 'tester').to_sql()
     "username = 'tester'"
+
+    >>> QueryCriterion('eq', 'username', None).to_sql()
+    'username IS NULL'
+
+    >>> QueryCriterion('ne', 'username', None).to_sql()
+    'username IS NOT NULL'
+
     '''
     cr_types_to_strs = {
         'eq': '=',
@@ -87,10 +95,18 @@ class QueryCriterion(QueryComponent):
         assert self.constraint_type in list(self.cr_types_to_strs.keys()), "Invalid constraint type."
 
     def to_sql(self):
-        return "%s %s %s" % (self.field_name,
-                             self.cr_types_to_strs[self.constraint_type],
-                             cast_py_to_sql(self.comparison_value),
-                            )
+        if self.comparison_value is None:
+            if self.constraint_type == 'eq':
+                return "%s IS NULL" % self.field_name
+            elif self.constraint_type == 'ne':
+                return "%s IS NOT NULL" % self.field_name
+            else:
+                raise Exception("Unsupported operator with 'NONE' value only == (eq) and != (ne) are supported")
+        else:
+            return "%s %s %s" % (self.field_name,
+                                 self.cr_types_to_strs[self.constraint_type],
+                                 cast_py_to_sql(self.comparison_value),
+                                )
 
 class InvertedCriterion(QueryComponent):
     '''
@@ -294,8 +310,7 @@ class SelectRows(Query):
     >>>
     >>> print(SelectRows('test_users', ['username', 'balance'],
     ...   QueryCriterion('gt', 'balance', 10),
-    ...   None,
-    ...   5,
+    ...   limit=5,
     ... ).to_sql())
     SELECT username, balance
     FROM test_users
@@ -305,7 +320,7 @@ class SelectRows(Query):
     >>> print(SelectRows('test_users', ['username', 'balance'],
     ...   QueryCriterion('gt', 'balance', 10),
     ...   'balance',
-    ...   5,
+    ...   limit=5,
     ... ).to_sql())
     SELECT username, balance
     FROM test_users
