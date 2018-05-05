@@ -113,6 +113,17 @@ class TabularKVs():
     # TODO: def format_keys, should verify no duplicates and all keys are of same type
     # TODO: fast_init method that skips all unecessary steps
 
+    @classmethod
+    def from_dicts(cls, ds):
+        k0 = list(ds[0].keys())
+        tab_kv = cls(k0, [])
+        for kv in ds:
+            tab_kv.append(kv)
+        return tab_kv
+
+    def to_klist_vlists(self):
+        return self.keys, self.rows
+
     def format_row(self, row):
         assert len(row) == self.record_len
         t = type(row)
@@ -158,7 +169,6 @@ class TabularKVs():
     def select(self, *keys):
         indices = [self.keys.index(k) for k in keys]
         return [[r[i] for i in indices] for r in self.rows]
-
 
 
 if __name__ == '__main__':

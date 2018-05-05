@@ -62,7 +62,11 @@ def runner(f):
             fallback_executer(isql_obj.to_sql())
         elif len(args) == 1:
             executer = args[0]
-            executer(inter.to_sql())
+            res = executer(isql_obj)
+            if not res.success:
+                raise Exception(res.data)
+            else:
+                return res.data
         else:
             raise TypeError("Too many arguments. 0 or 1 args + self allowed.")
 
@@ -77,7 +81,11 @@ def static_runner(f):
             fallback_executer(isql_obj.to_sql())
         elif len(args) == 1:
             executer = args[0]
-            executer(inter.to_sql())
+            res = executer(isql_obj)
+            if not res.success:
+                raise Exception(res.data)
+            else:
+                return res.data
         else:
             raise TypeError("Too many arguments. 0 or 1 args + self allowed.")
 
@@ -249,17 +257,43 @@ class InsertRows(TopLevelQueryComponent):
     def _supplemental_init(self, list_column_val_dicts):
         pass
 
+    @staticmethod
+    def to_intermediate(full_call_stack):
+        table_name = get_qc(Table, full_call_stack).sql_name()
+        list_column_val_dicts = safe_getattr(get_qc(InsertRows, full_call_stack), 'list_column_val_dicts')
+
+        tab_kv = isql.TabularKVs.from_dicts(list_column_val_dicts)
+        return isql.InsertRows(table_name, *tab_kv.to_klist_vlists())
+
 
 class UpdateRows(TopLevelQueryComponent):
     @auto_set_fields
     def _supplemental_init(self, column_val_dict):
         pass
 
+    @staticmethod
+    def to_intermediate(full_call_stack):
+        table_name = get_qc(Table, full_call_stack).sql_name()
+        criterion = safe_getattr(get_qc(WhereClause, full_call_stack), 'where_criterion') #TODO: Implement this
+        column_value_dict = safe_getattr(get_qc(UpdateRows, full_call_stack), 'column_val_dict')
+        order_by = safe_getattr(get_qc(OrderBy, full_call_stack), 'column_name')
+        order_desc = safe_getattr(get_qc(OrderBy, full_call_stack), 'desc')
+        limit = safe_getattr(get_qc(LimitTo, full_call_stack), 'count_limit')
+
+        return isql.UpdateRows(table_name,
+                               criterion,
+                               column_value_dict,
+                               order_by=order_by,
+                               order_desc=order_desc,
+                               limit=limit)
+
+
 class SelectRows(TopLevelQueryComponent):
     def _supplemental_init(self, *field_names):
         self.field_names = list(field_names)
 
-    def to_intermediate(self, full_call_stack):
+    @staticmethod
+    def to_intermediate(full_call_stack):
         table_name = get_qc(Table, full_call_stack).sql_name()
         column_names = safe_getattr(get_qc(SelectRows, full_call_stack), 'field_names')
         criterion = safe_getattr(get_qc(WhereClause, full_call_stack), 'where_criterion') #TODO: Implement this
@@ -298,7 +332,7 @@ class Table(object):
 
     def sql_name(self):
         #TODO: Implement this
-        return "some_table_name"
+        return self._name
 
     def insert(self, data):
         return InsertRows(self.call_stack.copy(), data)
@@ -344,9 +378,9 @@ class SimpleRunnable():
         return self.run(*args, **kwargs)
 
 
-def create_table_query(table):
+def create_table_query(table, if_not_exists=False):
     return SimpleRunnable(static_runner(
-        lambda : table._to_intermediate_create()
+        lambda : table._to_intermediate_create(if_not_exists=if_not_exists)
     ))
 
 def drop_table_query(table):
@@ -357,82 +391,47 @@ def drop_table_query(table):
 
 if __name__ == '__main__':
     import sys
+    from mysql_executer import Executer
+
+    ex_ = Executer('seneca_test', sys.argv[1], 'seneca_test', '127.0.0.1')
+
+    def ex(obj):
+        print('Running Query:')
+        print(obj.to_sql())
+        res = ex_(obj)
+        print(res)
+        print('\n')
+        return res
 
     u = Table('users', AutoIncrementColumn('id'),[
-        Column('name', str),
-        Column('fullname', str),
+        Column('first_name', str),
+        Column('last_name', str),
         Column('balance', int),
         Column('creation_date', datetime)
     ])
+    try:
+        drop_table_query(u).run(ex)
+    except Exception as e:
+        print(e)
+    create_table_query(u, if_not_exists=True).run(ex)
 
-    create_table_query(u).run()
-    u.delete().run()
-    drop_table_query(u).run()
+    u.insert([
+      {'first_name': 'Test', 'last_name': 'User','balance': 0},
+      {'first_name': 'Test2', 'last_name': 'User','balance': 0},
+      {'first_name': 'Test3', 'last_name': 'User','balance': 0},
+    ]).run(ex)
+    print(u.select().run(ex))
 
+    u.update({'balance': 1000}).run(ex)
+    print(u.select().run(ex))
 
+    print(u.select('id', 'first_name').order_by('id', desc=True).run(ex))
 
-
-
-    sys.exit()
-    u.delete().where(Column('balance') > 5).run()
     u.delete().where(
-        and_(
-            Column('balance') > 5,
-            Column('creation_date') < datetime.now() - timedelta(days=1)
+        or_(
+            Column('first_name') == 'Test',
+            Column('first_name') == 'Test3'
         )
-    ).run()
-    u.delete().order_by('creation_date').run()
-    u.delete().order_by('creation_date', desc=True).run()
+    ).run(ex)
 
-    u.select().order_by('creation_date', desc=True).run()
-    u.select('test1', 'test2').order_by('creation_date', desc=True).run()
-    u.select('test1', 'test2').order_by('creation_date', desc=True).limit(5).run()
-    u.select().limit(5).run()
-
-    u.select().where(
-        and_(
-            Column('balance') > 5,
-            Column('creauion_date') < datetime.now() - timedelta(days=1)
-        )
-    ).run()
-
-
-    u.select().where(
-        not_(Column('abc') >= 5)
-    ).limit(5).run()
-
-    u.select().where(
-        not_(
-            and_(
-                Column('balance') > 5,
-                Column('balance') <= 200
-        ))
-    ).run()
-
-    u.select().where(Column('abc') == None).run()
-    u.select().where(Column('abc') != None).run()
-    # should fail: Table('fake_column_spec').run()
-    u.select().run()
-    u.select('username', 'balance').run()
-
-
-    #drop_table('users')
-#    u = create_table('users', [
-#        ('first_name', str_len(30), True),
-#        ('last_name', str_len(30), True),
-#        ('nick_name', str_len(30)),
-#        ('balance', int)
-#    ])
-
-#    drop_table('users')
-#    u = create_table('users', [
-#        column('first_name', str_len(30), unique=True),
-#        column('last_name', str_len(30), non_nullable=True),
-#        column('nick_name', str_len(30)),
-#        column('balance', int)
-
-#    users = Table('users', metadata,
-#        Column('id', Integer, primary_key=True),
-#        Column('name', String),
-#        Column('fullname', String),
-#    )
+    print(u.select().run(ex))
