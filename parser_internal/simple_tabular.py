@@ -15,6 +15,7 @@
 # TODO: make names of conversion functions uniform so it's easy to see where they are and add new types
 # TODO: configurable verbosity
 # TODO: verify this is being called each time it's imported.
+# TODO: invert order of parameters in get_qc so it can be partially applied
 
 from itertools import zip_longest
 from util import auto_set_fields
@@ -61,6 +62,7 @@ def runner(f):
         if len(args) == 0:
             fallback_executer(isql_obj.to_sql())
         elif len(args) == 1:
+
             executer = args[0]
             res = executer(isql_obj)
             if not res.success:
@@ -142,23 +144,41 @@ def or_(*args):
     return isql.OredCriteria(args)
 
 
+
+# NOTE: The following classes are used to build sql-like method chains.
+# Because different fragment of SQL must be in order and are optional (i.e. not
+# required), e.g. 'where ...', 'order by', 'limit'. These methods return objects
+# with an ever narrowing set of available methods, e.g. after .order_by(...)
+# is run, the object returned only has .limit() and .run() methods available,
+# per SQL syntax, .where() would have had to come before order_by(). In contrast
+# .select() will return an object with all previously mentioned methods available.
 class QueryComponent(object):
+    '''Base class for sql method chains.'''
     def __init__(self, call_stack, *args, **kwargs):
         self.call_stack = call_stack
         self.call_stack.append(self)
         self._supplemental_init(*args, **kwargs)
 
     def _supplemental_init(self, *args, **kwargs):
+        '''Many constructor for sql methods have special arguments and behaviors.
+        Structuring init in 2 functions allows classes to inherit and use a common
+        __init__ to handle the callstack, but still have unique supplemental
+        behaviors layered on top.'''
         pass
 
     @runner
     def run(self):
+        ''' This method starts the process of unwinding the method chain
+        callstack, it finds the sql verb (e.g. select(), update(), insert(), or
+        delete()), does some light validation, then uses the verb's
+        to_intermediate to turn the entire callstack into a representation of a
+        SQL query.'''
         # Get the top level query component, a SQL method (select, update, etc.)
         tlqcs = [x for x in self.call_stack if issubclass(type(x), TopLevelQueryComponent)]
         ensure_len(1, tlqcs) # There should only ever be one method/verb per query.
         sql_verb = tlqcs[0]
-        # The SQL method/verb is the only query component that can generate a full
-        # Intermediate representation of the query.
+        # The SQL method/verb is the only query component that can generate a
+        # representation of the query
         inter = sql_verb.to_intermediate(self.call_stack)
         return inter
 
@@ -173,8 +193,19 @@ class QueryComponent(object):
 
 
 class LimitTo(QueryComponent):
+    ''' Limit must be the last statement in our standard SQL queries, it
+    inherits the .run() method from QueryComponent, and can't do anything else.
+    '''
     @auto_set_fields
     def _supplemental_init(self, count_limit):
+        pass
+
+
+class CountsWhereClause(QueryComponent):
+    '''Simplified where clause that doesn't have any methods except .run()'''
+    @auto_set_fields
+    def _supplemental_init(self, where_criterion):
+        #TODO: Verify not empty
         pass
 
 
@@ -234,14 +265,46 @@ def get_qc(t, xs):
     return safe_list_accessor(xs_f, 0)
 
 
+class CountRows(TopLevelQueryComponent):
+    # Overwrite supplemental with noop
+    def _supplemental_init(self, *args):
+        pass
+
+    def to_intermediate(self, full_call_stack):
+        # TODO: Dedupe this section from other Classes. Ideally with __lt__ implemented for automatic sorting.
+        table_name = get_qc(Table, full_call_stack).sql_name()
+        criterion = safe_getattr(get_qc(CountsWhereClause, full_call_stack), 'where_criterion') #TODO: Implement this
+        return isql.CountRows(table_name, criterion)
+
+    def where(self, where_criterion):
+        '''Override default where() with one that returns the more restricted
+        CountsWhereClause object.'''
+        return CountsWhereClause(self.call_stack.copy(), where_criterion)
+
+
+class CountUniqueRows(CountRows):
+    @auto_set_fields
+    def _supplemental_init(self, column_name):
+        pass
+
+    def to_intermediate(self, full_call_stack):
+        # TODO: Dedupe this section from other Classes. Ideally with __lt__ implemented for automatic sorting.
+        # and individual to_intermediate methods for all classes so just sort and map that over list.
+        table_name = get_qc(Table, full_call_stack).sql_name()
+        unique_column_name = get_qc(CountUniqueRows, full_call_stack).column_name
+        criterion = safe_getattr(get_qc(CountsWhereClause, full_call_stack), 'where_criterion')
+        return isql.CountUniqueRows(table_name, unique_column_name, criterion)
+
+
 class DeleteRows(TopLevelQueryComponent):
     # Overwrite supplemental with noop
     def _supplemental_init(self, *args):
         pass
 
     def to_intermediate(self, full_call_stack):
+        # TODO: Dedupe this section from other Classes. Ideally with __lt__ implemented for automatic sorting.
         table_name = get_qc(Table, full_call_stack).sql_name()
-        criterion = safe_getattr(get_qc(WhereClause, full_call_stack), 'where_criterion') #TODO: Implement this
+        criterion = safe_getattr(get_qc(WhereClause, full_call_stack), 'where_criterion')
         order_by = safe_getattr(get_qc(OrderBy, full_call_stack), 'column_name')
         order_desc = safe_getattr(get_qc(OrderBy, full_call_stack), 'desc')
         limit = safe_getattr(get_qc(LimitTo, full_call_stack), 'count_limit')
@@ -334,6 +397,7 @@ class Table(object):
         #TODO: Implement this
         return self._name
 
+    # TODO: These can all be refactored as a parameterized function decorator
     def insert(self, data):
         return InsertRows(self.call_stack.copy(), data)
 
@@ -345,6 +409,12 @@ class Table(object):
 
     def delete(self):
         return DeleteRows(self.call_stack.copy())
+
+    def count(self):
+        return CountRows(self.call_stack.copy())
+
+    def count_unique(self, column_name):
+        return CountUniqueRows(self.call_stack.copy(), column_name)
 
     def __str__(self):
         d1 = self.__dict__.copy()
@@ -370,6 +440,8 @@ class Table(object):
 
 
 class SimpleRunnable():
+    ''' Bare bones class with run method.
+    '''
     @auto_set_fields
     def __init__(self, run):
         pass
@@ -413,6 +485,7 @@ if __name__ == '__main__':
         drop_table_query(u).run(ex)
     except Exception as e:
         print(e)
+
     create_table_query(u, if_not_exists=True).run(ex)
 
     u.insert([
@@ -429,9 +502,22 @@ if __name__ == '__main__':
 
     u.delete().where(
         or_(
-            Column('first_name') == 'Test',
+            u.first_name == 'Test',
             Column('first_name') == 'Test3'
         )
     ).run(ex)
 
     print(u.select().run(ex))
+
+    u.insert([
+      {'first_name': 'Test1', 'last_name': 'User','balance': 0},
+      {'first_name': 'Test2', 'last_name': 'User','balance': 10},
+    ]).run(ex)
+
+
+    print(u.count().run(ex))
+    print(u.count().where(u.first_name == 'Test2').run(ex))
+
+    print(u.select().run(ex))
+    print(u.count_unique('first_name').run(ex))
+    print(u.count_unique('first_name').where(u.balance >= 10).run(ex))
