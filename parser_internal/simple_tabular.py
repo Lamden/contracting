@@ -14,14 +14,15 @@
 # TODO: dedupe code
 # TODO: make names of conversion functions uniform so it's easy to see where they are and add new types
 # TODO: configurable verbosity
-# TODO: verify this is being called each time it's imported.
 # TODO: invert order of parameters in get_qc so it can be partially applied
+# TODO: upsert "ON DUPLICATE KEY UPDATE"
 
 from itertools import zip_longest
-from util import auto_set_fields
+from util import auto_set_fields, add_methods, add_method_as
 import warnings
 import datetime
 import mysql_queries as isql
+from mysql_base import FixedStr, cast_py_to_sql
 from datetime import datetime, timedelta
 #from inflection import  underscore, camelize
 '''
@@ -29,13 +30,13 @@ TODOS:
 static methods:
 
 get_table()
-create_table()
 drop_table()
 run_batch()
+
+
 add_column()
 drop_column()
 
-outside_table
 run_batch
 str_len
 create_table
@@ -50,6 +51,20 @@ u = create_table('users', [
     ('balance', int)
 ])
 '''
+
+# Shared methods
+def where(self, where_criterion):
+    return WhereClause(self.call_stack.copy(), where_criterion)
+
+def order_by(self, order_by_column_name, desc=False):
+    return OrderBy(self.call_stack.copy(), order_by_column_name, desc=desc)
+
+def limit(self, count_limit):
+    return LimitTo(self.call_stack.copy(), count_limit)
+
+def terminal_where(self, where_criterion):
+    return TerminalWhereClause(self.call_stack.copy(), where_criterion)
+
 
 def fallback_executer(query):
     print('> No executer has been provided, echoing query:\n%s\n' % query)
@@ -94,12 +109,13 @@ def static_runner(f):
     return wrap
 
 
-
 class Column(object):
     @auto_set_fields
     def __init__(self, name, type=None, unique=False, nullable=True):
         pass
 
+    # Custom methods make the results of comparisons in query components
+    # e.g (Column('some_column') != None).to_sql() -> 'some_column IS NOT NULL'
     def __eq__(self, other):
         return isql.QueryCriterion('eq', self.name, other)
 
@@ -119,13 +135,16 @@ class Column(object):
         return isql.QueryCriterion('ge', self.name, other)
 
     def to_intermediate_def(self):
+        # TODO: Change this into a proper raise of custom exception class
         assert self.type, "When defining table column, a type must be declared"
-        sql_type = isql.py_mysql_dict[self.type]
+        sql_type = isql.SQLType.from_python_type(self.type)
 
         return isql.ColumnDefinition(self.name, sql_type, unique=self.unique, nullable=self.nullable)
 
 
 class AutoIncrementColumn(Column):
+    # Special instance of Column with automatically incrementing bigint,
+    # intended for use as primary keys
     @auto_set_fields
     def __init__(self, name):
         pass
@@ -174,7 +193,7 @@ class QueryComponent(object):
         to_intermediate to turn the entire callstack into a representation of a
         SQL query.'''
         # Get the top level query component, a SQL method (select, update, etc.)
-        tlqcs = [x for x in self.call_stack if issubclass(type(x), TopLevelQueryComponent)]
+        tlqcs = [x for x in self.call_stack if issubclass(type(x), SQLVerb)]
         ensure_len(1, tlqcs) # There should only ever be one method/verb per query.
         sql_verb = tlqcs[0]
         # The SQL method/verb is the only query component that can generate a
@@ -192,6 +211,9 @@ class QueryComponent(object):
         return self.__str__()
 
 
+
+
+
 class LimitTo(QueryComponent):
     ''' Limit must be the last statement in our standard SQL queries, it
     inherits the .run() method from QueryComponent, and can't do anything else.
@@ -201,21 +223,20 @@ class LimitTo(QueryComponent):
         pass
 
 
-class CountsWhereClause(QueryComponent):
-    '''Simplified where clause that doesn't have any methods except .run()'''
+class TerminalWhereClause(QueryComponent):
+    '''Simplified where clause that doesn't have any methods except .run() so
+    it effectively ends the chain of methods.'''
     @auto_set_fields
     def _supplemental_init(self, where_criterion):
         #TODO: Verify not empty
         pass
 
 
+@add_methods(limit)
 class OrderBy(QueryComponent):
     @auto_set_fields
     def _supplemental_init(self, column_name, desc=False):
         pass
-
-    def limit(self, count_limit):
-        return LimitTo(self.call_stack.copy(), count_limit)
 
 
 class WhereClause(OrderBy):
@@ -224,17 +245,14 @@ class WhereClause(OrderBy):
         #TODO: Verify not empty
         pass
 
-    def order_by(self, order_by_column_name, desc=False):
-        return OrderBy(self.call_stack.copy(), order_by_column_name, desc=desc)
 
 
-class TopLevelQueryComponent(WhereClause):
+class SQLVerb(QueryComponent):
     @auto_set_fields
     def _supplemental_init(self, *where_criteria):
         raise NotImplementedError("Class should never be instantiated")
 
-    def where(self, where_criterion):
-        return WhereClause(self.call_stack.copy(), where_criterion)
+
 
 def safe_list_accessor(xs, i):
     try:
@@ -264,8 +282,32 @@ def get_qc(t, xs):
     xs_f = filter_type(t, xs)
     return safe_list_accessor(xs_f, 0)
 
+# This verb has run() but no other chainable methods.
+class AddTableColumn(SQLVerb):
+    ''' Technically a top-level query function, but doesn't have a .where(),
+    only run(), so it lives higher up the object hierarchy.
+    '''
+    @auto_set_fields
+    def _supplemental_init(self, column_def):
+        self.is_top_level_query_component = True
+        pass
 
-class CountRows(TopLevelQueryComponent):
+    def to_intermediate(self, full_call_stack):
+        # TODO: Dedupe this section from other Classes. Ideally with __lt__ implemented for automatic sorting.
+        # and individual to_intermediate methods for all classes so just sort and map that over list.
+        table_name = get_qc(Table, full_call_stack).sql_name()
+        isql_column_def = self.column_def.to_intermediate_def()
+
+        return isql.AddTableColumn(table_name, isql_column_def)
+
+
+class DropTableColumn(SQLVerb):
+    pass
+
+
+
+@add_method_as(terminal_where, 'where')
+class CountRows(SQLVerb):
     # Overwrite supplemental with noop
     def _supplemental_init(self, *args):
         pass
@@ -273,16 +315,12 @@ class CountRows(TopLevelQueryComponent):
     def to_intermediate(self, full_call_stack):
         # TODO: Dedupe this section from other Classes. Ideally with __lt__ implemented for automatic sorting.
         table_name = get_qc(Table, full_call_stack).sql_name()
-        criterion = safe_getattr(get_qc(CountsWhereClause, full_call_stack), 'where_criterion') #TODO: Implement this
+        criterion = safe_getattr(get_qc(TerminalWhereClause, full_call_stack), 'where_criterion') #TODO: Implement this
         return isql.CountRows(table_name, criterion)
 
-    def where(self, where_criterion):
-        '''Override default where() with one that returns the more restricted
-        CountsWhereClause object.'''
-        return CountsWhereClause(self.call_stack.copy(), where_criterion)
 
-
-class CountUniqueRows(CountRows):
+@add_method_as(terminal_where, 'where')
+class CountUniqueRows(SQLVerb):
     @auto_set_fields
     def _supplemental_init(self, column_name):
         pass
@@ -292,11 +330,12 @@ class CountUniqueRows(CountRows):
         # and individual to_intermediate methods for all classes so just sort and map that over list.
         table_name = get_qc(Table, full_call_stack).sql_name()
         unique_column_name = get_qc(CountUniqueRows, full_call_stack).column_name
-        criterion = safe_getattr(get_qc(CountsWhereClause, full_call_stack), 'where_criterion')
+        criterion = safe_getattr(get_qc(TerminalWhereClause, full_call_stack), 'where_criterion')
         return isql.CountUniqueRows(table_name, unique_column_name, criterion)
 
 
-class DeleteRows(TopLevelQueryComponent):
+@add_methods(where)
+class DeleteRows(SQLVerb):
     # Overwrite supplemental with noop
     def _supplemental_init(self, *args):
         pass
@@ -314,8 +353,7 @@ class DeleteRows(TopLevelQueryComponent):
                                order_desc=order_desc,
                                limit=limit)
 
-
-class InsertRows(TopLevelQueryComponent):
+class InsertRows(SQLVerb):
     @auto_set_fields
     def _supplemental_init(self, list_column_val_dicts):
         pass
@@ -328,8 +366,8 @@ class InsertRows(TopLevelQueryComponent):
         tab_kv = isql.TabularKVs.from_dicts(list_column_val_dicts)
         return isql.InsertRows(table_name, *tab_kv.to_klist_vlists())
 
-
-class UpdateRows(TopLevelQueryComponent):
+@add_methods(where, order_by, limit)
+class UpdateRows(SQLVerb):
     @auto_set_fields
     def _supplemental_init(self, column_val_dict):
         pass
@@ -351,7 +389,8 @@ class UpdateRows(TopLevelQueryComponent):
                                limit=limit)
 
 
-class SelectRows(TopLevelQueryComponent):
+@add_methods(where, order_by, limit)
+class SelectRows(SQLVerb):
     def _supplemental_init(self, *field_names):
         self.field_names = list(field_names)
 
@@ -415,6 +454,14 @@ class Table(object):
 
     def count_unique(self, column_name):
         return CountUniqueRows(self.call_stack.copy(), column_name)
+
+    def add_column(self, *args, **kwargs):
+        column_def = Column(*args, **kwargs)
+        return AddTableColumn(self.call_stack.copy(), column_def)
+
+    def drop_column(self, column_name):
+        return DropTableColumn(self.call_stack.copy(), column_name)
+
 
     def __str__(self):
         d1 = self.__dict__.copy()
@@ -488,6 +535,8 @@ if __name__ == '__main__':
 
     create_table_query(u, if_not_exists=True).run(ex)
 
+    u.select().where(u.first_name != None).run(ex)
+
     u.insert([
       {'first_name': 'Test', 'last_name': 'User','balance': 0},
       {'first_name': 'Test2', 'last_name': 'User','balance': 0},
@@ -514,10 +563,18 @@ if __name__ == '__main__':
       {'first_name': 'Test2', 'last_name': 'User','balance': 10},
     ]).run(ex)
 
-
     print(u.count().run(ex))
     print(u.count().where(u.first_name == 'Test2').run(ex))
 
     print(u.select().run(ex))
     print(u.count_unique('first_name').run(ex))
     print(u.count_unique('first_name').where(u.balance >= 10).run(ex))
+
+    print(u.add_column('nick_name', str).run(ex))
+    print(u.add_column('unique_nick_name', FixedStr.Len(30), True).run(ex))
+    print(u.select().run(ex))
+    print(u.drop_column('nick_name').run(ex))
+    print(u.select().run(ex))
+
+    #print(get_table_definition_from_db(name))
+    #print(u.sync_table_definition())

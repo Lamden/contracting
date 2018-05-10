@@ -65,15 +65,19 @@ class SQLType(object):
             self.sql_type = type_str
 
     @classmethod
-    def from_python_type(cls, p_type):
-        pass
+    def from_python_type(cls, python_type):
+        if issubclass(python_type, FixedStr):
+            return cls('VARCHAR', python_type._max_len)
+        else:
+            return cls(py_mysql_dict[python_type])
+
+
 
     def __str__(self):
         if type(self.sql_type) == tuple and self.sql_type[0] =='VARCHAR':
             return '%s(%d)' % (self.sql_type[0], self.sql_type[1])
         else:
             return self.sql_type
-
 
 
 def get_py_to_sql_cast_func(py_type):
