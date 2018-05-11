@@ -8,7 +8,7 @@ TODO: Create exceptions for:
   * table already exists
 '''
 import MySQLdb
-from mysql_intermediate import *
+from seneca_internal.storage.mysql_intermediate import *
 import warnings
 
 requires_commit = [ DeleteRows,
@@ -115,9 +115,20 @@ class Executer(object):
 
 
 
-if __name__ == '__main__':
-    import sys
-    ex = Executer('seneca_test', sys.argv[1], 'seneca_test', '127.0.0.1')
+def run_tests():
+    import configparser
+    import os
+
+    settings = configparser.ConfigParser()
+    settings._interpolation = configparser.ExtendedInterpolation()
+    this_dir = os.path.dirname(__file__)
+    settings.read(os.path.join(this_dir, 'test_db_conf.ini'))
+
+    ex = Executer(settings.get('DB', 'username'),
+                   settings.get('DB', 'password'),
+                   settings.get('DB', 'database'),
+                   settings.get('DB', 'hostname'),
+                  )
 
     create_table_query = CreateTable(
           'test_users',
@@ -155,7 +166,7 @@ if __name__ == '__main__':
     ]))
 
     ex_p(UpdateRows('test_users',
-      QueryCriterion('equals', 'username', 'tester'),
+      QueryCriterion('eq', 'username', 'tester'),
       {'balance': 0}
     ))
 
@@ -170,7 +181,7 @@ if __name__ == '__main__':
 
     ex_p(CreateTable('test_users2', AutoIncrementColumn('id'), [], if_not_exists=True))
     ex_p(ListTables(None))
-    ex_p(DeleteRows('test_users', QueryCriterion('equals', 'username', 'tester')))
+    ex_p(DeleteRows('test_users', QueryCriterion('eq', 'username', 'tester')))
 
     ex_p(DropTableColumn('test_users', 'balance2'))
     ex_p(CreateTable('test_users2', AutoIncrementColumn('id'), [], if_not_exists=False))

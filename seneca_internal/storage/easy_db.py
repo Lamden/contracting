@@ -16,13 +16,13 @@
 '''
 
 from itertools import zip_longest
-from util import auto_set_fields, add_methods, add_method_as, filter_split, assert_len
 import warnings
 import datetime
-import mysql_intermediate as isql
-from mysql_base import FixedStr, cast_py_to_sql
 from datetime import datetime, timedelta
-from functools import partial
+
+from seneca_internal.util import auto_set_fields, add_methods, add_method_as, filter_split, assert_len
+import seneca_internal.storage.mysql_intermediate as isql
+from seneca_internal.storage.mysql_base import FixedStr, cast_py_to_sql
 #from inflection import  underscore, camelize
 
 # Convenience functions for dealing with lists, dicts, and objects
@@ -506,12 +506,22 @@ class SimpleRunnable(object):
     def run(self, *args, **kwargs):
         return self.run_func(*args, **kwargs)
 
+def run_tests():
+    from seneca_internal.storage.mysql_executer import Executer
 
-if __name__ == '__main__':
-    import sys
-    from mysql_executer import Executer
+    import configparser
+    import os
 
-    ex_ = Executer('seneca_test', sys.argv[1], 'seneca_test', '127.0.0.1')
+    settings = configparser.ConfigParser()
+    settings._interpolation = configparser.ExtendedInterpolation()
+    this_dir = os.path.dirname(__file__)
+    settings.read(os.path.join(this_dir, 'test_db_conf.ini'))
+
+    ex_ = Executer(settings.get('DB', 'username'),
+                   settings.get('DB', 'password'),
+                   settings.get('DB', 'database'),
+                   settings.get('DB', 'hostname'),
+                  )
 
     def ex(obj):
         print('Running Query:')

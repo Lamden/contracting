@@ -10,7 +10,7 @@ def in_backticks(x):
     return surround('`', x)
 
 '''
-from util import auto_set_fields, fst, snd, swap
+from seneca_internal.util import auto_set_fields, fst, snd, swap
 from enum import Enum
 import datetime
 from terminaltables import AsciiTable
@@ -201,7 +201,7 @@ class TabularKVs():
         return [[r[i] for i in indices] for r in self.rows]
 
 
-if __name__ == '__main__':
+def run_tests():
     tkv = TabularKVs(('a','b','c'), [(1,2,3),(4,5,6)])
     print(tkv)
     print(len(tkv))

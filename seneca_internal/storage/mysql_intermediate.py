@@ -24,6 +24,11 @@ NOTE: We don't enforce caller to have any criteria, i.e. without "WHERE" all
 rows will be updated, this enforcement should be added in a higher level API to
 prevent accidental updates of all records.
 '''
+from typing import Type, Dict, Tuple, List
+#cls: Type[A]
+
+from seneca_internal.storage.mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern, TabularKVs, py_mysql_dict
+from seneca_internal.util import *
 
 class Query(object):
     pass
@@ -32,12 +37,6 @@ class Query(object):
 class QueryComponent(object):
     pass
 
-
-from typing import Type, Dict, Tuple, List
-#cls: Type[A]
-
-from mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern, TabularKVs, py_mysql_dict
-from util import *
 
 ### Query Parts ###
 class ColumnDefinition(QueryComponent):
@@ -180,7 +179,7 @@ class DeleteRows(Query):
     WHERE username = 'test';
     '''
     @auto_set_fields
-    def __init__(self, table_name, criteria, order_by=None, order_desc=False, limit=None):
+    def __init__(self, table_name, criteria, order_by=None, order_desc=None, limit=None):
         pass
 
     def to_sql(self):
@@ -206,7 +205,7 @@ class UpdateRows(Query):
     WHERE username = 'tester';
     '''
     @auto_set_fields
-    def __init__(self, table_name, criteria, column_value_dict, order_by=None, order_desc=False, limit=None):
+    def __init__(self, table_name, criteria, column_value_dict, order_by=None, order_desc=None, limit=None):
         # NOTE: doesn't really matter for this smart contracts, but orderby would be hel
         pass
 
@@ -337,7 +336,7 @@ class SelectRows(Query):
                 column_names,
                 criteria,
                 order_by=None,
-                order_desc=False,
+                order_desc=None,
                 limit=None):
         pass
 
@@ -543,6 +542,7 @@ class CreateTable(Query):
         ])
 
 
-if __name__ == '__main__':
+def run_tests():
+    import sys
     import doctest
-    doctest.testmod()
+    print(doctest.testmod(sys.modules[__name__]))
