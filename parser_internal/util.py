@@ -26,8 +26,10 @@ def auto_set_fields(f):
 def fst(tup):
     return(tup[0])
 
+
 def snd(tup):
     return(tup[1])
+
 
 def swap(tup):
     x, y = tup
@@ -38,8 +40,15 @@ def f_apply(f,x):
     return f(x)
 
 
+def assert_len(l, xs):
+    # TODO: custom exception classes
+    assert len(xs) == l, "List did not have the expected number of items!"
+    return xs
+
+
 def compose(f,g):
     return lambda x: f(g(x))
+
 
 def intercalate(x, ys):
     '''Like join, but filters Falsey values'''
@@ -65,6 +74,7 @@ class add_methods(object):
 
         return cls
 
+
 class add_method_as(object):
     """Add the public attributes of a mixin to another class.
     Attribute name collisions result in a TypeError if force is False.
@@ -83,3 +93,15 @@ class add_method_as(object):
             setattr(cls, self.as_name, self.attr)
 
         return cls
+
+
+def filter_split(f, l):
+    accepted = []
+    rejected = []
+    [accepted.append(x) if f(x) else rejected.append(x) for x in l]
+    return (accepted, rejected)
+
+
+
+if __name__ == '__main__':
+    print(filter_split(lambda x:x<5, range(10)))

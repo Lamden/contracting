@@ -14,6 +14,7 @@ from util import auto_set_fields, fst, snd, swap
 from enum import Enum
 import datetime
 from terminaltables import AsciiTable
+import re
 
 # Python type factory representing fixed length strings, outputted classes have a set length
 class FixedStr(object) :
@@ -70,6 +71,26 @@ class SQLType(object):
             return cls('VARCHAR', python_type._max_len)
         else:
             return cls(py_mysql_dict[python_type])
+
+    @classmethod
+    def from_db_describe_str(cls, st_str):
+        assert st_str != 'bigint(20) unsigned', "no implmentation for unsigned."
+
+        st_str_upper = st_str.upper()
+        if st_str_upper in valid_mysql_types:
+            return cls(st_str_upper)
+
+        varchar_len = re.search(r'^VARCHAR\((.+)\)$', st_str_upper)
+        if varchar_len:
+            l = int(varchar_len.group(1))
+            return cls('VARCHAR', l)
+
+        if st_str_upper == 'BIGINT(20)':
+            return cls('BIGINT')
+
+
+        raise Exception('Unknown sql type string: ' + st_str)
+
 
 
 
@@ -143,6 +164,11 @@ class TabularKVs():
 
     def __len__(self):
         return len(self.rows)
+
+
+    # TODO: make a nice efficient __iter__ with an interator
+    def __iter__(self):
+        return [self.row_to_dict(r) for r in self.rows].__iter__()
 
     def row_from_dict(self, d):
         assert sorted(d.keys()) == sorted(self.keys)
