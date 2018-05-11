@@ -1,40 +1,26 @@
 # Seneca Smart Contracts
 
-Seneca is a turing-incomplete domain specific language (DSL) for writing smart contracts on the Lamden Cilantro blockchain. The philosophy is that smart contracts in practice are mainly used for data storage, access, and modification, so the blockchain data and processing should be looked at more as a public database rather than a world computer.
+Seneca is a Turing-incomplete domain specific language (DSL) for writing smart contracts on the Lamden Cilantro blockchain. The philosophy is that smart contracts in practice are mainly used for data storage, access, and modification, so the blockchain data and processing should be looked at more as a public database rather than a world computer.
 
-This philosophy improves security as the limitations of the contracts are locked in at pure storage, access, and modification of data tables rather than turing-complete computing which has infinate numbers of attack vectors.
+This philosophy improves security as the limitations of the contracts are locked in at pure storage, access, and modification of data tables rather than turing-complete computing which has infinite numbers of attack vectors.
 
 ### What's a smart contract?
+* Smart contracts are code that run on the blockchain. They let users model many aspects of traditional agreements and transfer assets which are stored in the blockchain, the most obvious example being crypto currency.
 
-A Seneca smart contract is a short script that describes a constructor, local storage table, access control, setters, and getters. This script is parsed by the participants of the blockchain into a pure CQL query stack which is then hashed and agreed upon by the delegates of the system.
+## How is Seneca different
+The primary design goal of Seneca is to be easy to use and easy to reason about. Seneca is a variant of the programming language Python. We chose Python because it has a very large active community, has extensive existing documentation and tutorials, and is known for being beginner-friendly.
 
-For example:
+### Reusable components ###
+Seneca has a simple model for sharing code and building libraries based on Python module imports. The only difference from standard Python being exports are explicit (in a style similar to Node.js) so contract authors have control over what methods are available to other modules.
 
-Some script -> DSL parser -> ['SELECT * FROM users', 'INSERT...'] 
+### Execution model ###
+Seneca contracts run in two modes. In the first, the contract is run directly as the primary module. Just like Python, when the module is run directly, the varibale __name__ has its value set to the string '__main__'. When a contract is uploaded to the network, it's run directly (as the primary module) exactly once. During this execution the contract can set up database tables, populate them with data, import other existing contracts, and call methods on those contracts.
 
-### Types
+After the contract has been run directly and written to the blockchain, if it has exported functions, other contracts can import it and call those functions.
 
-Types are derived from Cassandra types specifically so that it is easy to remember how smart contracts should be written.
+### Security ###
+Permissions and security are also easy to implement and reason about. Each contract can create and store data on the block chain. This data is only writable from the contract that created it and all table are isolated in a dedicated per contact namespace. The inspiration for this is same origin policy used on the web, with each contract analogous to an entire domain.
 
-int
+The only way for other contracts to edit data owned by a contract is to import it and call its functions (if the author has created those functions).
 
-bigint
-
-text
-
-#### Insert Queries
-```
-insert { 
-	key : value, 
-    key : value
-}
-into table_name
-if not exists
-```
-
-#### Delete Queries
-```
-delete user
-from table_name
-if user.balance == 0
-```
+Any restrictions over how and when those functions are run is coded in an imperitive style in the functions themselves.
