@@ -1,6 +1,9 @@
 '''
 Utility functions and components to support creation of MySQL queries
 
+def surround(s, x):
+    return s + x + s
+
 
 def in_quotes(x):
     return surround('\'', x)
@@ -8,6 +11,11 @@ def in_quotes(x):
 
 def in_backticks(x):
     return surround('`', x)
+
+def sql_escapes(s):
+    # TODO: make sure everything I need is here.
+    import re
+    return re.sub("'", "''", s)
 
 '''
 from seneca_internal.util import auto_set_fields, fst, snd, swap

@@ -1,11 +1,14 @@
 '''
 MySQL query execution and results parsing
 
-TODO: replace asserts with custom exceptions
-TODO: refactor move exception handling into dedicated code blocks
-TODO: Catch specific mysql warnings that we don't care about
-TODO: Create exceptions for:
-  * table already exists
+TODOs:
+  * Replace asserts with custom exceptions
+  * Refactor move exception handling into dedicated code blocks
+  * Catch specific mysql warnings that we don't care about
+  * Create exceptions for:
+    * Table already exists
+    * What else?
+  * Make sure we're using cursor correctly
 '''
 import MySQLdb
 from seneca_internal.storage.mysql_intermediate import *
