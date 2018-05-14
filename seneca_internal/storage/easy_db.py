@@ -58,7 +58,7 @@ def table_name_from_cs(cs):
 
 
 def optional_from_cs(stack, type_, attr):
-    return m_getattr(m_subscript(filter_type(stack, type), 0), attr)
+    return m_getattr(m_subscript(filter_type(stack, type_), 0), attr)
 
 
 def require_from_cs(cs, t, attr):
@@ -215,6 +215,16 @@ class QueryComponent(object):
         intermediate = sql_verb.to_intermediate(self.call_stack)
         return execute_sql_query(ex, intermediate)
 
+    def to_sql(self):
+        # TODO: dedupe with above
+        tlqcs = [x for x in self.call_stack if issubclass(type(x), SQLVerb)]
+        assert_len(1, tlqcs) # There should only ever be one method/verb per query.
+        sql_verb = tlqcs[0]
+        # The SQL method/verb is the only query component type that can generate
+        # a representation of the query
+        intermediate = sql_verb.to_intermediate(self.call_stack)
+        return intermediate.to_sql() 
+
     def __str__(self):
         d1 = self.__dict__.copy()
         d1.pop('call_stack')
@@ -320,7 +330,7 @@ class CountUniqueRows(SQLVerb):
         return isql.CountUniqueRows(table_name, unique_column_name, criterion)
 
 
-@add_methods(where)
+@add_methods(where, order_by, limit)
 class DeleteRows(SQLVerb):
     # Overwrite supplemental with noop
     def _supplemental_init(self, *args):
@@ -381,9 +391,11 @@ class SelectRows(SQLVerb):
 
     @staticmethod
     def to_intermediate(full_call_stack):
+        print(full_call_stack)
         table_name = table_name_from_cs(full_call_stack)
         column_names = optional_from_cs(full_call_stack, SelectRows, 'field_names')
         criterion = optional_from_cs(full_call_stack, WhereClause, 'where_criterion')
+        print(criterion)
         order_by = optional_from_cs(full_call_stack, OrderBy, 'column_name')
         order_desc = optional_from_cs(full_call_stack, OrderBy, 'desc')
         limit = optional_from_cs(full_call_stack, LimitTo, 'count_limit')
