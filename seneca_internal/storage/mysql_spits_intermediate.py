@@ -107,7 +107,7 @@ class DropTable(object):
 '''
 
 import seneca_internal.storage.mysql_intermediate as isql
-from seneca_internal.util import run_super_first, auto_set_fields
+from seneca_internal.util import run_super_first, auto_set_fields, intercalate
 import re
 
 
@@ -225,7 +225,7 @@ class SelectRows(isql.SelectRows):
             return super().to_sql()
         else:
             # TODO: decide if we actually want this to auto-populate column names from python-side table object data instead
-            return '\n'.join([
+            return intercalate('\n', [
                 # Query database for table columns that aren't spits, prepare a statement and run it.
                 # TODO: should probably use UUID for statement name
                 # https://universalmaple.blogspot.com/2018/01/select-all-columns-except-one-in.html
@@ -233,7 +233,12 @@ class SelectRows(isql.SelectRows):
                 "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '%s'" % self.table_name,
                 "AND TABLE_SCHEMA = database()",
                 "AND COLUMN_NAME NOT LIKE '%s%%')" % SPITS_TOKEN,
-                ", ' FROM %s');" % self.table_name,
+                ", '",
+                "FROM %s" % self.table_name,
+                isql.format_where_clause(self.criteria),
+                isql.make_order_by(self.order_by, self.order_desc),
+                'LIMIT %d' % self.limit if self.limit else None,
+                " ');",
                 'PREPARE stmt1 FROM @sql;',
                 'EXECUTE stmt1;'
             ])
@@ -336,13 +341,13 @@ def run_tests():
                         SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')
                         FROM INFORMATION_SCHEMA.COLUMNS
                         WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = database()
-                        AND COLUMN_NAME NOT LIKE '$_spits_%') , ' FROM users');
+                        AND COLUMN_NAME NOT LIKE '$_spits_%') , ' FROM users
+                        WHERE $_spits_rollback_strategy_$ != 'undelete'
+                        ');
                         PREPARE stmt1 FROM @sql;
                         EXECUTE stmt1;
                         """
                         )
-
-
 
 
 #        def test_simplest_select(self):
