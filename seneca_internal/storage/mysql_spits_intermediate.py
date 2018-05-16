@@ -216,9 +216,13 @@ class SelectRows(isql.SelectRows):
 
     @classmethod
     def from_isql(cls, base_query):
-        # TODO: set correct fields
-        # return cls(base_query.table_name, base_query.primary_key_column_def, base_query.other_column_defs, base_query.if_not_exists)
-        pass
+        return cls( base_query.table_name,
+                    base_query.column_names,
+                    base_query.criteria,
+                    base_query.order_by,
+                    base_query.order_desc,
+                    base_query.limit
+                  )
 
     def to_sql(self):
         if self.column_names:
@@ -242,23 +246,7 @@ class SelectRows(isql.SelectRows):
                 'PREPARE stmt1 FROM @sql;',
                 'EXECUTE stmt1;'
             ])
-            # SET group_concat_max_len = big enough value
-            # SELECT * FROM information_schema.columns WHERE table_schema = 'seneca_test' and table_name = 'users';
-            # Will need something like this:
-            #https://universalmaple.blogspot.com/2018/01/select-all-columns-except-one-in.html
-            #SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')
-            #  FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '<table>' AND TABLE_SCHEMA = '<database>'), ' FROM <table>');
-            #
-            #PREPARE stmt1 FROM @sql;
-            #EXECUTE stmt1;
 
-#SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')
-#FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'uses' AND TABLE_SCHEMA = 'seneca_test')
-
-
-
-
-        pass
 
 
 def run_tests():
