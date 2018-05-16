@@ -200,30 +200,25 @@ class QueryComponent(object):
         behaviors layered on top.'''
         pass
 
-    def run(self, ex):
+
+    def to_isql(self):
         ''' This method starts the process of unwinding the method chain
         callstack, it finds the sql verb (e.g. select(), update(), insert(), or
         delete()), does some light validation, then uses the verb's
         to_intermediate to turn the entire callstack into a representation of a
         SQL query.'''
-        # Get the top level query component, a SQL method (select, update, etc.)
         tlqcs = [x for x in self.call_stack if issubclass(type(x), SQLVerb)]
         assert_len(1, tlqcs) # There should only ever be one method/verb per query.
         sql_verb = tlqcs[0]
         # The SQL method/verb is the only query component type that can generate
         # a representation of the query
-        intermediate = sql_verb.to_intermediate(self.call_stack)
-        return execute_sql_query(ex, intermediate)
+        return sql_verb.to_intermediate(self.call_stack)
+
+    def run(self, ex):
+        return execute_sql_query(ex, self.to_isql())
 
     def to_sql(self):
-        # TODO: dedupe with above
-        tlqcs = [x for x in self.call_stack if issubclass(type(x), SQLVerb)]
-        assert_len(1, tlqcs) # There should only ever be one method/verb per query.
-        sql_verb = tlqcs[0]
-        # The SQL method/verb is the only query component type that can generate
-        # a representation of the query
-        intermediate = sql_verb.to_intermediate(self.call_stack)
-        return intermediate.to_sql() 
+        return self.to_isql().to_sql()
 
     def __str__(self):
         d1 = self.__dict__.copy()
@@ -391,11 +386,11 @@ class SelectRows(SQLVerb):
 
     @staticmethod
     def to_intermediate(full_call_stack):
-        print(full_call_stack)
+        #print(full_call_stack)
         table_name = table_name_from_cs(full_call_stack)
         column_names = optional_from_cs(full_call_stack, SelectRows, 'field_names')
         criterion = optional_from_cs(full_call_stack, WhereClause, 'where_criterion')
-        print(criterion)
+        #print(criterion)
         order_by = optional_from_cs(full_call_stack, OrderBy, 'column_name')
         order_desc = optional_from_cs(full_call_stack, OrderBy, 'desc')
         limit = optional_from_cs(full_call_stack, LimitTo, 'count_limit')
@@ -493,10 +488,11 @@ class Table(object):
                                )
 
     def create_table(self, if_not_exists=False):
-        def run(ex):
-            return execute_sql_query(ex, self._to_intermediate_create(if_not_exists))
-
-        return SimpleRunnable(run)
+        return RunnableISQL(self._to_intermediate_create(if_not_exists))
+#        def run(ex):
+#            return execute_sql_query(ex, self._to_intermediate_create(if_not_exists))
+#
+#        return SimpleRunnable(run)
 
     def _to_intermediate_drop(self):
         return isql.DropTable(self._name)
@@ -518,8 +514,49 @@ class SimpleRunnable(object):
     def run(self, *args, **kwargs):
         return self.run_func(*args, **kwargs)
 
+
+class RunnableISQL(object):
+    @auto_set_fields
+    def __init__(self, isql, results_parser=lambda x:x):
+        pass
+
+    def to_isql(self):
+        return self.isql
+
+    def run(self, ex):
+        return self.results_parser(execute_sql_query(ex, self.isql))
+
+    def to_sql(self):
+        return self.isql.to_sql()
+
+
 def run_tests():
     from seneca_internal.storage.mysql_executer import Executer
+
+    ### Unit Tests ###
+    import unittest
+    import sys
+
+    u = Table('users', AutoIncrementColumn('id'),[
+        Column('first_name', str),
+        Column('last_name', str),
+        Column('balance', int),
+        Column('creation_date', datetime)
+    ])
+
+    class TestQueries(unittest.TestCase):
+
+        def test_create(self):
+            self.assertEqual(u.select().to_sql(), 'SELECT *\nFROM users;')
+
+    suite = unittest.TestSuite()
+    # TODO: discover and add all tests
+    suite.addTest(unittest.makeSuite(TestQueries))
+    unittest.TextTestRunner(verbosity=1).run(suite)
+
+    ### End to End tests ###
+
+
 
     import configparser
     import os

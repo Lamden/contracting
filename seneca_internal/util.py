@@ -23,6 +23,16 @@ def auto_set_fields(f):
     return wrapper
 
 
+def run_super_first(f):
+    @wraps(f)
+    def wrapper(self, *args, **kwargs):
+        super_f = getattr(super(type(self), self), f.__name__)
+        super_f(*args, **kwargs)
+        return f(self)
+
+    return wrapper
+
+
 def fst(tup):
     return(tup[0])
 

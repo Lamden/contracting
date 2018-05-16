@@ -34,11 +34,7 @@ Old notes:
         * soft-deleted rows where rollback_action = undelete
         * soft-deleted columns
         * block access to soft deleted tables
-    * create table
-      * Restricts characters for Scratch namespacing
-      * Additional columns for
-        * rollback_action [restore, delete, undelete]
-        * original_data$<column_name> for every column
+
     * insert row
       * Insert normally, but include rollback_action = delete
       * Obviously don't allow data writes to original_data fields
@@ -65,22 +61,6 @@ Old notes:
     * rollback_scratch(window_id)
 '''
 
-import mysql_intermediate as m
-
-
-def bind_passthrough(imported_module, name):
-    globals()[name] = getattr(imported_module, name)
-
-
-to_passthrough = [
-  'ColumnDefinition',
-  'AutoIncrementColumn',
-  'QueryCriterion',
-  'format_where_clause',
-]
-
-for p in to_passthrough:
-    bind_passthrough(m, p)
 
 
 '''
@@ -108,12 +88,6 @@ class UpdateRows(object):
 class InsertRows(object):
     * Insert normally but set $spits_rollback_strategy$ to 'delete'
 
-class SelectRows(object):
-    * If *, describe table and populate fields without $spits_preserve$* and spits_rollback_strategy
-    * If user manually adds $spits_preserve$* and spits_rollback_strategy, fail.
-      * Figure out how to propagte the failure without making the abstraction leaky
-    * AND or if none exists, add to criteria 'NOT spits_rollback_strategy=undelete'
-
 class DescribeTable(object):
     * Describe normally, but omit $spits_preserve$* and $spits_rollback_strategy$
 
@@ -131,3 +105,162 @@ class DropTableColumn(object):
 class DropTable(object):
     * move to $spits_deleted$_
 '''
+
+import seneca_internal.storage.mysql_intermediate as isql
+from seneca_internal.util import run_super_first, auto_set_fields
+import re
+
+
+SPITS_TOKEN = '$_spits_'
+SPITS_PRESERVE_TOKEN = SPITS_TOKEN + 'preserve_$'
+SPITS_ROLLBACK_COLUMN_NAME = SPITS_TOKEN + 'rollback_strategy_$'
+SPITS_ROLLBACK_COLUMN_SQL_TYPE = isql.SQLType('VARCHAR', 30)
+SPITS_METADATA_TABLE_NAME = SPITS_TOKEN + 'metadata_$'
+valid_strategies = ['rollback_data', 'delete']
+
+
+def starts_with_spits(string):
+    reg = re.compile(r'^%s' % re.escape(SPITS_TOKEN), re.IGNORECASE)
+    return bool(reg.match(string))
+
+def contains_only_good_chars(string):
+    reg = re.compile(r'^[a-z0-9_]+$')
+    return bool(reg.match(string))
+
+def assert_valid_name(string):
+    assert not starts_with_spits(string), "Table name dissallowed it would conflict with our mechanism for snapshotting and rollback"
+    assert contains_only_good_chars(string), "Only a-z, 0-9 and _ are allowed in table names."
+
+
+def bind_passthrough(imported_module, name):
+    globals()[name] = getattr(imported_module, name)
+
+
+to_passthrough = [
+  'ColumnDefinition',
+  'AutoIncrementColumn',
+  'QueryCriterion',
+  'format_where_clause',
+  'SQLType'
+]
+
+for p in to_passthrough:
+    bind_passthrough(isql, p)
+
+
+def make_spits_backup_column(col):
+    return isql.ColumnDefinition(SPITS_PRESERVE_TOKEN + col.name, col.sql_type, unique=False, nullable=True)
+
+
+class CreateTable(object):
+    '''
+    '''
+    @auto_set_fields
+    def __init__(self, base_query):
+        ## Validation ##
+        #Make sure table name doesn't contain spits token, and only allowed characters.
+        assert_valid_name(base_query.table_name)
+        # Make sure column names don't contain spits token
+        all_columns = base_query.other_column_defs + [base_query.primary_key_column_def]
+        [assert_valid_name(x.name) for x in all_columns]
+
+        self.spits_backup_columns = [make_spits_backup_column(x) for x in all_columns]
+        self.spits_rollback_strategy_column = isql.ColumnDefinition(SPITS_ROLLBACK_COLUMN_NAME, SPITS_ROLLBACK_COLUMN_SQL_TYPE)
+        pass
+
+    def to_sql(self):
+        # TODO: We have to be careful not to overwrite data in the SPITS_METADATA table, make sure there's a unique constraint
+        # Alteratively, maybe we just select the oldest reference to th table and always write
+        sql_query = '\n'.join([ 'BEGIN',
+                      isql.InsertRows(SPITS_METADATA_TABLE_NAME, ['table_name', 'rollback_strategy'],
+                        [[self.base_query.table_name, 'delete'],
+                      ]).to_sql(),
+                      self.base_query.to_sql(),
+                      'COMMIT'
+        ])
+        return sql_query
+
+class SelectRows(isql.SelectRows):
+    '''
+    TODO:
+    * If *, describe table and populate fields without $spits_preserve$* and spits_rollback_strategy
+    * If user manually adds $spits_preserve$* and spits_rollback_strategy, fail.
+      * Figure out how to propagte the failure without making the abstraction leaky
+    * AND or if none exists, add to criteria 'NOT spits_rollback_strategy=undelete'
+    '''
+    pass
+
+
+def run_tests():
+    import seneca_internal.storage.easy_db as easy
+    import unittest
+    from datetime import datetime
+    import sys
+    # Patch easy_db module, replace base mysql_intermediate with this module
+#    class ThisModuleProxy(object):
+#        def __init__(self, **kwargs):
+#            for (k,v) in kwargs.items():
+#                setattr(self, k, v)
+#
+#    module_self = ThisModuleProxy(**globals())
+#    easy.isql = module_self
+#
+    u = easy.Table('users', easy.AutoIncrementColumn('id'),[
+        easy.Column('first_name', str),
+        easy.Column('last_name', str),
+        easy.Column('balance', int),
+        easy.Column('creation_date', datetime)
+    ])
+
+    print(CreateTable(u.create_table().to_isql()).to_sql())
+
+
+    sys.exit()
+
+
+
+    def normalize_str(s):
+        return " ".join(s.split())
+
+    class TestQueries(unittest.TestCase):
+
+        def assert_str_equiv(self, s1, s2):
+            return self.assertEqual(normalize_str(s1),
+                                    normalize_str(s2)
+                                    )
+
+        def test_create(self):
+            self.assert_str_equiv(u.create_table().to_sql(),
+                                    """CREATE TABLE users (
+                                    id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                                    first_name TEXT,
+                                    last_name TEXT,
+                                    balance BIGINT,
+                                    creation_date DATETIME
+                                    );
+                                    """
+                                  )
+
+#        def test_simplest_select(self):
+#            self.assertEqual(u.select().to_sql(), 'SELECT *\nFROM users;')
+#
+##        def test_isupper(self):
+#            self.assertTrue('FOO'.isupper())
+#            self.assertFalse('Foo'.isupper())
+#
+#        def test_split(self):
+#            s = 'hello world'
+#            self.assertEqual(s.split(), ['hello', 'world'])
+#            # check that s.split fails when the separator is not a string
+#            with self.assertRaises(TypeError):
+#                s.split(2)
+#
+#        u.drop_table().run(ex)
+#    u.create_table(if_not_exists=True).run(ex)
+#    u.select().where(u.first_name != None).run(ex)
+
+
+    suite = unittest.TestSuite()
+    # TODO: discover and add all tests
+    suite.addTest(unittest.makeSuite(TestQueries))
+    unittest.TextTestRunner(verbosity=1).run(suite)

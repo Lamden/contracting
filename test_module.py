@@ -17,7 +17,7 @@ if hasattr(conf, 'path'):
     else:
         module = re.sub('\/', '.', conf.path)
         module = re.sub('\.py$', '', module)
-        print("testing:", module)
+        print("\n\ntesting:%s\n" % module)
 
         m1 = importlib.import_module(module)
         m1.run_tests()
