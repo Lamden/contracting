@@ -116,7 +116,7 @@ SPITS_PRESERVE_TOKEN = SPITS_TOKEN + 'preserve_$'
 SPITS_ROLLBACK_COLUMN_NAME = SPITS_TOKEN + 'rollback_strategy_$'
 SPITS_ROLLBACK_COLUMN_SQL_TYPE = isql.SQLType('VARCHAR', 30)
 SPITS_METADATA_TABLE_NAME = SPITS_TOKEN + 'metadata_$'
-valid_strategies = ['rollback_data', 'delete']
+valid_strategies = ['rollback_data', 'delete', 'undelete']
 
 
 def starts_with_spits(string):
@@ -152,30 +152,41 @@ def make_spits_backup_column(col):
     return isql.ColumnDefinition(SPITS_PRESERVE_TOKEN + col.name, col.sql_type, unique=False, nullable=True)
 
 
-class CreateTable(object):
+class CreateTable(isql.CreateTable):
     '''
     '''
-    @auto_set_fields
-    def __init__(self, base_query):
+    @run_super_first
+    def __init__(self): #table_name, primary_key_column_def, other_column_defs, if_not_exists=False
         ## Validation ##
         #Make sure table name doesn't contain spits token, and only allowed characters.
-        assert_valid_name(base_query.table_name)
+        assert_valid_name(self.table_name)
         # Make sure column names don't contain spits token
-        all_columns = base_query.other_column_defs + [base_query.primary_key_column_def]
+        all_columns = [self.primary_key_column_def] + self.other_column_defs
         [assert_valid_name(x.name) for x in all_columns]
 
-        self.spits_backup_columns = [make_spits_backup_column(x) for x in all_columns]
-        self.spits_rollback_strategy_column = isql.ColumnDefinition(SPITS_ROLLBACK_COLUMN_NAME, SPITS_ROLLBACK_COLUMN_SQL_TYPE)
-        pass
+        spits_backup_columns = [make_spits_backup_column(x) for x in all_columns]
+        self.other_column_defs.extend(spits_backup_columns)
+
+        spits_rollback_strategy_column = isql.ColumnDefinition(SPITS_ROLLBACK_COLUMN_NAME, SPITS_ROLLBACK_COLUMN_SQL_TYPE)
+        self.other_column_defs.append(spits_rollback_strategy_column)
+
+    @classmethod
+    def from_isql(cls, base_query):
+        # TODO: make a generic function that does this: map object attributes onto constructor by var name
+        return cls(base_query.table_name, base_query.primary_key_column_def, base_query.other_column_defs, base_query.if_not_exists)
+
 
     def to_sql(self):
         # TODO: We have to be careful not to overwrite data in the SPITS_METADATA table, make sure there's a unique constraint
         # Alteratively, maybe we just select the oldest reference to th table and always write
         sql_query = '\n'.join([ 'BEGIN',
+                      '',
                       isql.InsertRows(SPITS_METADATA_TABLE_NAME, ['table_name', 'rollback_strategy'],
-                        [[self.base_query.table_name, 'delete'],
+                        [[self.table_name, 'delete'],
                       ]).to_sql(),
-                      self.base_query.to_sql(),
+                      '',
+                      super().to_sql(),
+                      '',
                       'COMMIT'
         ])
         return sql_query
@@ -188,7 +199,61 @@ class SelectRows(isql.SelectRows):
       * Figure out how to propagte the failure without making the abstraction leaky
     * AND or if none exists, add to criteria 'NOT spits_rollback_strategy=undelete'
     '''
-    pass
+    @run_super_first
+    # table_name,column_names,criteria,order_by=None,order_desc=None,limit=None
+    def __init__(self):
+        assert_valid_name(self.table_name)
+        [assert_valid_name(x) for x in self.column_names]
+        # TODO assert_valid_name for criteria names and order_by as well.
+
+        filter_undelete_criterion = isql.QueryCriterion('ne', SPITS_ROLLBACK_COLUMN_NAME, 'undelete')
+        if self.criteria:
+            self.criteria = isql.AndedCriteria([ filter_undelete_criterion,
+                                                 self.criteria
+                                               ])
+        else:
+            self.criteria = filter_undelete_criterion
+
+    @classmethod
+    def from_isql(cls, base_query):
+        # TODO: set correct fields
+        # return cls(base_query.table_name, base_query.primary_key_column_def, base_query.other_column_defs, base_query.if_not_exists)
+        pass
+
+    def to_sql(self):
+        if self.column_names:
+            return super().to_sql()
+        else:
+            # TODO: decide if we actually want this to auto-populate column names from python-side table object data instead
+            return '\n'.join([
+                # Query database for table columns that aren't spits, prepare a statement and run it.
+                # TODO: should probably use UUID for statement name
+                # https://universalmaple.blogspot.com/2018/01/select-all-columns-except-one-in.html
+                "SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')",
+                "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '%s'" % self.table_name,
+                "AND TABLE_SCHEMA = database()",
+                "AND COLUMN_NAME NOT LIKE '%s%%')" % SPITS_TOKEN,
+                ", ' FROM %s');" % self.table_name,
+                'PREPARE stmt1 FROM @sql;',
+                'EXECUTE stmt1;'
+            ])
+            # SET group_concat_max_len = big enough value
+            # SELECT * FROM information_schema.columns WHERE table_schema = 'seneca_test' and table_name = 'users';
+            # Will need something like this:
+            #https://universalmaple.blogspot.com/2018/01/select-all-columns-except-one-in.html
+            #SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')
+            #  FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '<table>' AND TABLE_SCHEMA = '<database>'), ' FROM <table>');
+            #
+            #PREPARE stmt1 FROM @sql;
+            #EXECUTE stmt1;
+
+#SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')
+#FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'uses' AND TABLE_SCHEMA = 'seneca_test')
+
+
+
+
+        pass
 
 
 def run_tests():
@@ -197,26 +262,20 @@ def run_tests():
     from datetime import datetime
     import sys
     # Patch easy_db module, replace base mysql_intermediate with this module
-#    class ThisModuleProxy(object):
-#        def __init__(self, **kwargs):
-#            for (k,v) in kwargs.items():
-#                setattr(self, k, v)
-#
-#    module_self = ThisModuleProxy(**globals())
-#    easy.isql = module_self
-#
+    class ThisModuleProxy(object):
+        def __init__(self, **kwargs):
+            for (k,v) in kwargs.items():
+                setattr(self, k, v)
+
+    module_self = ThisModuleProxy(**globals())
+    easy.isql = module_self
+
     u = easy.Table('users', easy.AutoIncrementColumn('id'),[
         easy.Column('first_name', str),
         easy.Column('last_name', str),
         easy.Column('balance', int),
         easy.Column('creation_date', datetime)
     ])
-
-    print(CreateTable(u.create_table().to_isql()).to_sql())
-
-
-    sys.exit()
-
 
 
     def normalize_str(s):
@@ -231,15 +290,60 @@ def run_tests():
 
         def test_create(self):
             self.assert_str_equiv(u.create_table().to_sql(),
-                                    """CREATE TABLE users (
-                                    id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                                    first_name TEXT,
-                                    last_name TEXT,
-                                    balance BIGINT,
-                                    creation_date DATETIME
-                                    );
-                                    """
-                                  )
+                        """BEGIN
+
+                        INSERT INTO $_spits_metadata_$
+                        (table_name, rollback_strategy)
+                        VALUES
+                        ('users', 'delete');
+
+                        CREATE TABLE users (
+                        id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                        first_name TEXT,
+                        last_name TEXT,
+                        balance BIGINT,
+                        creation_date DATETIME,
+                        $_spits_preserve_$id BIGINT,
+                        $_spits_preserve_$first_name TEXT,
+                        $_spits_preserve_$last_name TEXT,
+                        $_spits_preserve_$balance BIGINT,
+                        $_spits_preserve_$creation_date DATETIME,
+                        $_spits_rollback_strategy_$ VARCHAR(30)
+                        );
+
+                        COMMIT
+                        """
+                        )
+
+        def test_select_with_fields(self):
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            self.assert_str_equiv(u.select('first_name', 'last_name').to_sql(),
+                        """SELECT first_name, last_name
+                           FROM users
+                           WHERE $_spits_rollback_strategy_$ != 'undelete';
+                        """
+                        )
+
+        def test_select_without_fields(self):
+            self.maxDiff = None
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            self.assert_str_equiv(u.select().to_sql(),
+                        """
+                        SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')
+                        FROM INFORMATION_SCHEMA.COLUMNS
+                        WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = database()
+                        AND COLUMN_NAME NOT LIKE '$_spits_%') , ' FROM users');
+                        PREPARE stmt1 FROM @sql;
+                        EXECUTE stmt1;
+                        """
+                        )
+
+
+
 
 #        def test_simplest_select(self):
 #            self.assertEqual(u.select().to_sql(), 'SELECT *\nFROM users;')

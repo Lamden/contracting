@@ -343,6 +343,7 @@ class SelectRows(Query):
     @staticmethod
     def format_column_names(c_names):
         if not c_names:
+            # TODO: decide if we actually want this to auto-populate column names from python-side table object data instead
             return '*'
         else:
             return ', '.join(c_names)
