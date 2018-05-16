@@ -191,6 +191,7 @@ class CreateTable(isql.CreateTable):
         ])
         return sql_query
 
+
 class SelectRows(isql.SelectRows):
     '''
     TODO:
@@ -324,8 +325,7 @@ def run_tests():
             # NOTE: This is partially just pass-through functionality from base isql
             # The only difference being filtering of soft-deleted rows, and validation
             # That user selected table name, column names, etc. aren't $_spits_
-            self.assert_str_equiv(u.select().to_sql(),
-                        """
+            self.assert_str_equiv(u.select().to_sql(), """
                         SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')
                         FROM INFORMATION_SCHEMA.COLUMNS
                         WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = database()
@@ -336,6 +336,24 @@ def run_tests():
                         EXECUTE stmt1;
                         """
                         )
+
+        def test_select_without_fields_order_and_limit(self):
+            self.assert_str_equiv(u.select().order_by('first_name').limit(10).to_sql(), """
+                        SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')
+                        FROM INFORMATION_SCHEMA.COLUMNS
+                        WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = database()
+                        AND COLUMN_NAME NOT LIKE '$_spits_%') , ' FROM users
+                        WHERE $_spits_rollback_strategy_$ != 'undelete'
+                        ORDER BY first_name
+                        LIMIT 10
+                        ');
+                        PREPARE stmt1 FROM @sql;
+                        EXECUTE stmt1;
+                        """
+                        )
+
+
+
 
 
 #        def test_simplest_select(self):
