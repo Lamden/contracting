@@ -42,10 +42,6 @@ Old notes:
       * If rollback_action is null
         * Set rollback_action = undelete
         * move data to original_data columns (needed for columns with unique constraint)
-    * update row
-      * If rollback_action is null
-        * Set rollback_action = restore
-        * move data to original_data columns
     * Add column
       * add drop column x on table y command to rollback table unless column with same name already dropped
         * i.e. if a column is dropped and readded and dropped again in the same scratch window, just throw it out
@@ -116,7 +112,7 @@ SPITS_PRESERVE_TOKEN = SPITS_TOKEN + 'preserve_$'
 SPITS_ROLLBACK_COLUMN_NAME = SPITS_TOKEN + 'rollback_strategy_$'
 SPITS_ROLLBACK_COLUMN_SQL_TYPE = isql.SQLType('VARCHAR', 30)
 SPITS_METADATA_TABLE_NAME = SPITS_TOKEN + 'metadata_$'
-valid_strategies = ['rollback_data', 'delete', 'undelete']
+valid_strategies = ['restore_data', 'delete', 'undelete']
 
 
 def starts_with_spits(string):
@@ -194,7 +190,6 @@ class CreateTable(isql.CreateTable):
 
 class SelectRows(isql.SelectRows):
     '''
-    TODO:
     * If *, describe table and populate fields without $spits_preserve$* and spits_rollback_strategy
     * If user manually adds $spits_preserve$* and spits_rollback_strategy, fail.
       * Figure out how to propagte the failure without making the abstraction leaky
@@ -247,6 +242,71 @@ class SelectRows(isql.SelectRows):
                 'PREPARE stmt1 FROM @sql;',
                 'EXECUTE stmt1;'
             ])
+
+class UpdateRows(isql.UpdateRows):
+    '''
+    * update row
+      * If rollback_action is null
+        * Set rollback_action = restore
+        * move data to original_data columns
+    '''
+    @run_super_first
+    def __init__(self):
+        assert_valid_name(self.table_name)
+        [assert_valid_name(x) for x in self.column_value_dict.keys()]
+        # TODO: assert_valid_name for criteria names and order_by as well.
+
+
+    @classmethod
+    def from_isql(cls, base_query):
+        #table_name, criteria, column_value_dict, order_by=None, order_desc=None, limit=None
+        return cls( base_query.table_name,
+                    base_query.criteria,
+                    base_query.column_value_dict,
+                    base_query.order_by,
+                    base_query.order_desc,
+                    base_query.limit
+                  )
+
+    def to_sql(self):
+        new_val_assignments = ',\n'.join(['%s=%s' % (k, isql.cast_py_to_sql(v)) for (k,v) in self.column_value_dict.items()])
+
+        rollback_action_assignement = "{SPITS_ROLLBACK_COLUMN_NAME} = CASE WHEN {SPITS_ROLLBACK_COLUMN_NAME} IS NULL \
+THEN \\'revert_data\\' ELSE {SPITS_ROLLBACK_COLUMN_NAME} END".format(**locals(),**globals())
+        order_by_str = isql.make_order_by(self.order_by, self.order_desc)
+
+        perserve_columns = ' '.join(["SET @preserve_columns = (SELECT REPLACE(GROUP_CONCAT( CONCAT('\n{SPITS_PRESERVE_TOKEN}', ",
+        "COLUMN_NAME, ' = CASE WHEN {SPITS_ROLLBACK_COLUMN_NAME} IS NULL THEN ', COLUMN_NAME, '",
+        "ELSE {SPITS_PRESERVE_TOKEN}', COLUMN_NAME, ' END') ), '<OmitColumn>,', '')",
+        "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{self.table_name}' AND TABLE_SCHEMA = database() ",
+        "AND COLUMN_NAME not like '{SPITS_TOKEN}%');"]).format(**locals(), **globals())
+
+        second_query = intercalate('\n', ["SET @full_query = CONCAT('UPDATE {self.table_name} SET ',  @preserve_columns, ', ",
+        intercalate(',\n',[
+            new_val_assignments,
+            rollback_action_assignement,
+        ]),
+        format_where_clause(self.criteria),
+        order_by_str,
+        'LIMIT %d' % self.limit if self.limit else None,
+        "');"
+        ]).format(**locals(),**globals())
+
+        prepare_and_execute = intercalate('\n', [
+            'PREPARE stmt1 FROM @full_query;',
+            'EXECUTE stmt1;'
+        ])
+
+        full_query = intercalate('\n\n', [
+            perserve_columns,
+            second_query,
+            prepare_and_execute,
+        ])
+
+
+        print('\n', full_query)
+        return full_query
+
 
 
 
@@ -349,6 +409,16 @@ def run_tests():
                         ');
                         PREPARE stmt1 FROM @sql;
                         EXECUTE stmt1;
+                        """
+                        )
+
+        def test_simple_update(self):
+            self.maxDiff = None
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            self.assert_str_equiv(u.update({'balance': 1000}).to_sql(), """
+
                         """
                         )
 
