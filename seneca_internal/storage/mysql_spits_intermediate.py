@@ -1,24 +1,37 @@
 '''
-This module decorates mysql_intermediate adding single point in time snapshotting
-(SPITS).
+TODO: Remove nullable option from at least this lib,
+  * if nullable exists at all in client lib version of easy_db, it must be implemented client-side
+  * in easy_db it can be reimplemented as a client-side feature
+  * It may be best to remove it from mysql_intermediate too
+
+
+This module decorates (in the design pattern sense) the mysql_intermediate
+module, adding single point in time snapshotting (SPITS).
 
 It contains additional functions:
 * spits_commit()
 * spits_rollback()
 * spits_purge()
 * spits_verify_clean()
+* intialize?
 
+Future Performance Improvements:
+* Currently this module is stateless. By going to a stateful model we could cache:
+  * table definitions (columns)
+  * cache flags marking both rows and tables as dirty
+
+TODO:  max_prepared_stmt_count
+TODO: Consider doing everything as prepared statements
 TODO: sql escapes
 def sql_escapes(s):
     # TODO: make sure everything I need is here.
     import re
     return re.sub("'", "''", s)
 
-
 TODO: figure out how to handle auto_increment after a rollback.
 
+* Essentially decorates mysql_intermediate
 
-Old notes:
 * mysql-point-in-time (commit/rollback to PIT)
   * stuff to figure out
     * Does MyRocks store nulls efficiently?
@@ -29,80 +42,7 @@ Old notes:
     * Rollback/commit instructions table (not specific to any contract)
       * Rollback pending changes
       * Commit changes
-    * Duplicate columns in tables, use a disallowed character with label, something like original_data$<column_name>
-  * decorates base lib functions
-    * select
-      * hides restricted data
-        * original_data columns
-        * soft-deleted rows where rollback_action = undelete
-        * soft-deleted columns
-        * block access to soft deleted tables
-
-    * insert row
-      * Insert normally, but include rollback_action = delete
-      * Obviously don't allow data writes to preserve_data fields
-    * delete row
-      * If rollback_action is null
-        * Set rollback_action = undelete
-        * move data to original_data columns (needed for columns with unique constraint)
-    * Add column
-      * add drop column x on table y command to rollback table unless column with same name already dropped
-        * i.e. if a column is dropped and readded and dropped again in the same scratch window, just throw it out
-          * remember this is a point-in-time snapshot, not an undo-stack
-    * drop column
-      * if column existed before window save with prepended name
-    * drop table
-      * if table existed before scratch window, move it to a temporary name
-  * additional functionality for
-    * begin_scratch(window_id)
-      * creates scratch_data table if none exists
-    * commit_scratch(window_id)
-    * rollback_scratch(window_id)
-'''
-
-
-
-'''
-Need additional query features: aggregated criteria, list tables should be more flexible
-Other features needed: batched execution
-
-class CreateTable(object):
-    * Validation
-      * Make sure table name doesn't contain spits token
-      * Make sure column names don't contain spits token
-    * Write rollback command delete table to spits table
-    * Append column definitions, duplicate everything prepended with spits token, $spits_preserve$_ (or something)
-    * Append column definitions with spits_rollback_strategy column
-    * Create table
-
-class DeleteRows(object):
-    * Add deleted flag to spits_rollback_strategy column
-
-class UpdateRows(object):
-    * If spits_rollback_stategy is empty
-      * copy original columns to $spits_preserve$ columns
-      * set spits_rollback_strategy column to recover flag
-    * else update in place
-
-class InsertRows(object):
-    * Insert normally but set $spits_rollback_strategy$ to 'delete'
-
-class DescribeTable(object):
-    * Describe normally, but omit $spits_preserve$* and $spits_rollback_strategy$
-
-class ListTables(object):
-    * List tables, but omit $spits_deleted$* tables and spits table
-
-class AddTableColumn(object):
-    * Add two columns, the requested column and the $spits_preserve$_ column
-    * Add delete column command to spits table
-
-class DropTableColumn(object):
-    * rename column $spits_deleted$_
-    * Add undelete column command to spits table
-
-class DropTable(object):
-    * move to $spits_deleted$_
+    * Duplicate columns in tables, prefixed with $_spits_preserve_$
 '''
 
 import seneca_internal.storage.mysql_intermediate as isql
@@ -110,14 +50,30 @@ from seneca_internal.util import run_super_first, auto_set_fields, intercalate
 import re
 from seneca_internal.storage.mysql_base import TabularKVs
 
-
 SPITS_TOKEN = '$_spits_'
 SPITS_PRESERVE_TOKEN = SPITS_TOKEN + 'preserve_$'
 SPITS_ROLLBACK_COLUMN_NAME = SPITS_TOKEN + 'rollback_strategy_$'
 SPITS_ROLLBACK_COLUMN_SQL_TYPE = isql.SQLType('VARCHAR', 30)
 SPITS_METADATA_TABLE_NAME = SPITS_TOKEN + 'metadata_$'
 valid_table_data_level_strategies = ['restore_data', 'delete', 'undelete']
-valid_table_schema_level_stratgies = ['data_rollback', 'delete', 'undelete']
+valid_table_schema_level_stratgies = ['restore_data', 'delete', 'undelete']
+
+
+def spits_commit():
+    pass
+
+
+def spits_rollback()
+    pass
+
+
+def spits_purge()
+    pass
+
+
+def spits_verify_clean()
+    pass
+
 
 
 def starts_with_spits(string):
@@ -133,9 +89,9 @@ def assert_valid_name(string):
     assert contains_only_good_chars(string), "Only a-z, 0-9 and _ are allowed in table names."
 
 
+# Binding some names directly from mysql_intermediate (they need no decoration)
 def bind_passthrough(imported_module, name):
     globals()[name] = getattr(imported_module, name)
-
 
 to_passthrough = [
   'ColumnDefinition',
@@ -147,14 +103,30 @@ to_passthrough = [
 
 for p in to_passthrough:
     bind_passthrough(isql, p)
+# End of direct binding
 
 
 def make_spits_backup_column(col):
+    # NOTE: unique is hardcoded false, this isn't strictly necessary, single
+    # point in time means that data can only be moved from the origin column to
+    # the backup column, newly written data that is deleted during spits
+    # transaction that is deleted is not preserved in back up columns. Remember
+    # This isn't a stack of undos, it's just a way to get back to a predefined
+    # point in time.
+    # NOTE: nullable is hardcoded to True, even if the original column is False,
+    # This makes sense as the initial state of these columns is empty, i.e. null
     return isql.ColumnDefinition(SPITS_PRESERVE_TOKEN + col.name, col.sql_type, unique=False, nullable=True)
 
 
 class CreateTable(isql.CreateTable):
     '''
+    class CreateTable(object):
+        * Validation
+          * Make sure table name doesn't contain spits token
+          * Make sure column names don't contain spits token
+        * Write rollback command delete table to spits table
+        * Append column definitions, duplicate everything prepended with spits token, $spits_preserve_$ (or something)
+        * Create table
     '''
     @run_super_first
     def __init__(self): #table_name, primary_key_column_def, other_column_defs, if_not_exists=False
@@ -180,7 +152,7 @@ class CreateTable(isql.CreateTable):
     def to_sql(self):
         # TODO: We have to be careful not to overwrite data in the SPITS_METADATA table, make sure there's a unique constraint
         # Alteratively, maybe we just select the oldest reference to th table and always write
-        sql_query = '\n'.join([ 'BEGIN',
+        sql_query = '\n'.join(['BEGIN',
                       '',
                       isql.InsertRows(SPITS_METADATA_TABLE_NAME, ['table_name', 'rollback_strategy'],
                         [[self.table_name, 'delete'],
@@ -199,6 +171,13 @@ class SelectRows(isql.SelectRows):
     * If user manually adds $spits_preserve$* and spits_rollback_strategy, fail.
       * Figure out how to propagte the failure without making the abstraction leaky
     * AND or if none exists, add to criteria 'NOT spits_rollback_strategy=undelete'
+
+    * select
+      * hides restricted data
+        * preserved_data columns
+        * soft-deleted rows where rollback_action = undelete
+        * soft-deleted columns
+        * block access to soft deleted tables
     '''
     @run_super_first
     # table_name,column_names,criteria,order_by=None,order_desc=None,limit=None
@@ -245,16 +224,20 @@ class SelectRows(isql.SelectRows):
                 'LIMIT %d' % self.limit if self.limit else None,
                 " ');",
                 'PREPARE stmt1 FROM @sql;',
-                'EXECUTE stmt1;'
+                'EXECUTE stmt1;',
+                'DEALLOCATE PREPARE stmt1;',
             ])
 
 class UpdateRows(isql.UpdateRows):
     '''
     * update row
-      * If rollback_action is null
-        * Set rollback_action = restore
-        * move data to original_data columns
-    # TODO: Mark table dirty in SPITS_METADATA_TABLE
+        * If spits_rollback_stategy is empty
+          * copy original columns to $spits_preserve$ columns
+          * set spits_rollback_strategy column to recover flag
+          * Set rollback_action = restore
+        * else update in place
+
+        # TODO: Mark table dirty in SPITS_METADATA_TABLE
     '''
     @run_super_first
     def __init__(self):
@@ -279,7 +262,7 @@ class UpdateRows(isql.UpdateRows):
         # TODO: See if this can be simplified. Try to wrap whole rollback action in a single case expression.
 
         rollback_action_assignement = "{SPITS_ROLLBACK_COLUMN_NAME} = CASE WHEN {SPITS_ROLLBACK_COLUMN_NAME} IS NULL \
-THEN \\'revert_data\\' ELSE {SPITS_ROLLBACK_COLUMN_NAME} END".format(**locals(),**globals())
+THEN \\'restore_data\\' ELSE {SPITS_ROLLBACK_COLUMN_NAME} END".format(**locals(),**globals())
         order_by_str = isql.make_order_by(self.order_by, self.order_desc)
 
         perserve_columns = ' '.join(["SET @preserve_columns = (SELECT REPLACE(GROUP_CONCAT( CONCAT('\n{SPITS_PRESERVE_TOKEN}', ",
@@ -301,7 +284,8 @@ THEN \\'revert_data\\' ELSE {SPITS_ROLLBACK_COLUMN_NAME} END".format(**locals(),
 
         prepare_and_execute = intercalate('\n', [
             'PREPARE stmt1 FROM @full_query;',
-            'EXECUTE stmt1;'
+            'EXECUTE stmt1;',
+            'DEALLOCATE PREPARE stmt1;',
         ])
 
         full_query = intercalate('\n\n', [
@@ -342,6 +326,39 @@ class InsertRows(isql.InsertRows):
     def to_sql(self):
         s = super().to_sql()
         return s
+
+
+class DeleteRows(isql.DeleteRows):
+    '''
+    * delete row
+      * If rollback_action is null
+        * Set rollback_action = undelete
+        * move data to original_data columns (needed for columns with unique constraint)
+    '''
+    @run_super_first
+    #self, table_name, criteria, order_by=None, order_desc=None, limit=None
+    def __init__(self):
+        assert_valid_name(self.table_name)
+        # TODO: assert_valid_name for criteria names and order_by as well.
+
+        # TODO: Dedupe this with SelectQuery
+        filter_undelete_criterion = isql.QueryCriterion('ne', SPITS_ROLLBACK_COLUMN_NAME, 'undelete')
+        if self.criteria:
+            self.criteria = isql.AndedCriteria([ filter_undelete_criterion,
+                                                 self.criteria
+                                               ])
+        else:
+            self.criteria = filter_undelete_criterion
+
+    @classmethod
+    def from_isql(cls, base_query):
+        return cls(base_query.table_name,
+                   base_query.criteria,
+                   ase_query.order_by,
+                   base_query.order_desc,
+                   base_query.limit
+                  )
+
 
 
 class CountUniqueRows(isql.CountUniqueRows):
@@ -403,6 +420,43 @@ class CountRows(isql.CountRows):
     def to_sql(self):
         s = super().to_sql()
         return s
+
+
+'''
+
+DescribeTable(self, table_name)
+ListTable(prefix)
+AddTableColumn(self, table_name, column_def)
+DropTableColumn(table_name, column_name)
+DropTable(table_name)
+
+class DescribeTable(object):
+    * Describe normally, but omit $spits_preserve$* and $spits_rollback_strategy$
+
+class ListTables(object):
+    * List tables, but omit $spits_deleted$* tables and spits table
+
+class AddTableColumn(object):
+    * Add two columns, the requested column and the $spits_preserve$_ column
+    * Add delete column command to spits table
+
+class DropTableColumn(object):
+    * rename column $spits_deleted$_
+    * Add undelete column command to spits table
+
+class DropTable(object):
+    * move to $spits_deleted_$
+    * Only if there isn't already and entry that says create
+
+    * Add column
+      * add drop column x on table y command to rollback table unless column with same name already dropped
+        * i.e. if a column is dropped and readded and dropped again in the same scratch window, just throw it out
+          * remember this is a point-in-time snapshot, not an undo-stack
+    * drop column
+      * if column existed before window save with prepended name
+    * drop table
+      * if table existed before scratch window, move it to a temporary name
+'''
 
 
 
@@ -490,6 +544,7 @@ def run_tests():
                         ');
                         PREPARE stmt1 FROM @sql;
                         EXECUTE stmt1;
+                        DEALLOCATE PREPARE stmt1;
                         """
                         )
 
@@ -505,6 +560,7 @@ def run_tests():
                         ');
                         PREPARE stmt1 FROM @sql;
                         EXECUTE stmt1;
+                        DEALLOCATE PREPARE stmt1;
                         """
                         )
 
@@ -520,11 +576,12 @@ def run_tests():
 
                         SET @full_query = CONCAT('UPDATE users SET ',  @preserve_columns, ',
                         balance=1000,
-                        $_spits_rollback_strategy_$ = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN \\'revert_data\\' ELSE $_spits_rollback_strategy_$ END
+                        $_spits_rollback_strategy_$ = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN \\'restore_data\\' ELSE $_spits_rollback_strategy_$ END
                         ');
 
                         PREPARE stmt1 FROM @full_query;
                         EXECUTE stmt1;
+                        DEALLOCATE PREPARE stmt1;
                         """
                         )
 
