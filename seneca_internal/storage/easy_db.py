@@ -102,7 +102,7 @@ def execute_sql_query(executer, isql_obj):
 
 class Column(object):
     @auto_set_fields
-    def __init__(self, name, type=None, unique=False, nullable=True):
+    def __init__(self, name, type=None, unique=False):
         pass
 
     # Custom methods make the results of comparisons in query components
@@ -130,7 +130,7 @@ class Column(object):
         assert self.type, "When defining table column, a type must be declared"
         sql_type = isql.SQLType.from_python_type(self.type)
 
-        return isql.ColumnDefinition(self.name, sql_type, unique=self.unique, nullable=self.nullable)
+        return isql.ColumnDefinition(self.name, sql_type, unique=self.unique)
 
     @classmethod
     def from_sql_describe_row(cls, row):
@@ -145,10 +145,9 @@ class Column(object):
                      row['Extra'].lower() == 'auto_increment':
             return AutoIncrementColumn(name)
         else:
-            type = isql.SQLType.from_db_describe_str(row['Type'])
-            nullable = row['Null'].lower() == 'yes'
+            type_ = isql.SQLType.from_db_describe_str(row['Type'])
             unique = row['Key'].lower() == 'uni'
-            return cls(name, type=type, unique=False, nullable=True)
+            return cls(name, type=type_, unique=unique)
 
 
 class AutoIncrementColumn(Column):

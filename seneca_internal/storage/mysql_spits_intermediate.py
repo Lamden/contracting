@@ -1,10 +1,4 @@
 '''
-TODO: Remove nullable option from at least this lib,
-  * if nullable exists at all in client lib version of easy_db, it must be implemented client-side
-  * in easy_db it can be reimplemented as a client-side feature
-  * It may be best to remove it from mysql_intermediate too
-
-
 This module decorates (in the design pattern sense) the mysql_intermediate
 module, adding single point in time snapshotting (SPITS).
 
@@ -14,6 +8,12 @@ It contains additional functions:
 * spits_purge()
 * spits_verify_clean()
 * intialize?
+
+NOTE: Allowing non-nullable constraints in tables will break this lib. When
+non-nullable constrain is combined with unique, soft delete becomes untennable,
+we'd need to generate a random value to populate the field and hope it didn't collide with
+future inserts, or track it and if there was a collision, update it. Much better
+to just implmentent non-nullable fields outside the database code, i.e. client-side.
 
 Future Performance Improvements:
 * Currently this module is stateless. By going to a stateful model we could cache:
@@ -113,9 +113,7 @@ def make_spits_backup_column(col):
     # transaction that is deleted is not preserved in back up columns. Remember
     # This isn't a stack of undos, it's just a way to get back to a predefined
     # point in time.
-    # NOTE: nullable is hardcoded to True, even if the original column is False,
-    # This makes sense as the initial state of these columns is empty, i.e. null
-    return isql.ColumnDefinition(SPITS_PRESERVE_TOKEN + col.name, col.sql_type, unique=False, nullable=True)
+    return isql.ColumnDefinition(SPITS_PRESERVE_TOKEN + col.name, col.sql_type, unique=False)
 
 
 class CreateTable(isql.CreateTable):

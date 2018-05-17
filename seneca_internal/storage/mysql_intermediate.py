@@ -11,7 +11,6 @@ Representations are serializable and easy to analyze and augment.
 * TODO: Some basic joins?
 * TODO: columnRows data type, fixed length, enter data positionally or dict, nice print
 * TODO: Handle column name _count
-* TODO: non_nullable column defs
 
 * TODO: maybe do table exists
 * TODO: order_by_desc
@@ -44,14 +43,13 @@ class ColumnDefinition(QueryComponent):
     (Covered in other tests)
     '''
     @auto_set_fields
-    def __init__(self, name, sql_type, unique=False, nullable=True):
+    def __init__(self, name, sql_type, unique=False):
         pass
 
     def to_sql(self):
         return intercalate(' ', [
           self.name,
           str(self.sql_type),
-          'NOT NULL' if not self.nullable else None,
           'UNIQUE' if self.unique else None,
         ])
 
