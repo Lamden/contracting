@@ -108,6 +108,7 @@ class DropTable(object):
 import seneca_internal.storage.mysql_intermediate as isql
 from seneca_internal.util import run_super_first, auto_set_fields, intercalate
 import re
+from seneca_internal.storage.mysql_base import TabularKVs
 
 
 SPITS_TOKEN = '$_spits_'
@@ -115,7 +116,8 @@ SPITS_PRESERVE_TOKEN = SPITS_TOKEN + 'preserve_$'
 SPITS_ROLLBACK_COLUMN_NAME = SPITS_TOKEN + 'rollback_strategy_$'
 SPITS_ROLLBACK_COLUMN_SQL_TYPE = isql.SQLType('VARCHAR', 30)
 SPITS_METADATA_TABLE_NAME = SPITS_TOKEN + 'metadata_$'
-valid_strategies = ['restore_data', 'delete', 'undelete']
+valid_table_data_level_strategies = ['restore_data', 'delete', 'undelete']
+valid_table_schema_level_stratgies = ['data_rollback', 'delete', 'undelete']
 
 
 def starts_with_spits(string):
@@ -252,6 +254,7 @@ class UpdateRows(isql.UpdateRows):
       * If rollback_action is null
         * Set rollback_action = restore
         * move data to original_data columns
+    # TODO: Mark table dirty in SPITS_METADATA_TABLE
     '''
     @run_super_first
     def __init__(self):
@@ -307,8 +310,6 @@ THEN \\'revert_data\\' ELSE {SPITS_ROLLBACK_COLUMN_NAME} END".format(**locals(),
             prepare_and_execute,
         ])
 
-
-        print('\n', full_query)
         return full_query
 
 
@@ -317,6 +318,7 @@ class InsertRows(isql.InsertRows):
     * insert row
       * Insert normally, but include rollback_action = delete
       * Obviously don't allow data writes to preserve_data fields
+    # TODO: Mark table dirty in SPITS_METADATA_TABLE
     '''
     @run_super_first
     # table_name, column_names, list_of_values_lists
@@ -326,8 +328,8 @@ class InsertRows(isql.InsertRows):
         [assert_valid_name(x) for x in self.column_names]
 
         # Append rollback strategy
-        self.column_names.append(SPITS_ROLLBACK_COLUMN_NAME)
-        [x.append('delete') for x in sef.list_of_values_lists]
+        self.column_names = list(self.column_names + (SPITS_ROLLBACK_COLUMN_NAME, ))
+        self.list_of_values_lists = [list(x + ('delete', )) for x in self.list_of_values_lists]
 
     @classmethod
     def from_isql(cls, base_query):
@@ -338,7 +340,69 @@ class InsertRows(isql.InsertRows):
                   )
 
     def to_sql(self):
-        return super().to_sql()
+        s = super().to_sql()
+        return s
+
+
+class CountUniqueRows(isql.CountUniqueRows):
+    '''
+    Similar to methodology for select:
+       * Need to filter out soft-deleted rows
+       * Need to forbid $spits from
+    '''
+    @run_super_first
+    #self, table_name, unique_column, criteria
+    def __init__(self):
+        assert_valid_name(self.table_name)
+        assert_valid_name(self.unique_column)
+        # TODO: assert_valid_name for criteria names and order_by as well.
+
+        # TODO: Dedupe this with SelectQuery
+        filter_undelete_criterion = isql.QueryCriterion('ne', SPITS_ROLLBACK_COLUMN_NAME, 'undelete')
+        if self.criteria:
+            self.criteria = isql.AndedCriteria([ filter_undelete_criterion,
+                                                 self.criteria
+                                               ])
+        else:
+            self.criteria = filter_undelete_criterion
+
+    @classmethod
+    def from_isql(cls, base_query):
+        #self, table_name, unique_column, criteria
+        return cls(base_query.table_name, base_query.unique_column, base_query.criteria)
+
+    def to_sql(self):
+        s = super().to_sql()
+        return s
+
+
+class CountRows(isql.CountRows):
+    '''
+    Similar to methodology for select:
+       * Need to filter out soft-deleted rows
+       * Need to forbid $spits from
+    '''
+    #self, table_name, criteria
+    @run_super_first
+    def __init__(self):
+        assert_valid_name(self.table_name)
+        # TODO: assert_valid_name for criteria names and order_by as well.
+        # TODO: Dedupe this with SelectQuery
+        filter_undelete_criterion = isql.QueryCriterion('ne', SPITS_ROLLBACK_COLUMN_NAME, 'undelete')
+        if self.criteria:
+            self.criteria = isql.AndedCriteria([ filter_undelete_criterion,
+                                                 self.criteria
+                                               ])
+        else:
+            self.criteria = filter_undelete_criterion
+
+    @classmethod
+    def from_isql(cls, base_query):
+        return cls(base_query.table_name, base_query.criteria)
+
+    def to_sql(self):
+        s = super().to_sql()
+        return s
 
 
 
@@ -445,37 +509,95 @@ def run_tests():
                         )
 
         #TODO: write this test, actually a few
-        def test_simple_update(self):
+        def test_update(self):
             self.maxDiff = None
             # NOTE: This is partially just pass-through functionality from base isql
             # The only difference being filtering of soft-deleted rows, and validation
             # That user selected table name, column names, etc. aren't $_spits_
             self.assert_str_equiv(u.update({'balance': 1000}).to_sql(), """
+                        SET @preserve_columns = (SELECT REPLACE(GROUP_CONCAT( CONCAT('
+                        $_spits_preserve_$',  COLUMN_NAME, ' = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN ', COLUMN_NAME, ' ELSE $_spits_preserve_$', COLUMN_NAME, ' END') ), '<OmitColumn>,', '') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = database()  AND COLUMN_NAME not like '$_spits_%');
 
+                        SET @full_query = CONCAT('UPDATE users SET ',  @preserve_columns, ',
+                        balance=1000,
+                        $_spits_rollback_strategy_$ = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN \\'revert_data\\' ELSE $_spits_rollback_strategy_$ END
+                        ');
+
+                        PREPARE stmt1 FROM @full_query;
+                        EXECUTE stmt1;
                         """
                         )
 
 
+        def test_insert(self):
+            self.maxDiff = None
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            # TODO: Might have to worry about incrementing auto increments
+            self.assert_str_equiv(u.insert([
+              {'first_name': 'Test', 'last_name': 'User','balance': 0},
+              {'first_name': 'Test2', 'last_name': 'User','balance': 0},
+              {'first_name': 'Test3', 'last_name': 'User','balance': 0},
+            ]).to_sql(), """
+                        INSERT INTO users
+                        (first_name, last_name, balance, $_spits_rollback_strategy_$)
+                        VALUES
+                        ('Test', 'User', 0, 'delete'), ('Test2', 'User', 0, 'delete'), ('Test3', 'User', 0, 'delete');
+                        """)
 
 
+            self.assert_str_equiv(u.insert([
+              {'first_name': 'Test'},
+            ]).to_sql(), """
+                        INSERT INTO users
+                        (first_name, $_spits_rollback_strategy_$)
+                        VALUES
+                        ('Test', 'delete');
+                        """)
 
-#        def test_simplest_select(self):
-#            self.assertEqual(u.select().to_sql(), 'SELECT *\nFROM users;')
-#
-##        def test_isupper(self):
-#            self.assertTrue('FOO'.isupper())
-#            self.assertFalse('Foo'.isupper())
-#
-#        def test_split(self):
-#            s = 'hello world'
-#            self.assertEqual(s.split(), ['hello', 'world'])
-#            # check that s.split fails when the separator is not a string
-#            with self.assertRaises(TypeError):
-#                s.split(2)
-#
-#        u.drop_table().run(ex)
-#    u.create_table(if_not_exists=True).run(ex)
-#    u.select().where(u.first_name != None).run(ex)
+
+        def test_count_unique(self):
+            self.maxDiff = None
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            # TODO: Might have to worry about incrementing auto increments
+            self.assert_str_equiv(u.count_unique('first_name').where(u.balance >= 10).to_sql(), """
+                        SELECT first_name, COUNT(*) as _count
+                        FROM users
+                        WHERE ($_spits_rollback_strategy_$ != 'undelete'
+                           AND balance >= 10)
+                        GROUP BY first_name;
+                        """)
+
+            self.assert_str_equiv(u.count_unique('first_name').to_sql(), """
+                        SELECT first_name, COUNT(*) as _count
+                        FROM users
+                        WHERE $_spits_rollback_strategy_$ != 'undelete'
+                        GROUP BY first_name;
+                        """)
+
+        def test_count(self):
+            self.maxDiff = None
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            # TODO: Might have to worry about incrementing auto increments
+            self.assert_str_equiv(u.count().where(u.balance >= 10).to_sql(), """
+                        SELECT COUNT(*) as _count
+                        FROM users
+                        WHERE ($_spits_rollback_strategy_$ != 'undelete'
+                           AND balance >= 10);
+                        """)
+
+            self.assert_str_equiv(u.count().to_sql(), """
+                        SELECT COUNT(*) as _count
+                        FROM users
+                        WHERE $_spits_rollback_strategy_$ != 'undelete';
+                        """)
+
+
 
 
     suite = unittest.TestSuite()
