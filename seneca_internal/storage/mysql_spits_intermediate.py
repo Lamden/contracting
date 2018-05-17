@@ -15,6 +15,9 @@ def sql_escapes(s):
     return re.sub("'", "''", s)
 
 
+TODO: figure out how to handle auto_increment after a rollback.
+
+
 Old notes:
 * mysql-point-in-time (commit/rollback to PIT)
   * stuff to figure out
@@ -37,7 +40,7 @@ Old notes:
 
     * insert row
       * Insert normally, but include rollback_action = delete
-      * Obviously don't allow data writes to original_data fields
+      * Obviously don't allow data writes to preserve_data fields
     * delete row
       * If rollback_action is null
         * Set rollback_action = undelete
@@ -270,6 +273,7 @@ class UpdateRows(isql.UpdateRows):
 
     def to_sql(self):
         new_val_assignments = ',\n'.join(['%s=%s' % (k, isql.cast_py_to_sql(v)) for (k,v) in self.column_value_dict.items()])
+        # TODO: See if this can be simplified. Try to wrap whole rollback action in a single case expression.
 
         rollback_action_assignement = "{SPITS_ROLLBACK_COLUMN_NAME} = CASE WHEN {SPITS_ROLLBACK_COLUMN_NAME} IS NULL \
 THEN \\'revert_data\\' ELSE {SPITS_ROLLBACK_COLUMN_NAME} END".format(**locals(),**globals())
@@ -307,6 +311,34 @@ THEN \\'revert_data\\' ELSE {SPITS_ROLLBACK_COLUMN_NAME} END".format(**locals(),
         print('\n', full_query)
         return full_query
 
+
+class InsertRows(isql.InsertRows):
+    '''
+    * insert row
+      * Insert normally, but include rollback_action = delete
+      * Obviously don't allow data writes to preserve_data fields
+    '''
+    @run_super_first
+    # table_name, column_names, list_of_values_lists
+    def __init__(self):
+        assert_valid_name(self.table_name)
+        # Make sure column names don't contain spits token
+        [assert_valid_name(x) for x in self.column_names]
+
+        # Append rollback strategy
+        self.column_names.append(SPITS_ROLLBACK_COLUMN_NAME)
+        [x.append('delete') for x in sef.list_of_values_lists]
+
+    @classmethod
+    def from_isql(cls, base_query):
+        #table_name, column_names, list_of_values_lists
+        return cls(base_query.table_name,
+                   base_query.column_names,
+                   base_query.list_of_values_lists
+                  )
+
+    def to_sql(self):
+        return super().to_sql()
 
 
 
@@ -412,6 +444,7 @@ def run_tests():
                         """
                         )
 
+        #TODO: write this test, actually a few
         def test_simple_update(self):
             self.maxDiff = None
             # NOTE: This is partially just pass-through functionality from base isql
