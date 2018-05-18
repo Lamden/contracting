@@ -41,6 +41,7 @@ import re
 import seneca_internal.storage.mysql_intermediate as isql
 from seneca_internal.util import run_super_first, auto_set_fields, intercalate
 from seneca_internal.storage.mysql_base import TabularKVs
+from functools import wraps
 
 SPITS_TOKEN = '$_spits_'
 SPITS_PRESERVE_TOKEN = SPITS_TOKEN + 'preserve_$'
@@ -163,6 +164,22 @@ class CreateTable(isql.CreateTable):
         return sql_query
 
 
+def filter_soft_deleted(f):
+    @wraps(f)
+    def wrapper(self, *args, **kwargs):
+        filter_undelete_criterion = isql.QueryCriterion('ne', SPITS_SOFT_DELETE_COLUMN_NAME, True)
+        if self.criteria:
+            self.criteria = isql.AndedCriteria([ filter_undelete_criterion,
+                                                 self.criteria
+                                               ])
+        else:
+            self.criteria = filter_undelete_criterion
+
+        return f(self, *args, **kwargs)
+    return wrapper
+
+
+
 class SelectRows(isql.SelectRows):
     '''
     * If *, describe table and populate fields without $spits_preserve$* and spits_rollback_strategy
@@ -178,19 +195,12 @@ class SelectRows(isql.SelectRows):
         * block access to soft deleted tables
     '''
     @run_super_first
+    @filter_soft_deleted
     # table_name,column_names,criteria,order_by=None,order_desc=None,limit=None
     def __init__(self):
         assert_valid_name(self.table_name)
         [assert_valid_name(x) for x in self.column_names]
         # TODO assert_valid_name for criteria names and order_by as well.
-
-        filter_undelete_criterion = isql.QueryCriterion('ne', SPITS_SOFT_DELETE_COLUMN_NAME, 1)
-        if self.criteria:
-            self.criteria = isql.AndedCriteria([ filter_undelete_criterion,
-                                                 self.criteria
-                                               ])
-        else:
-            self.criteria = filter_undelete_criterion
 
     @classmethod
     def from_isql(cls, base_query):
@@ -567,17 +577,17 @@ def run_tests():
                         COMMIT
                         """
                         )
-#
-#        def test_select_with_fields(self):
-#            # NOTE: This is partially just pass-through functionality from base isql
-#            # The only difference being filtering of soft-deleted rows, and validation
-#            # That user selected table name, column names, etc. aren't $_spits_
-#            self.assert_str_equiv(u.select('first_name', 'last_name').to_sql(),
-#                        """SELECT first_name, last_name
-#                           FROM users
-#                           WHERE $_spits_rollback_strategy_$ != 'undelete';
-#                        """
-#                        )
+
+        def test_select_with_fields(self):
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            self.assert_str_equiv(u.select('first_name', 'last_name').to_sql(),
+                        """SELECT first_name, last_name
+                           FROM users
+                           WHERE $_spits_soft_delete_$ != TRUE;
+                        """
+                        )
 #
 #        def test_select_without_fields(self):
 #            self.maxDiff = None

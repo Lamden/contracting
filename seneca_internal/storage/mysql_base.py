@@ -115,7 +115,7 @@ def get_py_to_sql_cast_func(py_type):
       float: lambda x: str(x),
       str: lambda x: '\'%s\'' % x,
       datetime.datetime: lambda x:'\'%s\'' % x.strftime('%Y-%m-%d %H:%M:%S'),
-      bool: lambda x: 1 if x else 0,
+      bool: lambda x: 'TRUE' if x else 'FALSE',
     }
 
     if py_type in casting_func_dict.keys():
