@@ -195,8 +195,8 @@ class SelectRows(isql.SelectRows):
         * block access to soft deleted tables
     '''
     @run_super_first
-    @filter_soft_deleted
     # table_name,column_names,criteria,order_by=None,order_desc=None,limit=None
+    @filter_soft_deleted
     def __init__(self):
         assert_valid_name(self.table_name)
         [assert_valid_name(x) for x in self.column_names]
@@ -248,6 +248,7 @@ class UpdateRows(isql.UpdateRows):
         # TODO: Mark table dirty in SPITS_METADATA_TABLE
     '''
     @run_super_first
+    @filter_soft_deleted
     def __init__(self):
         assert_valid_name(self.table_name)
         [assert_valid_name(x) for x in self.column_value_dict.keys()]
@@ -319,18 +320,12 @@ class DeleteRows(isql.DeleteRows):
     '''
     @run_super_first
     #self, table_name, criteria, order_by=None, order_desc=None, limit=None
+    @filter_soft_deleted
     def __init__(self):
         assert_valid_name(self.table_name)
         # TODO: assert_valid_name for criteria names and order_by as well.
         # TODO: mark table as dirty
         # TODO: Dedupe this with SelectQuery
-        filter_undelete_criterion = isql.QueryCriterion('ne', SPITS_ROLLBACK_COLUMN_NAME, 'undelete')
-        if self.criteria:
-            self.criteria = isql.AndedCriteria([ filter_undelete_criterion,
-                                                 self.criteria
-                                               ])
-        else:
-            self.criteria = filter_undelete_criterion
 
     @classmethod
     def from_isql(cls, base_query):
@@ -426,19 +421,12 @@ class CountUniqueRows(isql.CountUniqueRows):
     '''
     @run_super_first
     #self, table_name, unique_column, criteria
+    @filter_soft_deleted
     def __init__(self):
         assert_valid_name(self.table_name)
         assert_valid_name(self.unique_column)
         # TODO: assert_valid_name for criteria names and order_by as well.
-
         # TODO: Dedupe this with SelectQuery
-        filter_undelete_criterion = isql.QueryCriterion('ne', SPITS_ROLLBACK_COLUMN_NAME, 'undelete')
-        if self.criteria:
-            self.criteria = isql.AndedCriteria([ filter_undelete_criterion,
-                                                 self.criteria
-                                               ])
-        else:
-            self.criteria = filter_undelete_criterion
 
     @classmethod
     def from_isql(cls, base_query):
@@ -456,19 +444,13 @@ class CountRows(isql.CountRows):
        * Need to filter out soft-deleted rows
        * Need to forbid $spits from
     '''
-    #self, table_name, criteria
     @run_super_first
+    #self, table_name, criteria
+    @filter_soft_deleted
     def __init__(self):
         assert_valid_name(self.table_name)
         # TODO: assert_valid_name for criteria names and order_by as well.
         # TODO: Dedupe this with SelectQuery
-        filter_undelete_criterion = isql.QueryCriterion('ne', SPITS_ROLLBACK_COLUMN_NAME, 'undelete')
-        if self.criteria:
-            self.criteria = isql.AndedCriteria([ filter_undelete_criterion,
-                                                 self.criteria
-                                               ])
-        else:
-            self.criteria = filter_undelete_criterion
 
     @classmethod
     def from_isql(cls, base_query):
@@ -543,6 +525,7 @@ def run_tests():
         return " ".join(s.split())
 
     class TestQueries(unittest.TestCase):
+        maxDiff = None
 
         def assert_str_equiv(self, s1, s2):
             return self.assertEqual(normalize_str(s1),
@@ -588,159 +571,160 @@ def run_tests():
                            WHERE $_spits_soft_delete_$ != TRUE;
                         """
                         )
-#
-#        def test_select_without_fields(self):
-#            self.maxDiff = None
-#            # NOTE: This is partially just pass-through functionality from base isql
-#            # The only difference being filtering of soft-deleted rows, and validation
-#            # That user selected table name, column names, etc. aren't $_spits_
-#            self.assert_str_equiv(u.select().to_sql(), """
-#                        SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')
-#                        FROM INFORMATION_SCHEMA.COLUMNS
-#                        WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = database()
-#                        AND COLUMN_NAME NOT LIKE '$_spits_%') , ' FROM users
-#                        WHERE $_spits_rollback_strategy_$ != 'undelete'
-#                        ');
-#                        PREPARE stmt1 FROM @sql;
-#                        EXECUTE stmt1;
-#                        DEALLOCATE PREPARE stmt1;
-#                        """
-#                        )
-#
-#        def test_select_without_fields_order_and_limit(self):
-#            self.assert_str_equiv(u.select().order_by('first_name').limit(10).to_sql(), """
-#                        SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')
-#                        FROM INFORMATION_SCHEMA.COLUMNS
-#                        WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = database()
-#                        AND COLUMN_NAME NOT LIKE '$_spits_%') , ' FROM users
-#                        WHERE $_spits_rollback_strategy_$ != 'undelete'
-#                        ORDER BY first_name
-#                        LIMIT 10
-#                        ');
-#                        PREPARE stmt1 FROM @sql;
-#                        EXECUTE stmt1;
-#                        DEALLOCATE PREPARE stmt1;
-#                        """
-#                        )
-#
-#        #TODO: write this test, actually a few
-#        def test_update(self):
-#            self.maxDiff = None
-#            # NOTE: This is partially just pass-through functionality from base isql
-#            # The only difference being filtering of soft-deleted rows, and validation
-#            # That user selected table name, column names, etc. aren't $_spits_
-#            self.assert_str_equiv(u.update({'balance': 1000}).to_sql(), """
-#                        SET @preserve_columns = (SELECT REPLACE(GROUP_CONCAT( CONCAT('
-#                        $_spits_preserve_$',  COLUMN_NAME, ' = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN ', COLUMN_NAME, ' ELSE $_spits_preserve_$', COLUMN_NAME, ' END') ), '<OmitColumn>,', '') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = database()  AND COLUMN_NAME not like '$_spits_%');
-#
-#                        SET @full_query = CONCAT('UPDATE users SET ',  @preserve_columns, ',
-#                        balance=1000,
-#                        $_spits_rollback_strategy_$ = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN \\'restore_data\\' ELSE $_spits_rollback_strategy_$ END
-#                        ');
-#
-#                        PREPARE stmt1 FROM @full_query;
-#                        EXECUTE stmt1;
-#                        DEALLOCATE PREPARE stmt1;
-#                        """
-#                        )
-#
-#        def test_delete(self):
-#            self.maxDiff = None
-#            # NOTE: This is partially just pass-through functionality from base isql
-#            # The only difference being filtering of soft-deleted rows, and validation
-#            # That user selected table name, column names, etc. aren't $_spits_
-#            self.assert_str_equiv(u.delete().to_sql(), """
-#                        SET @preserve_columns = (SELECT REPLACE(GROUP_CONCAT( CONCAT('
-#                        $_spits_preserve_$', COLUMN_NAME, ' = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN ',
-#                        COLUMN_NAME, ' ELSE $_spits_preserve_$', COLUMN_NAME, ' END,
-#                        'COLUMN_NAME', ' = NULL' ) ), '<OmitColumn>,', '')
-#                        FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users'
-#                        AND TABLE_SCHEMA = database() AND COLUMN_NAME not like '$_spits_%');
-#
-#                        SET @full_query = CONCAT('UPDATE users SET ', @preserve_columns,
-#                        ', $_spits_rollback_strategy_$ = CASE WHEN $_spits_rollback_strategy_$ IS NULL
-#                          THEN \\'undelete\\'
-#                          ELSE $_spits_rollback_strategy_$
-#                        END
-#                        WHERE $_spits_rollback_strategy_$ != 'undelete' ');
-#
-#                        PREPARE stmt1 FROM @full_query;
-#                        EXECUTE stmt1;
-#                        DEALLOCATE PREPARE stmt1;
-#                        """
-#                        )
-#
-#
-#        def test_insert(self):
-#            self.maxDiff = None
-#            # NOTE: This is partially just pass-through functionality from base isql
-#            # The only difference being filtering of soft-deleted rows, and validation
-#            # That user selected table name, column names, etc. aren't $_spits_
-#            # TODO: Might have to worry about incrementing auto increments
-#            self.assert_str_equiv(u.insert([
-#              {'first_name': 'Test', 'last_name': 'User','balance': 0},
-#              {'first_name': 'Test2', 'last_name': 'User','balance': 0},
-#              {'first_name': 'Test3', 'last_name': 'User','balance': 0},
-#            ]).to_sql(), """
-#                        INSERT INTO users
-#                        (first_name, last_name, balance, $_spits_rollback_strategy_$)
-#                        VALUES
-#                        ('Test', 'User', 0, 'delete'), ('Test2', 'User', 0, 'delete'), ('Test3', 'User', 0, 'delete');
-#                        """)
-#
-#
-#            self.assert_str_equiv(u.insert([
-#              {'first_name': 'Test'},
-#            ]).to_sql(), """
-#                        INSERT INTO users
-#                        (first_name, $_spits_rollback_strategy_$)
-#                        VALUES
-#                        ('Test', 'delete');
-#                        """)
-#
-#
-#        def test_count_unique(self):
-#            self.maxDiff = None
-#            # NOTE: This is partially just pass-through functionality from base isql
-#            # The only difference being filtering of soft-deleted rows, and validation
-#            # That user selected table name, column names, etc. aren't $_spits_
-#            # TODO: Might have to worry about incrementing auto increments
-#            self.assert_str_equiv(u.count_unique('first_name').where(u.balance >= 10).to_sql(), """
-#                        SELECT first_name, COUNT(*) as _count
-#                        FROM users
-#                        WHERE ($_spits_rollback_strategy_$ != 'undelete'
-#                           AND balance >= 10)
-#                        GROUP BY first_name;
-#                        """)
-#
-#            self.assert_str_equiv(u.count_unique('first_name').to_sql(), """
-#                        SELECT first_name, COUNT(*) as _count
-#                        FROM users
-#                        WHERE $_spits_rollback_strategy_$ != 'undelete'
-#                        GROUP BY first_name;
-#                        """)
-#
-#        def test_count(self):
-#            self.maxDiff = None
-#            # NOTE: This is partially just pass-through functionality from base isql
-#            # The only difference being filtering of soft-deleted rows, and validation
-#            # That user selected table name, column names, etc. aren't $_spits_
-#            # TODO: Might have to worry about incrementing auto increments
-#            self.assert_str_equiv(u.count().where(u.balance >= 10).to_sql(), """
-#                        SELECT COUNT(*) as _count
-#                        FROM users
-#                        WHERE ($_spits_rollback_strategy_$ != 'undelete'
-#                           AND balance >= 10);
-#                        """)
-#
-#            self.assert_str_equiv(u.count().to_sql(), """
-#                        SELECT COUNT(*) as _count
-#                        FROM users
-#                        WHERE $_spits_rollback_strategy_$ != 'undelete';
-#                        """)
-#
-#
-#
+
+        def test_select_without_fields(self):
+            self.maxDiff = None
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            self.assert_str_equiv(u.select().to_sql(), """
+                        SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')
+                        FROM INFORMATION_SCHEMA.COLUMNS
+                        WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = database()
+                        AND COLUMN_NAME NOT LIKE '$_spits_%') , ' FROM users
+                        WHERE $_spits_soft_delete_$ != TRUE
+                        ');
+                        PREPARE stmt1 FROM @sql;
+                        EXECUTE stmt1;
+                        DEALLOCATE PREPARE stmt1;
+                        """
+                        )
+
+        def test_select_without_fields_order_and_limit(self):
+            self.assert_str_equiv(u.select().order_by('first_name').limit(10).to_sql(), """
+                        SET @sql = CONCAT('SELECT ', (SELECT REPLACE(GROUP_CONCAT(COLUMN_NAME), '<OmitColumn>,', '')
+                        FROM INFORMATION_SCHEMA.COLUMNS
+                        WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = database()
+                        AND COLUMN_NAME NOT LIKE '$_spits_%') , ' FROM users
+                        WHERE $_spits_soft_delete_$ != TRUE
+                        ORDER BY first_name
+                        LIMIT 10
+                        ');
+                        PREPARE stmt1 FROM @sql;
+                        EXECUTE stmt1;
+                        DEALLOCATE PREPARE stmt1;
+                        """
+                        )
+
+        #TODO: write this test, actually a few
+        def test_update(self):
+            self.maxDiff = None
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            self.assert_str_equiv(u.update({'balance': 1000}).to_sql(), """
+                        SET @preserve_columns = (SELECT REPLACE(GROUP_CONCAT( CONCAT('
+                        $_spits_preserve_$',  COLUMN_NAME, ' = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN ', COLUMN_NAME, ' ELSE $_spits_preserve_$', COLUMN_NAME, ' END') ), '<OmitColumn>,', '') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = database()  AND COLUMN_NAME not like '$_spits_%');
+
+                        SET @full_query = CONCAT('UPDATE users SET ',  @preserve_columns, ',
+                        balance=1000,
+                        $_spits_rollback_strategy_$ = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN \\'restore_data\\' ELSE $_spits_rollback_strategy_$ END
+                        WHERE $_spits_soft_delete_$ != TRUE
+                        ');
+
+                        PREPARE stmt1 FROM @full_query;
+                        EXECUTE stmt1;
+                        DEALLOCATE PREPARE stmt1;
+                        """
+                        )
+
+        def test_delete(self):
+            self.maxDiff = None
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            self.assert_str_equiv(u.delete().to_sql(), """
+                        SET @preserve_columns = (SELECT REPLACE(GROUP_CONCAT( CONCAT('
+                        $_spits_preserve_$', COLUMN_NAME, ' = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN ',
+                        COLUMN_NAME, ' ELSE $_spits_preserve_$', COLUMN_NAME, ' END,
+                        'COLUMN_NAME', ' = NULL' ) ), '<OmitColumn>,', '')
+                        FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users'
+                        AND TABLE_SCHEMA = database() AND COLUMN_NAME not like '$_spits_%');
+
+                        SET @full_query = CONCAT('UPDATE users SET ', @preserve_columns,
+                        ', $_spits_rollback_strategy_$ = CASE WHEN $_spits_rollback_strategy_$ IS NULL
+                          THEN \\'undelete\\'
+                          ELSE $_spits_rollback_strategy_$
+                        END
+                        WHERE $_spits_soft_delete_$ != TRUE ');
+
+                        PREPARE stmt1 FROM @full_query;
+                        EXECUTE stmt1;
+                        DEALLOCATE PREPARE stmt1;
+                        """
+                        )
+
+
+        def test_insert(self):
+            self.maxDiff = None
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            # TODO: Might have to worry about incrementing auto increments
+            self.assert_str_equiv(u.insert([
+              {'first_name': 'Test', 'last_name': 'User','balance': 0},
+              {'first_name': 'Test2', 'last_name': 'User','balance': 0},
+              {'first_name': 'Test3', 'last_name': 'User','balance': 0},
+            ]).to_sql(), """
+                        INSERT INTO users
+                        (first_name, last_name, balance, $_spits_rollback_strategy_$)
+                        VALUES
+                        ('Test', 'User', 0, 'delete'), ('Test2', 'User', 0, 'delete'), ('Test3', 'User', 0, 'delete');
+                        """)
+
+
+            self.assert_str_equiv(u.insert([
+              {'first_name': 'Test'},
+            ]).to_sql(), """
+                        INSERT INTO users
+                        (first_name, $_spits_rollback_strategy_$)
+                        VALUES
+                        ('Test', 'delete');
+                        """)
+
+
+        def test_count_unique(self):
+            self.maxDiff = None
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            # TODO: Might have to worry about incrementing auto increments
+            self.assert_str_equiv(u.count_unique('first_name').where(u.balance >= 10).to_sql(), """
+                        SELECT first_name, COUNT(*) as _count
+                        FROM users
+                        WHERE ($_spits_soft_delete_$ != TRUE
+                           AND balance >= 10)
+                        GROUP BY first_name;
+                        """)
+
+            self.assert_str_equiv(u.count_unique('first_name').to_sql(), """
+                        SELECT first_name, COUNT(*) as _count
+                        FROM users
+                        WHERE $_spits_soft_delete_$ != TRUE
+                        GROUP BY first_name;
+                        """)
+
+        def test_count(self):
+            self.maxDiff = None
+            # NOTE: This is partially just pass-through functionality from base isql
+            # The only difference being filtering of soft-deleted rows, and validation
+            # That user selected table name, column names, etc. aren't $_spits_
+            # TODO: Might have to worry about incrementing auto increments
+            self.assert_str_equiv(u.count().where(u.balance >= 10).to_sql(), """
+                        SELECT COUNT(*) as _count
+                        FROM users
+                        WHERE ($_spits_soft_delete_$ != TRUE
+                           AND balance >= 10);
+                        """)
+
+            self.assert_str_equiv(u.count().to_sql(), """
+                        SELECT COUNT(*) as _count
+                        FROM users
+                        WHERE $_spits_soft_delete_$ != TRUE;
+                        """)
+
+
+
 
     suite = unittest.TestSuite()
     # TODO: discover and add all tests
