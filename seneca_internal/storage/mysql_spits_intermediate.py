@@ -754,7 +754,23 @@ def run_tests():
                         """)
 
         def test_drop_table(self):
-            print(u.drop_table().to_sql())
+            self.assert_str_equiv(u.drop_table().to_sql(),
+            """
+                        BEGIN;
+            SELECT Count(*)
+            INTO @exists
+            FROM information_schema.tables
+            WHERE table_name = '$_spits_soft_delete_$users';
+
+            SET @query = If(@exists = 0,
+                'RENAME TABLE users TO $_spits_soft_delete_$users',
+                'SELECT \\'nothing to rename\\' status');
+
+            PREPARE stmt FROM @query;
+            EXECUTE stmt;
+            COMMIT;
+            """)
+
 
 
 
