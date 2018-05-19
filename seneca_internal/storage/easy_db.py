@@ -488,19 +488,12 @@ class Table(object):
 
     def create_table(self, if_not_exists=False):
         return RunnableISQL(self._to_intermediate_create(if_not_exists))
-#        def run(ex):
-#            return execute_sql_query(ex, self._to_intermediate_create(if_not_exists))
-#
-#        return SimpleRunnable(run)
 
     def _to_intermediate_drop(self):
         return isql.DropTable(self._name)
 
     def drop_table(self):
-        def run(ex):
-            return execute_sql_query(ex, self._to_intermediate_drop())
-
-        return SimpleRunnable(run)
+        return RunnableISQL(self._to_intermediate_drop())
 
 
 class SimpleRunnable(object):

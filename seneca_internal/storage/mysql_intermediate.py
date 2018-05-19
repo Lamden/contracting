@@ -67,6 +67,18 @@ class AutoIncrementColumn(ColumnDefinition):
         return '%s %s unsigned NOT NULL AUTO_INCREMENT' % (self.name, self.sql_type)
 
 
+class NonNullableBooleanColumn(ColumnDefinition):
+    # Note: this is not intended for inclusion in end-user libs. Non-nullable
+    # interferes with SPITS snapshotting.
+    @auto_set_fields
+    def __init__(self, name: str):
+        self.sql_type = 'Boolean'
+        self.is_unique = False
+
+    def to_sql(self):
+        return '%s %s NOT NULL DEFAULT FALSE' % (self.name, self.sql_type)
+
+
 class QueryCriterion(QueryComponent):
     '''
     >>> QueryCriterion('eq', 'username', 'tester').to_sql()

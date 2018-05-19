@@ -19,14 +19,18 @@ Future Performance Improvements:
 * Currently this module is stateless. By going to a stateful model we could cache:
   * table definitions (columns)
   * cache flags marking both rows and tables as dirty
+* Stored procedures would probably be more efficient
 * Perf-related questions
   * Does MyRocks store nulls efficiently?
     If no, rollback row data shouldn't live in same table
     * In that case, does myrocks store empty tables efficiently, can it move rows betweeen tables efficiently
       If so, store rollback data in dedicated tables.
 
+TODO: Make sure to constrain schema queries with database name
+TODO: Check out table_type = 'BASE TABLE' in schema queries
 TODO: max_prepared_stmt_count
 TODO: Consider doing everything as prepared statements
+TODO: Consider doing everything as stored procedures
 TODO: sql escapes
 def sql_escapes(s):
     # TODO: make sure everything I need is here.
@@ -47,8 +51,7 @@ SPITS_TOKEN = '$_spits_'
 SPITS_PRESERVE_TOKEN = SPITS_TOKEN + 'preserve_$'
 SPITS_ROLLBACK_COLUMN_NAME = SPITS_TOKEN + 'rollback_strategy_$'
 SPITS_ROLLBACK_COLUMN_SQL_TYPE = isql.SQLType('VARCHAR', 30)
-SPITS_SOFT_DELETE_COLUMN_NAME = SPITS_TOKEN + 'soft_delete_$'
-SPITS_SOFT_DELETE_COLUMN_SQL_TYPE = isql.SQLType('BOOLEAN')
+SPITS_SOFT_DELETE_PREFIX = SPITS_TOKEN + 'soft_delete_$' # Type not needed.
 SPITS_METADATA_TABLE_NAME = SPITS_TOKEN + 'metadata_$'
 valid_table_data_level_strategies = ['restore_data', 'delete', 'undelete']
 valid_table_schema_level_stratgies = ['restore_data', 'delete', 'undelete']
@@ -67,6 +70,10 @@ def spits_purge():
 
 
 def spits_verify_clean():
+    pass
+
+
+def spits_initialize():
     pass
 
 
@@ -135,7 +142,7 @@ class CreateTable(isql.CreateTable):
         spits_backup_columns = [make_spits_backup_column(x) for x in all_columns]
         self.other_column_defs.extend(spits_backup_columns)
 
-        spits_soft_delete_column = isql.ColumnDefinition(SPITS_SOFT_DELETE_COLUMN_NAME, SPITS_SOFT_DELETE_COLUMN_SQL_TYPE)
+        spits_soft_delete_column = isql.NonNullableBooleanColumn(SPITS_SOFT_DELETE_PREFIX)
         self.other_column_defs.append(spits_soft_delete_column)
 
         spits_rollback_strategy_column = isql.ColumnDefinition(SPITS_ROLLBACK_COLUMN_NAME, SPITS_ROLLBACK_COLUMN_SQL_TYPE)
@@ -159,7 +166,7 @@ class CreateTable(isql.CreateTable):
                       '',
                       super().to_sql(),
                       '',
-                      'COMMIT'
+                      'COMMIT;'
         ])
         return sql_query
 
@@ -167,7 +174,7 @@ class CreateTable(isql.CreateTable):
 def filter_soft_deleted(f):
     @wraps(f)
     def wrapper(self, *args, **kwargs):
-        filter_undelete_criterion = isql.QueryCriterion('ne', SPITS_SOFT_DELETE_COLUMN_NAME, True)
+        filter_undelete_criterion = isql.QueryCriterion('ne', SPITS_SOFT_DELETE_PREFIX, True)
         if self.criteria:
             self.criteria = isql.AndedCriteria([ filter_undelete_criterion,
                                                  self.criteria
@@ -325,7 +332,6 @@ class DeleteRows(isql.DeleteRows):
         assert_valid_name(self.table_name)
         # TODO: assert_valid_name for criteria names and order_by as well.
         # TODO: mark table as dirty
-        # TODO: Dedupe this with SelectQuery
 
     @classmethod
     def from_isql(cls, base_query):
@@ -349,8 +355,8 @@ THEN \\'undelete\\' ELSE {SPITS_ROLLBACK_COLUMN_NAME} END".format(**locals(),**g
         perserve_columns = ' '.join(["SET @preserve_columns = (SELECT REPLACE(GROUP_CONCAT( CONCAT('\n{SPITS_PRESERVE_TOKEN}', ",
         "COLUMN_NAME, ' = CASE WHEN {SPITS_ROLLBACK_COLUMN_NAME} IS NULL THEN ', COLUMN_NAME, '",
         # NOTE: unlike UpdateRows, we're additionally setting COLUMN_NAME = NULL
-        "ELSE {SPITS_PRESERVE_TOKEN}', COLUMN_NAME, ' END,",
-        "'COLUMN_NAME', ' = NULL' ) ), '<OmitColumn>,', '')",
+        "ELSE {SPITS_PRESERVE_TOKEN}', COLUMN_NAME, ' END, ',",
+        "COLUMN_NAME, ' = NULL' ) ), '<OmitColumn>,', '')",
         "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '{self.table_name}' AND TABLE_SCHEMA = database() ",
         "AND COLUMN_NAME not like '{SPITS_TOKEN}%');"]).format(**locals(), **globals())
 
@@ -426,7 +432,6 @@ class CountUniqueRows(isql.CountUniqueRows):
         assert_valid_name(self.table_name)
         assert_valid_name(self.unique_column)
         # TODO: assert_valid_name for criteria names and order_by as well.
-        # TODO: Dedupe this with SelectQuery
 
     @classmethod
     def from_isql(cls, base_query):
@@ -450,7 +455,6 @@ class CountRows(isql.CountRows):
     def __init__(self):
         assert_valid_name(self.table_name)
         # TODO: assert_valid_name for criteria names and order_by as well.
-        # TODO: Dedupe this with SelectQuery
 
     @classmethod
     def from_isql(cls, base_query):
@@ -461,7 +465,50 @@ class CountRows(isql.CountRows):
         return s
 
 
+class DropTable(isql.DropTable):
+    '''
+    * move to $spits_deleted_$
+    * Only if there isn't already and entry that says create
+    '''
+    @run_super_first
+    #self, table_name
+    def __init__(self):
+        assert_valid_name(self.table_name)
+        # TODO: assert_valid_name for criteria names and order_by as well.
+
+    @classmethod
+    def from_isql(cls, base_query):
+        return cls(base_query.table_name)
+
+    def to_sql(self):
+        #https://stackoverflow.com/questions/9279619/mysql-rename-table-if-exists
+        soft_delete_table_name = SPITS_SOFT_DELETE_PREFIX + self.table_name
+        return """
+            BEGIN;
+            SELECT Count(*)
+            INTO @exists
+            FROM information_schema.tables
+            WHERE table_name = '{soft_delete_table_name}';
+
+            SET @query = If(@exists = 0,
+                'RENAME TABLE {self.table_name} TO {soft_delete_table_name}',
+                'SELECT \\'nothing to rename\\' status');
+
+            PREPARE stmt FROM @query;
+            EXECUTE stmt;
+            COMMIT;
+            """.format(**locals())
+
 '''
+* Add column
+  * add drop column x on table y command to rollback table unless column with same name already dropped
+    * i.e. if a column is dropped and readded and dropped again in the same scratch window, just throw it out
+      * remember this is a point-in-time snapshot, not an undo-stack
+* drop column
+  * if column existed before window save with prepended name
+* drop table
+  * if table existed before scratch window, move it to a temporary name
+
 
 DescribeTable(self, table_name)
 ListTable(prefix)
@@ -483,18 +530,7 @@ class DropTableColumn(object):
     * rename column $spits_deleted$_
     * Add undelete column command to spits table
 
-class DropTable(object):
-    * move to $spits_deleted_$
-    * Only if there isn't already and entry that says create
 
-    * Add column
-      * add drop column x on table y command to rollback table unless column with same name already dropped
-        * i.e. if a column is dropped and readded and dropped again in the same scratch window, just throw it out
-          * remember this is a point-in-time snapshot, not an undo-stack
-    * drop column
-      * if column existed before window save with prepended name
-    * drop table
-      * if table existed before scratch window, move it to a temporary name
 '''
 
 
@@ -535,29 +571,29 @@ def run_tests():
         def test_create(self):
             self.maxDiff = None
             self.assert_str_equiv(u.create_table().to_sql(),
-                        """BEGIN
+                         """BEGIN
 
-                        INSERT INTO $_spits_metadata_$
-                        (table_name, rollback_strategy)
-                        VALUES
-                        ('users', 'delete');
+                            INSERT INTO $_spits_metadata_$
+                            (table_name, rollback_strategy)
+                            VALUES
+                            ('users', 'delete');
 
-                        CREATE TABLE users (
-                        id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                        first_name TEXT,
-                        last_name TEXT,
-                        balance BIGINT,
-                        creation_date DATETIME,
-                        $_spits_preserve_$id BIGINT,
-                        $_spits_preserve_$first_name TEXT,
-                        $_spits_preserve_$last_name TEXT,
-                        $_spits_preserve_$balance BIGINT,
-                        $_spits_preserve_$creation_date DATETIME,
-                        $_spits_soft_delete_$ BOOLEAN,
-                        $_spits_rollback_strategy_$ VARCHAR(30)
-                        );
+                            CREATE TABLE users (
+                            id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                            first_name TEXT,
+                            last_name TEXT,
+                            balance BIGINT,
+                            creation_date DATETIME,
+                            $_spits_preserve_$id BIGINT,
+                            $_spits_preserve_$first_name TEXT,
+                            $_spits_preserve_$last_name TEXT,
+                            $_spits_preserve_$balance BIGINT,
+                            $_spits_preserve_$creation_date DATETIME,
+                            $_spits_soft_delete_$ Boolean NOT NULL DEFAULT FALSE,
+                            $_spits_rollback_strategy_$ VARCHAR(30)
+                            );
 
-                        COMMIT
+                            COMMIT;
                         """
                         )
 
@@ -633,26 +669,20 @@ def run_tests():
             # NOTE: This is partially just pass-through functionality from base isql
             # The only difference being filtering of soft-deleted rows, and validation
             # That user selected table name, column names, etc. aren't $_spits_
-            self.assert_str_equiv(u.delete().to_sql(), """
-                        SET @preserve_columns = (SELECT REPLACE(GROUP_CONCAT( CONCAT('
-                        $_spits_preserve_$', COLUMN_NAME, ' = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN ',
-                        COLUMN_NAME, ' ELSE $_spits_preserve_$', COLUMN_NAME, ' END,
-                        'COLUMN_NAME', ' = NULL' ) ), '<OmitColumn>,', '')
-                        FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users'
-                        AND TABLE_SCHEMA = database() AND COLUMN_NAME not like '$_spits_%');
+            good_result = """
+                SET @preserve_columns = (SELECT REPLACE(GROUP_CONCAT( CONCAT('
+                $_spits_preserve_$',  COLUMN_NAME, ' = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN ', COLUMN_NAME, ' ELSE $_spits_preserve_$', COLUMN_NAME, ' END, ', COLUMN_NAME, ' = NULL' ) ), '<OmitColumn>,', '') FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = database()  AND COLUMN_NAME not like '$_spits_%');
 
-                        SET @full_query = CONCAT('UPDATE users SET ', @preserve_columns,
-                        ', $_spits_rollback_strategy_$ = CASE WHEN $_spits_rollback_strategy_$ IS NULL
-                          THEN \\'undelete\\'
-                          ELSE $_spits_rollback_strategy_$
-                        END
-                        WHERE $_spits_soft_delete_$ != TRUE ');
+                SET @full_query = CONCAT('UPDATE users SET ',  @preserve_columns, ',
+                $_spits_rollback_strategy_$ = CASE WHEN $_spits_rollback_strategy_$ IS NULL THEN \\'undelete\\' ELSE $_spits_rollback_strategy_$ END
+                WHERE $_spits_soft_delete_$ != TRUE
+                ');
 
-                        PREPARE stmt1 FROM @full_query;
-                        EXECUTE stmt1;
-                        DEALLOCATE PREPARE stmt1;
-                        """
-                        )
+                PREPARE stmt1 FROM @full_query;
+                EXECUTE stmt1;
+                DEALLOCATE PREPARE stmt1;
+            """
+            self.assert_str_equiv(u.delete().to_sql(), good_result)
 
 
         def test_insert(self):
@@ -722,6 +752,9 @@ def run_tests():
                         FROM users
                         WHERE $_spits_soft_delete_$ != TRUE;
                         """)
+
+        def test_drop_table(self):
+            print(u.drop_table().to_sql())
 
 
 
