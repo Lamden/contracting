@@ -15,7 +15,7 @@ we'd need to generate a random value to populate the field and hope it didn't co
 future inserts, or track it and if there was a collision, update it. Much better
 to just implmentent non-nullable fields outside the database code, i.e. client-side.
 
-Future Performance Improvements:
+Future Performance Improvements / TODOs:
 * Currently this module is stateless. By going to a stateful model we could cache:
   * table definitions (columns)
   * cache flags marking both rows and tables as dirty
@@ -25,10 +25,15 @@ Future Performance Improvements:
     If no, rollback row data shouldn't live in same table
     * In that case, does myrocks store empty tables efficiently, can it move rows betweeen tables efficiently
       If so, store rollback data in dedicated tables.
+* Could improve security by using prepared statements everywhere.
+* Convert tests to doctest format
+* Test everything.
+* Limit max table name length in another module
 
-TODO: Make sure to constrain schema queries with database name
+TODO: Make sure to constrain queries with database name
 TODO: Check out table_type = 'BASE TABLE' in schema queries
 TODO: max_prepared_stmt_count
+TODO: functions and stored procedures must be versioned
 TODO: Consider doing everything as prepared statements
 TODO: Consider doing everything as stored procedures
 TODO: sql escapes
@@ -47,34 +52,165 @@ from seneca_internal.util import run_super_first, auto_set_fields, intercalate
 from seneca_internal.storage.mysql_base import TabularKVs
 from functools import wraps
 
-SPITS_TOKEN = '$_spits_'
+VERSION = '1'
+SPITS_TOKEN = '$_spits_v{}_'.format(VERSION)
 SPITS_PRESERVE_TOKEN = SPITS_TOKEN + 'preserve_$'
 SPITS_ROLLBACK_COLUMN_NAME = SPITS_TOKEN + 'rollback_strategy_$'
 SPITS_ROLLBACK_COLUMN_SQL_TYPE = isql.SQLType('VARCHAR', 30)
 SPITS_SOFT_DELETE_PREFIX = SPITS_TOKEN + 'soft_delete_$' # Type not needed.
 SPITS_METADATA_TABLE_NAME = SPITS_TOKEN + 'metadata_$'
 valid_table_data_level_strategies = ['restore_data', 'delete', 'undelete']
-valid_table_schema_level_stratgies = ['restore_data', 'delete', 'undelete']
+valid_table_schema_level_stratgies = ['restore_data', 'delete_table', 'delete_column', 'undelete_table', 'undelete_column']
 
 
-def spits_commit():
+def spits_commit(ex):
     pass
 
 
-def spits_rollback():
+def spits_rollback(ex):
     pass
 
 
-def spits_purge():
+def spits_purge(ex):
     pass
 
 
-def spits_verify_clean():
+def spits_verify_clean(ex):
     pass
 
 
 def spits_initialize():
-    pass
+    # TODO: figure out if you want to pass an executer or what.
+    create_table_sql = isql.CreateTable(
+           SPITS_METADATA_TABLE_NAME,
+           isql.AutoIncrementColumn('id'),
+           [ isql.ColumnDefinition('table_name', SQLType('VARCHAR', 50), False),
+             isql.ColumnDefinition('rollback_strategy', SQLType('VARCHAR', 50), False),
+             isql.ColumnDefinition('data', SQLType('VARCHAR', 50), False),
+           ], if_not_exists=True).to_sql()
+
+    full_initialization = """
+    {create_table_sql}
+
+    /* check column exists */
+    DELIMITER $$
+    DROP FUNCTION IF EXISTS f_check_column_exists $$
+    CREATE FUNCTION f_check_column_exists(in_database_name varchar(100), in_table_name varchar(100), in_column_name varchar(100))
+    RETURNS BOOLEAN
+    BEGIN
+    DECLARE f_out BOOLEAN;
+
+    SELECT count(*) into f_out FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = in_table_name AND table_schema = in_database_name AND COLUMN_NAME =in_column_name limit 1;
+    RETURN f_out;
+    END$$
+    DELIMITER ;
+
+
+    /* get_column_type */
+    DELIMITER $$
+    DROP FUNCTION IF EXISTS f_get_column_type $$
+    CREATE FUNCTION f_get_column_type(in_database_name varchar(100), in_table_name varchar(100), in_column_name varchar(100))
+    RETURNS varchar(100)
+    BEGIN
+    DECLARE d_type varchar(64);
+    DECLARE m_char_len BIGINT;
+    DECLARE f_out varchar(100);
+    SELECT DATA_TYPE, CHARACTER_MAXIMUM_LENGTH into d_type, m_char_len FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = in_table_name AND table_schema = in_database_name AND COLUMN_NAME =in_column_name limit 1;
+    IF d_type = 'varchar' THEN
+        SET f_out = CONCAT(d_type, '(', m_char_len, ')');
+    ELSEIF (d_type is null) then
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Column not found.';
+    ELSE
+        SET f_out = d_type;
+    END IF;
+    RETURN f_out;
+    END$$
+    DELIMITER ;
+
+    /* rename column procedure */
+    DELIMITER $$
+    DROP PROCEDURE IF EXISTS rename_column $$
+    CREATE PROCEDURE rename_column(
+        IN  in_database_name varchar(100),
+        IN  in_table_name varchar(100),
+        IN  in_old_column_name varchar(100),
+        IN  in_new_column_name varchar(100)
+    )
+    BEGIN
+    DECLARE db_dot_table varchar(60) DEFAULT CONCAT(in_database_name, '.', in_table_name);
+    SET @sql = CONCAT_WS(' ', 'ALTER TABLE', db_dot_table, 'CHANGE', in_old_column_name, in_new_column_name, f_get_column_type(in_database_name, in_table_name, in_old_column_name));
+    PREPARE stmt1 FROM @sql;
+    EXECUTE stmt1;
+    DEALLOCATE PREPARE stmt1;
+    END$$
+    DELIMITER ;
+
+    /* delete column */
+    DELIMITER $$
+    DROP PROCEDURE IF EXISTS delete_column $$
+    CREATE PROCEDURE delete_column(
+        IN  in_database_name varchar(100),
+        IN  in_table_name varchar(100),
+        IN  in_column_name varchar(100)
+    )
+    BEGIN
+    DECLARE db_dot_table varchar(60) DEFAULT CONCAT(in_database_name, '.', in_table_name);
+    SET @sql = CONCAT_WS(' ', 'ALTER TABLE', db_dot_table, 'DROP COLUMN', in_column_name);
+    PREPARE stmt1 FROM @sql;
+    EXECUTE stmt1;
+    DEALLOCATE PREPARE stmt1;
+    END$$
+    DELIMITER ;
+
+
+    /* Count occurences of type in spits */
+    DELIMITER $$
+    DROP FUNCTION IF EXISTS count_spits_occurrences_with_data $$
+    CREATE FUNCTION count_spits_occurrences_with_data(in_table_name varchar(100), in_rollback_strategy varchar(100), in_data varchar(100))
+    RETURNS Int
+    BEGIN
+    DECLARE f_out INT;
+
+    SELECT count(*) into f_out FROM {SPITS_METADATA_TABLE_NAME} WHERE table_name = in_table_name AND rollback_strategy = in_rollback_strategy AND data =in_data;
+    RETURN f_out;
+    END$$
+    DELIMITER ;
+
+
+    /* soft delete column procedure
+
+    * drop column
+      * if column existed before window save with prepended name
+      * Query SPITS table, see if column existed before SPITS window
+      * See if already has been deleted and recreated
+      * either delete it straight away, or soft-delete rename
+    */
+    DELIMITER $$
+    DROP PROCEDURE IF EXISTS soft_delete_column $$
+    CREATE PROCEDURE soft_delete_column(
+        IN  in_database_name varchar(100),
+        IN  in_table_name varchar(100),
+        IN  in_column_name varchar(100)
+    )
+    BEGIN
+    DECLARE column_created_in_window INT;
+    DECLARE same_name_already_deleted_in_window INT;
+
+    SET column_created_in_window = count_spits_occurrences_with_data(in_table_name, 'delete-column', in_column_name);
+    SET same_name_already_deleted_in_window = count_spits_occurrences_with_data(in_table_name, 'undelete-column', in_column_name);
+
+    if (column_created_in_window = 0 AND same_name_already_deleted_in_window = 0) THEN
+        CALL rename_column(in_database_name, in_table_name, in_column_name, CONCAT(\'{SPITS_SOFT_DELETE_PREFIX}\', in_column_name));
+        INSERT INTO {SPITS_METADATA_TABLE_NAME} (table_name,rollback_strategy,data) VALUES(in_table_name, 'undelete-column', in_column_name);
+    ELSE
+        CALL delete_column(in_database_name, in_table_name, in_column_name);
+    END IF;
+
+    END$$
+    DELIMITER ;
+    """.format(**locals(),**globals())
+
+    return full_initialization
 
 
 def starts_with_spits(string):
@@ -88,6 +224,8 @@ def contains_only_good_chars(string):
 
 
 def assert_valid_name(string):
+    # TODO: max length test
+    # TOOO: keep in mind length + token
     assert not starts_with_spits(string), "Table name dissallowed it would conflict with our mechanism for snapshotting and rollback"
     assert contains_only_good_chars(string), "Only a-z, 0-9 and _ are allowed in table names."
 
@@ -483,6 +621,7 @@ class DropTable(isql.DropTable):
     def to_sql(self):
         #https://stackoverflow.com/questions/9279619/mysql-rename-table-if-exists
         soft_delete_table_name = SPITS_SOFT_DELETE_PREFIX + self.table_name
+        # TODO: Add flag dirty in table metadata table
         return """
             BEGIN;
             SELECT Count(*)
@@ -499,16 +638,77 @@ class DropTable(isql.DropTable):
             COMMIT;
             """.format(**locals())
 
+
+class AddTableColumn(isql.AddTableColumn):
+    ''' Add drop column x on table y command to rollback table unless column
+    with same name already dropped. i.e. if a column is dropped and readded and
+    dropped again in the same scratch window, just throw it out.
+
+    * Remember this is a point-in-time snapshot, not an undo-stack
+    '''
+
+    @run_super_first
+    #__init__(self, table_name, column_def):
+    def __init__(self):
+        assert_valid_name(self.table_name)
+        assert_valid_name(self.column_def.name)
+
+    @classmethod
+    def from_isql(cls, base_query):
+        return cls(base_query.table_name, base_query.column_def)
+
+    def to_sql(self):
+        sql_without_spits = super().to_sql()
+
+        #https://stackoverflow.com/questions/3164505/mysql-insert-record-if-not-exists-in-table
+        # Could use 'dual' instead
+        # TOO: decide if we really want to limit writes in the meta_data table, or just filter an analyze results on rollback, currently doing the former.
+        return """
+        BEGIN;
+
+        INSERT INTO {SPITS_METADATA_TABLE_NAME} (table_name, rollback_strategy, data)
+            SELECT * FROM (SELECT \'{self.table_name}\', 'delete_column', \'{self.column_def.name}\') AS tmp
+            WHERE NOT EXISTS (
+            SELECT id FROM {SPITS_METADATA_TABLE_NAME} WHERE
+              table_name = \'{self.table_name}\' AND
+                 (rollback_strategy = \'undelete_column\' OR rollback_strategy = \'delete_column\') AND
+                 data = \'{self.column_def.name}\'
+            ) LIMIT 1;
+
+        {sql_without_spits}
+
+        COMMIT;
+        """.format(**locals(), SPITS_METADATA_TABLE_NAME = SPITS_METADATA_TABLE_NAME)
+
+
+class DropTableColumn(isql.DropTableColumn):
+    '''
+    * drop column
+      * if column existed before window save with prepended name
+      * Query SPITS table, see if column existed before SPITS window
+      * See if already has been deleted and recreated
+      * either delete it straight away, or soft-delete rename
+    '''
+    @run_super_first
+    #__init__(self, table_name, column_name):
+    def __init__(self):
+        assert_valid_name(self.table_name)
+        assert_valid_name(self.column_name)
+
+    @classmethod
+    def from_isql(cls, base_query):
+        return cls(base_query.table_name, base_query.column_name)
+
+    def to_sql(self):
+        backup_column_name = SPITS_PRESERVE_TOKEN + self.column_name
+        # TODO: don't hardcode database name
+        return """
+        CALL soft_delete_column('seneca_test', '{self.table_name}','self.column_name')    
+        """.format(**locals())
+
 '''
-* Add column
-  * add drop column x on table y command to rollback table unless column with same name already dropped
-    * i.e. if a column is dropped and readded and dropped again in the same scratch window, just throw it out
-      * remember this is a point-in-time snapshot, not an undo-stack
-* drop column
-  * if column existed before window save with prepended name
 * drop table
   * if table existed before scratch window, move it to a temporary name
-
 
 DescribeTable(self, table_name)
 ListTable(prefix)
@@ -530,7 +730,7 @@ class DropTableColumn(object):
     * rename column $spits_deleted$_
     * Add undelete column command to spits table
 
-
+https://stackoverflow.com/questions/3164505/mysql-insert-record-if-not-exists-in-table
 '''
 
 
@@ -540,6 +740,9 @@ def run_tests():
     import unittest
     from datetime import datetime
     import sys
+
+    print(spits_initialize())
+    sys.exit()
     # Patch easy_db module, replace base mysql_intermediate with this module
     class ThisModuleProxy(object):
         def __init__(self, **kwargs):
@@ -554,7 +757,7 @@ def run_tests():
         easy.Column('last_name', str),
         easy.Column('balance', int),
         easy.Column('creation_date', datetime)
-    ])
+    ], if_not_exists=True)
 
 
     def normalize_str(s):
@@ -770,6 +973,14 @@ def run_tests():
             EXECUTE stmt;
             COMMIT;
             """)
+
+        def test_add_column(self):
+            print(u.add_column('nick_name', str).to_sql())
+
+
+        def test_initialize(self):
+            #print(spits_initialize())
+            pass
 
 
 

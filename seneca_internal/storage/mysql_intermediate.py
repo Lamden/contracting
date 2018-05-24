@@ -532,6 +532,22 @@ class CreateTable(Query):
     first_name VARCHAR(30),
     balance BIGINT
     );
+
+    >>> print(CreateTable(
+    ...       'test_users',
+    ...       AutoIncrementColumn('id'),
+    ...       [ ColumnDefinition('username', SQLType('VARCHAR', 30), True),
+    ...         ColumnDefinition('drivers_licence_unmber', SQLType('VARCHAR', 30), True),
+    ...         ColumnDefinition('first_name', SQLType('VARCHAR', 30), False),
+    ...         ColumnDefinition('balance', SQLType('BIGINT'), False),
+    ... ], if_not_exists=True).to_sql())
+    CREATE TABLE IF NOT EXISTS test_users (
+    id BIGINT unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(30) UNIQUE,
+    drivers_licence_unmber VARCHAR(30) UNIQUE,
+    first_name VARCHAR(30),
+    balance BIGINT
+    );
     '''
     @auto_set_fields
     def __init__(self, table_name, primary_key_column_def, other_column_defs, if_not_exists=False):

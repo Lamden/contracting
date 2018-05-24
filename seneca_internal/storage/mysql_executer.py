@@ -132,7 +132,7 @@ def run_tests():
                    settings.get('DB', 'password'),
                    settings.get('DB', 'database'),
                    settings.get('DB', 'hostname'),
-                  )
+                 )
 
     create_table_query = CreateTable(
           'test_users',
