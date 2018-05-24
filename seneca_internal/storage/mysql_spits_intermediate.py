@@ -106,24 +106,39 @@ def spits_initialize():
     DELIMITER ;
 
 
-    /* get_column_type */
+    /* format column type
+    DELIMITER $$
+    DROP FUNCTION IF EXISTS f_format_column_type $$
+    CREATE FUNCTION f_format_column_type(in_type varchar(100), in_len bigint)
+    RETURNS varchar(110)
+    BEGIN
+    DECLARE f_out varchar(110);
+
+    IF in_type = 'varchar' THEN
+        SET f_out = CONCAT(in_type, '(', in_len, ')');
+    ELSE
+        SET f_out = in_type;
+    END IF;
+
+    RETURN f_out;
+    END$$
+    DELIMITER ;
+    */
+
+
+
+    /* get_column_type, todo, refactor with above */
     DELIMITER $$
     DROP FUNCTION IF EXISTS f_get_column_type $$
     CREATE FUNCTION f_get_column_type(in_database_name varchar(100), in_table_name varchar(100), in_column_name varchar(100))
     RETURNS varchar(100)
     BEGIN
     DECLARE d_type varchar(64);
-    DECLARE m_char_len BIGINT;
-    DECLARE f_out varchar(100);
-    SELECT DATA_TYPE, CHARACTER_MAXIMUM_LENGTH into d_type, m_char_len FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = in_table_name AND table_schema = in_database_name AND COLUMN_NAME =in_column_name limit 1;
-    IF d_type = 'varchar' THEN
-        SET f_out = CONCAT(d_type, '(', m_char_len, ')');
-    ELSEIF (d_type is null) then
+    SELECT COLUMN_TYPE into d_type FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = in_table_name AND table_schema = in_database_name AND COLUMN_NAME =in_column_name limit 1;
+    IF (d_type is null) then
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Column not found.';
-    ELSE
-        SET f_out = d_type;
     END IF;
-    RETURN f_out;
+    RETURN d_type;
     END$$
     DELIMITER ;
 
@@ -744,7 +759,7 @@ class AddTableColumn(isql.AddTableColumn):
 
         #https://stackoverflow.com/questions/3164505/mysql-insert-record-if-not-exists-in-table
         # Could use 'dual' instead
-        # TOO: decide if we really want to limit writes in the meta_data table, or just filter an analyze results on rollback, currently doing the former.
+        # TOO: decide if we really want to limit writes in the meta_data table, or just filter and analyze results on rollback, currently doing the former.
         return """
         BEGIN;
 
@@ -791,7 +806,7 @@ class DropTableColumn(isql.DropTableColumn):
 
 class DropTable(isql.DropTable):
     @run_super_first
-    #__init__(self, table_name, column_name):
+    #__init__(self, table_name):
     def __init__(self):
         assert_valid_name(self.table_name)
 
@@ -800,18 +815,36 @@ class DropTable(isql.DropTable):
         return cls(base_query.table_name)
 
     def to_sql(self):
-        pass
-        """
-        CALL soft_delete_table('seneca_test', \'{self.table_name}'\)
+        return """
+        CALL soft_delete_table('seneca_test', \'{self.table_name}'\);
         """.format(**locals())
 
-'''
-* drop table
-  * if table existed before scratch window, move it to a temporary name
 
+class DescribeTable(isql.DescribeTable):
+    #__init__(self, table_name):
+    @run_super_first
+    #__init__(self, table_name):
+    def __init__(self):
+        assert_valid_name(self.table_name)
+
+    @classmethod
+    def from_isql(cls, base_query):
+        return cls(base_query.table_name)
+
+    def to_sql(self):
+        return """
+        select COLUMN_NAME as Field, COLUMN_TYPE as Type, IS_NULLABLE as 'Null',
+        COLUMN_KEY as 'Key', COLUMN_DEFAULT as 'Default', Extra
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE
+        table_name = \'{self.table_name}\' AND
+        COLUMN_NAME not like '{SPITS_TOKEN}%';
+        """.format(**locals(), **globals())
+        pass
+
+'''
 DescribeTable(self, table_name)
 ListTable(prefix)
-AddTableColumn(self, table_name, column_def)
 DropTable(table_name)
 
 class DescribeTable(object):
@@ -819,14 +852,6 @@ class DescribeTable(object):
 
 class ListTables(object):
     * List tables, but omit $spits_deleted$* tables and spits table
-
-class AddTableColumn(object):
-    * Add two columns, the requested column and the $spits_preserve$_ column
-    * Add delete column command to spits table
-
-class DropTableColumn(object):
-    * rename column $spits_deleted$_
-    * Add undelete column command to spits table
 
 https://stackoverflow.com/questions/3164505/mysql-insert-record-if-not-exists-in-table
 '''
@@ -839,7 +864,8 @@ def run_tests():
     from datetime import datetime
     import sys
 
-    print(spits_initialize())
+    #print(spits_initialize())
+    print(DescribeTable('test_users').to_sql())
     sys.exit()
     # Patch easy_db module, replace base mysql_intermediate with this module
     class ThisModuleProxy(object):
