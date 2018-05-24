@@ -51,6 +51,7 @@ import seneca_internal.storage.mysql_intermediate as isql
 from seneca_internal.util import run_super_first, auto_set_fields, intercalate
 from seneca_internal.storage.mysql_base import TabularKVs
 from functools import wraps
+from textwrap import dedent
 
 VERSION = '1'
 SPITS_TOKEN = '$_spits_v{}_'.format(VERSION)
@@ -321,11 +322,12 @@ def contains_only_good_chars(string):
     return bool(reg.match(string))
 
 
-def assert_valid_name(string):
+def assert_valid_name(name_string):
     # TODO: max length test
     # TOOO: keep in mind length + token
-    assert not starts_with_spits(string), "Table name dissallowed it would conflict with our mechanism for snapshotting and rollback"
-    assert contains_only_good_chars(string), "Only a-z, 0-9 and _ are allowed in table names."
+    if name_string:
+        assert not starts_with_spits(name_string), "Table name dissallowed it would conflict with our mechanism for snapshotting and rollback"
+        assert contains_only_good_chars(name_string), "Only a-z, 0-9 and _ are allowed in table names."
 
 
 # Binding some names directly from mysql_intermediate (they need no decoration)
@@ -759,7 +761,7 @@ class AddTableColumn(isql.AddTableColumn):
 
         #https://stackoverflow.com/questions/3164505/mysql-insert-record-if-not-exists-in-table
         # Could use 'dual' instead
-        # TOO: decide if we really want to limit writes in the meta_data table, or just filter and analyze results on rollback, currently doing the former.
+        # TODO: decide if we really want to limit writes in the meta_data table, or just filter and analyze results on rollback, currently doing the former.
         return """
         BEGIN;
 
@@ -821,7 +823,9 @@ class DropTable(isql.DropTable):
 
 
 class DescribeTable(isql.DescribeTable):
-    #__init__(self, table_name):
+    '''
+    Same as regular describe, just hide SPITS columns
+    '''
     @run_super_first
     #__init__(self, table_name):
     def __init__(self):
@@ -832,30 +836,39 @@ class DescribeTable(isql.DescribeTable):
         return cls(base_query.table_name)
 
     def to_sql(self):
-        return """
+        return dedent("""
         select COLUMN_NAME as Field, COLUMN_TYPE as Type, IS_NULLABLE as 'Null',
         COLUMN_KEY as 'Key', COLUMN_DEFAULT as 'Default', Extra
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE
         table_name = \'{self.table_name}\' AND
         COLUMN_NAME not like '{SPITS_TOKEN}%';
-        """.format(**locals(), **globals())
-        pass
+        """.format(**locals(), **globals()))
 
-'''
-DescribeTable(self, table_name)
-ListTable(prefix)
-DropTable(table_name)
 
-class DescribeTable(object):
-    * Describe normally, but omit $spits_preserve$* and $spits_rollback_strategy$
+class ListTables(isql.ListTables):
+    #__init__(self, prefix)
+    @run_super_first
+    def __init__(self):
+        assert_valid_name(self.prefix)
 
-class ListTables(object):
-    * List tables, but omit $spits_deleted$* tables and spits table
+    @classmethod
+    def from_isql(cls, prefix):
+        return cls(prefix)
 
-https://stackoverflow.com/questions/3164505/mysql-insert-record-if-not-exists-in-table
-'''
+    def to_sql(self):
+        # TODO: don't hardcode 'seneca_test'
+        main_query = """
+        select TABLE_NAME as 'Tables_in_seneca_test'
+        from INFORMATION_SCHEMA.tables
+        where TABLE_SCHEMA = 'seneca_test'
+        AND TABLE_NAME NOT LIKE \'{SPITS_TOKEN}%\'""".format(**locals(), **globals())
 
+        return intercalate('\n', [
+            dedent(main_query),
+            'AND TABLE_NAME LIKE \'%s%%\'' % self.prefix if self.prefix else None,
+            ';'
+        ])
 
 
 def run_tests():
@@ -865,7 +878,8 @@ def run_tests():
     import sys
 
     #print(spits_initialize())
-    print(DescribeTable('test_users').to_sql())
+    print(ListTables().to_sql())
+    print(ListTables('test').to_sql())
     sys.exit()
     # Patch easy_db module, replace base mysql_intermediate with this module
     class ThisModuleProxy(object):

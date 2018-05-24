@@ -445,7 +445,7 @@ class ListTables(Query):
     SHOW TABLES LIKE 'tester\_%;
     '''
     @auto_set_fields
-    def __init__(self, prefix):
+    def __init__(self, prefix=None):
         pass
 
     @staticmethod
