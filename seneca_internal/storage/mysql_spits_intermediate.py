@@ -145,6 +145,26 @@ def spits_initialize():
     END$$
     DELIMITER ;
 
+    /* rename table procedure */
+    DELIMITER $$
+    DROP PROCEDURE IF EXISTS rename_table $$
+    CREATE PROCEDURE rename_table(
+        IN  in_database_name varchar(100),
+        IN  in_old_table_name varchar(100),
+        IN  in_new_table_name varchar(100)
+    )
+    BEGIN
+
+    DECLARE db_dot_table_old varchar(60) DEFAULT CONCAT(in_database_name, '.', in_old_table_name);
+    DECLARE db_dot_table_new varchar(60) DEFAULT CONCAT(in_database_name, '.', in_new_table_name);
+
+    SET @sql = CONCAT_WS(' ', 'ALTER TABLE', db_dot_table_old, 'RENAME', db_dot_table_new);
+    PREPARE stmt1 FROM @sql;
+    EXECUTE stmt1;
+    DEALLOCATE PREPARE stmt1;
+    END$$
+    DELIMITER ;
+
     /* delete column */
     DELIMITER $$
     DROP PROCEDURE IF EXISTS delete_column $$
@@ -156,6 +176,23 @@ def spits_initialize():
     BEGIN
     DECLARE db_dot_table varchar(60) DEFAULT CONCAT(in_database_name, '.', in_table_name);
     SET @sql = CONCAT_WS(' ', 'ALTER TABLE', db_dot_table, 'DROP COLUMN', in_column_name);
+    PREPARE stmt1 FROM @sql;
+    EXECUTE stmt1;
+    DEALLOCATE PREPARE stmt1;
+    END$$
+    DELIMITER ;
+
+
+    /* delete table */
+    DELIMITER $$
+    DROP PROCEDURE IF EXISTS delete_table $$
+    CREATE PROCEDURE delete_table(
+        IN  in_database_name varchar(100),
+        IN  in_table_name varchar(100)
+    )
+    BEGIN
+    DECLARE db_dot_table varchar(60) DEFAULT CONCAT(in_database_name, '.', in_table_name);
+    SET @sql = CONCAT_WS(' ', 'DROP TABLE', db_dot_table);
     PREPARE stmt1 FROM @sql;
     EXECUTE stmt1;
     DEALLOCATE PREPARE stmt1;
@@ -176,7 +213,18 @@ def spits_initialize():
     END$$
     DELIMITER ;
 
+    /* Without data field */
+    DELIMITER $$
+    DROP FUNCTION IF EXISTS count_spits_occurrences_without_data $$
+    CREATE FUNCTION count_spits_occurrences_without_data(in_table_name varchar(100), in_rollback_strategy varchar(100))
+    RETURNS Int
+    BEGIN
+    DECLARE f_out INT;
 
+    SELECT count(*) into f_out FROM {SPITS_METADATA_TABLE_NAME} WHERE table_name = in_table_name AND rollback_strategy = in_rollback_strategy;
+    RETURN f_out;
+    END$$
+    DELIMITER ;
     /* soft delete column procedure
 
     * drop column
@@ -196,18 +244,53 @@ def spits_initialize():
     DECLARE column_created_in_window INT;
     DECLARE same_name_already_deleted_in_window INT;
 
-    SET column_created_in_window = count_spits_occurrences_with_data(in_table_name, 'delete-column', in_column_name);
-    SET same_name_already_deleted_in_window = count_spits_occurrences_with_data(in_table_name, 'undelete-column', in_column_name);
+    SET column_created_in_window = count_spits_occurrences_with_data(in_table_name, 'delete_column', in_column_name);
+    SET same_name_already_deleted_in_window = count_spits_occurrences_with_data(in_table_name, 'undelete_column', in_column_name);
 
     if (column_created_in_window = 0 AND same_name_already_deleted_in_window = 0) THEN
         CALL rename_column(in_database_name, in_table_name, in_column_name, CONCAT(\'{SPITS_SOFT_DELETE_PREFIX}\', in_column_name));
-        INSERT INTO {SPITS_METADATA_TABLE_NAME} (table_name,rollback_strategy,data) VALUES(in_table_name, 'undelete-column', in_column_name);
+        INSERT INTO {SPITS_METADATA_TABLE_NAME} (table_name,rollback_strategy,data) VALUES(in_table_name, 'undelete_column', in_column_name);
     ELSE
         CALL delete_column(in_database_name, in_table_name, in_column_name);
     END IF;
 
     END$$
     DELIMITER ;
+
+
+    /* soft delete table
+
+    * drop column
+      * if column existed before window save with prepended name
+      * Query SPITS table, see if column existed before SPITS window
+      * See if already has been deleted and recreated
+      * either delete it straight away, or soft_delete rename
+    */
+    DELIMITER $$
+    DROP PROCEDURE IF EXISTS soft_delete_table $$
+    CREATE PROCEDURE soft_delete_table(
+        IN  in_database_name varchar(100),
+        IN  in_table_name varchar(100)
+    )
+    BEGIN
+    DECLARE created_in_window INT;
+    DECLARE same_name_already_deleted_in_window INT;
+
+    SET created_in_window = count_spits_occurrences_without_data(in_table_name, 'delete_table');
+    SET same_name_already_deleted_in_window = count_spits_occurrences_without_data(in_table_name, 'undelete_table');
+
+    if (created_in_window = 0 AND same_name_already_deleted_in_window = 0) THEN
+        CALL rename_table(in_database_name, in_table_name, CONCAT(\'{SPITS_SOFT_DELETE_PREFIX}\', in_table_name));
+        INSERT INTO {SPITS_METADATA_TABLE_NAME} (table_name,rollback_strategy) VALUES(in_table_name, 'undelete_table');
+    ELSE
+        CALL delete_table(in_database_name, in_table_name);
+    END IF;
+
+    END$$
+    DELIMITER ;
+
+
+
     """.format(**locals(),**globals())
 
     return full_initialization
@@ -524,7 +607,6 @@ THEN \\'undelete\\' ELSE {SPITS_ROLLBACK_COLUMN_NAME} END".format(**locals(),**g
         return full_query
 
 
-
 class InsertRows(isql.InsertRows):
     '''
     * insert row
@@ -703,7 +785,24 @@ class DropTableColumn(isql.DropTableColumn):
         backup_column_name = SPITS_PRESERVE_TOKEN + self.column_name
         # TODO: don't hardcode database name
         return """
-        CALL soft_delete_column('seneca_test', '{self.table_name}','self.column_name')    
+        CALL soft_delete_column('seneca_test', '{self.table_name}','self.column_name')
+        """.format(**locals())
+
+
+class DropTable(isql.DropTable):
+    @run_super_first
+    #__init__(self, table_name, column_name):
+    def __init__(self):
+        assert_valid_name(self.table_name)
+
+    @classmethod
+    def from_isql(cls, base_query):
+        return cls(base_query.table_name)
+
+    def to_sql(self):
+        pass
+        """
+        CALL soft_delete_table('seneca_test', \'{self.table_name}'\)
         """.format(**locals())
 
 '''
@@ -713,7 +812,6 @@ class DropTableColumn(isql.DropTableColumn):
 DescribeTable(self, table_name)
 ListTable(prefix)
 AddTableColumn(self, table_name, column_def)
-DropTableColumn(table_name, column_name)
 DropTable(table_name)
 
 class DescribeTable(object):
