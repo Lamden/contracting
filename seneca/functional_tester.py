@@ -26,7 +26,10 @@ import configparser
 
 settings = configparser.ConfigParser()
 settings._interpolation = configparser.ExtendedInterpolation()
-settings.read('./seneca_internal/storage/test_db_conf.ini')
+this_dir = os.path.dirname(__file__)
+db_conf_path = os.path.join(this_dir, 'seneca_internal/storage/test_db_conf.ini')
+
+settings.read(db_conf_path)
 
 ex_ = Executer(settings.get('DB', 'username'),
                settings.get('DB', 'password'),
@@ -45,7 +48,7 @@ def ex(obj):
 
 
 ## Setup steps ##
-contract_file_path = './example_contracts/'
+contract_file_path = os.path.join(this_dir, 'example_contracts/')
 
 
 contract_table = t.Table('smart_contracts',
