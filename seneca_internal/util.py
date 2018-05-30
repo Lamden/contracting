@@ -112,6 +112,5 @@ def filter_split(f, l):
     return (accepted, rejected)
 
 
-
-if __name__ == '__main__':
-    print(filter_split(lambda x:x<5, range(10)))
+def run_tests():
+    pass
