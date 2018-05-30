@@ -414,9 +414,14 @@ class Table(object):
         column_names = set(map(lambda x: x.name, all_columns))
 
         namespace_conflicts = native_fields & column_names
+        print('NAMESPACE CONFLICTS')
+        print(namespace_conflicts)
+        print(native_fields)
+        print(column_names)
         assert not namespace_conflicts, 'A forbidden column name has been used.'
 
         for c in all_columns:
+            print(c)
             setattr(self, c.name, c)
 
     @classmethod
@@ -493,6 +498,7 @@ class Table(object):
         return isql.DropTable(self._name)
 
     def drop_table(self):
+        # TODO: if exists
         return RunnableISQL(self._to_intermediate_drop())
 
 

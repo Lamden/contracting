@@ -19,5 +19,13 @@ if hasattr(conf, 'path'):
         module = re.sub('\.py$', '', module)
         print("\n\ntesting:%s\n" % module)
 
-        m1 = importlib.import_module(module)
-        m1.run_tests()
+        if module == 'test_module':
+            pass
+
+        elif module in ['functional_tester', 'execute_sc']:
+            import functional_tester as ft
+            ft.main()
+
+        else:
+            m1 = importlib.import_module(module)
+            m1.run_tests()

@@ -20,22 +20,22 @@ users = create_table('users', [
 ])
 roles = create_table('roles', [
     ('role', str_len(30), True),
-    ('create_table', bool),
-    ('drop_table', bool),
-    ('edit_users', bool),
-    ('edit_roles', bool),
-    ('edit_data', bool),
+    ('perm_create_table', bool),
+    ('perm_drop_table', bool),
+    ('perm_edit_users', bool),
+    ('perm_edit_roles', bool),
+    ('perm_edit_data', bool),
 ])
 
 
 def _insert_role(name, create_table, drop_table, edit_users, edit_roles, edit_data):
     q = roles.insert([{
         'role': name,
-        'create_table': create_table,
-        'drop_table': drop_table,
-        'edit_users': edit_users,
-        'edit_roles': edit_roles,
-        'edit_data': edit_data,
+        'perm_create_table': create_table,
+        'perm_drop_table': drop_table,
+        'perm_edit_users': edit_users,
+        'perm_edit_roles': edit_roles,
+        'perm_edit_data': edit_data,
     }])
 
     print(q)
@@ -45,7 +45,7 @@ def _insert_role(name, create_table, drop_table, edit_users, edit_roles, edit_da
 def _insert_user(user_pub_key, role_name):
 #def _insert_user(*args):
     # Verify role exists
-    q = roles.select().where_equals('role', role_name)
+    q = roles.select().where(roles.role == role_name)
     assert len(q.run()) != 0, "ERROR: role not found"
 
     users.insert([{
@@ -56,9 +56,9 @@ def _insert_user(user_pub_key, role_name):
 
 def assert_has_perm(perm_name):
     # Find role for current user
-    r_name = users.select().where_equals('user', st.user).run()[0]['role']
+    r_name = users.select().where(users.user == st.user).run()[0]['role']
     # Find and return boolean value for the specified permission in that role
-    is_allowed = roles.select().where_equals('role', r_name).run()[0][perm_name]
+    is_allowed = roles.select().where(roles.role == r_name).run()[0][perm_name]
     assert is_allowed, "ERROR: The current user does not have the necessary permission."
 
 
@@ -70,59 +70,59 @@ def assert_not_protected_table(t_name):
 # Note: read functions are solely for convenience/completeness, tables are world readable
 @export
 def create_role(*args):
-    assert_has_perm('edit_roles')
+    assert_has_perm('perm_edit_roles')
     return _insert_role(*args)
 
 
 @export
 def delete_role(r):
-    assert_has_perm('edit_roles')
-    return roles.delete.where_equals('role', r).run()
+    assert_has_perm('perm_edit_roles')
+    return roles.delete.where(roles.role == r).run()
 
 
 @export
 def update_role(name, create_table, drop_table, edit_users, edit_roles, edit_data):
-    assert_has_perm('edit_roles')
+    assert_has_perm('perm_edit_roles')
     return roles.update([{
-        'create_table': create_table,
-        'drop_table': drop_table,
-        'edit_users': edit_users,
-        'edit_roles': edit_roles,
-        'edit_data': edit_data,
-    }]).where_equals('role', name).run()
+        'perm_create_table': create_table,
+        'perm_drop_table': drop_table,
+        'perm_edit_users': edit_users,
+        'perm_edit_roles': edit_roles,
+        'perm_edit_data': edit_data,
+    }]).where(roles.role == name).run()
 
 
 @export
 def read_role(r):
-    return roles.select.where_equals('role', r).run()[0]
+    return roles.select.where(roles.role == r).run()[0]
 
 
 @export
 def create_user(*args):
-    assert_has_perm('edit_users')
+    assert_has_perm('perm_edit_users')
     return _insert_user(*args)
 
 
 @export
 def delete_user(u_name):
-    assert_has_perm('edit_users')
-    return users.delete.where_equals('user', u_name).run()
+    assert_has_perm('perm_edit_users')
+    return users.delete.where(users.user == u_name).run()
 
 
 @export
 def update_user(u, r):
     assert_has_perm('edit_users')
-    return users.update({'role': r}).where_equals('user', u).run()
+    return users.update({'role': r}).where(users.user == u).run()
 
 
 @export
 def read_user(u):
-    return users.select.where_equals('user', u).run()[0]
+    return users.select.where(users.user == u).run()[0]
 
 
 @export
 def create_table(t_name, t_def):
-    assert_has_perm('create_table')
+    assert_has_perm('perm_create_table')
     assert_not_protected_table(t_name)
 
     return create_table(t_name, t_def)
@@ -130,7 +130,7 @@ def create_table(t_name, t_def):
 
 @export
 def delete_table(t_name):
-    assert_has_perm('drop_table')
+    assert_has_perm('perm_drop_table')
     assert_not_protected_table(t_name)
     return drop_table(t_name)
 
@@ -150,13 +150,13 @@ def update_row(t_name, row_data):
     assert 'id' in row_data, "An id must be included for updates"
 
     t = get_table(t_name)
-    return t.update(row_data).where_equals('id', row_data['id']).run()
+    return t.update(row_data).where(t.id == row_data['id']).run()
 
 
 @export
 def read_row(t_name, r_id):
     t = get_table(t_name)
-    return t.select.where_equals('id', r_id).run()[0]
+    return t.select.where(t.id == r_id).run()[0]
 
 
 if __name__ == '__main__':
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     # Create first user, the author of this contract, and give that user admin perms
     _insert_role('admin', True, True, True, True, True)
     _insert_user(rt.this_contract.author, 'admin')
-    print(roles.select().all_rows().run())
+    print(roles.select().run())
 
 else:
     exports = auto_export()

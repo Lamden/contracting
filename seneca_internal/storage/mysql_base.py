@@ -23,6 +23,10 @@ from enum import Enum
 import datetime
 from terminaltables import AsciiTable
 import re
+from functools import wraps
+
+from MySQLdb import escape_string as mysql_escape
+
 
 # Python type factory representing fixed length strings, outputted classes have a set length
 class FixedStr(object) :
@@ -109,26 +113,42 @@ class SQLType(object):
             return self.sql_type
 
 
+def none_handler_decorator(f):
+    @wraps(f)
+    def wrapper(val):
+        if val is None:
+            return 'NULL'
+        else:
+            return f(val)
+    return wrapper
+
+
 def get_py_to_sql_cast_func(py_type):
     casting_func_dict = {
       int: lambda x: str(x),
       float: lambda x: str(x),
-      str: lambda x: '\'%s\'' % x,
+      str: lambda x: '\'%s\'' % str(mysql_escape(x), 'utf-8'),
       datetime.datetime: lambda x:'\'%s\'' % x.strftime('%Y-%m-%d %H:%M:%S'),
       bool: lambda x: 'TRUE' if x else 'FALSE',
     }
+
+    casting_func_dict = {k: none_handler_decorator(f) for (k, f) in casting_func_dict.items()}
 
     if py_type in casting_func_dict.keys():
         return casting_func_dict[py_type]
     elif issubclass(py_type, FixedStr):
         return casting_func_dict[str] # XXX: same casting method to TEXT and to VARCHAR(x)
+    elif py_type is type(None): # NOTE: This seems to be the correct way to access NoneType in Python3 :-(
+        return lambda _: 'NULL'
     else:
         # TODO: custom exception types
-        raise Exception('Unsupported type, cannot convert to SQL str')
+        raise Exception('Unsupported type, cannot convert to SQL str:' + py_type)
 
 
 def cast_py_to_sql(py_val):
     '''Convenience function'''
+    print('Running cast on:')
+    print(py_val)
     return get_py_to_sql_cast_func(type(py_val))(py_val)
 
 

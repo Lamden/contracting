@@ -17,7 +17,7 @@ from collections import namedtuple
 import os
 import importlib
 
-from parser_internal import basic_ast_whitelist
+from seneca_internal.parser import basic_ast_whitelist
 
 seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
 
@@ -88,10 +88,18 @@ def is_ast_import(item):
 
 
 # TODO: make sure this loads modules exactly once per caller_id
-def seneca_lib_loader(module_path, global_run_data, this_contract_run_data):
+def seneca_lib_loader(module_path, global_run_data, this_contract_run_data, db_executer):
     print('Importing module %s' % module_path)
 
-    x = importlib.import_module(module_path)
+    # Rename 'seneca' part of module path to 'smart_contract_user_libs'
+    real_path = 'smart_contract_user_libs.' + '.'.join(module_path.split('.')[1:])
+
+    x = importlib.import_module(real_path)
+
+    if module_path == 'seneca.storage.tabular':
+        assert db_executer is not None, "A mysql executer must be passed to \
+ seneca_lib_loader for contracts that use tabular data storage."
+        x.ex = db_executer
 
     if module_path == 'seneca.runtime':
         return x.make_exports(global_run_data, this_contract_run_data)
@@ -159,7 +167,7 @@ def append_sandboxed_scope(scope, import_descriptor, exports):
             scope.update(exports)
 
 
-def execute_contract(g lobal_run_data, this_contract_run_data, contract_str, is_main=False, module_loader=None):
+def execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=False, module_loader=None, db_executer=None):
     # TODO: remove search_path in module_runner invocation below.
     """
     # TODO: Refactor
@@ -219,7 +227,7 @@ def execute_contract(g lobal_run_data, this_contract_run_data, contract_str, is_
             for imp in import_list:
                 if imp['module_type'] == 'seneca':
                     # print(imp)
-                    s_exports = seneca_lib_loader(imp['module_path'], global_run_data, this_contract_run_data)
+                    s_exports = seneca_lib_loader(imp['module_path'], global_run_data, this_contract_run_data, db_executer)
                     # print(s_exports)
                     append_sandboxed_scope(module_scope, imp, s_exports)
                     # mount_exports(module_scope, imp, s_exports)

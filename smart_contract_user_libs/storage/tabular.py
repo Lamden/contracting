@@ -17,49 +17,146 @@
   *
 '''
 
+# TODO: XXX: Current implementation is only for running trusted contracts, no security has been implemented.
+
 import seneca_internal.storage.easy_db as db
 import datetime
+
+ex = None
+
+str_len = db.str_len
+
+class Tabular(object):
+    def __init__(self, underlying_obj):
+        self.underlying_obj = underlying_obj
+
+    def __call__(self, *args, **kwargs):
+
+        if self.underlying_obj.__name__ == 'run':
+            assert ex is not None, 'Mysql executer has not been set.'
+            return self.underlying_obj(ex)
+        else:
+            return Tabular(self.underlying_obj(*args, **kwargs))
+
+
+    def __getattr__(self, name):
+        print('Called getattr with: ', name)
+        if name in ('create_table',):
+            # restricted
+            raise AttributeError()
+        if name in ('_name'):
+            # pass through
+            return getattr(self.underlying_obj, name)
+        elif hasattr(self.underlying_obj, name):
+            return Tabular(getattr(self.underlying_obj, name))
+        else:
+            raise AttributeError()
+
+
+def create_table(name, column_tuples):
+    t = db.Table(name, db.AutoIncrementColumn('id'),
+        [db.Column(*x) for x in column_tuples]
+    )
+
+    t.create_table(if_not_exists=True).run(ex)
+    return Tabular(t)
+
+
+def drop_table(t_name):
+    assert ex is not None, 'Mysql executer has not been set.'
+    t = db.Table.from_existing(t_name).run(ex)
+    res = t.drop_table().run(ex)
+    t.underlying_obj = None
+    return res
+
+
+def get_table(name):
+    assert ex is not None, 'Mysql executer has not been set.'
+    return Tabular(db.Table.from_existing(name).run(ex))
+
+
+def add_column(t, c_def):
+    assert ex is not None, 'Mysql executer has not been set.'
+    res = t.underlying_obj.add_column(*c_def).run(ex)
+    # Refresh table definition
+    t.underlying_obj = db.Table.from_existing(t.underlying_obj._name).run(ex)
+    return res
+
+
+def drop_column(t, c_name):
+    assert ex is not None, 'Mysql executer has not been set.'
+    res = t.underlying_obj.drop_column(c_name).run(ex)
+    # Refresh table definition
+    t.underlying_obj = db.Table.from_existing(t.underlying_obj._name).run(ex)
+    return res
+
+
+
+exports = {
+#     'run_batch': run_batch,
+    'str_len': str_len,
+    'create_table': create_table,
+    'get_table': get_table,
+    'drop_table': drop_table,
+    'add_column': add_column,
+    'drop_column': drop_column,
+}
 
 
 
 def run_tests():
+    ## SETUP ##
+    global ex
 
-    db.execute_sql_query = print
-    u = db.Table('users', db.AutoIncrementColumn('id'),[
-        db.Column('first_name', str),
-        db.Column('last_name', str),
-        db.Column('balance', int),
-        db.Column('creation_date', datetime)
+    import sys
+    import configparser
+    from seneca_internal.storage.mysql_executer import Executer
+
+    settings = configparser.ConfigParser()
+    settings._interpolation = configparser.ExtendedInterpolation()
+    settings.read('./seneca_internal/storage/test_db_conf.ini')
+
+    ex_ = Executer(settings.get('DB', 'username'),
+                   settings.get('DB', 'password'),
+                   settings.get('DB', 'database'),
+                   settings.get('DB', 'hostname'),
+                  )
+
+    def ex__(obj):
+        print('Running Query:')
+        print(obj.to_sql())
+        res = ex_(obj)
+        print(res)
+        print('\n')
+        return res
+
+    ex = ex__
+
+    ## END SETUP ##
+    print('****** STARTING TESTS******')
+
+    print(drop_table('users'))
+    print('DROPPED TABLE')
+
+    u = create_table('users', [
+    ('first_name', str_len(30), True),
+    ('last_name', str_len(30), True),
+    ('nick_name', str_len(30)),
+    ('balance', int)
     ])
 
-    u.create_table(if_not_exists=True).run()
+    print(u.select().run())
 
 
+    u.insert([
+    {'first_name': 'Test1','last_name': 'l1','nick_name': '1','balance': 10},
+    {'first_name': 'Test2','last_name': 'l2','nick_name': '2','balance': 20},
+    {'first_name': 'Test3','last_name': 'l3','nick_name': '3','balance': 30},
+    ]).run()
 
+    u2 = get_table('users')
 
-#
-#
-# def require_constraint_on_run(f):
-#     '''Function decorator: useful for query methods, which would be bad to run
-#     accidentally when applied to all rows, i.e. updates and deletes'''
-#     def ret(obj):
-#         assert list(obj.get_constraints()), "To prevent unintended modification to all rows, \
-#         destructive opperations must always contain a constraint, either 'where_*(...)', or to modify \
-#         all rows, use .update(...).all_rows()"
-#
-#         return f(obj)
-#
-#     return ret
-#
-#
-#
-# exports = {
-#     'outside_table': outside_table,
-#     'run_batch': run_batch,
-#     'str_len': str_len,
-#     'create_table': create_table,
-#     'drop_table': drop_table,
-#     'add_column': add_column,
-#     'drop_column': drop_column,
-#     'get_table': get_table
-# }
+    add_column(u2, ('address', str))
+    print(dir(u2.underlying_obj))
+    drop_column(u2, 'address')
+    print(dir(u2.underlying_obj))

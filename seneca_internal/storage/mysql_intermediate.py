@@ -24,6 +24,7 @@ rows will be updated, this enforcement should be added in a higher level API to
 prevent accidental updates of all records.
 '''
 from typing import Type, Dict, Tuple, List
+
 #cls: Type[A]
 
 from seneca_internal.storage.mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern, TabularKVs, py_mysql_dict
@@ -256,11 +257,15 @@ class InsertRows(Query):
         for value_list in self.list_of_values_lists:
             assert len(value_list) == correct_len
 
+        # NOTE: Given a list of rows, i.e. a list of lists, we take the the first
+        # element of the list (a list representing a row). We use type info of
+        # that first row to derrive type information
         casting_funcs = [get_py_to_sql_cast_func(type(x)) for x in self.list_of_values_lists[0]]
 
         def apply_funcs(xs):
-            ''' Apply list of functions over a list of values '''
-            return [ f(x) for (f, x) in zip(casting_funcs, xs)]
+            #''' Apply list of functions over a list of values '''
+            #return [ f(x) for (f, x) in zip(casting_funcs, xs)]
+            return map(cast_py_to_sql, xs)
 
         def format_values(xs):
             return '(%s)' % ', '.join(xs)
