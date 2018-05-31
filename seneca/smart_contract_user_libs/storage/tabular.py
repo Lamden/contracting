@@ -8,7 +8,7 @@
 * Outside table foreign table, something
 * Warning for queries created and never run. Though the syntax is consistent, and a finalizer like run() is necessary
   for queries created by chained methods, else how would we know to runs a .select() when it's unknown if the author will
-  be adding a .where_equals() or running as is.
+  be adding a .where(...) or running it as is.
     * Plugin to traverse the AST, count up queries, then count up run() invocations and warn if they don't add up.
 
 * TODOs
@@ -19,7 +19,7 @@
 
 # TODO: XXX: Current implementation is only for running trusted contracts, no security has been implemented.
 
-import seneca_internal.storage.easy_db as db
+import seneca.seneca_internal.storage.easy_db as db
 import datetime
 
 ex = None
@@ -33,7 +33,6 @@ def add_name_space(t_name):
 class Tabular(object):
     def __init__(self, underlying_obj):
         self.underlying_obj = underlying_obj
-        print('----------underlying_obj')
 
         # TODO: Totally not secure for untrusted contracts. Change this completely!!!
         #if type(underlying_obj) == db.Table:
@@ -120,7 +119,7 @@ def run_tests():
 
     import sys
     import configparser
-    from seneca_internal.storage.mysql_executer import Executer
+    from seneca.seneca_internal.storage.mysql_executer import Executer
 
     settings = configparser.ConfigParser()
     settings._interpolation = configparser.ExtendedInterpolation()

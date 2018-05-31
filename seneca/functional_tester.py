@@ -17,8 +17,8 @@ from execute_sc import execute_contract
 from datetime import datetime
 
 # TODO: don't know if we should actually be calling seneca libs from both smart contracts and underlying code, consider revision
-import seneca_internal.storage.easy_db as t
-from seneca_internal.storage.mysql_executer import Executer
+import seneca.seneca_internal.storage.easy_db as t
+from seneca.seneca_internal.storage.mysql_executer import Executer
 
 # Set up database executer
 import configparser

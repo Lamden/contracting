@@ -27,8 +27,8 @@ from typing import Type, Dict, Tuple, List
 
 #cls: Type[A]
 
-from seneca_internal.storage.mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern, TabularKVs, py_mysql_dict
-from seneca_internal.util import *
+from seneca.seneca_internal.storage.mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern, TabularKVs, py_mysql_dict
+from seneca.seneca_internal.util import *
 
 class Query(object):
     pass

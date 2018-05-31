@@ -11,7 +11,7 @@ TODOs:
   * Make sure we're using cursor correctly
 '''
 import MySQLdb
-from seneca_internal.storage.mysql_intermediate import *
+from seneca.seneca_internal.storage.mysql_intermediate import *
 import warnings
 
 requires_commit = [ DeleteRows,

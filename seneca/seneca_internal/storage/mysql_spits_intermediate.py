@@ -49,9 +49,9 @@ TODO: figure out how to handle auto_increment after a rollback.
 '''
 import re
 
-import seneca_internal.storage.mysql_intermediate as isql
-from seneca_internal.util import run_super_first, auto_set_fields, intercalate
-from seneca_internal.storage.mysql_base import TabularKVs
+import seneca.seneca_internal.storage.mysql_intermediate as isql
+from seneca.seneca_internal.util import run_super_first, auto_set_fields, intercalate
+from seneca.seneca_internal.storage.mysql_base import TabularKVs
 from functools import wraps
 from textwrap import dedent
 
@@ -987,7 +987,7 @@ class ListTables(isql.ListTables):
 
 
 def run_tests():
-    import seneca_internal.storage.easy_db as easy
+    import seneca.seneca_internal.storage.easy_db as easy
     import unittest
     from datetime import datetime
     import sys

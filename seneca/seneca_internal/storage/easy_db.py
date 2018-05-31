@@ -20,9 +20,9 @@ import warnings
 import datetime
 from datetime import datetime, timedelta
 
-from seneca_internal.util import auto_set_fields, add_methods, add_method_as, filter_split, assert_len
-import seneca_internal.storage.mysql_intermediate as isql
-from seneca_internal.storage.mysql_base import FixedStr, cast_py_to_sql
+from seneca.seneca_internal.util import auto_set_fields, add_methods, add_method_as, filter_split, assert_len
+import seneca.seneca_internal.storage.mysql_intermediate as isql
+from seneca.seneca_internal.storage.mysql_base import FixedStr, cast_py_to_sql
 #from inflection import  underscore, camelize
 
 # Convenience functions for dealing with lists, dicts, and objects
@@ -529,7 +529,7 @@ class RunnableISQL(object):
 
 
 def run_tests():
-    from seneca_internal.storage.mysql_executer import Executer
+    from seneca.seneca_internal.storage.mysql_executer import Executer
 
     ### Unit Tests ###
     import unittest

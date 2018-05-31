@@ -17,7 +17,7 @@ from collections import namedtuple
 import os
 import importlib
 
-from seneca_internal.parser import basic_ast_whitelist
+from seneca.seneca_internal.parser import basic_ast_whitelist
 
 seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
 
