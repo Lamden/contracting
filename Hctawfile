@@ -1,0 +1,9 @@
+# This file is yaml
+'**/*.py':
+    - './seneca/test_module.py --path ${FILE}'
+
+'/seneca/*.py':
+    - './seneca/test_module.py --path ${FILE}'
+
+'**/*.seneca':
+    - './seneca/test_module.py --path functional_tester'

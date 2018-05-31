@@ -3,13 +3,20 @@
 import argparse
 import importlib
 import re
+import sys
+import os
 
-# This utility exists to deal with relative imports
+print('>>>>> Starting test module')
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--path", help="Path of the module you want to test.")
 conf = parser.parse_args()
 
+def run_tests():
+    pass
 
 if hasattr(conf, 'path'):
     if conf.path == __file__:
@@ -27,5 +34,7 @@ if hasattr(conf, 'path'):
             ft.main()
 
         else:
-            m1 = importlib.import_module(module)
+            print(module)
+            m1 = importlib.import_module(module, '..')
+            print('* Module loaded.')
             m1.run_tests()

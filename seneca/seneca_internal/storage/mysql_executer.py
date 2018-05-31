@@ -89,6 +89,7 @@ class Executer(object):
     def init_local_noauth_dev(cls, db_name='seneca_test'):
         s = cls('root', '', '', 'localhost')
         s.cur.execute('CREATE DATABASE IF NOT EXISTS {};'.format(db_name))
+        s.cur.execute('use {};'.format(db_name))
         s.conn.database = db_name
 
         return s
@@ -129,6 +130,9 @@ class Executer(object):
 def run_tests():
     import configparser
     import os
+
+    #Executer.init_local_noauth_dev()
+
 
     settings = configparser.ConfigParser()
     settings._interpolation = configparser.ExtendedInterpolation()
