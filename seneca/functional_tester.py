@@ -31,6 +31,7 @@ db_conf_path = os.path.join(this_dir, 'seneca_internal/storage/test_db_conf.ini'
 
 settings.read(db_conf_path)
 
+# For testing with unauthenticated local mysql instance, use 'Executer.init_local_noauth_dev()' instead.
 ex_ = Executer(settings.get('DB', 'username'),
                settings.get('DB', 'password'),
                settings.get('DB', 'database'),

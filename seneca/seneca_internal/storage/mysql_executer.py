@@ -86,7 +86,7 @@ class Executer(object):
         self.cur = self.conn.cursor()
 
     @classmethod
-    def init_local_noauth_dev(cls, db_name='seneca'):
+    def init_local_noauth_dev(cls, db_name='seneca_test'):
         s = cls('root', '', '', 'localhost')
         s.cur.execute('CREATE DATABASE IF NOT EXISTS {};'.format(db_name))
         s.conn.database = db_name
