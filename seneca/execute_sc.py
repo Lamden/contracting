@@ -100,6 +100,7 @@ def seneca_lib_loader(module_path, global_run_data, this_contract_run_data, db_e
         assert db_executer is not None, "A mysql executer must be passed to \
  seneca_lib_loader for contracts that use tabular data storage."
         x.ex = db_executer
+        x.name_space = this_contract_run_data['contract_id']
 
     if module_path == 'seneca.runtime':
         return x.make_exports(global_run_data, this_contract_run_data)

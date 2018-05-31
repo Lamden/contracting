@@ -23,12 +23,22 @@ import seneca_internal.storage.easy_db as db
 import datetime
 
 ex = None
+name_space = None
 
 str_len = db.str_len
+
+def add_name_space(t_name):
+    return name_space + '$' + t_name
 
 class Tabular(object):
     def __init__(self, underlying_obj):
         self.underlying_obj = underlying_obj
+        print('----------underlying_obj')
+
+        # TODO: Totally not secure for untrusted contracts. Change this completely!!!
+        #if type(underlying_obj) == db.Table:
+        #    underlying_obj._name = add_name_space(underlying_obj._name)
+
 
     def __call__(self, *args, **kwargs):
 
@@ -54,7 +64,7 @@ class Tabular(object):
 
 
 def create_table(name, column_tuples):
-    t = db.Table(name, db.AutoIncrementColumn('id'),
+    t = db.Table(add_name_space(name), db.AutoIncrementColumn('id'),
         [db.Column(*x) for x in column_tuples]
     )
 
@@ -64,7 +74,7 @@ def create_table(name, column_tuples):
 
 def drop_table(t_name):
     assert ex is not None, 'Mysql executer has not been set.'
-    t = db.Table.from_existing(t_name).run(ex)
+    t = db.Table.from_existing(add_name_space(t_name)).run(ex)
     res = t.drop_table().run(ex)
     t.underlying_obj = None
     return res
@@ -72,7 +82,7 @@ def drop_table(t_name):
 
 def get_table(name):
     assert ex is not None, 'Mysql executer has not been set.'
-    return Tabular(db.Table.from_existing(name).run(ex))
+    return Tabular(db.Table.from_existing(add_name_space(name)).run(ex))
 
 
 def add_column(t, c_def):
