@@ -80,11 +80,18 @@ def format_result(q_type, cur):
 
 class Executer(object):
     def __init__(self, username, password, db, host, port=3306):
-        print(username, password, db, host)
         self.conn = MySQLdb.connect(host=host, user=username, passwd=password,
                                     db=db, port=port)
         self.conn.autocommit = False
         self.cur = self.conn.cursor()
+
+    @classmethod
+    def init_local_noauth_dev(cls, db_name='seneca'):
+        s = cls('root', '', '', 'localhost')
+        s.cur.execute('CREATE DATABASE IF NOT EXISTS {};'.format(db_name))
+        s.conn.database = db_name
+
+        return s
 
     def __call__(self, query):
         q_type = type(query)
