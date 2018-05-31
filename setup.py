@@ -3,6 +3,7 @@ from setuptools import setup
 setup(name='seneca',
       version='0.0.1',
       description='Python-based smart contract language and interpreter.',
+    install_requires=open('requirements.txt').readlines(),
       url='https://github.com/Lamden/seneca',
       author='Lamden',
       author_email='team@lamden.io',
