@@ -92,7 +92,7 @@ def seneca_lib_loader(module_path, global_run_data, this_contract_run_data, db_e
     print('Importing module %s' % module_path)
 
     # Rename 'seneca' part of module path to 'smart_contract_user_libs'
-    real_path = 'smart_contract_user_libs.' + '.'.join(module_path.split('.')[1:])
+    real_path = 'seneca.smart_contract_user_libs.' + '.'.join(module_path.split('.')[1:])
 
     x = importlib.import_module(real_path)
 
