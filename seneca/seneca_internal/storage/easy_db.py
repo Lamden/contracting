@@ -91,7 +91,6 @@ def terminal_where(self, where_criterion):
 
 def execute_sql_query(executer, isql_obj):
     # TODO: configurable verbosity
-    #print(isql_obj.__dict__)
     res = executer(isql_obj)
 
     if not res.success:
@@ -385,11 +384,9 @@ class SelectRows(SQLVerb):
 
     @staticmethod
     def to_intermediate(full_call_stack):
-        #print(full_call_stack)
         table_name = table_name_from_cs(full_call_stack)
         column_names = optional_from_cs(full_call_stack, SelectRows, 'field_names')
         criterion = optional_from_cs(full_call_stack, WhereClause, 'where_criterion')
-        #print(criterion)
         order_by = optional_from_cs(full_call_stack, OrderBy, 'column_name')
         order_desc = optional_from_cs(full_call_stack, OrderBy, 'desc')
         limit = optional_from_cs(full_call_stack, LimitTo, 'count_limit')
@@ -414,14 +411,9 @@ class Table(object):
         column_names = set(map(lambda x: x.name, all_columns))
 
         namespace_conflicts = native_fields & column_names
-        print('NAMESPACE CONFLICTS')
-        print(namespace_conflicts)
-        print(native_fields)
-        print(column_names)
         assert not namespace_conflicts, 'A forbidden column name has been used.'
 
         for c in all_columns:
-            print(c)
             setattr(self, c.name, c)
 
     @classmethod

@@ -29,7 +29,7 @@ if hasattr(conf, 'path'):
         if module == 'test_module':
             pass
 
-        elif module in ['functional_tester', 'execute_sc']:
+        elif module in ['seneca.functional_tester', 'seneca.execute_sc']:
             import functional_tester as ft
             ft.main()
 

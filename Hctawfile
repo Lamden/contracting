@@ -6,4 +6,4 @@
     - './seneca/test_module.py --path ${FILE}'
 
 '**/*.seneca':
-    - './seneca/test_module.py --path functional_tester'
+    - './seneca/test_module.py --path seneca/functional_tester.py'
