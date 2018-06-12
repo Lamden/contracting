@@ -10,7 +10,6 @@ def _make_exports(*args):
 def export(f):
     '''function decorator that adds function to export list.
     '''
-    #print('export function: %s' % f.__name__)
     _exports_dict[f.__name__] = f
     return f
 

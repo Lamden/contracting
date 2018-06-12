@@ -91,9 +91,6 @@ def get_contract_str_from_fs(file_name):
 def ft_module_loader(contract_id):
     # TODO: query where id=id and status=executed
     cs = contract_table.select().where(contract_table.contract_address == contract_id).run(ex)
-    print('-----_____------')
-    print(contract_id)
-    print(cs)
     c = cs[0]
 
     print(c.keys())

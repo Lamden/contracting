@@ -29,7 +29,6 @@ seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
 #   which will pull module code from block chain.
 def test_seneca_loader(sc_dir, mod_name):
     m_path = os.path.join(sc_dir, (mod_name + '.seneca'))
-    # print("Loading %s" % m_path)
     return open(m_path, 'r').read()
 
 
@@ -105,7 +104,7 @@ def seneca_module_name_to_path(name):
 # TODO: make sure this loads modules exactly once per caller_id
 def seneca_lib_loader(imp, global_run_data, this_contract_run_data, db_executer):
     assert db_executer is not None, "A mysql executer must be passed to seneca_lib_loader for contracts that use tabular data storage."
-    print(imp)
+    #print(imp)
 
     module_path = imp['module_path']
 
@@ -128,8 +127,6 @@ def seneca_lib_loader(imp, global_run_data, this_contract_run_data, db_executer)
     if module_path == 'seneca.runtime':
         return s_mod['make_exports'](global_run_data, this_contract_run_data)
     else:
-        print('*********************')
-        print(s_mod['exports'])
         # TODO: implement complete seneca_internal and DRY this out, make internal attrs match runtime.py
         si = Empty()
         si.called_by_internal = False
@@ -177,9 +174,6 @@ def append_sandboxed_scope(scope, import_descriptor, exports):
             last_in_chain = call_chain.pop()
             imp_obj = build_import_object(call_chain)
         else:
-            # print('**** Setting scope name: %s to %s' % (qn, str(exports)))
-            # print(type(exports))
-            # print(exports)
             scope[qn] = namedtuple("Exports", exports.keys())(*exports.values())
     else:
         specific_names = import_descriptor['specific_names_in_mod']
@@ -251,16 +245,12 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
             import_list = ast_import_decoder(item)
 
             for imp in import_list:
-                print(imp)
                 if imp['module_type'] == 'seneca':
-                    # print(imp)
                     s_exports = seneca_lib_loader(imp, global_run_data, this_contract_run_data, db_executer)
-                    # print(s_exports)
                     append_sandboxed_scope(module_scope, imp, s_exports)
                     # mount_exports(module_scope, imp, s_exports)
 
                 elif imp['module_type'] == 'smart_contract':
-                    # print('smart_contract import not implemented')
                     downstream_contract_run_data, downstream_contract_str = module_loader(imp['module_path'])
                     c_exports = execute_contract(global_run_data,
                                                  downstream_contract_run_data,

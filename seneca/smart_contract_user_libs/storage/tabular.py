@@ -50,7 +50,7 @@ class Tabular(object):
 
 
     def __getattr__(self, name):
-        print('Called getattr with: ', name)
+        #print('Called getattr with: ', name)
         if name in ('create_table',):
             # restricted
             raise AttributeError()
