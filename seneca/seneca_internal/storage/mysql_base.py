@@ -124,9 +124,6 @@ def none_handler_decorator(f):
 
 
 def get_py_to_sql_cast_func(py_type):
-    print('======')
-    print(py_type)
-
     casting_func_dict = {
       int: lambda x: str(x),
       float: lambda x: str(x),
@@ -150,8 +147,6 @@ def get_py_to_sql_cast_func(py_type):
 
 def cast_py_to_sql(py_val):
     '''Convenience function'''
-    print('Running cast on:')
-    print(py_val)
     return get_py_to_sql_cast_func(type(py_val))(py_val)
 
 

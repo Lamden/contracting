@@ -15,13 +15,13 @@ import os
 import sys
 from execute_sc import execute_contract
 from datetime import datetime
+import configparser
 
-# TODO: don't know if we should actually be calling seneca libs from both smart contracts and underlying code, consider revision
 import seneca.seneca_internal.storage.easy_db as t
 from seneca.seneca_internal.storage.mysql_executer import Executer
 
-# Set up database executer
-import configparser
+def show(*args, **kwargs):
+    print('FT:', *args, **kwargs)
 
 settings = configparser.ConfigParser()
 settings._interpolation = configparser.ExtendedInterpolation()
@@ -38,13 +38,12 @@ ex_ = Executer(settings.get('DB', 'username'),
               )
 
 def ex(obj):
-    print('Running Query:')
-    print(obj.to_sql())
+    #show('Running Query:')
+    #show(obj.to_sql())
     res = ex_(obj)
-    print(res)
-    print('\n')
+    #show(res)
+    #show('\n')
     return res
-
 
 
 ## Setup steps ##
@@ -93,9 +92,6 @@ def ft_module_loader(contract_id):
     cs = contract_table.select().where(contract_table.contract_address == contract_id).run(ex)
     c = cs[0]
 
-    print(c.keys())
-    print(c)
-
     runtime_data = {
         'author': c['author'],
         'execution_datetime': c['execution_datetime'],
@@ -106,7 +102,6 @@ def ft_module_loader(contract_id):
 
 
 def store_contract(contract_str, user_id, contract_address):
-    print('starting store function')
     res = contract_table.insert([{
         'contract_address': contract_address,
         'code_str': contract_str,
@@ -115,9 +110,7 @@ def store_contract(contract_str, user_id, contract_address):
         'execution_status': 'pending',
     }]).run(ex)
 
-    print(res)
-
-    #return c['last_row_inserted_id']
+    return contract_address
 
 
 def finalize_contract_record(contract_id, passed, contract_address):
@@ -131,12 +124,12 @@ def finalize_contract_record(contract_id, passed, contract_address):
 
 
 def run_contract_file_as_user(contract_file_name, user_id, contract_address):
-    print('Running contract: %s' % contract_file_name)
+    show('Running contract: %s' % contract_file_name)
 
-    print('Getting contract from fs...')
+    show('Getting contract from fs...')
     contract_str = get_contract_str_from_fs(contract_file_name)
 
-    print('Storing contract in DB...')
+    show('Storing contract in DB...')
     contract_id = store_contract(contract_str, user_id, contract_address)
 
     global_run_data = {
@@ -160,30 +153,22 @@ def run_contract_file_as_user(contract_file_name, user_id, contract_address):
 
     finalize_contract_record(contract_address, passed, contract_address)
 
-    return contract_id
+    show("Contract run completed with passed status:", passed, "\n\n")
 
-def print_status():
-    for r in contract_table.select().run(ex):
-        print('contract: ', r['contract_address'])
-        print('\tstatus: ', r['execution_status'])
-        print('\texecution_datetime: ', r['execution_datetime'])
+    return contract_id
 
 
 def main():
-    print('\n\n\n\n*** Starting functional testing ***\n')
+    show('\n\n\n*** Starting functional testing ***\n\n')
 
     contract_files = sorted(os.listdir(contract_file_path))
 
     for contract_file in contract_files:
-        print('*** Contract:', contract_file)
+        show('*** Contract:', contract_file)
         contract_id = contract_file.split('.')[0]
 
         run_contract_file_as_user(contract_file, 'this_is_user_id', contract_id)
 
-    #run_contract_file_as_user('using_rbac_1.seneca', 'this_is_user_id', 'using_rbac_1_id')
-    #print('Results:')
-    #print_status()
-    #print('\n*** Functional testing completed ***')
 
 if __name__ == '__main__':
     main()

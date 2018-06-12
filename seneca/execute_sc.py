@@ -188,59 +188,27 @@ def append_sandboxed_scope(scope, import_descriptor, exports):
 
 
 def execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=False, module_loader=None, db_executer=None):
-    # TODO: remove search_path in module_runner invocation below.
-    """
-    # TODO: Refactor
-    # TODO: make sure we can do 'from foo import *'
-    # TODO: complex validation
-    # TODO: Blacklist built-in functions we don't want
-    #   Or just override __built_ins__ with a restricted list
-    # TODO: Traverse and make sure total imports doesn’t exceed the limit
-    # TODO: Static type inference and checks
-    # TODO: Wrap execution with some limiters/metering (like Gas), memory limit,
-    #   recursion, limit (sys.setrecursionlimit(limit))
-    # TODO: Keep a list of imported modules, don't rerun the same module.
-    # This may not be quite the right thing to do, completely wrong for storage
-    # API which must know the caller and control data mutation per caller.
-    # TODO: Enforce a maximum number of imports
-    # TODO: Figure out how to handle imports in conditionals, it might be
-    #   should probably lazy load them, with metered exectuion, eval loop may be
-    #   able to inject modules exports when it evaluates the imports statements.
-    # TODO: Limited safety checks for module imports only occur on body, they
-    #   must be applied on the entire AST.
-    # TODO: Add call depth info to Seneca runtime lib so modules have info about
-    #   caller.
-    # TODO: # We probably need a custom importer in the seneca lib so we don't
-    #   leak functions that don't belong in the smart contract execution scope.
-    # TODO: see what is leaked through stack frame/ global frame
-    # TODO: see what we can limit through editing builtins
-    """
     assert module_loader is not None, 'No module loader provided'
 
-    #  Parse Seneca smart contract, generate AST
-    smart_contract_ast = ast.parse(contract_str)
+    sc_display_name = "seneca_contract_addr: %s" % this_contract_run_data['contract_id']
 
-    assert type(smart_contract_ast) == ast.Module, \
-      "Unexpected input, 'a' should always be an _ast.Module"
+    #  Parse Seneca smart contract, generate AST
+    sc_ast = ast.parse(contract_str)
+    assert type(sc_ast) == ast.Module, "Unexpected input, 'a' should always be an _ast.Module"
 
     # Fail if forbidden AST nodes are found, e.g. for-loops
-    basic_ast_whitelist.validate(smart_contract_ast)
+    basic_ast_whitelist.validate(sc_ast)
 
     # Create a new empty scope for module execution.
     module_scope = {}
 
-    # Set module name, emulate the behavior of the CPython, overwrite name with
-    # '__main__' for the main entry point.
+    # Set module name, emulate the behavior of the CPython, '__main__' for the main entry point.
     module_scope['__name__'] = '__main__' if is_main else this_contract_run_data['contract_id']
 
-    ## Find all imports and recursively add them to namespaces ##
-    # TODO: This only handles imports in the top level of body, rest are ignored
-    #   Decide what should happen if the import occurs somewhere else and
-    #   implement.
-    # TODO: This only handles import functionality, not security, this must be
-    #   addressed.
+    # Find all imports and recursively add them to namespaces
     new_ast_body = []
-    for item in smart_contract_ast.body:
+
+    for item in sc_ast.body:
         if is_ast_import(item):
             import_list = ast_import_decoder(item)
 
@@ -248,7 +216,6 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
                 if imp['module_type'] == 'seneca':
                     s_exports = seneca_lib_loader(imp, global_run_data, this_contract_run_data, db_executer)
                     append_sandboxed_scope(module_scope, imp, s_exports)
-                    # mount_exports(module_scope, imp, s_exports)
 
                 elif imp['module_type'] == 'smart_contract':
                     downstream_contract_run_data, downstream_contract_str = module_loader(imp['module_path'])
@@ -261,25 +228,27 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
 
                     append_sandboxed_scope(module_scope, imp, c_exports._asdict())
                 else:
-                   # TODO: custom exception types, also, consider moving this
+                   # TODO: custom exception types, also
                    raise Exception("Dissallowed import, not from Seneca or smart contract")
         else:
             # AST node isn't an import statement, just append to the output AST
             new_ast_body.append(item)
 
     # Replace the original AST with the new one (smart contract imports removed)
-    smart_contract_ast.body = new_ast_body
+    sc_ast.body = new_ast_body
 
     # TODO: Make sure this is a correct and safe way to execute code.
-    exec(
-      # TODO: pass actual name of contrct to filename so it will (hopefully) be visible when errors occur.
-      compile(smart_contract_ast, filename="seneca_contract_addr: %s" % this_contract_run_data['contract_id'], mode="exec")
-      , module_scope
-    )
+    sc_executable = compile(sc_ast,
+                                 filename=sc_display_name,
+                                 mode="exec"
+                         )
+    exec(sc_executable, module_scope)
 
-    # If this isn't the primary smart contract, take everythig bound to the name
-    #   'exports' and return it, so it can be added to the callers scope, i.e.
-    #   imported.
     if not is_main:
+        # If this isn't the primary smart contract, take everythig bound to the name
+        # 'exports' and return it, for addition to caller's scope, i.e. imported.
         x = module_scope['exports']
         return namedtuple(this_contract_run_data['contract_id'], x.keys())(**x)
+    else:
+        # TODO: figure out return for passed or failed contract
+        return True
