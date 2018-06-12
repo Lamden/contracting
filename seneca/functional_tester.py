@@ -23,7 +23,6 @@ from seneca.seneca_internal.storage.mysql_executer import Executer
 # Set up database executer
 import configparser
 
-
 settings = configparser.ConfigParser()
 settings._interpolation = configparser.ExtendedInterpolation()
 this_dir = os.path.dirname(__file__)
@@ -51,6 +50,16 @@ def ex(obj):
 ## Setup steps ##
 contract_file_path = os.path.join(this_dir, 'example_contracts/')
 
+try:
+    ex_.raw('drop database seneca_test;')
+except Exception as e:
+    if e.args[0]['error_code'] == 1046:
+        pass
+    else:
+        raise
+
+ex_.raw('create database seneca_test;')
+ex_.raw('use seneca_test;')
 
 contract_table = t.Table('smart_contracts',
     t.Column('contract_address', t.str_len(30), True),
@@ -81,7 +90,22 @@ def get_contract_str_from_fs(file_name):
 
 def ft_module_loader(contract_id):
     # TODO: query where id=id and status=executed
-    return runtime_data, contract_str
+    cs = contract_table.select().where(contract_table.contract_address == contract_id).run(ex)
+    print('-----_____------')
+    print(contract_id)
+    print(cs)
+    c = cs[0]
+
+    print(c.keys())
+    print(c)
+
+    runtime_data = {
+        'author': c['author'],
+        'execution_datetime': c['execution_datetime'],
+        'contract_id': c['contract_address']
+    }
+
+    return runtime_data, c['code_str']
 
 
 def store_contract(contract_str, user_id, contract_address):
@@ -150,12 +174,19 @@ def print_status():
 
 def main():
     print('\n\n\n\n*** Starting functional testing ***\n')
-    run_contract_file_as_user('rbac.seneca', 'this_is_user_id', 'this_is_rbac_contract_id')
+
+    contract_files = sorted(os.listdir(contract_file_path))
+
+    for contract_file in contract_files:
+        print('*** Contract:', contract_file)
+        contract_id = contract_file.split('.')[0]
+
+        run_contract_file_as_user(contract_file, 'this_is_user_id', contract_id)
 
     #run_contract_file_as_user('using_rbac_1.seneca', 'this_is_user_id', 'using_rbac_1_id')
-    print('Results:')
-    print_status()
-    print('\n*** Functional testing completed ***')
+    #print('Results:')
+    #print_status()
+    #print('\n*** Functional testing completed ***')
 
 if __name__ == '__main__':
     main()

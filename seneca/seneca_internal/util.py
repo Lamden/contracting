@@ -1,5 +1,7 @@
 from functools import wraps
 from inspect import signature, _empty
+from collections import namedtuple
+import ast
 
 def auto_set_fields(f):
     f_sig = signature(f)
@@ -65,6 +67,7 @@ def intercalate(x, ys):
     return x.join([x for x in ys if x])
 
 
+#NOTE: This is a decorator function, not a class!
 class add_methods(object):
     """Add the public attributes of a mixin to another class.
     Attribute name collisions result in a TypeError if force is False.
@@ -85,6 +88,7 @@ class add_methods(object):
         return cls
 
 
+#NOTE: This is a decorator function, not a class!
 class add_method_as(object):
     """Add the public attributes of a mixin to another class.
     Attribute name collisions result in a TypeError if force is False.
@@ -110,6 +114,38 @@ def filter_split(f, l):
     rejected = []
     [accepted.append(x) if f(x) else rejected.append(x) for x in l]
     return (accepted, rejected)
+
+
+def dict_to_nt(d, typename='seneca_generate_type'):
+    return namedtuple(typename, d.keys())(*d.values())
+
+
+def dict_to_obj(d, typename=None):
+    empty = lambda: None
+
+    for k,v in d.items():
+        setattr(empty, k, v)
+
+    return empty
+
+
+def manual_import(path, name):
+    '''Should work pretty similar to built-in import, but...
+    * Not a singleton
+    * Doesn't bind to scope, just returns value
+    * TODO:What else???
+    '''
+    with open(path, 'r') as file:
+        module_string = file.read()
+
+    mod_dict = {'__file__': path, '__name__': name}
+    mod_ast = ast.parse(module_string)
+    mod_comp = compile(mod_ast, filename=name, mode="exec")
+    exec(mod_comp, mod_dict)
+
+
+    return mod_dict
+
 
 
 def run_tests():

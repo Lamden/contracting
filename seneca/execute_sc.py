@@ -16,8 +16,10 @@ import astpretty
 from collections import namedtuple
 import os
 import importlib
+from seneca.seneca_internal.util import *
 
 from seneca.seneca_internal.parser import basic_ast_whitelist
+import seneca.seneca_internal.util as util
 
 seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
 
@@ -87,35 +89,58 @@ def is_ast_import(item):
     return t == ast.ImportFrom or t == ast.Import
 
 
+def seneca_module_name_to_path(name):
+    slashed_name = os.path.join(*name.split('.'))
+    if os.path.isdir(slashed_name):
+        f_path = os.path.join(slashed_name, '__init__.py')
+        assert os.path.isfile(f_path)
+        return f_path
+
+    elif os.path.isfile(slashed_name + '.py'):
+        return slashed_name + '.py'
+    else:
+        raise Exception('bad import path:' + name)
+
+
 # TODO: make sure this loads modules exactly once per caller_id
-def seneca_lib_loader(module_path, global_run_data, this_contract_run_data, db_executer):
-    print('Importing module %s' % module_path)
+def seneca_lib_loader(imp, global_run_data, this_contract_run_data, db_executer):
+    assert db_executer is not None, "A mysql executer must be passed to seneca_lib_loader for contracts that use tabular data storage."
+    print(imp)
+
+    module_path = imp['module_path']
 
     # Rename 'seneca' part of module path to 'smart_contract_user_libs'
     real_path = 'seneca.smart_contract_user_libs.' + '.'.join(module_path.split('.')[1:])
 
-    x = importlib.import_module(real_path)
+    #s_mod = importlib.import_module(real_path)
+    mod_file_path = seneca_module_name_to_path(real_path)
+    s_mod = util.manual_import(mod_file_path, real_path.split('.')[-1])
 
     if module_path == 'seneca.storage.tabular':
-        assert db_executer is not None, "A mysql executer must be passed to \
- seneca_lib_loader for contracts that use tabular data storage."
-        x.ex = db_executer
-        x.name_space = this_contract_run_data['contract_id']
+        s_mod['ex'] = db_executer
+        s_mod['name_space'] = this_contract_run_data['contract_id']
+
+        return s_mod['exports']
+
+    elif module_path == 'seneca.storage':
+        raise Exception('This feature is not implemented, for now you must import the complete module.')
 
     if module_path == 'seneca.runtime':
-        return x.make_exports(global_run_data, this_contract_run_data)
+        return s_mod['make_exports'](global_run_data, this_contract_run_data)
     else:
+        print('*********************')
+        print(s_mod['exports'])
         # TODO: implement complete seneca_internal and DRY this out, make internal attrs match runtime.py
         si = Empty()
         si.called_by_internal = False
         si.smart_contract_caller = global_run_data['caller_user_id']
         si.this_contract_address = this_contract_run_data['contract_id']
-        x.seneca_internal = si
+        s_mod['seneca_internal'] = si
 
-        assert hasattr(x, 'exports'), "Imported module %s doesn't have any exports" % module_path
-        assert x.exports is not None, "Imported module %s has exports set to None" % module_path
+        assert 'exports' in s_mod.keys(), "Imported module %s doesn't have any exports" % module_path
+        assert s_mod['exports'] is not None, "Imported module %s has exports set to None" % module_path
 
-        return x.exports
+        return s_mod['exports']
 
 
 class Empty(object):
@@ -212,7 +237,7 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
 
     # Set module name, emulate the behavior of the CPython, overwrite name with
     # '__main__' for the main entry point.
-    module_scope['__name__'] = '__main__' if is_main else name
+    module_scope['__name__'] = '__main__' if is_main else this_contract_run_data['contract_id']
 
     ## Find all imports and recursively add them to namespaces ##
     # TODO: This only handles imports in the top level of body, rest are ignored
@@ -226,9 +251,10 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
             import_list = ast_import_decoder(item)
 
             for imp in import_list:
+                print(imp)
                 if imp['module_type'] == 'seneca':
                     # print(imp)
-                    s_exports = seneca_lib_loader(imp['module_path'], global_run_data, this_contract_run_data, db_executer)
+                    s_exports = seneca_lib_loader(imp, global_run_data, this_contract_run_data, db_executer)
                     # print(s_exports)
                     append_sandboxed_scope(module_scope, imp, s_exports)
                     # mount_exports(module_scope, imp, s_exports)
@@ -240,7 +266,8 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
                                                  downstream_contract_run_data,
                                                  downstream_contract_str,
                                                  is_main=False,
-                                                 module_loader=module_loader)
+                                                 module_loader=module_loader,
+                                                 db_executer=db_executer)
 
                     append_sandboxed_scope(module_scope, imp, c_exports._asdict())
                 else:
@@ -255,7 +282,8 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
 
     # TODO: Make sure this is a correct and safe way to execute code.
     exec(
-      compile(smart_contract_ast, filename="<ast>", mode="exec")
+      # TODO: pass actual name of contrct to filename so it will (hopefully) be visible when errors occur.
+      compile(smart_contract_ast, filename="seneca_contract_addr: %s" % this_contract_run_data['contract_id'], mode="exec")
       , module_scope
     )
 
@@ -264,4 +292,4 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
     #   imported.
     if not is_main:
         x = module_scope['exports']
-        return namedtuple(name, x.keys())(**x)
+        return namedtuple(this_contract_run_data['contract_id'], x.keys())(**x)

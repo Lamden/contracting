@@ -34,6 +34,7 @@ permitted_ast_types = {
         ast.Sub,
         ast.arguments,
         ast.List,
+        ast.Set,
         ast.Str,
         ast.UnaryOp,
         ast.Pass,

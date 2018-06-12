@@ -28,6 +28,7 @@ name_space = None
 str_len = db.str_len
 
 def add_name_space(t_name):
+    assert name_space is not None, "Tabular module namespace has not been set!"
     return name_space + '$' + t_name
 
 class Tabular(object):

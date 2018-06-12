@@ -1,31 +1,31 @@
 #!/usr/bin/env seneca_0.1
 ## Example currency smart contract ##
 
-from seneca.storage import tabular as st
-from seneca import crypto
-from seneca.runtime import state as rt
+import seneca.storage.tabular as st
+import seneca.crypto as crypto
+import seneca.runtime as rt
+import seneca.stdlib as std
 from seneca.modulelib import export, make_exports
 
-ledger = st.create_table('ledger', {
-    ('wallet_id', int, True),
+ledger = st.create_table('ledger', [
+    ('wallet_id', st.str_len(200), True),
     ('balance', int),
-})
-
+])
 
 @export
 def get_balance(wallet_id):
-    return ledger.select('balance').where(wallet_id=wallet_id).run()[0]
+    return ledger.select('balance').where(ledger.wallet_id==wallet_id).run()[0]['balance']
 
 
 @export
 def wallet_exists(wallet_id):
-    return bool(ledger.select('wallet_id').where(wallet_id=wallet_id).run())
+    return bool(ledger.select('wallet_id').where(ledger.wallet_id==wallet_id).run())
 
 
 @export
 def create_wallet(wallet_id):
     assert not wallet_exists(wallet_id), "Wallet already exists"
-    ledger.insert(wallet_id=wallet_id, balance=0)
+    ledger.insert([{'wallet_id':wallet_id, 'balance':0}]).run()
 
 
 def add_coins(wallet_id, amount_to_add):
@@ -33,8 +33,8 @@ def add_coins(wallet_id, amount_to_add):
     assert amount_to_add >= 0, "It's not possible to 'add' a negative balance"
 
     old_balance = get_balance(wallet_id)
-    ledger.update(balance=old_balance + amount_to_add) \
-          .where(wallet_id=wallet_id).run()
+    ledger.update({'balance':old_balance + amount_to_add}) \
+          .where(ledger.wallet_id==wallet_id).run()
 
 
 def remove_coins(wallet_id, amount_to_remove):
@@ -47,20 +47,20 @@ def remove_coins(wallet_id, amount_to_remove):
           .where(wallet_id=wallet_id).run()
 
 
-@exports
+@export
 def transfer_coins(receiver_id, amount):
     sender_id = rt.global_run_data.caller_user_id
     remove_coins(sender_id, amount)
     add_coins(receiver_id, amount)
 
 
-exports = auto_export()
+exports = make_exports()
 
 if __name__ == '__main__':
     print("is main")
     # The smart contract is being run directly for the first (and only) time.
     primordial_account = \
-      crypto.base64.b64decode('IAHpAaIsqZtqbWmreNFcg1aifxaawQXIWyaA39Lx8bfKgPpb')
+      str(crypto.base64.b64decode('IAHpAaIsqZtqbWmreNFcg1aifxaawQXIWyaA39Lx8bfKgPpb'))
 
     monetary_base = 10 ** 10
 

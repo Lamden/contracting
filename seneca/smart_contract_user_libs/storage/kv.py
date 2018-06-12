@@ -5,3 +5,9 @@
 # * value (serialized to string regardless of type)
 # * type info
 # always upsert
+
+exports = None
+
+
+def run_tests():
+    pass

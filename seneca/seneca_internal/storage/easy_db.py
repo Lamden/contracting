@@ -350,6 +350,7 @@ class InsertRows(SQLVerb):
     def to_intermediate(full_call_stack):
         table_name = table_name_from_cs(full_call_stack)
         list_column_val_dicts = require_from_cs(full_call_stack, InsertRows, 'list_column_val_dicts')
+        print('<><><>', list_column_val_dicts)
         tab_kv = isql.TabularKVs.from_dicts(list_column_val_dicts)
         return isql.InsertRows(table_name, *tab_kv.to_klist_vlists())
 
