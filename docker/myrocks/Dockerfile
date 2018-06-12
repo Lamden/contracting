@@ -19,7 +19,7 @@ RUN yum install -y git
 # Download Facebook's mysql git repo (includes myrocks)
 RUN mkdir -p /opt/myrocks
 RUN cd /opt/myrocks && git clone https://github.com/facebook/mysql-5.6.git
-RUN cd /opt/myrocks/mysql-5.6 && git submodule init && git submodule update
+RUN cd /opt/myrocks/mysql-5.6 && git checkout fb-prod201704 && git submodule init && git submodule update
 
 # Get build deps from package management
 RUN yum install -y cmake gcc-c++ bzip2-devel libaio-devel bison zlib-devel snappy-devel
