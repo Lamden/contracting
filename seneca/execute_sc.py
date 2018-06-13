@@ -186,8 +186,35 @@ def append_sandboxed_scope(scope, import_descriptor, exports):
         else:
             scope.update(exports)
 
+class ContractExecutionResult(object):
+    def __init__(self):
+        self.passed = None
+        self.error_message = None
 
-def execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=False, module_loader=None, db_executer=None):
+    def __str__(self):
+        if self.passed:
+            return "<ContractExecutionResult: SUCCESS >"
+        else:
+            return "<ContractExecutionResult: FAILURE: %s >" % self.error_message
+
+    def __bool__(self):
+        return self.passed
+
+
+def execute_contract(*args, **kwargs):
+    ret = ContractExecutionResult()
+
+    try:
+        res = _execute_contract(*args, **kwargs)
+        ret.passed = True
+    except Exception as e:
+        ret.passed = False
+        ret.error_message = str(e)
+
+    return ret
+
+
+def _execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=False, module_loader=None, db_executer=None):
     assert module_loader is not None, 'No module loader provided'
 
     sc_display_name = "seneca_contract_addr: %s" % this_contract_run_data['contract_id']
@@ -219,7 +246,7 @@ def execute_contract(global_run_data, this_contract_run_data, contract_str, is_m
 
                 elif imp['module_type'] == 'smart_contract':
                     downstream_contract_run_data, downstream_contract_str = module_loader(imp['module_path'])
-                    c_exports = execute_contract(global_run_data,
+                    c_exports = _execute_contract(global_run_data,
                                                  downstream_contract_run_data,
                                                  downstream_contract_str,
                                                  is_main=False,

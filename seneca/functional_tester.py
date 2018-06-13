@@ -144,22 +144,23 @@ def run_contract_file_as_user(contract_file_name, user_id, contract_address):
     }
 
     try:
-        execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=True, module_loader=ft_module_loader, db_executer=ex)
-        passed = True
+        res = execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=True, module_loader=ft_module_loader, db_executer=ex)
     except:
-        passed = False
-        finalize_contract_record(contract_address, passed, contract_address)
+        show("ERROR: Failure in contract executer (not specifically the contract).")
+        finalize_contract_record(contract_address, False, contract_address)
         raise
 
-    finalize_contract_record(contract_address, passed, contract_address)
+    finalize_contract_record(contract_address, res.passed, contract_address)
 
-    show("Contract run completed with passed status:", passed, "\n\n")
+    show("Contract run completed status:", res, "\n\n")
+    if not res:
+        show(":-(")
 
     return contract_id
 
 
 def main():
-    show('\n\n\n*** Starting functional testing ***\n\n')
+    show('*** Starting functional testing ***\n\n')
 
     contract_files = sorted(os.listdir(contract_file_path))
 
