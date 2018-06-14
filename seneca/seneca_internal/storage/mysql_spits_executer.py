@@ -1,5 +1,4 @@
 '''
-Works in conjunction with (the yet to be developed) mysql_executer_spits.py
 '''
 
 import re
@@ -109,11 +108,11 @@ class Executer(object):
 
     def commit(self):
         for t in self.temp_tables:
-            # Copy any temp tables to perm tables
-            # Drop temp tables
+            # TODO: Copy any temp tables to perm tables
+            # TODO: Drop temp tables
             pass
         for t in self.soft_deleted_tables:
-            # Delete any soft deleted tables
+            # TODO: Delete any soft deleted tables
             pass
 
         self.temp_tables = []
@@ -124,7 +123,7 @@ class Executer(object):
 
     def rollback(self):
         for t in self.temp_tables:
-            # Drop temp tables
+            # TODO: Drop temp tables
             pass
         self.temp_tables = []
         self.soft_deleted_tables = []
