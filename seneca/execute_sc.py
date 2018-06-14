@@ -190,6 +190,7 @@ class ContractExecutionResult(object):
     def __init__(self):
         self.passed = None
         self.error_message = None
+        self.exception = None
 
     def __str__(self):
         if self.passed:
@@ -210,6 +211,7 @@ def execute_contract(*args, **kwargs):
     except Exception as e:
         ret.passed = False
         ret.error_message = str(e)
+        ret.exception = e
 
     return ret
 
