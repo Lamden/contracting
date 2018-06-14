@@ -54,11 +54,15 @@ class Tabular(object):
         if name in ('create_table',):
             # restricted
             raise AttributeError()
-        if name in ('_name'):
+        if name in ('_name', 'to_sql'):
             # pass through
             return getattr(self.underlying_obj, name)
         elif hasattr(self.underlying_obj, name):
-            return Tabular(getattr(self.underlying_obj, name))
+            a = getattr(self.underlying_obj, name)
+            if type(a) == db.Column:
+                return a
+            else:
+                return Tabular(a)
         else:
             raise AttributeError()
 
@@ -124,7 +128,7 @@ def run_tests():
 
     settings = configparser.ConfigParser()
     settings._interpolation = configparser.ExtendedInterpolation()
-    settings.read('./seneca_internal/storage/test_db_conf.ini')
+    settings.read('../../seneca_internal/storage/test_db_conf.ini')
 
     ex_ = Executer(settings.get('DB', 'username'),
                    settings.get('DB', 'password'),
