@@ -191,6 +191,8 @@ class TabularKVs():
     def __len__(self):
         return len(self.rows)
 
+    def __bool__(self):
+        return bool(self.__len__())
 
     # TODO: make a nice efficient __iter__ with an interator
     def __iter__(self):
