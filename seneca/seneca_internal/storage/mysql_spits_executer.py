@@ -48,6 +48,7 @@ def make_query_with_temp_name(q):
 
 def CreateTableAction(ex, q):
     '''
+    Create a regular query for use in tests:
     >>> ct = CreateTable(
     ...       'test_users',
     ...       AutoIncrementColumn('id'),
@@ -56,17 +57,29 @@ def CreateTableAction(ex, q):
     ...         ColumnDefinition('first_name', SQLType('VARCHAR', 30), False),
     ...         ColumnDefinition('balance', SQLType('BIGINT'), False),
     ... ])
+
+    Run SPITS create table (temporary mysql table):
     >>> str(CreateTableAction(ex, ct))
     "SQLExecutionResult({'success': True, 'data': None})"
+
+    Just assert that table name is stored in temp_tables field, used for rollback and commit
     >>> ex.temp_tables
     ['test_users']
+
+    Make sure no table has actually been created and commited.
+    >>> ist = easy_db.Table.from_existing('INFORMATION_SCHEMA.TABLES').run(ex)
+    >>> len(ist.select('table_name').where(ist.TABLE_NAME == 'test_users').run(ex))
+    0
     >>> ex.rollback()
+
+    Repeat process but commit:
     >>> _ = CreateTableAction(ex, ct)
     >>> _ = ex.commit()
+    >>> ist = easy_db.Table.from_existing('INFORMATION_SCHEMA.TABLES').run(ex)
+    >>> len(ist.select('table_name').where(ist.TABLE_NAME == 'test_users').run(ex))
+    1
+
     '''
-    #>>> ist = easy_db.Table.from_existing('INFORMATION_SCHEMA.TABLES').run(ex)
-    #>>> len(ist.select('table_name').where(ist.TABLE_NAME == 'test_users').run(ex))
-    #>>> _ = CreateTableAction(ex, ct)
     name = q.table_name
     temp_table_exists = name in ex.temp_tables
     permanent_table_exists = 0 < ex.cur.execute("SELECT table_name FROM INFORMATION_SCHEMA.TABLES where table_name = '{}'".format(name))
