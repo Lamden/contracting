@@ -86,7 +86,6 @@ class SQLType(object):
 
     @classmethod
     def from_db_describe_str(cls, st_str):
-        assert st_str != 'bigint(20) unsigned', "no implmentation for unsigned."
 
         st_str_upper = st_str.upper()
         if st_str_upper in valid_mysql_types:
@@ -97,7 +96,11 @@ class SQLType(object):
             l = int(varchar_len.group(1))
             return cls('VARCHAR', l)
 
-        if st_str_upper == 'BIGINT(20)':
+        if st_str_upper.lower() in ['bigint(20)',
+                                    'bigint(20) unsigned',
+                                    'bigint(21)',
+                                    'bigint(21) unsigned',
+            ]:
             return cls('BIGINT')
 
 

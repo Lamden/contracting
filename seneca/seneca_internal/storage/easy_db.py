@@ -407,7 +407,10 @@ class Table(object):
         self.other_columns = other_columns
 
         native_fields = set(dir(self))
-        all_columns = [primary_column] + other_columns
+        if primary_column:
+            all_columns = [primary_column] + other_columns
+        else:
+            all_columns = other_columns
         column_names = set(map(lambda x: x.name, all_columns))
 
         namespace_conflicts = native_fields & column_names
@@ -425,11 +428,15 @@ class Table(object):
             # Find primary key column and separate from others
             pkey_col_dict_list, other_cols_dict_list = \
               filter_split(lambda r: r['Key'].upper() == 'PRI', column_descriptions)
-            assert len(pkey_col_dict_list) == 1, \
-              "Error, there should only every be one primary key column description"
+            if len(pkey_col_dict_list) == 0:
+                pkey_col = None
+            elif len(pkey_col_dict_list) == 1:
+                pkey_col = Column.from_sql_describe_row(pkey_col_dict_list[0])
+            else:
+                raise Exception("Error, there should only every be one primary key column description")
 
             return cls(name,
-                       Column.from_sql_describe_row(pkey_col_dict_list[0]),
+                       pkey_col,
                        [Column.from_sql_describe_row(x) for x in other_cols_dict_list]
                        )
 
