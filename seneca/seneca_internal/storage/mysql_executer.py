@@ -75,6 +75,9 @@ def format_result(q_type, cur):
                      DeleteRows: id_count_results,
                      DropTable: simple_results,
     }
+
+    assert q_type in parser_funcs, 'Unknown query type.'
+    
     return parser_funcs[q_type](cur)
 
 
