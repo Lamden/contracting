@@ -12,6 +12,12 @@ ledger = st.create_table('ledger', [
     ('balance', int),
 ])
 
+print('\n*******************WALLLET ID*******************')
+print(ledger.wallet_id)
+print(ledger.select().to_sql())
+print('\n\n')
+print(ledger.select().where(ledger.wallet_id == 1234).to_sql())
+
 @export
 def get_balance(wallet_id):
     return ledger.select('balance').where(ledger.wallet_id==wallet_id).run()[0]['balance']
