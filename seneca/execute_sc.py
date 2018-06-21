@@ -13,6 +13,7 @@
 import sys
 import ast
 import astpretty
+import seneca
 from collections import namedtuple
 import os
 import importlib
@@ -89,7 +90,8 @@ def is_ast_import(item):
 
 
 def seneca_module_name_to_path(name):
-    slashed_name = os.path.join(*name.split('.'))
+    seneca_path = os.path.dirname(os.path.dirname(seneca.__file__))
+    slashed_name = os.path.abspath(os.path.join(seneca_path, *name.split('.')))
     if os.path.isdir(slashed_name):
         f_path = os.path.join(slashed_name, '__init__.py')
         assert os.path.isfile(f_path)
@@ -204,7 +206,6 @@ class ContractExecutionResult(object):
 
 def execute_contract(*args, **kwargs):
     ret = ContractExecutionResult()
-
     try:
         res = _execute_contract(*args, **kwargs)
         ret.passed = True
@@ -240,6 +241,8 @@ def _execute_contract(global_run_data, this_contract_run_data, contract_str, is_
     for item in sc_ast.body:
         if is_ast_import(item):
             import_list = ast_import_decoder(item)
+
+
 
             for imp in import_list:
                 if imp['module_type'] == 'seneca':

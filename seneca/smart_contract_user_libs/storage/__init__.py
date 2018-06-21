@@ -5,8 +5,6 @@ import seneca.seneca_internal.util as util
 from seneca.seneca_internal.util import manual_import
 path = os.path.dirname(__file__)
 
-
-
 exports = {}
 
 for f in os.listdir(path):
@@ -20,6 +18,8 @@ for f in os.listdir(path):
         m = manual_import(full_f_path, mod_name)
         if m['exports'] is not None:
             exports[mod_name] = util.dict_to_nt(m['exports'], 'module')
+
+
 
 def run_tests():
     print(path)
