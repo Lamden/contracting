@@ -232,6 +232,44 @@ class UpdateRows(Query):
           'LIMIT %d' % self.limit if self.limit else None,
         ]) + ';'
 
+class SetRows(Query):
+    def __init__(self, table_name, list_of_values_lists):
+        self.table_name = table_name
+        # NOTE: Casting lists to tuples to ensure consistent types
+        self.column_names = tuple(['k', 'v', 't'])
+        self.list_of_values_lists = list(map(tuple, list_of_values_lists))
+
+    def to_sql(self):
+        correct_len = len(self.column_names)
+
+        for value_list in self.list_of_values_lists:
+            assert len(value_list) == correct_len
+
+        # NOTE: Given a list of rows, i.e. a list of lists, we take the the first
+        # element of the list (a list representing a row). We use type info of
+        # that first row to derrive type information
+        casting_funcs = [get_py_to_sql_cast_func(type(x)) for x in self.list_of_values_lists[0]]
+
+        def apply_funcs(xs):
+            #''' Apply list of functions over a list of values '''
+            #return [ f(x) for (f, x) in zip(casting_funcs, xs)]
+            return map(cast_py_to_sql, xs)
+
+        def format_values(xs):
+            return '(%s)' % ', '.join(xs)
+
+        convert_data_list_to_string = compose(format_values, apply_funcs)
+        formatted_values_lists = [convert_data_list_to_string(x) for x in self.list_of_values_lists]
+        value_lists = ['v = \'{}\''.format(x[1]) for x in self.list_of_values_lists]
+
+        return '\n'.join([
+          'INSERT INTO %s' % self.table_name,
+          '(%s)' % ', '.join(self.column_names),
+          'VALUES',
+          ', '.join(formatted_values_lists),
+          'ON DUPLICATE KEY UPDATE',
+          ', '.join(value_lists),
+        ]) + ';'
 
 class InsertRows(Query):
     '''

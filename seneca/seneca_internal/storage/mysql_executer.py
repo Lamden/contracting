@@ -68,6 +68,7 @@ def format_result(q_type, cur):
                      DropTableColumn: simple_results,
                      InsertRows: id_count_results,
                      UpdateRows: id_count_results,
+                     SetRows: id_count_results,
                      SelectRows: full_data_results,
                      CountUniqueRows: full_data_results,
                      CountRows: col_1_row_1_results,
@@ -77,7 +78,7 @@ def format_result(q_type, cur):
     }
 
     assert q_type in parser_funcs, 'Unknown query type.'
-    
+
     return parser_funcs[q_type](cur)
 
 

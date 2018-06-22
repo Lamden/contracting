@@ -376,6 +376,17 @@ class UpdateRows(SQLVerb):
                                order_desc=order_desc,
                                limit=limit)
 
+class SetRows(SQLVerb):
+    @auto_set_fields
+    def _supplemental_init(self, column_val_list):
+        pass
+
+    @staticmethod
+    def to_intermediate(full_call_stack):
+        table_name = table_name_from_cs(full_call_stack)
+        column_val_list = require_from_cs(full_call_stack, SetRows, 'column_val_list')
+        return isql.SetRows(table_name, column_val_list)
+
 
 @add_methods(where, order_by, limit)
 class SelectRows(SQLVerb):
@@ -455,6 +466,9 @@ class Table(object):
 
     def update(self, column_val_dict):
         return UpdateRows(self.call_stack.copy(), column_val_dict)
+
+    def set(self, column_val_dict):
+        return SetRows(self.call_stack.copy(), column_val_dict)
 
     def delete(self):
         return DeleteRows(self.call_stack.copy())
