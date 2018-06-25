@@ -7,6 +7,7 @@
 # always upsert
 
 import seneca.seneca_internal.storage.easy_db as db
+from seneca.seneca_internal.storage.mysql_base import get_str_to_py_cast_func
 import datetime
 
 ex = None
@@ -30,7 +31,11 @@ class KV(object):
     def __call__(self, *args, **kwargs):
         if self.underlying_obj.__name__ == 'run':
             assert ex is not None, 'Mysql executer has not been set.'
-            return self.underlying_obj(ex)
+            res = self.underlying_obj(ex)
+            if hasattr(res, 'rows'):
+                v, t = res.rows[0]
+                return get_str_to_py_cast_func(t)(v)
+            return res
         else:
             return KV(self.underlying_obj(*args, **kwargs))
 
@@ -132,15 +137,20 @@ def run_tests():
         assert e.args[0]['error_code'] == 1146, 'KV "{}" still exist after dropping'.format(kv_name)
     p = create_kv(kv_name)
     p.set([
-        ('hello', 'world', 'str'),
-        ('kettle', 4, 'int'),
-        ('vortex', 3.14, 'float'),
-        ('reality', False, 'bool'),
-        ('xxx', '2018-07-22 14:32:11' ,'datetime.datetime')
+        ('hello', 'world'),
+        ('kettle', 4),
+        ('vortex', 3.14),
+        ('reality', False),
+        ('xxx', datetime.datetime(2018, 7, 22, 14, 32, 11))
     ]).run(ex)
 
-    print(p.get('hello').run(ex))
-    print(p.get('kettle').run(ex))
-    print(p.get('vortex').run(ex))
-    print(p.get('reality').run(ex))
-    print(p.get('xxx').run(ex))
+    res = (
+        p.get('hello').run(ex),
+        p.get('kettle').run(ex),
+        p.get('vortex').run(ex),
+        p.get('reality').run(ex),
+        p.get('xxx').run(ex)
+    )
+    for r in res:
+        print(type(r))
+        print(r)

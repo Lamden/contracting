@@ -242,8 +242,10 @@ class SetRows(Query):
     def to_sql(self):
         correct_len = len(self.column_names)
 
-        for value_list in self.list_of_values_lists:
-            assert len(value_list) == correct_len
+        for idx, value_list in enumerate(self.list_of_values_lists):
+            if len(self.list_of_values_lists[idx]) == correct_len - 1:
+                self.list_of_values_lists[idx] = (*value_list, type(value_list[-1]).__name__)
+            assert len(self.list_of_values_lists[idx]) == correct_len
 
         # NOTE: Given a list of rows, i.e. a list of lists, we take the the first
         # element of the list (a list representing a row). We use type info of

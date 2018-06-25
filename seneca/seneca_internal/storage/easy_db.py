@@ -471,7 +471,7 @@ class Table(object):
         return SetRows(self.call_stack.copy(), column_val_dict)
 
     def get(self, field_name):
-        return self.select().where(self.k == field_name)
+        return self.select('v', 't').where(self.k == field_name)
 
     def delete(self):
         return DeleteRows(self.call_stack.copy())

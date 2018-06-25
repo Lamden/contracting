@@ -21,6 +21,7 @@ def sql_escapes(s):
 from seneca.seneca_internal.util import auto_set_fields, fst, snd, swap
 from enum import Enum
 import datetime
+from dateutil.parser import parse as parse_time
 from terminaltables import AsciiTable
 import re
 from functools import wraps
@@ -147,6 +148,15 @@ def get_py_to_sql_cast_func(py_type):
         # TODO: custom exception types
         raise Exception('Unsupported type, cannot convert to SQL str:' + str(py_type))
 
+def get_str_to_py_cast_func(str_type):
+    casting_func_dict = {
+      'int': lambda x: int(x),
+      'float': lambda x: float(x),
+      'str': lambda x: '\'%s\'' % str(mysql_escape(x), 'utf-8'),
+      'datetime': lambda x: parse_time(x),
+      'bool': lambda x: bool(x),
+    }
+    return casting_func_dict[str_type]
 
 def cast_py_to_sql(py_val):
     '''Convenience function'''
