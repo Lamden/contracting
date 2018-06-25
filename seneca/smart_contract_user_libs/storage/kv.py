@@ -36,7 +36,7 @@ class KV(object):
 
     def __getattr__(self, name):
         #print('Called getattr with: ', name)
-        whitelist = ('set', 'run', )
+        whitelist = ('set', 'run', 'get')
         if name in ('create_table',):
             # restricted
             raise AttributeError('Restricted')
@@ -135,29 +135,4 @@ def run_tests():
         ('hello', 'world', 'string')
     ]).run(ex)
 
-    # p_copy = get_kv(kv_name)
-
-
-    #
-    # u = create_table('users', [
-    # ('first_name', str_len(30), True),
-    # ('last_name', str_len(30), True),
-    # ('nick_name', str_len(30)),
-    # ('balance', int)
-    # ])
-    #
-    # print(u.select().run())
-    #
-    #
-    # u.insert([
-    # {'first_name': 'Test1','last_name': 'l1','nick_name': '1','balance': 10},
-    # {'first_name': 'Test2','last_name': 'l2','nick_name': '2','balance': 20},
-    # {'first_name': 'Test3','last_name': 'l3','nick_name': '3','balance': 30},
-    # ]).run()
-    #
-    # u2 = get_table('users')
-    #
-    # add_column(u2, ('address', str))
-    # print(dir(u2.underlying_obj))
-    # drop_column(u2, 'address')
-    # print(dir(u2.underlying_obj))
+    print(p.get('hello').run(ex))

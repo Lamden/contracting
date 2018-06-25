@@ -470,6 +470,9 @@ class Table(object):
     def set(self, column_val_dict):
         return SetRows(self.call_stack.copy(), column_val_dict)
 
+    def get(self, field_name):
+        return self.select().where(self.k == field_name)
+
     def delete(self):
         return DeleteRows(self.call_stack.copy())
 
