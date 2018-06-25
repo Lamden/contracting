@@ -16,6 +16,7 @@ import warnings
 
 requires_commit = [ DeleteRows,
                     UpdateRows,
+                    SetRows,
                     InsertRows,
                     AddTableColumn,
                     DropTableColumn,

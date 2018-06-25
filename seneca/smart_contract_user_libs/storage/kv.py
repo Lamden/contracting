@@ -120,7 +120,7 @@ def run_tests():
     ex = ex__
 
     ## END SETUP ##
-    print('****** STARTING TESTS******')
+    print('****** STARTING TESTS ******')
 
     kv_name = 'policies'
     try: drop_kv(kv_name)
