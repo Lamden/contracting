@@ -59,8 +59,8 @@ class KV(object):
 def create_kv(name):
     column_tuples = [
     ('k', str_len(30), True),
-    ('v', str_len(30)),
-    ('t', str_len(30))
+    ('v', str_len(256)),
+    ('t', str_len(20))
     ]
     t = db.Table(add_name_space(name), db.AutoIncrementColumn('id'),
         [db.Column(*x) for x in column_tuples]
@@ -132,7 +132,15 @@ def run_tests():
         assert e.args[0]['error_code'] == 1146, 'KV "{}" still exist after dropping'.format(kv_name)
     p = create_kv(kv_name)
     p.set([
-        ('hello', 'world', 'string')
+        ('hello', 'world', 'str'),
+        ('kettle', 4, 'int'),
+        ('vortex', 3.14, 'float'),
+        ('reality', False, 'bool'),
+        ('xxx', '2018-07-22 14:32:11' ,'datetime.datetime')
     ]).run(ex)
 
     print(p.get('hello').run(ex))
+    print(p.get('kettle').run(ex))
+    print(p.get('vortex').run(ex))
+    print(p.get('reality').run(ex))
+    print(p.get('xxx').run(ex))
