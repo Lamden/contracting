@@ -11,7 +11,7 @@ from seneca.seneca_internal.storage.mysql_base import get_str_to_py_cast_func
 import datetime
 
 ex = None
-name_space = 'kv_test'
+name_space = 'test_tabular'
 
 str_len = db.str_len
 
@@ -62,10 +62,11 @@ class KV(object):
             raise AttributeError('No attribute "{}"'.format(name))
 
 def create_kv(name):
+    # assert ex is not None, 'Mysql executer has not been set.'
     column_tuples = [
-    ('k', str_len(30), True),
-    ('v', str_len(256)),
-    ('t', str_len(20))
+        ('k', str_len(30), True),
+        ('v', str_len(256)),
+        ('t', str_len(20))
     ]
     t = db.Table(add_name_space(name), db.AutoIncrementColumn('id'),
         [db.Column(*x) for x in column_tuples]
@@ -87,7 +88,6 @@ def get_kv(name):
     return KV(db.Table.from_existing(add_name_space(name)).run(ex))
 
 exports = {
-#     'run_batch': run_batch,
     'str_len': str_len,
     'create_kv': create_kv,
     'get_kv': get_kv,

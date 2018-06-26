@@ -90,7 +90,6 @@ def terminal_where(self, where_criterion):
 
 
 def execute_sql_query(executer, isql_obj):
-    # TODO: configurable verbosity
     res = executer(isql_obj)
 
     if not res.success:

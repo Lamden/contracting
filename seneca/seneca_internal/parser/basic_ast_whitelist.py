@@ -50,6 +50,8 @@ permitted_ast_types = {
         # TODO: Decide if we actually want these
         ast.ExceptHandler,
         ast.Try,
+        # TODO: Review these
+        ast.For,
     }
 
 def validate(a):

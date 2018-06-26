@@ -17,6 +17,7 @@ import seneca
 from collections import namedtuple
 import os
 import importlib
+import traceback
 from seneca.seneca_internal.util import *
 
 from seneca.seneca_internal.parser import basic_ast_whitelist
@@ -117,7 +118,7 @@ def seneca_lib_loader(imp, global_run_data, this_contract_run_data, db_executer)
     mod_file_path = seneca_module_name_to_path(real_path)
     s_mod = util.manual_import(mod_file_path, real_path.split('.')[-1])
 
-    if module_path == 'seneca.storage.tabular':
+    if module_path in ('seneca.storage.tabular', 'seneca.storage.kv'):
         s_mod['ex'] = db_executer
         s_mod['name_space'] = this_contract_run_data['contract_id']
 
@@ -211,7 +212,9 @@ def execute_contract(*args, **kwargs):
         ret.passed = True
     except Exception as e:
         ret.passed = False
-        ret.error_message = str(e)
+        #TODO revert to
+        # ret.error_message = str(e)
+        ret.error_message = traceback.format_exc()
         ret.exception = e
 
     return ret
@@ -241,9 +244,6 @@ def _execute_contract(global_run_data, this_contract_run_data, contract_str, is_
     for item in sc_ast.body:
         if is_ast_import(item):
             import_list = ast_import_decoder(item)
-
-
-
             for imp in import_list:
                 if imp['module_type'] == 'seneca':
                     s_exports = seneca_lib_loader(imp, global_run_data, this_contract_run_data, db_executer)
@@ -257,7 +257,6 @@ def _execute_contract(global_run_data, this_contract_run_data, contract_str, is_
                                                  is_main=False,
                                                  module_loader=module_loader,
                                                  db_executer=db_executer)
-
                     append_sandboxed_scope(module_scope, imp, c_exports._asdict())
                 else:
                    # TODO: custom exception types, also

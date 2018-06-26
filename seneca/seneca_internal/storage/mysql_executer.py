@@ -96,7 +96,6 @@ class Executer(object):
         s.cur.execute('CREATE DATABASE IF NOT EXISTS {};'.format(db_name))
         s.cur.execute('use {};'.format(db_name))
         s.conn.database = db_name
-
         return s
 
     def __call__(self, query):
