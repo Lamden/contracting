@@ -8,7 +8,6 @@ class enum(dict):
             setattr(self, str(idx), n)
 
     def __getitem__(self, attr):
-        print(attr)
         return getattr(self, str(attr))
 
 exports = {

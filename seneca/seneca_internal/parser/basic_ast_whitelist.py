@@ -52,6 +52,10 @@ permitted_ast_types = {
         ast.Try,
         # TODO: Review these
         ast.For,
+        ast.While,
+        ast.BoolOp,
+        ast.And,
+        ast.Or
     }
 
 def validate(a):
