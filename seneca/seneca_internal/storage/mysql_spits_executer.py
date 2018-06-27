@@ -45,24 +45,24 @@ def make_query_with_temp_name(q):
     q1.table_name = make_temp_name(q1.table_name)
     return q1
 
-
+import sys
 def CreateTableAction(ex, q):
     '''
-    Create a regular query for use in tests:
-    >>> ct = CreateTable(
-    ...       'test_users',
-    ...       AutoIncrementColumn('id'),
-    ...       [ ColumnDefinition('username', SQLType('VARCHAR', 30), True),
-    ...         ColumnDefinition('drivers_licence_unmber', SQLType('VARCHAR', 30), True),
-    ...         ColumnDefinition('first_name', SQLType('VARCHAR', 30), False),
-    ...         ColumnDefinition('balance', SQLType('BIGINT'), False),
-    ... ])
-
     Run SPITS create table (temporary mysql table):
     >>> str(CreateTableAction(ex, ct))
     "SQLExecutionResult({'success': True, 'data': None})"
 
-    Just assert that table name is stored in temp_tables field, used for rollback and commit
+    Confirm that the table is created (not established in this step if it's actually a temp table)
+    >>> ex.cur.execute('SELECT * from seneca_test.$temp$test_users')
+    0
+    >>> print(cur.fetchall())
+    ()
+
+    Confirm that the table is temporary (temporary tables are not returned by mysql's show tables)
+    >>> ex.cur.execute('SHOW TABLES;')
+    0
+
+    Confirm that table name is stored in temp_tables field, used for rollback and commit
     >>> ex.temp_tables
     ['test_users']
 
@@ -110,7 +110,35 @@ def CreateTableAction(ex, q):
 
 
 def ListTablesAction(ex, q):
-    sql_ex_res = ex_base.format_result(ex.cur.execute(q.to_sql()))
+    '''
+    >>> _ = ex.cur.execute('DROP DATABASE IF EXISTS seneca_test;')
+    >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
+    >>> _ = ex.cur.execute('use seneca_test;')
+
+    >>> str(ListTablesAction(ex,ListTables()))
+    "SQLExecutionResult({'success': True, 'data': []})"
+
+    Result comes from temporary table record in executer:
+    >>> _ = CreateTableAction(ex, ct)
+    >>> str(ListTablesAction(ex,ListTables()))
+    "SQLExecutionResult({'success': True, 'data': ['test_users']})"
+    '''
+#
+#    TODO: finish this tests
+#    Result comes from db:
+#    >> _ = ex.commit()
+#    >> str(ListTablesAction(ex,ListTables()))
+#    "SQLExecutionResult({'success': True, 'data': ['test_users']})"
+#
+#    Soft delete table hidden:
+#    >> _ = CreateTableAction(ex, ct)
+#    >> _ = ex.commit()
+#
+#    '''
+    q_type = type(q)
+    ex.cur.execute(q.to_sql())
+
+    sql_ex_res = ex_base.format_result(q_type, ex.cur)
     table_names = sql_ex_res.data
 
     table_names_temp = list(
@@ -121,26 +149,60 @@ def ListTablesAction(ex, q):
     sql_ex_res.data = table_names_temp
 
     # Not formatting
-    return SQLExecutionResult(True, sql_ex_res.data)
+    return ex_base.SQLExecutionResult(True, sql_ex_res.data)
 
 
 def DropTableAction(ex, q):
+    '''
+    Setup:
+    >>> _ = ex.cur.execute('DROP DATABASE seneca_test;')
+    >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
+    >>> _ = ex.cur.execute('use seneca_test;')
+    >>> _ = CreateTableAction(ex, ct)
+    >>> _ = ex.commit()
+
+    Soft delete a table and confirm name has been added to the soft_delete list:
+    >>> str(DropTableAction(ex, DropTable('test_users')))
+    "SQLExecutionResult({'success': True, 'data': 'Table test_users has been soft-deleted.'})"
+    >>> ex.soft_deleted_tables
+    ['test_users']
+
+    Test that soft-deleting an already soft deleted table sends a failure:
+    >>> str(DropTableAction(ex, DropTable('test_users')))
+    'SQLExecutionResult({\\'success\\': False, \\'data\\': "SPITS ERROR: Attempting to delete a table that doesn\\'t logically exist"})'
+    >>> ex.commit()
+
+    '''
+    '''
+    Delete temporary table:
+    >>> _ = ex.cur.execute('DROP DATABASE seneca_test;')
+    >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
+    >>> _ = ex.cur.execute('use seneca_test;')
+    >>> _ = CreateTableAction(ex, ct)
+
+    >>> str(DropTableAction(ex, DropTable('test_users')))
+
+
+    '''
+    q_type = type(q)
+
     name = q.table_name
     temp_name = make_temp_name(name)
 
     temp_table_exists = name in ex.temp_tables
-    permanent_table_exists = 0 < ex.cur.execute("SELECT table_name FROM INFORMATION_SCHEMA.TABLES where table_name ='%'" % name)
+    permanent_table_exists = 0 < ex.cur.execute("SELECT table_name FROM INFORMATION_SCHEMA.TABLES where table_name ='{}'".format(name))
     soft_delete_exists = name in ex.soft_deleted_tables
 
     if temp_table_exists:
         assert permanent_table_exists == soft_delete_exists, "SPITS ERROR: Table delete status in inconsistent state."
         ex.cur.execute("DROP TEMPORARY TABLE %s" % temp_name)
+        # TODO: validate result
     elif permanent_table_exists and (not soft_delete_exists):
         ex.soft_deleted_tables.append(name)
     else:
-        raise Exception('SPITS ERROR: Attempting to delete a table that doesn\'t logically exist')
+        return ex_base.SQLExecutionResult(False, 'SPITS ERROR: Attempting to delete a table that doesn\'t logically exist')
 
-    return SQLExecutionResult(True, "Table %s has been soft-deleted." % name)
+    return ex_base.SQLExecutionResult(True, "Table %s has been soft-deleted." % name)
 
 
 special_action_query_dict = { CreateTable: CreateTableAction,
@@ -214,7 +276,7 @@ SPITS does not have the needed info to execute this query.")
             self.cur.execute(q_str)
 
         for t in self.soft_deleted_tables:
-            self.cur.execute("DROP TABLE %s;" % make_temp_name(t))
+            self.cur.execute("DROP TEMPORARY TABLE %s;" % make_temp_name(t))
 
         # Purge internal scratch
         self.temp_tables = []
@@ -243,7 +305,7 @@ SPITS does not have the needed info to execute this query.")
             self.cur.execute(q.to_sql())
         self.conn.commit()
 
-        return SQLExecutionResult(True, None)
+        return ex_base.SQLExecutionResult(True, None)
 
 
 def run_tests():
@@ -263,13 +325,17 @@ def run_tests():
     conn.autocommit = False
     cur = conn.cursor()
 
-    try:
-        cur.execute('DROP DATABASE seneca_test;')
-    except MySQLdb.OperationalError as e:
-        if not e.args == (1008, "Can't drop database 'seneca_test'; database doesn't exist"):
-            raise
+    def clear_db():
+        print("Clearing db...")
+        try:
+            cur.execute('DROP DATABASE seneca_test;')
+        except MySQLdb.OperationalError as e:
+            if not e.args == (1008, "Can't drop database 'seneca_test'; database doesn't exist"):
+                raise
+        cur.execute('CREATE DATABASE seneca_test;')
+        print("DB cleared.")
 
-    cur.execute('CREATE DATABASE seneca_test;')
+    clear_db()
 
     ex = Executer(settings.get('DB', 'username'),
                    settings.get('DB', 'password'),
@@ -281,9 +347,20 @@ def run_tests():
     import seneca.seneca_internal.storage.mysql_intermediate as mysqli
     import seneca.seneca_internal.storage.easy_db as easy_db
     #doctest.testmod(extraglobs={'ex': ex})
+
+    ct = CreateTable(
+          'test_users',
+          AutoIncrementColumn('id'),
+          [ ColumnDefinition('username', SQLType('VARCHAR', 30), True),
+            ColumnDefinition('drivers_licence_unmber', SQLType('VARCHAR', 30), True),
+            ColumnDefinition('first_name', SQLType('VARCHAR', 30), False),
+            ColumnDefinition('balance', SQLType('BIGINT'), False),
+    ])
+
     doctest.testmod(sys.modules[__name__],
-                    extraglobs={'ex': ex,
-                                'mysqli': mysqli,
-                                'easy_db': easy_db
+                    extraglobs={'mysqli': mysqli,
+                                'easy_db': easy_db,
+                                'clear_db': clear_db,
+                                **locals()
                                 }
     )

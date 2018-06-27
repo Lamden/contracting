@@ -38,3 +38,6 @@ if hasattr(conf, 'path'):
             m1 = importlib.import_module(module, '..')
             print('* Module loaded.')
             m1.run_tests()
+
+
+print('... DONE ...')
