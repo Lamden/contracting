@@ -52,9 +52,6 @@ permitted_ast_types = {
         ast.ExceptHandler,
         ast.Try,
         # TODO: Review these
-        # Loops
-        ast.For,
-        ast.While,
         ast.ListComp,
         ast.comprehension,
         # Conditonals
