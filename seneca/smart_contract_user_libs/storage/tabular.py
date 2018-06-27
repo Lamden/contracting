@@ -27,6 +27,10 @@ name_space = None
 
 str_len = db.str_len
 
+and_ = db.and_
+or_ = db.or_
+not_ = db.not_
+
 def add_name_space(t_name):
     assert name_space is not None, "Tabular module namespace has not been set!"
     return name_space + '$' + t_name
@@ -168,9 +172,12 @@ def run_tests():
     {'first_name': 'Test3','last_name': 'l3','nick_name': '3','balance': 30},
     ]).run()
 
+
     u2 = get_table('users')
 
     add_column(u2, ('address', str))
     print(dir(u2.underlying_obj))
     drop_column(u2, 'address')
     print(dir(u2.underlying_obj))
+
+    print(u.select().where(and_(u.first_name == 'test' , u.last_name == 'test2')).to_sql())
