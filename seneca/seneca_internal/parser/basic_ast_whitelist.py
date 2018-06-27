@@ -13,6 +13,7 @@ permitted_ast_types = {
         ast.If,
         ast.FunctionDef,
         ast.GtE,
+        ast.LtE,
         ast.Load,
         ast.arg,
         ast.Add,
@@ -51,8 +52,12 @@ permitted_ast_types = {
         ast.ExceptHandler,
         ast.Try,
         # TODO: Review these
+        # Loops
         ast.For,
         ast.While,
+        ast.ListComp,
+        ast.comprehension,
+        # Conditonals
         ast.BoolOp,
         ast.And,
         ast.Or
