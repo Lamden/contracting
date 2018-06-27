@@ -8,10 +8,10 @@
 
 import seneca.seneca_internal.storage.easy_db as db
 from seneca.seneca_internal.storage.mysql_base import get_str_to_py_cast_func
-import datetime
+from seneca.smart_contract_user_libs.stdlib import datetime
 
 ex = None
-name_space = 'test_tabular'
+name_space = None
 
 str_len = db.str_len
 
@@ -98,11 +98,14 @@ exports = {
 def run_tests():
     ## SETUP ##
     global ex
+    global name_space
 
     import sys, json
     from os.path import abspath, dirname
     import configparser
     from seneca.seneca_internal.storage.mysql_executer import Executer
+
+    name_space = 'test_kv'
 
     settings = configparser.ConfigParser()
     settings._interpolation = configparser.ExtendedInterpolation()
@@ -141,7 +144,8 @@ def run_tests():
         ('kettle', 4),
         ('vortex', 3.14),
         ('reality', False),
-        ('xxx', datetime.datetime(2018, 7, 22, 14, 32, 11))
+        ('xxx', datetime(2018, 7, 22, 14, 32, 11)),
+        ('zzz', ['hello',3,4.2,True,datetime(2018, 7, 22, 14, 32, 11),set()])
     ]).run(ex)
 
     res = (
@@ -149,7 +153,8 @@ def run_tests():
         p.get('kettle').run(ex),
         p.get('vortex').run(ex),
         p.get('reality').run(ex),
-        p.get('xxx').run(ex)
+        p.get('xxx').run(ex),
+        p.get('zzz').run(ex)
     )
     for r in res:
         print(type(r))

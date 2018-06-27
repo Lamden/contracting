@@ -13,7 +13,6 @@
 import sys
 import ast
 import astpretty
-import seneca
 from collections import namedtuple
 import os
 import importlib

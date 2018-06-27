@@ -23,7 +23,7 @@ import seneca.seneca_internal.storage.easy_db as db
 import datetime
 
 ex = None
-name_space = 'test_tabular'
+name_space = None
 
 str_len = db.str_len
 
@@ -121,6 +121,7 @@ exports = {
 def run_tests():
     ## SETUP ##
     global ex
+    global name_space
 
     import sys
     from os.path import abspath, dirname
@@ -130,6 +131,8 @@ def run_tests():
     settings = configparser.ConfigParser()
     settings._interpolation = configparser.ExtendedInterpolation()
     settings.read(abspath('seneca/seneca_internal/storage/test_db_conf.ini'))
+
+    name_space = 'test_tabular'
 
     ex_ = Executer(settings.get('DB', 'username'),
                    settings.get('DB', 'password'),

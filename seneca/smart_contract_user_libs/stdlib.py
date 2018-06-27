@@ -1,5 +1,5 @@
 import pickle
-from datetime import datetime
+from datetime import datetime #TODO datetime.datetime.now() shall be implemented / modified
 
 class enum(dict):
     def __init__(self, *args, **kwargs):

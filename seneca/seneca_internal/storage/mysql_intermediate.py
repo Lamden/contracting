@@ -257,12 +257,16 @@ class SetRows(Query):
             #return [ f(x) for (f, x) in zip(casting_funcs, xs)]
             return map(cast_py_to_sql, xs)
 
-        def format_values(xs):
+        def format_string(xs):
             return '(%s)' % ', '.join(xs)
 
-        convert_data_list_to_string = compose(format_values, apply_funcs)
+        def format_update(xs):
+            return "v = %s" % list(xs)[1]
+
+        convert_data_list_to_string = compose(format_string, apply_funcs)
         formatted_values_lists = [convert_data_list_to_string(x) for x in self.list_of_values_lists]
-        value_lists = ['v = \'{}\''.format(x[1]) for x in self.list_of_values_lists]
+        convert_data_list_to_update = compose(format_update, apply_funcs)
+        formatted_updates_lists = [convert_data_list_to_update(x) for x in self.list_of_values_lists]
 
         return '\n'.join([
           'INSERT INTO %s' % self.table_name,
@@ -270,7 +274,7 @@ class SetRows(Query):
           'VALUES',
           ', '.join(formatted_values_lists),
           'ON DUPLICATE KEY UPDATE',
-          ', '.join(value_lists),
+          ', '.join(formatted_updates_lists),
         ]) + ';'
 
 class InsertRows(Query):
