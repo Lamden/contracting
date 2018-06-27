@@ -56,6 +56,7 @@ permitted_ast_types = {
         ast.ListComp,
         ast.comprehension,
         ast.Slice,
+        ast.USub,
         # Conditonals
         ast.BoolOp,
         ast.And,
