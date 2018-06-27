@@ -49,11 +49,13 @@ permitted_ast_types = {
         ast.Mod,
         ast.NotEq,
         # TODO: Decide if we actually want these
+        # Error handling
         ast.ExceptHandler,
         ast.Try,
-        # TODO: Review these
+        # comprehension
         ast.ListComp,
         ast.comprehension,
+        ast.Slice,
         # Conditonals
         ast.BoolOp,
         ast.And,
