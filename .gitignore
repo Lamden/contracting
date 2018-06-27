@@ -1,2 +1,6 @@
 __pycache__/
 temp/
+venv
+build
+dist
+seneca.egg-info
