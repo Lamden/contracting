@@ -1,5 +1,7 @@
 '''
 TODO: IMPORTANT: Don't allow overlapping temp and permanent table names
+
+TODO: complex stuff, soft delete a permanent, create temporary, delete temporary
 '''
 import sys
 
@@ -48,23 +50,28 @@ def make_query_with_temp_name(q):
 import sys
 def CreateTableAction(ex, q):
     '''
-    Run SPITS create table (temporary mysql table):
-    >>> str(CreateTableAction(ex, ct))
-    "SQLExecutionResult({'success': True, 'data': None})"
+    Clear state:
+    >>> ex = make_ex()
+    >>> _ = ex.rollback()
+    >>> _ = ex.cur.execute('DROP DATABASE seneca_test;')
+    >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
+    >>> _ = ex.cur.execute('use seneca_test;')
+
+    >>> _ = CreateTableAction(ex, ct)
+
+    Confirm that table name is stored in temp_tables field, used for rollback and commit
+    >>> ex.temp_tables
+    {'test_users'}
 
     Confirm that the table is created (not established in this step if it's actually a temp table)
     >>> ex.cur.execute('SELECT * from seneca_test.$temp$test_users')
     0
-    >>> print(cur.fetchall())
+    >>> print(ex.cur.fetchall())
     ()
 
     Confirm that the table is temporary (temporary tables are not returned by mysql's show tables)
     >>> ex.cur.execute('SHOW TABLES;')
     0
-
-    Confirm that table name is stored in temp_tables field, used for rollback and commit
-    >>> ex.temp_tables
-    ['test_users']
 
     Make sure no table has actually been created and commited.
     >>> ist = easy_db.Table.from_existing('INFORMATION_SCHEMA.TABLES').run(ex)
@@ -78,7 +85,8 @@ def CreateTableAction(ex, q):
     >>> ist = easy_db.Table.from_existing('INFORMATION_SCHEMA.TABLES').run(ex)
     >>> len(ist.select('table_name').where(ist.TABLE_NAME == 'test_users').run(ex))
     1
-
+    >>> ex.temp_tables
+    set()
     '''
     name = q.table_name
     temp_table_exists = name in ex.temp_tables
@@ -95,7 +103,7 @@ def CreateTableAction(ex, q):
         raise Exception('Argument 1 q is wrong type, should be CreateTable got %' % str(q_type))
 
     # Important, temp tables are stored in executer temp table without temp table prefix
-    ex.temp_tables.append(name)
+    ex.temp_tables.add(name)
     # Prefix added here for create query
     sql_str = make_query_with_temp_name(q).to_sql()
 
@@ -104,6 +112,7 @@ def CreateTableAction(ex, q):
     assert re.match(sql_preamble_re, sql_str)
 
     new_query = re.sub(sql_preamble_re, 'CREATE TEMPORARY TABLE', sql_str)
+    #print(new_query)
     res = ex.cur.execute(new_query)
 
     return ex_base.format_result(q_type, ex.cur)
@@ -111,17 +120,6 @@ def CreateTableAction(ex, q):
 
 def ListTablesAction(ex, q):
     '''
-    >>> _ = ex.cur.execute('DROP DATABASE IF EXISTS seneca_test;')
-    >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
-    >>> _ = ex.cur.execute('use seneca_test;')
-
-    >>> str(ListTablesAction(ex,ListTables()))
-    "SQLExecutionResult({'success': True, 'data': []})"
-
-    Result comes from temporary table record in executer:
-    >>> _ = CreateTableAction(ex, ct)
-    >>> str(ListTablesAction(ex,ListTables()))
-    "SQLExecutionResult({'success': True, 'data': ['test_users']})"
     '''
 #
 #    TODO: finish this tests
@@ -142,8 +140,8 @@ def ListTablesAction(ex, q):
     table_names = sql_ex_res.data
 
     table_names_temp = list(
-                         set( ex.temp_tables + \
-                              [t for t in table_names if t not in ex.soft_deleted_tables]
+                         set( ex.temp_tables | \
+                              {t for t in table_names if t not in ex.soft_deleted_tables}
                          )
                        )
     sql_ex_res.data = table_names_temp
@@ -154,35 +152,47 @@ def ListTablesAction(ex, q):
 
 def DropTableAction(ex, q):
     '''
-    Setup:
+    Clear state:
+    >>> ex = make_ex()
+    >>> _ = ex.rollback()
     >>> _ = ex.cur.execute('DROP DATABASE seneca_test;')
     >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
     >>> _ = ex.cur.execute('use seneca_test;')
+
+    Delete an uncommited table (temporary):
     >>> _ = CreateTableAction(ex, ct)
-    >>> _ = ex.commit()
+    >>> ex.temp_tables
+    {'test_users'}
+
+    >>> str(DropTableAction(ex, DropTable('test_users')))
+    "SQLExecutionResult({'success': True, 'data': 'Uncommitted table test_users has been deleted.'})"
+
+    >>> ex.temp_tables
+    set()
+
+
+    Clear state:
+    >>> ex = make_ex()
+    >>> _ = ex.rollback()
+    >>> _ = ex.cur.execute('DROP DATABASE seneca_test;')
+    >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
+    >>> _ = ex.cur.execute('use seneca_test;')
 
     Soft delete a table and confirm name has been added to the soft_delete list:
+    >>> _ = CreateTableAction(ex, ct)
+    >>> _ = ex.commit()
     >>> str(DropTableAction(ex, DropTable('test_users')))
     "SQLExecutionResult({'success': True, 'data': 'Table test_users has been soft-deleted.'})"
     >>> ex.soft_deleted_tables
-    ['test_users']
+    {'test_users'}
+    >>> ex.temp_tables
+    set()
+
+    >>> _ = ex.commit()
 
     Test that soft-deleting an already soft deleted table sends a failure:
     >>> str(DropTableAction(ex, DropTable('test_users')))
     'SQLExecutionResult({\\'success\\': False, \\'data\\': "SPITS ERROR: Attempting to delete a table that doesn\\'t logically exist"})'
-    >>> ex.commit()
-
-    '''
-    '''
-    Delete temporary table:
-    >>> _ = ex.cur.execute('DROP DATABASE seneca_test;')
-    >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
-    >>> _ = ex.cur.execute('use seneca_test;')
-    >>> _ = CreateTableAction(ex, ct)
-
-    >>> str(DropTableAction(ex, DropTable('test_users')))
-
-
     '''
     q_type = type(q)
 
@@ -194,15 +204,21 @@ def DropTableAction(ex, q):
     soft_delete_exists = name in ex.soft_deleted_tables
 
     if temp_table_exists:
+        # TODO: Make sure this is the right logic and in the right place
         assert permanent_table_exists == soft_delete_exists, "SPITS ERROR: Table delete status in inconsistent state."
+
         ex.cur.execute("DROP TEMPORARY TABLE %s" % temp_name)
         # TODO: validate result
+        ex.temp_tables.remove(name)
+        return ex_base.SQLExecutionResult(True, "Uncommitted table %s has been deleted." % name)
+
     elif permanent_table_exists and (not soft_delete_exists):
-        ex.soft_deleted_tables.append(name)
+        ex.soft_deleted_tables.add(name)
+        return ex_base.SQLExecutionResult(True, "Table %s has been soft-deleted." % name)
+
     else:
         return ex_base.SQLExecutionResult(False, 'SPITS ERROR: Attempting to delete a table that doesn\'t logically exist')
 
-    return ex_base.SQLExecutionResult(True, "Table %s has been soft-deleted." % name)
 
 
 special_action_query_dict = { CreateTable: CreateTableAction,
@@ -215,15 +231,17 @@ special_action_queries = list(special_action_query_dict.keys())
 # TODO: Dedupe with main executer
 class Executer(object):
     def __init__(self, username, password, db, host, port=3306):
+        ''' Tested below '''
         self.conn = MySQLdb.connect(host=host, user=username, passwd=password,
                                     db=db, port=port)
         self.conn.autocommit = False
         self.cur = self.conn.cursor()
-        self.temp_tables = []
-        self.soft_deleted_tables = []
+        self.temp_tables = set()
+        self.soft_deleted_tables = set()
 
     @classmethod
     def init_local_noauth_dev(cls, db_name='seneca_test'):
+        ''' Not testing this. '''
         s = cls('root', '', '', 'localhost')
         s.cur.execute('CREATE DATABASE IF NOT EXISTS {};'.format(db_name))
         s.cur.execute('use {};'.format(db_name))
@@ -260,7 +278,13 @@ SPITS does not have the needed info to execute this query.")
             # Note: This function may return a formated result, or it may reraise the error
             return handle_error(q_type, err)
 
+    def _clear(self):
+        self.temp_tables = set()
+        self.soft_deleted_tables = set()
+
+
     def commit(self):
+        ''' Tested elsewhere '''
         # DML commit
         self.conn.commit()
 
@@ -276,15 +300,14 @@ SPITS does not have the needed info to execute this query.")
             self.cur.execute(q_str)
 
         for t in self.soft_deleted_tables:
-            self.cur.execute("DROP TEMPORARY TABLE %s;" % make_temp_name(t))
+            self.cur.execute("DROP TABLE %s;" % t)
 
         # Purge internal scratch
-        self.temp_tables = []
-        self.soft_deleted_tables = []
-
+        self._clear()
 
 
     def rollback(self):
+        ''' Tested elsewhere '''
         # DML rollback
         self.conn.rollback()
 
@@ -293,9 +316,7 @@ SPITS does not have the needed info to execute this query.")
             self.cur.execute("DROP TEMPORARY TABLE %s;" % make_temp_name(t))
 
         # Purge internal scratch
-        self.temp_tables = []
-        self.soft_deleted_tables = []
-
+        self._clear()
 
     def many(self, queries):
         # TODO: Test the speed on this
@@ -309,6 +330,47 @@ SPITS does not have the needed info to execute this query.")
 
 
 def run_tests():
+    '''
+    Setup/clear state:
+    >>> ex = make_ex()
+    >>> _ = ex.rollback(); ex.soft_deleted_tables |  ex.temp_tables
+    set()
+    >>> _ = ex.cur.execute('DROP DATABASE IF EXISTS seneca_test;')
+    >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
+    >>> _ = ex.cur.execute('use seneca_test;')
+
+    List empty:
+    >>> str(ListTablesAction(ex,ListTables()))
+    "SQLExecutionResult({'success': True, 'data': []})"
+
+    Create temporary table:
+    >>> _ = CreateTableAction(ex, ct)
+    >>> ex.temp_tables
+    {'test_users'}
+
+    List with results from temporary table record in executer:
+    >>> str(ListTablesAction(ex,ListTables()))
+    "SQLExecutionResult({'success': True, 'data': ['test_users']})"
+
+    List with results from permanent table:
+    >>> ex.commit()
+    >>> ex.temp_tables
+    set()
+    >>> str(ListTablesAction(ex,ListTables()))
+    "SQLExecutionResult({'success': True, 'data': ['test_users']})"
+
+    Results exclude soft deleted table:
+    >>> str(DropTableAction(ex, DropTable('test_users')))
+    "SQLExecutionResult({'success': True, 'data': 'Table test_users has been soft-deleted.'})"
+
+    '''
+    '''
+    >>> ex.soft_deleted_tables
+    ['test_users']
+    >>> str(ListTablesAction(ex,ListTables()))
+    "SQLExecutionResult({'success': True, 'data': []})"
+
+    '''
     import configparser
     import os
     import sys
@@ -337,11 +399,12 @@ def run_tests():
 
     clear_db()
 
-    ex = Executer(settings.get('DB', 'username'),
-                   settings.get('DB', 'password'),
-                   settings.get('DB', 'database'),
-                   settings.get('DB', 'hostname'),
-                 )
+    def make_ex():
+        return Executer(settings.get('DB', 'username'),
+                        settings.get('DB', 'password'),
+                        settings.get('DB', 'database'),
+                        settings.get('DB', 'hostname'),
+               )
 
     import doctest
     import seneca.seneca_internal.storage.mysql_intermediate as mysqli
@@ -361,6 +424,7 @@ def run_tests():
                     extraglobs={'mysqli': mysqli,
                                 'easy_db': easy_db,
                                 'clear_db': clear_db,
-                                **locals()
+                                'make_ex': make_ex,
+                                'ct': ct,
                                 }
     )
