@@ -90,7 +90,7 @@ def is_ast_import(item):
 
 
 def seneca_module_name_to_path(name):
-    seneca_path = os.path.dirname(os.path.dirname(seneca.__file__))
+    seneca_path = os.path.dirname(os.path.dirname(__file__))
     slashed_name = os.path.abspath(os.path.join(seneca_path, *name.split('.')))
     if os.path.isdir(slashed_name):
         f_path = os.path.join(slashed_name, '__init__.py')
@@ -218,6 +218,9 @@ def execute_contract(*args, **kwargs):
 
     return ret
 
+def get_contract_exports(*args, **kwargs):
+    res = _execute_contract(*args, is_main=False, **kwargs)
+    return res
 
 def _execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=False, module_loader=None, db_executer=None):
     assert module_loader is not None, 'No module loader provided'
