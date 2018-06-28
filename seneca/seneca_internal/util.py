@@ -135,6 +135,7 @@ def manual_import(path, name):
     * Doesn't bind to scope, just returns value
     * TODO:What else???
     '''
+
     with open(path, 'r') as file:
         module_string = file.read()
 

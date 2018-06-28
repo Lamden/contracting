@@ -16,6 +16,7 @@ import warnings
 
 requires_commit = [ DeleteRows,
                     UpdateRows,
+                    SetRows,
                     InsertRows,
                     AddTableColumn,
                     DropTableColumn,
@@ -68,6 +69,7 @@ def format_result(q_type, cur):
                      DropTableColumn: simple_results,
                      InsertRows: id_count_results,
                      UpdateRows: id_count_results,
+                     SetRows: id_count_results,
                      SelectRows: full_data_results,
                      CountUniqueRows: full_data_results,
                      CountRows: col_1_row_1_results,
@@ -94,7 +96,6 @@ class Executer(object):
         s.cur.execute('CREATE DATABASE IF NOT EXISTS {};'.format(db_name))
         s.cur.execute('use {};'.format(db_name))
         s.conn.database = db_name
-
         return s
 
     def __call__(self, query):

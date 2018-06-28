@@ -13,6 +13,7 @@ permitted_ast_types = {
         ast.If,
         ast.FunctionDef,
         ast.GtE,
+        ast.LtE,
         ast.Load,
         ast.arg,
         ast.Add,
@@ -48,8 +49,18 @@ permitted_ast_types = {
         ast.Mod,
         ast.NotEq,
         # TODO: Decide if we actually want these
+        # Error handling
         ast.ExceptHandler,
         ast.Try,
+        # comprehension
+        ast.ListComp,
+        ast.comprehension,
+        ast.Slice,
+        ast.USub,
+        # Conditonals
+        ast.BoolOp,
+        ast.And,
+        ast.Or
     }
 
 def validate(a):

@@ -40,7 +40,7 @@ class Tabular(object):
         self.underlying_obj = underlying_obj
 
         # TODO: Totally not secure for untrusted contracts. Change this completely!!!
-        #if type(underlying_obj) == db.Table:
+        # if type(underlying_obj) == db.Table:
         #    underlying_obj._name = add_name_space(underlying_obj._name)
 
 
@@ -125,14 +125,18 @@ exports = {
 def run_tests():
     ## SETUP ##
     global ex
+    global name_space
 
     import sys
+    from os.path import abspath, dirname
     import configparser
     from seneca.seneca_internal.storage.mysql_executer import Executer
 
     settings = configparser.ConfigParser()
     settings._interpolation = configparser.ExtendedInterpolation()
-    settings.read('../../seneca_internal/storage/test_db_conf.ini')
+    settings.read(abspath('seneca/seneca_internal/storage/test_db_conf.ini'))
+
+    name_space = 'test_tabular'
 
     ex_ = Executer(settings.get('DB', 'username'),
                    settings.get('DB', 'password'),
@@ -153,8 +157,11 @@ def run_tests():
     ## END SETUP ##
     print('****** STARTING TESTS******')
 
-    print(drop_table('users'))
-    print('DROPPED TABLE')
+    try:
+        print(drop_table('users'))
+        print('DROPPED TABLE')
+    except:
+        print('Table "users" not already created skipping...')
 
     u = create_table('users', [
     ('first_name', str_len(30), True),
