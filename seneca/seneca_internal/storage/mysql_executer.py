@@ -9,6 +9,7 @@ TODOs:
     * Table already exists
     * What else?
   * Make sure we're using cursor correctly
+  * Construct executer from existing connection (mainly for testing)
 '''
 import MySQLdb
 from seneca.seneca_internal.storage.mysql_intermediate import *

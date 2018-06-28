@@ -1,7 +1,6 @@
 '''
-TODO: IMPORTANT: Don't allow overlapping temp and permanent table names
-
 TODO: complex stuff, soft delete a permanent, create temporary, delete temporary
+TODO: forbid queries with names matching temp tables
 '''
 import sys
 
@@ -332,43 +331,108 @@ SPITS does not have the needed info to execute this query.")
 def run_tests():
     '''
     Setup/clear state:
-    >>> ex = make_ex()
-    >>> _ = ex.rollback(); ex.soft_deleted_tables |  ex.temp_tables
+    >>> spex, bex = make_test_exes()
+    >>> _ = spex.rollback(); spex.soft_deleted_tables |  spex.temp_tables
     set()
-    >>> _ = ex.cur.execute('DROP DATABASE IF EXISTS seneca_test;')
-    >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
-    >>> _ = ex.cur.execute('use seneca_test;')
+    >>> _ = spex.cur.execute('DROP DATABASE IF EXISTS seneca_test;')
+    >>> _ = spex.cur.execute('CREATE DATABASE seneca_test;')
+    >>> _ = spex.cur.execute('use seneca_test;')
 
     List empty:
-    >>> str(ListTablesAction(ex,ListTables()))
+    >>> str(ListTablesAction(spex,ListTables()))
     "SQLExecutionResult({'success': True, 'data': []})"
 
     Create temporary table:
-    >>> _ = CreateTableAction(ex, ct)
-    >>> ex.temp_tables
+    >>> _ = CreateTableAction(spex, ct)
+    >>> spex.temp_tables
     {'test_users'}
 
     List with results from temporary table record in executer:
-    >>> str(ListTablesAction(ex,ListTables()))
+    >>> str(ListTablesAction(spex,ListTables()))
     "SQLExecutionResult({'success': True, 'data': ['test_users']})"
 
     List with results from permanent table:
-    >>> ex.commit()
-    >>> ex.temp_tables
+    >>> spex.commit()
+    >>> spex.temp_tables
     set()
-    >>> str(ListTablesAction(ex,ListTables()))
+    >>> str(ListTablesAction(spex,ListTables()))
     "SQLExecutionResult({'success': True, 'data': ['test_users']})"
 
     Results exclude soft deleted table:
-    >>> str(DropTableAction(ex, DropTable('test_users')))
+    >>> str(DropTableAction(spex, DropTable('test_users')))
     "SQLExecutionResult({'success': True, 'data': 'Table test_users has been soft-deleted.'})"
 
-    '''
-    '''
-    >>> ex.soft_deleted_tables
-    ['test_users']
-    >>> str(ListTablesAction(ex,ListTables()))
+    Verify soft delete of commited table:
+    >>> spex.soft_deleted_tables
+    {'test_users'}
+    >>> str(ListTablesAction(spex,ListTables()))
     "SQLExecutionResult({'success': True, 'data': []})"
+
+    Create and delete with commited table that's soft deleted:
+    >>> _ = CreateTableAction(spex, ct)
+    >>> spex.temp_tables
+    {'test_users'}
+    >>> spex.soft_deleted_tables
+    {'test_users'}
+
+    >>> ist = easy_db.Table.from_existing('INFORMATION_SCHEMA.TABLES').run(spex)
+
+    Confirm permanent table still exists
+    >>> len(ist.select('table_name').where(ist.TABLE_NAME == 'test_users').run(spex))
+    1
+
+    #### Confirm temporary table exists ####
+    >>> tmp = easy_db.Table.from_existing(make_temp_name(ct.table_name)).run(spex)
+    >>> tmp.count().run(spex)
+    0
+
+    >>> _ = spex.rollback()
+
+    Confirm permanent table still exists
+    >>> len(ist.select('table_name').where(ist.TABLE_NAME == 'test_users').run(spex))
+    1
+    >>> spex.temp_tables
+    set()
+    >>> spex.soft_deleted_tables
+    set()
+
+    Confirm temporary table gone
+    >>> try:
+    ...     tmp = easy_db.Table.from_existing(make_temp_name(ct.table_name)).run(bex)
+    ... except Exception as e:
+    ...     print(e)
+    {'error_code': 1146, 'error_message': "Table 'seneca_test.$temp$test_users' doesn't exist"}
+
+
+    #### TEST: Write to temporary table ####
+    Setup/clear state:
+    >>> spex, bex = make_test_exes()
+    >>> _ = spex.rollback(); spex.soft_deleted_tables |  spex.temp_tables
+    set()
+    >>> _ = spex.cur.execute('DROP DATABASE IF EXISTS seneca_test;')
+    >>> _ = spex.cur.execute('CREATE DATABASE seneca_test;')
+    >>> _ = spex.cur.execute('use seneca_test;')
+
+    Create temporary table:
+    >>> _ = CreateTableAction(spex, ct)
+    >>> spex.temp_tables
+    {'test_users'}
+    >>> tmp = easy_db.Table.from_existing(ct.table_name).run(spex)
+    >>> tmp.count().run(spex)
+    0
+    >>> tmp.insert([{'username':'test_perm'}]).run(spex)
+    {'last_row_id': 1, 'row_count': 1}
+    >>> tmp.count().run(spex)
+    1
+    >>> tmp_with_tmp_name = easy_db.Table.from_existing(make_temp_name(ct.table_name)).run(bex)
+    >>> tmp_with_tmp_name.count().run(bex)
+    1
+    >>> _ = spex.commit()
+
+    >>> tmp.count().run(bex)
+    1
+    >>> tmp.count().run(spex)
+    1
 
     '''
     import configparser
@@ -399,6 +463,21 @@ def run_tests():
 
     clear_db()
 
+    def make_test_exes():
+        spex = Executer(settings.get('DB', 'username'),
+                        settings.get('DB', 'password'),
+                        settings.get('DB', 'database'),
+                        settings.get('DB', 'hostname'),
+               )
+        bex = ex_base.Executer(settings.get('DB', 'username'),
+                        settings.get('DB', 'password'),
+                        settings.get('DB', 'database'),
+                        settings.get('DB', 'hostname'),
+               )
+        bex.conn = spex.conn
+        bex.cur = spex.cur
+        return spex, bex
+
     def make_ex():
         return Executer(settings.get('DB', 'username'),
                         settings.get('DB', 'password'),
@@ -420,11 +499,4 @@ def run_tests():
             ColumnDefinition('balance', SQLType('BIGINT'), False),
     ])
 
-    doctest.testmod(sys.modules[__name__],
-                    extraglobs={'mysqli': mysqli,
-                                'easy_db': easy_db,
-                                'clear_db': clear_db,
-                                'make_ex': make_ex,
-                                'ct': ct,
-                                }
-    )
+    doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
