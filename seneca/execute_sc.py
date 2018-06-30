@@ -204,7 +204,14 @@ class ContractExecutionResult(object):
         return self.passed
 
 
+def get_read_only_contract_obj(*args, **kwargs):
+    kwargs['is_main'] = False
+    #TODO: assert read only db executer
+    return _execute_contract(*args, **kwargs)
+
+
 def execute_contract(*args, **kwargs):
+    kwargs['is_main'] = True
     ret = ContractExecutionResult()
     try:
         res = _execute_contract(*args, **kwargs)

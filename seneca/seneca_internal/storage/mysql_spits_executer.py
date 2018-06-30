@@ -3,7 +3,6 @@ TODO: complex stuff, soft delete a permanent, create temporary, delete temporary
 TODO: forbid queries with names matching temp tables
 '''
 import sys
-
 import re
 import copy
 import MySQLdb
@@ -254,7 +253,9 @@ class Executer(object):
 
         try:
             if q_type in unalterted_queries:
-                if query.table_name in self.soft_deleted_tables:
+
+                if (query.table_name in self.soft_deleted_tables
+                    and query.table_name not in self.temp_tables):
                     raise Exception("Table does not exist, (soft deleted).")
 
                 if query.table_name in self.temp_tables:

@@ -17,6 +17,8 @@ Representations are serializable and easy to analyze and augment.
 * TODO: get_table
 * TODO: add order_by and limit to delete query
 
+* TODO: Make API more consistent across inserts, updates, and upserts
+
 NOTE: This module doesn't handle security, that must be done upstream.
 
 NOTE: We don't enforce caller to have any criteria, i.e. without "WHERE" all
@@ -232,7 +234,10 @@ class UpdateRows(Query):
           'LIMIT %d' % self.limit if self.limit else None,
         ]) + ';'
 
+# TODO: Change name to UpsertRows, see if this should actually be implemented with REPLACE
 class SetRows(Query):
+    # TODO: add unit test.
+    # TODO: add query criterion and limit
     def __init__(self, table_name, list_of_values_lists):
         self.table_name = table_name
         # NOTE: Casting lists to tuples to ensure consistent types
