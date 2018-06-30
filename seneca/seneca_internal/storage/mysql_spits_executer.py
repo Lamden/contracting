@@ -1,6 +1,8 @@
 '''
 TODO: complex stuff, soft delete a permanent, create temporary, delete temporary
 TODO: forbid queries with names matching temp tables
+
+TODO: Currently circumventing main code block that selects special query actions
 '''
 import sys
 import re
@@ -86,6 +88,7 @@ def CreateTableAction(ex, q):
     >>> ex.temp_tables
     set()
     '''
+    
     name = q.table_name
     temp_table_exists = name in ex.temp_tables
     permanent_table_exists = 0 < ex.cur.execute("SELECT table_name FROM INFORMATION_SCHEMA.TABLES where table_name = '{}'".format(name))
@@ -268,7 +271,7 @@ class Executer(object):
                 raise Exception('Dissallowed query. Incompatible with SPITS.')
 
             elif q_type in special_action_queries:
-                return special_action_query_dict(q_type)(self, query)
+                return special_action_query_dict[q_type](self, query)
 
             else:
                 raise Exception("Unrecognized query type. \
@@ -276,7 +279,7 @@ SPITS does not have the needed info to execute this query.")
 
         except Exception as err:
             # Note: This function may return a formated result, or it may reraise the error
-            return handle_error(q_type, err)
+            return ex_base.handle_error(q_type, err)
 
     def _clear(self):
         self.temp_tables = set()
