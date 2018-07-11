@@ -26,5 +26,6 @@ def make_exports(global_runtime_data, this_contract_runtime_data):
         'global_run_data': make_n_tup({
             'author': global_runtime_data['caller_user_id'],
             'address': global_runtime_data['caller_contract_id']
-        })
+        }),
+        'call_stack': global_runtime_data['call_stack']
     }
