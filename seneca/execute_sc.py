@@ -203,14 +203,14 @@ class ContractExecutionResult(object):
     def __bool__(self):
         return self.passed
 
-
+#TODO NOTE to Carl: reafactor this
 def get_read_only_contract_obj(*args, **kwargs):
     kwargs['is_main'] = False
     #TODO: assert read only db executer
     args[0]['call_stack'] = []
     return _execute_contract(*args, **kwargs)
 
-
+#TODO NOTE to Carl: reafactor this
 def execute_contract(*args, **kwargs):
     kwargs['is_main'] = True
     ret = ContractExecutionResult()
