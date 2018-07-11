@@ -60,6 +60,8 @@ sql_python_type_alist = [ ('BIGINT', int),
                           ('DATETIME', datetime),
                           ('BOOLEAN', bool),
                           ('DOUBLE', float),
+                          ('TEXT', list),
+                          ('TEXT', set)
 ]
 
 valid_mysql_types = [x[0] for x in sql_python_type_alist]
@@ -129,16 +131,23 @@ def none_handler_decorator(f):
 
 
 def get_py_to_sql_cast_func(py_type):
+
     casting_func_dict = {
       int: lambda x: str(x),
       float: lambda x: str(x),
       str: lambda x: "'%s'" % str(mysql_escape(x), 'utf-8'),
       datetime: lambda x:'\'%s\'' % x.strftime('%Y-%m-%d %H:%M:%S'),
       bool: lambda x: 'TRUE' if x else 'FALSE',
-      list: lambda x: "'%s'" % ';'.join([
-        '{},{}'.format(str(xi),type(xi).__name__) for xi in x
-        if type(xi).__name__ in supported_python_types
-        ]),
+      set: lambda x: "'%s'" % ','.join(x),
+      list: lambda x: "'%s'" % ','.join(list(x)),
+      # set: lambda x: "'%s'" % ';'.join([
+      #   '{},{}'.format(str(xi),type(xi).__name__) for xi in list(x)
+      #   if type(xi).__name__ in supported_python_types
+      #   ]),
+      # list: lambda x: "'%s'" % ';'.join([
+      #   '{},{}'.format(str(xi),type(xi).__name__) for xi in x
+      #   if type(xi).__name__ in supported_python_types
+      #   ])
     }
 
     casting_func_dict = {k: none_handler_decorator(f) for (k, f) in casting_func_dict.items()}
@@ -160,12 +169,20 @@ def get_str_to_py_cast_func(str_type):
       'str': lambda x: '\'%s\'' % str(mysql_escape(x), 'utf-8'),
       'datetime': lambda x: parse_time(x),
       'bool': lambda x: bool(x),
-      'list': lambda x: [
-        parse_time(i.split(',')[0]) if
-            i.split(',')[1] == 'datetime' else
-            locate(i.split(',')[1])(i.split(',')[0])
-            for i in x.split(';') if i.split(',')[1] in supported_python_types
-      ],
+      'set': lambda x: set(x.split(',')),
+      'list': lambda x: x.split(','),
+      # 'list': lambda x: [
+      #   parse_time(i.split(',')[0]) if
+      #       i.split(',')[1] == 'datetime' else
+      #       locate(i.split(',')[1])(i.split(',')[0])
+      #       for i in x.split(';') if i.split(',')[1] in supported_python_types
+      # ],
+      # 'set': lambda x: [
+      #   parse_time(i.split(',')[0]) if
+      #       i.split(',')[1] == 'datetime' else
+      #       locate(i.split(',')[1])(i.split(',')[0])
+      #       for i in list(x).split(';') if i.split(',')[1] in supported_python_types
+      # ],
     }
     return casting_func_dict[str_type]
 
