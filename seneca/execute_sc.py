@@ -225,6 +225,9 @@ def execute_contract(*args, **kwargs):
 
     return ret
 
+def get_contract_exports(*args, **kwargs):
+    res = _execute_contract(*args, is_main=False, **kwargs)
+    return res
 
 def _execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=False, module_loader=None, db_executer=None):
     assert module_loader is not None, 'No module loader provided'
