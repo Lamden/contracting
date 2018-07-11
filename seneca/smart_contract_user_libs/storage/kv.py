@@ -33,8 +33,11 @@ class KV(object):
             assert ex is not None, 'Mysql executer has not been set.'
             res = self.underlying_obj(ex)
             if hasattr(res, 'rows'):
-                v, t = res.rows[0]
-                return get_str_to_py_cast_func(t)(v)
+                if len(res.rows) > 0:
+                    v, t = res.rows[0]
+                    return get_str_to_py_cast_func(t)(v)
+                else:
+                    return None
             return res
         else:
             return KV(self.underlying_obj(*args, **kwargs))
