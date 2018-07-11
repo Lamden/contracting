@@ -1,5 +1,10 @@
 import pickle
-from datetime import datetime #TODO datetime.datetime.now() shall be implemented / modified
+#TODO datetime.datetime.now() shall be implemented / modified
+from datetime import datetime
+from datetime import timedelta
+
+#TODO please change so that it can be imported from seneca_internal
+supported_db_types = [int, str, bool, float, list, set]
 
 class enum(dict):
     def __init__(self, *args, **kwargs):
@@ -13,7 +18,9 @@ class enum(dict):
 exports = {
     'pickle': pickle,
     'datetime': datetime,
-    'enum': enum
+    'timedelta': timedelta,
+    'enum': enum,
+    'supported_db_types': supported_db_types
 }
 
 def run_tests():
