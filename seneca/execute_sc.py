@@ -207,6 +207,7 @@ class ContractExecutionResult(object):
 def get_read_only_contract_obj(*args, **kwargs):
     kwargs['is_main'] = False
     #TODO: assert read only db executer
+    args[0]['call_stack'] = []
     return _execute_contract(*args, **kwargs)
 
 
