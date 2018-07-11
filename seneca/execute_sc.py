@@ -203,16 +203,20 @@ class ContractExecutionResult(object):
     def __bool__(self):
         return self.passed
 
-
+#TODO NOTE to Carl: reafactor this
 def get_read_only_contract_obj(*args, **kwargs):
     kwargs['is_main'] = False
     #TODO: assert read only db executer
+    args[0]['call_stack'] = []
     return _execute_contract(*args, **kwargs)
 
-
+#TODO NOTE to Carl: reafactor this
 def execute_contract(*args, **kwargs):
     kwargs['is_main'] = True
     ret = ContractExecutionResult()
+
+    # TODO: make this not suck, adding callstack stuff
+    args[0]['call_stack'] = []
     try:
         res = _execute_contract(*args, **kwargs)
         ret.passed = True
@@ -256,8 +260,13 @@ def _execute_contract(global_run_data, this_contract_run_data, contract_str, is_
                     append_sandboxed_scope(module_scope, imp, s_exports)
 
                 elif imp['module_type'] == 'smart_contract':
+                    child_grd = global_run_data.copy()
+                    child_call_stack = global_run_data['call_stack'].copy()
+                    child_call_stack.append((this_contract_run_data['author'], this_contract_run_data['contract_id']))
+                    child_grd['call_stack'] = child_call_stack
+
                     downstream_contract_run_data, downstream_contract_str = module_loader(imp['module_path'])
-                    c_exports = _execute_contract(global_run_data,
+                    c_exports = _execute_contract(child_grd,
                                                  downstream_contract_run_data,
                                                  downstream_contract_str,
                                                  is_main=False,
