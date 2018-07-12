@@ -87,21 +87,44 @@ def CreateTableAction(ex, q):
     1
     >>> ex.temp_tables
     set()
+
+    Dimensions of scenarios
+    * (P)ermanent table exists [True, False]
+    * (S)oft delete flag exists [True, False]
+    * (T)empoary table exists [True, False]
+    * (I)f_not_exists set on query [True, False]
+
+    * P=True, S=False, T=True, I=any -> Exception (two version of table temp and per logically exist, this should never happen)
+    * P=False, S=True, T=any, I=any -> Exception (soft delete but no permanent table to be soft deleted, this should never happen)
+
+    ----
+    * P=True, S=True, T=False, I=any -> run query not as temp query to create table
+
+    * P=True, S=True, T=True, I=False -> run query as temp TODO: verify that running temp query with I=False generates an SQL error
+    * P=True, S=True, T=True, I=True -> run query as temp TODO: verify that with I=True on temp table it does the correct thing, create the table
+
+    * P=S, T=True, I=True -> run query as temp verify it works correctly with I on a temp table
+    * P=S, T=False, I=any -> run a temporary query, create the temp table
     '''
-    
+
     name = q.table_name
     temp_table_exists = name in ex.temp_tables
     permanent_table_exists = 0 < ex.cur.execute("SELECT table_name FROM INFORMATION_SCHEMA.TABLES where table_name = '{}'".format(name))
     soft_delete_exists = name in ex.soft_deleted_tables
+    #q.if_not_exists
 
     q_type = type(q)
+    assert q_type == CreateTable, 'Argument 1 q is wrong type, should be CreateTable got %' % str(q_type)
 
-    if temp_table_exists:
-        raise Exception('SPITS: Table already logically exists (as temp).')
-    elif permanent_table_exists and (not soft_delete_exists):
-        raise Exception('SPITS: Table already exists')
-    elif q_type != CreateTable:
-        raise Exception('Argument 1 q is wrong type, should be CreateTable got %' % str(q_type))
+    # TODO: Consistency check could be performed (almost) any time, find other places it should be run.
+    if permanent_table_exists and (not soft_delete_exists) and temp_table_exists:
+        Exception("SPITS is an inconsitent state, temp table and permanent table exists, but no soft delete record is present!!!")
+
+    if (not permanent_table_exists) and soft_delete_exists:
+        Exception("SPITS is an inconsitent state, soft delete record present but permanent table missing!!!")
+
+
+
 
     # Important, temp tables are stored in executer temp table without temp table prefix
     ex.temp_tables.add(name)
