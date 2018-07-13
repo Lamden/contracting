@@ -88,6 +88,8 @@ def CreateTableAction(ex, q):
     >>> ex.temp_tables
     set()
 
+    TODO: More unit tests on this.
+
     Dimensions of scenarios
     * (P)ermanent table exists [True, False]
     * (S)oft delete flag exists [True, False]
@@ -96,12 +98,8 @@ def CreateTableAction(ex, q):
 
     * P=True, S=False, T=True, I=any -> Exception (two version of table temp and per logically exist, this should never happen)
     * P=False, S=True, T=any, I=any -> Exception (soft delete but no permanent table to be soft deleted, this should never happen)
-
-    ----
     * P=True, S=True, T=False, I=any -> run query not as temp query to create table
-
-    * P=True, S=True, T=True, I=False -> run query as temp TODO: verify that running temp query with I=False generates an SQL error
-    * P=True, S=True, T=True, I=True -> run query as temp TODO: verify that with I=True on temp table it does the correct thing, create the table
+    ----
 
     * P=S, T=True, I=True -> run query as temp verify it works correctly with I on a temp table
     * P=S, T=False, I=any -> run a temporary query, create the temp table
@@ -116,30 +114,30 @@ def CreateTableAction(ex, q):
     q_type = type(q)
     assert q_type == CreateTable, 'Argument 1 q is wrong type, should be CreateTable got %' % str(q_type)
 
-    # TODO: Consistency check could be performed (almost) any time, find other places it should be run.
     if permanent_table_exists and (not soft_delete_exists) and temp_table_exists:
-        Exception("SPITS is an inconsitent state, temp table and permanent table exists, but no soft delete record is present!!!")
+        Exception("SPITS is in an inconsitent state, temp table and permanent table exists, but no soft delete record is present!!!")
 
     if (not permanent_table_exists) and soft_delete_exists:
-        Exception("SPITS is an inconsitent state, soft delete record present but permanent table missing!!!")
+        Exception("SPITS is in an inconsitent state, soft delete record present but permanent table missing!!!")
 
+    if permanent_table_exists and (not soft_delete_exists):
+        if q.if_not_exists:
+            pass # Already exists, query has if_not_exists, nothing to do.
+        else:
+            Exception("SPITS error, permanent table already exists.")
+    else:
+        # Important, temp tables are stored in executer temp table without temp table prefix
+        ex.temp_tables.add(name)
+        # Prefix added here for create query
+        sql_str = make_query_with_temp_name(q).to_sql()
 
+        # NOTE: A little janky
+        sql_preamble_re = re.compile('^CREATE TABLE')
+        assert re.match(sql_preamble_re, sql_str)
+        new_query = re.sub(sql_preamble_re, 'CREATE TEMPORARY TABLE', sql_str)
+        res = ex.cur.execute(new_query)
 
-
-    # Important, temp tables are stored in executer temp table without temp table prefix
-    ex.temp_tables.add(name)
-    # Prefix added here for create query
-    sql_str = make_query_with_temp_name(q).to_sql()
-
-    # NOTE: A little janky
-    sql_preamble_re = re.compile('^CREATE TABLE')
-    assert re.match(sql_preamble_re, sql_str)
-
-    new_query = re.sub(sql_preamble_re, 'CREATE TEMPORARY TABLE', sql_str)
-    #print(new_query)
-    res = ex.cur.execute(new_query)
-
-    return ex_base.format_result(q_type, ex.cur)
+        return ex_base.format_result(q_type, ex.cur)
 
 
 def ListTablesAction(ex, q):
