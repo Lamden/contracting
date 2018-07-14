@@ -177,7 +177,7 @@ def get_str_to_py_cast_func(str_type):
       #       locate(i.split(',')[1])(i.split(',')[0])
       #       for i in x.split(';') if i.split(',')[1] in supported_python_types
       # ],
-      # 'set': lambda x: [
+      # 'set': lambda x: set([
       #   parse_time(i.split(',')[0]) if
       #       i.split(',')[1] == 'datetime' else
       #       locate(i.split(',')[1])(i.split(',')[0])
