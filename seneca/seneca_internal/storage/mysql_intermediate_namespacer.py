@@ -25,6 +25,7 @@ import seneca.seneca_internal.storage.mysql_intermediate as m_i
 
 
 def name_space_isql(prefix, isql_obj):
+    pass
     # Determine what kind of type
 
     # Run correct conversion

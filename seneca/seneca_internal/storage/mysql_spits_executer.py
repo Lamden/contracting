@@ -460,33 +460,6 @@ def run_tests():
     1
 
     '''
-    import configparser
-    import os
-    import sys
-
-    settings = configparser.ConfigParser()
-    settings._interpolation = configparser.ExtendedInterpolation()
-    this_dir = os.path.dirname(__file__)
-    settings.read(os.path.join(this_dir, 'test_db_conf.ini'))
-
-    conn = MySQLdb.connect(host=settings.get('DB', 'hostname'),
-                           user=settings.get('DB', 'username'),
-                           passwd=settings.get('DB', 'password'),
-                           port=3306)
-    conn.autocommit = False
-    cur = conn.cursor()
-
-    def clear_db():
-        print("Clearing db...")
-        try:
-            cur.execute('DROP DATABASE seneca_test;')
-        except MySQLdb.OperationalError as e:
-            if not e.args == (1008, "Can't drop database 'seneca_test'; database doesn't exist"):
-                raise
-        cur.execute('CREATE DATABASE seneca_test;')
-        print("DB cleared.")
-
-    clear_db()
 
     def make_test_exes():
         spex = Executer(settings.get('DB', 'username'),
