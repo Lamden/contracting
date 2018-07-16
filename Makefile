@@ -12,4 +12,10 @@ kill: myrocks-docker-kill
 run: kill myrocks-docker-run
 
 coverage:
-	coverage run --source seneca seneca/test.py && coverage report --fail-under=100
+	coverage run --source seneca seneca/test.py && coverage report -m --fail-under=100 --omit=seneca/test.py,seneca/smart_contract_tester.py
+
+static-analysis:
+	false
+
+test:
+	true
