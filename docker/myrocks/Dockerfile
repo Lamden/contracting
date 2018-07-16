@@ -43,6 +43,9 @@ RUN yum clean all
 # Copy config and install db
 COPY ./my.cnf /etc/opt/my.cnf
 
+COPY ./start_mysql.sh /usr/local/bin/start_mysql.sh
+RUN chmod +x /usr/local/bin/start_mysql.sh
+
 RUN cd /opt/mysql/usr/local/mysql/ && ./scripts/mysql_install_db --defaults-file=/etc/opt/my.cnf
 
 # Open mysql daemon port
@@ -51,26 +54,18 @@ EXPOSE 3306
 RUN useradd -ms /bin/bash mysql
 RUN chown -R mysql:mysql /opt/mysql/usr/local/mysql/data
 
-ARG CACHEBUST=1
-RUN cd /opt/mysql/usr/local/mysql/ && ./bin/mysqld_safe & \
-echo "Waiting for mysqld to start..." && \
-sleep 5 && \
-PW=$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-10};echo;) && \
-U='seneca_test' && \
-DB='seneca_test' && \
-cd /opt/mysql/usr/local/mysql/ && ./bin/mysql -e "CREATE DATABASE $DB /*\!40100 DEFAULT CHARACTER SET utf8 */;" && \
-cd /opt/mysql/usr/local/mysql/ && ./bin/mysql -e "CREATE USER $U@localhost IDENTIFIED BY '$PW';" && \
-cd /opt/mysql/usr/local/mysql/ && ./bin/mysql -e "GRANT ALL ON *.* to $U@'%' IDENTIFIED BY '$PW';" && \
-cd /opt/mysql/usr/local/mysql/ && ./bin/mysql -e "FLUSH PRIVILEGES;" && \
-P=$(ps aux | grep /bin/mysqld | grep -v grep | awk '{print $2}') && \
-kill -9 $P && \
-echo "" && \
-echo "Listening on 3306, login with mysql --protocol=TCP -u $U --password=$PW" && \
-echo "Kill with 'docker kill', mysql is very stubborn, it doesn't close on sigint/sigkill" && \
-echo ""
+#RUN P=$(ps aux | grep /bin/mysqld | grep -v grep | awk '{print $2}') && \
+#kill -9 $P && \
+#echo "" && \
+#echo "Kill with 'docker kill', mysql is very stubborn, it doesn't close on sigint or sigkill" && \
+#echo ""
 
-CMD cd /opt/mysql/usr/local/mysql/ && ./bin/mysqld_safe
-
-#mysql --protocol=TCP -u test --password=test
-#docker run -it --entrypoint /bin/bash temp
-#docker kill `docker ps --format "table {{.Names}}" --filter "ancestor=temp" | tail -n +2`
+ENTRYPOINT ["/usr/local/bin/start_mysql.sh"]
+#CMD cd /opt/mysql/usr/local/mysql/ && ./bin/mysqld_safe & \
+#echo "Waiting for mysqld to start..." && \
+#sleep 5 && \
+#cd /opt/mysql/usr/local/mysql/ && ./bin/mysql -e "CREATE DATABASE $DB_DB_NAME /*\!40100 DEFAULT CHARACTER SET utf8 */;" && \
+#cd /opt/mysql/usr/local/mysql/ && ./bin/mysql -e "CREATE USER $DB_USER@localhost IDENTIFIED BY '$DB_PASSWORD';" && \
+#cd /opt/mysql/usr/local/mysql/ && ./bin/mysql -e "GRANT ALL ON *.* to $DB_USER@'%' IDENTIFIED BY '$DB_PASSWORD';" && \
+#cd /opt/mysql/usr/local/mysql/ && ./bin/mysql -e "FLUSH PRIVILEGES;" && \
+#cd /opt/mysql/usr/local/mysql/ && ./bin/mysqld_safe
