@@ -10,3 +10,6 @@ myrocks-docker-kill:
 
 kill: myrocks-docker-kill
 run: kill myrocks-docker-run
+
+coverage:
+	coverage run --source seneca seneca/test.py && coverage report --fail-under=100

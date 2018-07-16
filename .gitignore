@@ -4,3 +4,4 @@ venv
 build
 dist
 seneca.egg-info
+.coverage
