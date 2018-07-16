@@ -11,11 +11,12 @@ import glob
 import warnings
 import configparser
 import MySQLdb
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import functional_tester as ft
 
 print('>>>>> Starting test module')
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--path", help="Path of the module you want to test.")
@@ -33,10 +34,8 @@ def test_py_file(fp):
     print('* Module loaded.')
     return m1.run_tests()
 
-def test_seneca_file(fp):
-    import functional_tester as ft
-    #TODO: fix this
-    #ft(fp)
+def test_seneca_file(c):
+    return ft.run_contract(c)
 
 
 c_dir = os.path.dirname(os.path.realpath(__file__))
@@ -93,9 +92,9 @@ else:
             print(e)
 
     # TODO: fix this
+    ft.set_up()
     for s in r_get_by_ext('seneca'):
         test_seneca_file(s)
-    ft.main()
 
 
 print('... DONE ...')

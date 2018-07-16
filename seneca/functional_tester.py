@@ -23,65 +23,65 @@ from seneca.seneca_internal.storage.mysql_executer import Executer
 def show(*args, **kwargs):
     print('FT:', *args, **kwargs)
 
-settings = configparser.ConfigParser()
-settings._interpolation = configparser.ExtendedInterpolation()
-this_dir = os.path.dirname(__file__)
-db_conf_path = os.path.join(this_dir, 'seneca_internal/storage/test_db_conf.ini')
-
-settings.read(db_conf_path)
-
-# For testing with unauthenticated local mysql instance, use 'Executer.init_local_noauth_dev()' instead.
-ex_ = Executer(settings.get('DB', 'username'),
-               settings.get('DB', 'password'),
-               settings.get('DB', 'database'),
-               settings.get('DB', 'hostname'),
-              )
+ex_ = None
 
 def ex(obj):
-    #show('Running Query:')
-    #show(obj.to_sql())
     res = ex_(obj)
-    #show(res)
-    #show('\n')
     return res
 
 
-## Setup steps ##
-contract_file_path = os.path.join(this_dir, 'example_contracts/')
+def set_up():
+    global ex_, contract_table
+    settings = configparser.ConfigParser()
+    settings._interpolation = configparser.ExtendedInterpolation()
+    this_dir = os.path.dirname(__file__)
+    db_conf_path = os.path.join(this_dir, 'seneca_internal/storage/test_db_conf.ini')
 
-try:
-    ex_.raw('drop database seneca_test;')
-except Exception as e:
-    if e.args[0]['error_code'] == 1046:
-        pass
-    else:
-        raise
+    settings.read(db_conf_path)
 
-ex_.raw('create database seneca_test;')
-ex_.raw('use seneca_test;')
+    # For testing with unauthenticated local mysql instance, use 'Executer.init_local_noauth_dev()' instead.
+    ex_ = Executer(settings.get('DB', 'username'),
+                   settings.get('DB', 'password'),
+                   settings.get('DB', 'database'),
+                   settings.get('DB', 'hostname'),
+                  )
 
-contract_table = t.Table('smart_contracts',
-    t.Column('contract_address', t.str_len(30), True),
-    [ t.Column('code_str', str),
-      t.Column('author', t.str_len(60)),
-      t.Column('execution_datetime', datetime),
-      t.Column('execution_status', t.str_len(30)),
-    ]
-)
+    ## Setup steps ##
+    contract_file_path = os.path.join(this_dir, 'example_contracts/')
 
-try:
-    contract_table.drop_table().run(ex)
-except Exception as e:
-    if e.args[0]['error_code'] == 1051:
-        pass
-    else:
-        raise
+    try:
+        ex_.raw('drop database seneca_test;')
+    except Exception as e:
+        if e.args[0]['error_code'] == 1046:
+            pass
+        else:
+            raise
 
-contract_table.create_table().run(ex)
+    ex_.raw('create database seneca_test;')
+    ex_.raw('use seneca_test;')
+
+    contract_table = t.Table('smart_contracts',
+        t.Column('contract_address', t.str_len(30), True),
+        [ t.Column('code_str', str),
+          t.Column('author', t.str_len(60)),
+          t.Column('execution_datetime', datetime),
+          t.Column('execution_status', t.str_len(30)),
+        ]
+    )
+
+    try:
+        contract_table.drop_table().run(ex)
+    except Exception as e:
+        if e.args[0]['error_code'] == 1051:
+            pass
+        else:
+            raise
+
+    contract_table.create_table().run(ex)
 
 
-def get_contract_str_from_fs(file_name):
-    full_path = os.path.join(contract_file_path, file_name)
+def get_contract_str_from_fs(full_path):
+    #full_path = os.path.join(contract_file_path, file_name)
     with open(full_path, 'r') as sc_file:
         sc_str = sc_file.read()
     return sc_str
@@ -158,15 +158,9 @@ def run_contract_file_as_user(contract_file_name, user_id, contract_address):
 
     return contract_id
 
-
-def main():
-    show('*** Starting functional testing ***\n\n')
-
-    contract_files = sorted(os.listdir(contract_file_path))
-
-    for contract_file in contract_files:
+def run_contract(contract_file):
         show('*** Contract:', contract_file)
-        contract_id = contract_file.split('.')[0]
+        contract_id = contract_file.split('/')[-1].split('.')[0]
 
         run_contract_file_as_user(contract_file, 'this_is_user_id', contract_id)
 
