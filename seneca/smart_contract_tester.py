@@ -20,6 +20,12 @@ import configparser
 import seneca.seneca_internal.storage.easy_db as t
 from seneca.seneca_internal.storage.mysql_executer import Executer
 
+
+def run_tests():
+    # Intentionally left blank, this file doesn't have any tests.
+    pass
+
+
 def show(*args, **kwargs):
     print('FT:', *args, **kwargs)
 

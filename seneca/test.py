@@ -13,7 +13,7 @@ import configparser
 import MySQLdb
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import functional_tester as ft
+import smart_contract_tester as ft
 
 print('>>>>> Starting test module')
 
@@ -83,7 +83,18 @@ def test_py_module(path):
 
 
 if conf.path:
-    test_py_module(conf.path)
+    f_ext = conf.path.split('.')[-1]
+
+    if f_ext == 'py':
+        test_py_module(conf.path)
+    elif f_ext == 'seneca':
+        clear_database()
+        ft.set_up()
+        test_seneca_file(conf.path)
+    else:
+        print('* ERROR: Unknown file type.')
+        sys.exit(1)
+
 else:
     for p in r_get_by_ext('py'):
         try:
@@ -95,6 +106,7 @@ else:
     ft.set_up()
     for s in r_get_by_ext('seneca'):
         test_seneca_file(s)
+
 
 
 print('... DONE ...')
