@@ -2,7 +2,6 @@ import os
 import configparser
 import MySQLdb
 
-
 settings = configparser.ConfigParser()
 settings._interpolation = configparser.ExtendedInterpolation()
 this_dir = os.path.dirname(__file__)
