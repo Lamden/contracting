@@ -44,9 +44,6 @@ os.chdir('..')
 
 
 def clear_database():
-    settings = configparser.ConfigParser()
-    settings._interpolation = configparser.ExtendedInterpolation()
-    settings.read(os.path.join('seneca/seneca_internal/storage/', 'test_db_conf.ini'))
     conn = lc.get_mysql_conn()
     conn.autocommit = False
     cur = conn.cursor()

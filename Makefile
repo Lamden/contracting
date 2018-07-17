@@ -19,4 +19,4 @@ static-analysis:
 	false
 
 test:
-	false
+	./seneca/test.py

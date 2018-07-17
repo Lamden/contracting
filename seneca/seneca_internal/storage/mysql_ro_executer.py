@@ -29,11 +29,7 @@ class Executer(object):
 
 def run_tests():
     '''
-    >>> bex = ex_base.Executer(settings.get('DB', 'username'),
-    ...             settings.get('DB', 'password'),
-    ...             settings.get('DB', 'database'),
-    ...             settings.get('DB', 'hostname'),
-    ...        )
+    >>> bex = ex_base.Executer(**db_settings)
 
     Clear DB:
     >>> _ = bex.cur.execute('DROP DATABASE seneca_test;')
@@ -86,10 +82,10 @@ def run_tests():
     >>> ro_ex(ListTables()).success
     True
     '''
-    import configparser
     import os
     import sys
     import seneca.seneca_internal.storage.mysql_executer as ex_base
+    import seneca.load_test_conf as lc
 
     def try_ex_catch(ex, q):
         try:
@@ -98,11 +94,7 @@ def run_tests():
             print(e)
 
 
-    settings = configparser.ConfigParser()
-    settings._interpolation = configparser.ExtendedInterpolation()
-    this_dir = os.path.dirname(__file__)
-    settings.read(os.path.join(this_dir, 'test_db_conf.ini'))
-
+    db_settings = lc.db_settings
     import doctest
 
     ct = CreateTable('test_users',

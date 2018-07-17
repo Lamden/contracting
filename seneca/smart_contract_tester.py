@@ -15,7 +15,6 @@ import os
 import sys
 from execute_sc import execute_contract
 from datetime import datetime
-import configparser
 
 import seneca.seneca_internal.storage.easy_db as t
 from seneca.seneca_internal.storage.mysql_executer import Executer
@@ -39,19 +38,11 @@ def ex(obj):
 
 def set_up():
     global ex_, contract_table
-    settings = configparser.ConfigParser()
-    settings._interpolation = configparser.ExtendedInterpolation()
+    import load_test_conf as lc
+
     this_dir = os.path.dirname(__file__)
-    db_conf_path = os.path.join(this_dir, 'seneca_internal/storage/test_db_conf.ini')
 
-    settings.read(db_conf_path)
-
-    # For testing with unauthenticated local mysql instance, use 'Executer.init_local_noauth_dev()' instead.
-    ex_ = Executer(settings.get('DB', 'username'),
-                   settings.get('DB', 'password'),
-                   settings.get('DB', 'database'),
-                   settings.get('DB', 'hostname'),
-                  )
+    ex_ = Executer(**lc.db_settings)
 
     ## Setup steps ##
     contract_file_path = os.path.join(this_dir, 'example_contracts/')

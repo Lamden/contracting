@@ -105,20 +105,11 @@ def run_tests():
 
     import sys, json
     from os.path import abspath, dirname
-    import configparser
     from seneca.seneca_internal.storage.mysql_executer import Executer
 
     name_space = 'test_kv'
-
-    settings = configparser.ConfigParser()
-    settings._interpolation = configparser.ExtendedInterpolation()
-    settings.read(abspath('seneca/seneca_internal/storage/test_db_conf.ini'))
-
-    ex_ = Executer(settings.get('DB', 'username'),
-                   settings.get('DB', 'password'),
-                   settings.get('DB', 'database'),
-                   settings.get('DB', 'hostname'),
-                  )
+    import seneca.load_test_conf as lc
+    ex_ = Executer(**lc.db_settings)
 
     def ex__(obj):
         print('Running Query:')

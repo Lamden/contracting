@@ -545,6 +545,7 @@ class RunnableISQL(object):
 
 def run_tests():
     from seneca.seneca_internal.storage.mysql_executer import Executer
+    import seneca.load_test_conf as lc
 
     ### Unit Tests ###
     import unittest
@@ -568,22 +569,9 @@ def run_tests():
     unittest.TextTestRunner(verbosity=1).run(suite)
 
     ### End to End tests ###
-
-
-
-    import configparser
     import os
 
-    settings = configparser.ConfigParser()
-    settings._interpolation = configparser.ExtendedInterpolation()
-    this_dir = os.path.dirname(__file__)
-    settings.read(os.path.join(this_dir, 'test_db_conf.ini'))
-
-    ex_ = Executer(settings.get('DB', 'username'),
-                   settings.get('DB', 'password'),
-                   settings.get('DB', 'database'),
-                   settings.get('DB', 'hostname'),
-                  )
+    ex_ = Executer(**lc.db_settings)
 
     def ex(obj):
         print('Running Query:')

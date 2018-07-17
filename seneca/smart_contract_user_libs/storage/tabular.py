@@ -132,17 +132,11 @@ def run_tests():
     import configparser
     from seneca.seneca_internal.storage.mysql_executer import Executer
 
-    settings = configparser.ConfigParser()
-    settings._interpolation = configparser.ExtendedInterpolation()
-    settings.read(abspath('seneca/seneca_internal/storage/test_db_conf.ini'))
+    import seneca.load_test_conf as lc
 
     name_space = 'test_tabular'
 
-    ex_ = Executer(settings.get('DB', 'username'),
-                   settings.get('DB', 'password'),
-                   settings.get('DB', 'database'),
-                   settings.get('DB', 'hostname'),
-                  )
+    ex_ = Executer(**lc.db_settings)
 
     def ex__(obj):
         print('Running Query:')

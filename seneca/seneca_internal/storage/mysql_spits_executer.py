@@ -460,28 +460,17 @@ def run_tests():
     1
 
     '''
+    from seneca.load_test_conf import db_settings
 
     def make_test_exes():
-        spex = Executer(settings.get('DB', 'username'),
-                        settings.get('DB', 'password'),
-                        settings.get('DB', 'database'),
-                        settings.get('DB', 'hostname'),
-               )
-        bex = ex_base.Executer(settings.get('DB', 'username'),
-                        settings.get('DB', 'password'),
-                        settings.get('DB', 'database'),
-                        settings.get('DB', 'hostname'),
-               )
+        spex = Executer(**db_settings)
+        bex = ex_base.Executer(**db_settings)
         bex.conn = spex.conn
         bex.cur = spex.cur
         return spex, bex
 
     def make_ex():
-        return Executer(settings.get('DB', 'username'),
-                        settings.get('DB', 'password'),
-                        settings.get('DB', 'database'),
-                        settings.get('DB', 'hostname'),
-               )
+        return Executer(**db_settings)
 
     import doctest
     import seneca.seneca_internal.storage.mysql_intermediate as mysqli
