@@ -10,7 +10,7 @@ from os.path import isfile, join
 import glob
 import warnings
 import configparser
-import MySQLdb
+import load_test_conf as lc
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import smart_contract_tester as ft
@@ -47,11 +47,7 @@ def clear_database():
     settings = configparser.ConfigParser()
     settings._interpolation = configparser.ExtendedInterpolation()
     settings.read(os.path.join('seneca/seneca_internal/storage/', 'test_db_conf.ini'))
-    conn = MySQLdb.connect(host=settings.get('DB', 'hostname'),
-                       user=settings.get('DB', 'username'),
-                       passwd=settings.get('DB', 'password'),
-                       port=3306,
-                       connect_timeout=5)
+    conn = lc.get_mysql_conn()
     conn.autocommit = False
     cur = conn.cursor()
     try:
@@ -59,9 +55,6 @@ def clear_database():
     except Exception as e:
         print(e)
     cur.execute('CREATE DATABASE seneca_test;')
-
-
-
 
 
 def get_relative_path(path):

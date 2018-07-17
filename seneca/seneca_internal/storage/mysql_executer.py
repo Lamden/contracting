@@ -133,19 +133,9 @@ class Executer(object):
 
 
 def run_tests():
-    import configparser
-    import os
+    from seneca.load_test_conf import db_settings, get_mysql_conn
 
-    # Clear database
-    settings = configparser.ConfigParser()
-    settings._interpolation = configparser.ExtendedInterpolation()
-    this_dir = os.path.dirname(__file__)
-    settings.read(os.path.join(this_dir, 'test_db_conf.ini'))
-    conn = MySQLdb.connect(host=settings.get('DB', 'hostname'),
-                       user=settings.get('DB', 'username'),
-                       passwd=settings.get('DB', 'password'),
-                       port=3306,
-                       connect_timeout=5)
+    conn = get_mysql_conn()
     conn.autocommit = False
     cur = conn.cursor()
     try:
@@ -154,17 +144,7 @@ def run_tests():
         print(e)
     cur.execute('CREATE DATABASE seneca_test;')
 
-
-    settings = configparser.ConfigParser()
-    settings._interpolation = configparser.ExtendedInterpolation()
-    this_dir = os.path.dirname(__file__)
-    settings.read(os.path.join(this_dir, 'test_db_conf.ini'))
-
-    ex = Executer(settings.get('DB', 'username'),
-                   settings.get('DB', 'password'),
-                   settings.get('DB', 'database'),
-                   settings.get('DB', 'hostname'),
-                 )
+    ex = Executer(**db_settings)
 
     create_table_query = CreateTable(
           'test_users',
