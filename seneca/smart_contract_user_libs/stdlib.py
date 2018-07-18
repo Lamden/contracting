@@ -5,6 +5,13 @@ from datetime import timedelta
 
 #TODO please change so that it can be imported from seneca_internal
 supported_db_types = [int, str, bool, float, list, set]
+import hashlib
+
+#TODO replace with crypto
+def sha256(secret):
+    m = hashlib.sha256()
+    m.update(secret.encode())
+    return m.hexdigest()
 
 class enum(dict):
     def __init__(self, *args, **kwargs):
@@ -20,6 +27,7 @@ exports = {
     'datetime': datetime,
     'timedelta': timedelta,
     'enum': enum,
+    'sha256': sha256,
     'supported_db_types': supported_db_types
 }
 
