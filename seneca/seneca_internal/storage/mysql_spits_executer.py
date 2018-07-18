@@ -122,7 +122,7 @@ def CreateTableAction(ex, q):
 
     if permanent_table_exists and (not soft_delete_exists):
         if q.if_not_exists:
-            pass # Already exists, query has if_not_exists, nothing to do.
+            return ex_base.SQLExecutionResult(True, "Permanent table already exists, but okay, if_not_exists is set to True")
         else:
             Exception("SPITS error, permanent table already exists.")
     else:
