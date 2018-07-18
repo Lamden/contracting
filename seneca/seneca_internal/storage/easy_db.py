@@ -544,6 +544,12 @@ class RunnableISQL(object):
 
 
 def run_tests():
+    # TODO: make these into real tests with this format:
+    #def run_tests():
+    #    '''
+    #    '''
+    #    import doctest, sys, ast
+    #    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
     from seneca.seneca_internal.storage.mysql_executer import Executer
     import seneca.load_test_conf as lc
 

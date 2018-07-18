@@ -161,7 +161,3 @@ def run_contract(contract_file):
         contract_id = contract_file.split('/')[-1].split('.')[0]
 
         run_contract_file_as_user(contract_file, 'this_is_user_id', contract_id)
-
-
-if __name__ == '__main__':
-    main()

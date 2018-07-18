@@ -82,7 +82,6 @@ def run_tests():
     >>> ro_ex(ListTables()).success
     True
     '''
-    import os
     import sys
     import seneca.seneca_internal.storage.mysql_executer as ex_base
     import seneca.load_test_conf as lc
@@ -102,4 +101,4 @@ def run_tests():
                      [ ColumnDefinition('username', SQLType('VARCHAR', 30), True)]
                     )
 
-    doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

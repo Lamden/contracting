@@ -74,3 +74,17 @@ def validate(a):
     )
 
     assert not illegal_ast_nodes, wl_error_message
+
+
+def run_tests():
+    '''
+    >>> validate(ast.parse('import some_sc').body[0])
+    >>> try:
+    ...     validate(ast.parse('for x in []: pass').body[0])
+    ... except Exception as e:
+    ...     print(e)
+    Found illegal AST node(s) in module: <class '_ast.For'>
+
+    '''
+    import doctest, sys, ast
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

@@ -123,6 +123,7 @@ exports = {
 
 
 def run_tests():
+    # TODO: Replace with doctest
     ## SETUP ##
     global ex
     global name_space

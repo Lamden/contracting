@@ -31,3 +31,10 @@ def make_exports(global_runtime_data, this_contract_runtime_data):
         'call_stack': global_runtime_data['call_stack'],
         'caller_contract_id': caller_contract_id
     }
+
+def run_tests():
+    '''
+    # TODO: Write tests for this module.
+    '''
+    import doctest, sys
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

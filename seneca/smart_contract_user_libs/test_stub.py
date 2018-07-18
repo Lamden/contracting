@@ -12,3 +12,11 @@ def _print_caller_data():
 exports = {
    'print_caller_data': _print_caller_data
 }
+
+
+def run_tests():
+    '''
+    # TODO: Write tests for this module.
+    '''
+    import doctest, sys
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

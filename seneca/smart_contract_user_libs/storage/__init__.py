@@ -7,6 +7,7 @@ path = os.path.dirname(__file__)
 
 exports = {}
 
+# TODO: Confirm if this init work without this stuff?
 for f in os.listdir(path):
     full_f_path = os.path.join(path, f)
     if full_f_path == __file__:
@@ -20,6 +21,6 @@ for f in os.listdir(path):
             exports[mod_name] = util.dict_to_nt(m['exports'], 'module')
 
 
-
 def run_tests():
-    print(path)
+    import doctest, sys
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

@@ -25,6 +25,7 @@ import seneca.seneca_internal.storage.mysql_intermediate as m_i
 
 
 def name_space_isql(prefix, isql_obj):
+    # TODO: Implement
     pass
     # Determine what kind of type
 
@@ -33,9 +34,12 @@ def name_space_isql(prefix, isql_obj):
     # Return obj
 
 
-
-
-
-
 # In tests, verify coverage of modified module
 # : {k for (k,v) in mi.__dict__.items() if type(v) == type and issubclass(v, m_i.Query)}
+def run_tests():
+    '''
+    >>> name_space_isql('', None)
+    '''
+    # TODO: Add teests.
+    import doctest, sys, ast
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

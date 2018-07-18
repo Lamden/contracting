@@ -261,16 +261,6 @@ class Executer(object):
         self.temp_tables = set()
         self.soft_deleted_tables = set()
 
-    @classmethod
-    def init_local_noauth_dev(cls, db_name='seneca_test'):
-        ''' Not testing this. '''
-        s = cls('root', '', '', 'localhost')
-        s.cur.execute('CREATE DATABASE IF NOT EXISTS {};'.format(db_name))
-        s.cur.execute('use {};'.format(db_name))
-        s.conn.database = db_name
-
-        return s
-
     def __call__(self, query):
         q_type = type(query)
         assert issubclass(q_type, Query), 'The passed parameter is not a query.'
@@ -486,4 +476,4 @@ def run_tests():
             ColumnDefinition('balance', SQLType('BIGINT'), False),
     ])
 
-    doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

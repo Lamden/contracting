@@ -91,14 +91,6 @@ class Executer(object):
         self.conn.autocommit = False
         self.cur = self.conn.cursor()
 
-    @classmethod
-    def init_local_noauth_dev(cls, db_name='seneca_test'):
-        s = cls('root', '', '', 'localhost')
-        s.cur.execute('CREATE DATABASE IF NOT EXISTS {};'.format(db_name))
-        s.cur.execute('use {};'.format(db_name))
-        s.conn.database = db_name
-        return s
-
     def __call__(self, query):
         q_type = type(query)
         assert issubclass(q_type, Query), 'The passed parameter is not a query.'
@@ -133,6 +125,13 @@ class Executer(object):
 
 
 def run_tests():
+    # TODO: make these into real tests with this format:
+    #def run_tests():
+    #    '''
+    #    '''
+    #    import doctest, sys, ast
+    #    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
+
     from seneca.load_test_conf import db_settings, get_mysql_conn
 
     conn = get_mysql_conn()

@@ -163,6 +163,9 @@ def get_py_to_sql_cast_func(py_type):
         raise Exception('Unsupported type, cannot convert to SQL str:' + str(py_type))
 
 def get_str_to_py_cast_func(str_type):
+    '''
+    This is bad, needs to be rewritten, and should not be casting keys to strings.
+    '''
     casting_func_dict = {
       'int': lambda x: int(x),
       'float': lambda x: float(x),
@@ -271,16 +274,8 @@ class TabularKVs():
 
 
 def run_tests():
-    tkv = TabularKVs(('a','b','c'), [(1,2,3),(4,5,6)])
-    print(tkv)
-    print(len(tkv))
-    tkv.append((7,8,9))
-    print(tkv)
-    tkv.append([10,11,12])
-    print(tkv)
-    tkv.append({'c':15, 'b':14, 'a':13})
-    print(tkv)
-    print(tkv[0])
-    tkv[0] = (101,102,103)
-    print(tkv)
-    print(tkv.select('a','c'))
+    '''
+    '''
+    # TODO: Add tests
+    import doctest, sys
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

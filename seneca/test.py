@@ -24,8 +24,7 @@ conf = parser.parse_args()
 
 
 def run_tests():
-    # Intentionally left blank, this file doesn't have any tests.
-    pass
+    obj = lambda: None; obj.failed = 0; return obj
 
 
 def test_py_file(fp):
@@ -66,17 +65,26 @@ def convert_path_to_module(path):
     mod = re.sub('\/', '.', path)
     return re.sub('\.py$', '', mod)
 
+
 def test_py_module(path):
     clear_database()
     mod = convert_path_to_module(get_relative_path(path))
-    test_py_file(mod)
+    res = test_py_file(mod)
+    return res.failed == 0, res
 
 
 if conf.path:
     f_ext = conf.path.split('.')[-1]
 
     if f_ext == 'py':
-        test_py_module(conf.path)
+        passed, full_res = test_py_module(conf.path)
+
+        if passed:
+            sys.exit(0)
+        else:
+            print(full_res)
+            sys.exit(1)
+
     elif f_ext == 'seneca':
         clear_database()
         ft.set_up()

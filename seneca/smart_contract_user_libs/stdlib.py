@@ -31,5 +31,10 @@ exports = {
     'supported_db_types': supported_db_types
 }
 
+
 def run_tests():
-    pass
+    '''
+    # TODO: Write tests for this module.
+    '''
+    import doctest, sys
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

@@ -29,6 +29,10 @@ seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
 # In real application, a different function will be provided from Cilantro,
 #   which will pull module code from block chain.
 def test_seneca_loader(sc_dir, mod_name):
+    '''
+    >>> print(test_seneca_loader('./seneca/example_contracts', '_00_always_fail').rstrip())
+    assert False, "(Intentionally thrown exception)"
+    '''
     m_path = os.path.join(sc_dir, (mod_name + '.seneca'))
     return open(m_path, 'r').read()
 
@@ -38,6 +42,17 @@ def ast_import_decoder(item):
     Decide if the import is valid and supported.
     Figure out whether the module being imported is a smart contract or a Seneca lib
     Return a dict with detailed information about the import.
+
+    >>> ast_import_decoder(ast.parse('import some_sc').body[0])
+    [{'module_type': 'smart_contract', 'module_path': 'some_sc', 'qualified_name': 'some_sc', 'specific_names_in_mod': None}]
+    >>> ast_import_decoder(ast.parse('import seneca.test').body[0])
+    [{'module_type': 'seneca', 'module_path': 'seneca.test', 'qualified_name': 'seneca.test', 'specific_names_in_mod': None}]
+    >>> try:
+    ...    ast_import_decoder('wrong_type')
+    ... except Exception as e:
+    ...    print(e)
+    Not an AST import node.
+
     """
     def is_seneca(module_path):
         return module_path.split('.')[0] == 'seneca'
@@ -60,7 +75,7 @@ def ast_import_decoder(item):
         ast.ImportFrom: lambda x: item.module
     }
 
-    assert item_type in path_getters.keys(), "AST node is not an import"
+    assert item_type in path_getters.keys(), "Not an AST import node."
 
     ret['module_path'] = path_getters[item_type](item)
 
@@ -88,10 +103,23 @@ def is_ast_import(item):
     t = type(item)
     return t == ast.ImportFrom or t == ast.Import
 
+def full_module_path():
+    '''
+    >>> full_module_path()
+    '/Users/carl/src/lamden/seneca'
+    '''
+    return os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+
 
 def seneca_module_name_to_path(name):
-    seneca_path = os.path.dirname(os.path.dirname(__file__))
-    slashed_name = os.path.abspath(os.path.join(seneca_path, *name.split('.')))
+    '''
+    >>> n = 'seneca.test'
+    >>> res = os.path.join(full_module_path(), 'seneca/test.py')
+    >>> seneca_module_name_to_path(n) == res
+    True
+    '''
+    slashed_name = os.path.join(full_module_path(), *name.split('.'))
+
     if os.path.isdir(slashed_name):
         f_path = os.path.join(slashed_name, '__init__.py')
         assert os.path.isfile(f_path)
@@ -147,7 +175,9 @@ class Empty(object):
 
 
 def build_import_object(call_chain):
-
+    '''
+    TODO: Document the purpose and functionality of this function.
+    '''
     def f(call_chain, obj):
         if not call_chain:
             return obj
@@ -231,6 +261,18 @@ def execute_contract(*args, **kwargs):
 
 
 def _execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=False, module_loader=None, db_executer=None):
+    '''
+    >>> bex = ex_base.Executer(**db_settings)
+    >>> contract_a = 'import seneca.storage.tabular; exports={}'
+    >>> _execute_contract({}, {'contract_id':'a'}, contract_a, False, [], bex)
+    a()
+
+    #>>> loader = lambda _:{'contract_id':'b', 'author':'abc'}, contract_a
+    #>>> contract_b = 'import a; exports={}'
+    #>>> _execute_contract({'call_stack':[], 'author':'abc'}, {'contract_id':'b', 'author':'abc'}, contract_b, True, loader, bex)
+
+    '''
+
     assert module_loader is not None, 'No module loader provided'
 
     sc_display_name = "seneca_contract_addr: %s" % this_contract_run_data['contract_id']
@@ -298,3 +340,25 @@ def _execute_contract(global_run_data, this_contract_run_data, contract_str, is_
     else:
         # TODO: figure out return for passed or failed contract
         return True
+
+
+def run_tests():
+    '''
+    >>> bex = ex_base.Executer(**db_settings)
+
+    '''
+    import sys
+    import seneca.seneca_internal.storage.mysql_executer as ex_base
+    import seneca.load_test_conf as lc
+
+    def try_ex_catch(ex, q):
+        try:
+            ex(q)
+        except Exception as e:
+            print(e)
+
+
+    db_settings = lc.db_settings
+    import doctest
+
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
