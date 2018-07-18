@@ -2,9 +2,9 @@
 
 set -e
 
-cd /opt/mysql/usr/local/mysql/
+cd /usr/local/mysql
 
-./bin/mysqld_safe &
+su mysql -c 'bin/mysqld --console &'
 
 echo "Waiting for mysqld to start..."
 sleep 5 &&
@@ -20,6 +20,6 @@ echo 'Complete.'
 
 echo 'Listening...'
 
-while true; do 
+while true; do
 	sleep 5
 done
