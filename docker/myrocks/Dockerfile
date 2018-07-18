@@ -4,7 +4,7 @@
 
 #http://myrocks.io/docs/getting-started/
 
-FROM centos:7.2.1511
+FROM centos:7.5.1804
 #https://hub.docker.com/_/centos/
 MAINTAINER Lamden Calrissian version: 0.1
 
@@ -19,7 +19,7 @@ RUN yum install -y git
 # Download Facebook's mysql git repo (includes myrocks)
 RUN mkdir -p /opt/myrocks
 RUN cd /opt/myrocks && git clone https://github.com/facebook/mysql-5.6.git
-RUN cd /opt/myrocks/mysql-5.6 && git checkout fb-prod201704 && git submodule init && git submodule update
+RUN cd /opt/myrocks/mysql-5.6 && git checkout fb-prod201801 && git submodule init && git submodule update
 
 # Get build deps from package management
 RUN yum install -y cmake gcc-c++ bzip2-devel libaio-devel bison zlib-devel snappy-devel
@@ -28,11 +28,11 @@ RUN yum install -y gflags-devel readline-devel ncurses-devel openssl-devel lz4-d
 RUN yum install -y make boost-devel
 
 # Build
-RUN cd /opt/myrocks/mysql-5.6 && cmake . -DCMAKE_BUILD_TYPE=Debug \
--DWITH_SSL=system -DWITH_ZLIB=bundled -DMYSQL_MAINTAINER_MODE=1 \
+RUN cd /opt/myrocks/mysql-5.6 && cmake . -DCMAKE_BUILD_TYPE=Release \
+-DWITH_SSL=system -DWITH_ZLIB=bundled -DMYSQL_MAINTAINER_MODE=0 \
 -DENABLED_LOCAL_INFILE=1 -DENABLE_DTRACE=0 -DCMAKE_CXX_FLAGS="-march=native"
 RUN cd /opt/myrocks/mysql-5.6 && make -j8
-RUN cd /opt/myrocks/mysql-5.6 && make install DESTDIR="/opt/mysql"
+RUN cd /opt/myrocks/mysql-5.6 && make install
 
 # Instal dependency for mysql install
 RUN yum install -y "perl(Data::Dumper)"
@@ -41,18 +41,19 @@ RUN yum install -y "perl(Data::Dumper)"
 RUN yum clean all
 
 # Copy config and install db
-COPY ./my.cnf /etc/opt/my.cnf
+COPY ./my.cnf /etc/my.cnf
 
 COPY ./start_mysql.sh /usr/local/bin/start_mysql.sh
 RUN chmod +x /usr/local/bin/start_mysql.sh
 
-RUN cd /opt/mysql/usr/local/mysql/ && ./scripts/mysql_install_db --defaults-file=/etc/opt/my.cnf
+#RUN cd /usr/local/mysql/ && ./scripts/mysql_install_db
+RUN cd /usr/local/mysql/ && ./scripts/mysql_install_db
 
 # Open mysql daemon port
 EXPOSE 3306
 
 RUN useradd -ms /bin/bash mysql
-RUN chown -R mysql:mysql /opt/mysql/usr/local/mysql/data
+RUN chown -R mysql:mysql /usr/local/mysql/data
 
 #RUN P=$(ps aux | grep /bin/mysqld | grep -v grep | awk '{print $2}') && \
 #kill -9 $P && \
