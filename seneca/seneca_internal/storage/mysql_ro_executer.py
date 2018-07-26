@@ -25,12 +25,13 @@ class Executer(object):
         for q in queries:
             self(q)
 
+    def kill(self):
+        return self.ex.kill()
 
 
-def run_tests():
+def run_tests(deps_provider):
+    pass
     '''
-    >>> bex = ex_base.Executer(**db_settings)
-
     Clear DB:
     >>> _ = bex.cur.execute('DROP DATABASE seneca_test;')
     >>> _ = bex.cur.execute('CREATE DATABASE seneca_test;')
@@ -82,19 +83,9 @@ def run_tests():
     >>> ro_ex(ListTables()).success
     True
     '''
-    import sys
-    import seneca.seneca_internal.storage.mysql_executer as ex_base
-    import seneca.load_test_conf as lc
-
-    def try_ex_catch(ex, q):
-        try:
-            ex(q)
-        except Exception as e:
-            print(e)
-
-
-    db_settings = lc.db_settings
-    import doctest
+    import doctest, sys
+    from seneca.seneca_internal.storage.mysql_executer import Executer
+    bex = deps_provider(Executer)
 
     ct = CreateTable('test_users',
                      AutoIncrementColumn('id'),

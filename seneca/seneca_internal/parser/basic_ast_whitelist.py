@@ -76,7 +76,7 @@ def validate(a):
     assert not illegal_ast_nodes, wl_error_message
 
 
-def run_tests():
+def run_tests(_):
     '''
     >>> validate(ast.parse('import some_sc').body[0])
     >>> try:

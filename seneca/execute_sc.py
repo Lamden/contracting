@@ -265,7 +265,6 @@ def execute_contract(*args, **kwargs):
 
 def _execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=False, module_loader=None, db_executer=None):
     '''
-    >>> bex = ex_base.Executer(**db_settings)
     >>> contract_a = 'import seneca.storage.tabular; exports={}'
     >>> _execute_contract({}, {'contract_id':'a'}, contract_a, False, [], bex)
     a()
@@ -345,23 +344,12 @@ def _execute_contract(global_run_data, this_contract_run_data, contract_str, is_
         return True
 
 
-def run_tests():
+def run_tests(deps_provider):
     '''
-    >>> bex = ex_base.Executer(**db_settings)
-
     '''
-    import sys
-    import seneca.seneca_internal.storage.mysql_executer as ex_base
-    import seneca.load_test_conf as lc
+    import doctest, sys
+    from seneca.seneca_internal.storage.mysql_executer import Executer as ex_base
 
-    def try_ex_catch(ex, q):
-        try:
-            ex(q)
-        except Exception as e:
-            print(e)
-
-
-    db_settings = lc.db_settings
-    import doctest
+    bex = deps_provider(ex_base)
 
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

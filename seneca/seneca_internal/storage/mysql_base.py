@@ -273,7 +273,7 @@ class TabularKVs():
         return [[r[i] for i in indices] for r in self.rows]
 
 
-def run_tests():
+def run_tests(_):
     '''
     '''
     # TODO: Add tests

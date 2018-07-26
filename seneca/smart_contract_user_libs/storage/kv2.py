@@ -62,7 +62,7 @@ class kv2(object):
 kv2_obj = kv2()
 exports = kv2_obj
 
-def run_tests():
+def run_tests(deps_provider):
     '''
     >>> print(bool(ex))
     True
@@ -86,11 +86,8 @@ def run_tests():
     '''
     global name_space, ex
     import doctest, sys
-
     from seneca.seneca_internal.storage.mysql_executer import Executer
-    import seneca.load_test_conf as lc
-
     name_space = 'test_tabular'
-    ex = Executer(**lc.db_settings)
+    ex = deps_provider(Executer)
 
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

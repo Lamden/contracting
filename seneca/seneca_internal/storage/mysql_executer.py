@@ -122,104 +122,125 @@ class Executer(object):
 
         return SQLExecutionResult(True, None)
 
+    def kill(self):
+        self.cur.close()
+        self.conn.close()
 
 
-def run_tests():
-    # TODO: make these into real tests with this format:
-    #def run_tests():
-    #    '''
-    #    '''
-    #    import doctest, sys, ast
-    #    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
+def run_tests(deps_provider):
+    '''
+    >>> create_table_query = CreateTable(
+    ...      'test_users',
+    ...      AutoIncrementColumn('id'),
+    ...      [ ColumnDefinition('username', SQLType('VARCHAR', 30), True),
+    ...        ColumnDefinition('drivers_licence_number', SQLType('VARCHAR', 30), True),
+    ...        ColumnDefinition('first_name', SQLType('VARCHAR', 30), False),
+    ...        ColumnDefinition('balance', SQLType('BIGINT'), False),
+    ... ], if_not_exists=True )
 
-    from seneca.load_test_conf import db_settings, get_mysql_conn
+    >>> res = ex(create_table_query)
+    >>> res.success
+    True
+    >>> res.data is None
+    True
+    >>> res = ex(DescribeTable('test_users'))
+    >>> res.success
+    True
+    >>> res.data
+    {'Field': 'id', 'Type': 'bigint(20) unsigned', 'Null': 'NO', 'Key': 'PRI', 'Default': None, 'Extra': 'auto_increment'}
+    {'Field': 'username', 'Type': 'varchar(30)', 'Null': 'YES', 'Key': 'UNI', 'Default': None, 'Extra': ''}
+    {'Field': 'drivers_licence_number', 'Type': 'varchar(30)', 'Null': 'YES', 'Key': 'UNI', 'Default': None, 'Extra': ''}
+    {'Field': 'first_name', 'Type': 'varchar(30)', 'Null': 'YES', 'Key': '', 'Default': None, 'Extra': ''}
+    {'Field': 'balance', 'Type': 'bigint(20)', 'Null': 'YES', 'Key': '', 'Default': None, 'Extra': ''}
 
-    conn = get_mysql_conn()
-    conn.autocommit = False
-    cur = conn.cursor()
-    try:
-        cur.execute('DROP DATABASE seneca_test;')
-    except Exception as e:
-        print(e)
-    cur.execute('CREATE DATABASE seneca_test;')
+    >>> res = ex(AddTableColumn('test_users', ColumnDefinition('balance2', SQLType('BIGINT'), False)))
+    >>> res.success
+    True
+    >>> res.data == None
+    True
+    >>> ex(DescribeTable('test_users')).data
+    {'Field': 'id', 'Type': 'bigint(20) unsigned', 'Null': 'NO', 'Key': 'PRI', 'Default': None, 'Extra': 'auto_increment'}
+    {'Field': 'username', 'Type': 'varchar(30)', 'Null': 'YES', 'Key': 'UNI', 'Default': None, 'Extra': ''}
+    {'Field': 'drivers_licence_number', 'Type': 'varchar(30)', 'Null': 'YES', 'Key': 'UNI', 'Default': None, 'Extra': ''}
+    {'Field': 'first_name', 'Type': 'varchar(30)', 'Null': 'YES', 'Key': '', 'Default': None, 'Extra': ''}
+    {'Field': 'balance', 'Type': 'bigint(20)', 'Null': 'YES', 'Key': '', 'Default': None, 'Extra': ''}
+    {'Field': 'balance2', 'Type': 'bigint(20)', 'Null': 'YES', 'Key': '', 'Default': None, 'Extra': ''}
 
-    ex = Executer(**db_settings)
+    >>> res = ex(DropTableColumn('test_users', 'balance2'))
+    >>> res.data == None
+    True
+    >>> ex(DropTableColumn('test_users', 'balance2')).success
+    False
 
-    create_table_query = CreateTable(
-          'test_users',
-          AutoIncrementColumn('id'),
-          [ ColumnDefinition('username', SQLType('VARCHAR', 30), True),
-            ColumnDefinition('drivers_licence_number', SQLType('VARCHAR', 30), True),
-            ColumnDefinition('first_name', SQLType('VARCHAR', 30), False),
-            ColumnDefinition('balance', SQLType('BIGINT'), False),
-    ], if_not_exists=True )
+    >>> res = ex(InsertRows('test_users', ['username', 'first_name', 'balance'],
+    ... [['tester', 'test', 500],
+    ... ['tester2', 'two', 200],
+    ... ]))
+    >>> res.success and res.data == {'last_row_id': 1, 'row_count': 2}
+    True
 
-    def ex_p(q):
-        r = ex(q)
-        print(r)
-        return r
-    try:
-        ex(DropTable('test_users'))
-        ex(DropTable('test_users2'))
-        ex(DropTable('test_users3'))
-    except:
-        pass
-
-    ex_p(create_table_query)
-    ex_p(DescribeTable('test_users'))
-    ex_p(AddTableColumn('test_users', ColumnDefinition('balance2', SQLType('BIGINT'), False)))
-    ex_p(DropTableColumn('test_users', 'balance2'))
-
-    ex_p(InsertRows('test_users', ['username', 'first_name', 'balance'],
-    [['tester', 'test', 500],
-     ['tester2', 'two', 200],
-    ]))
-
-    ex_p(InsertRows('test_users', ['username', 'first_name', 'balance'],
-    [['tester3', 'test', 500],
-     ['tester4', 'two', 200],
-    ]))
-
-    ex_p(UpdateRows('test_users',
-      QueryCriterion('eq', 'username', 'tester'),
-      {'balance': 0}
-    ))
-
-    ex_p(SelectRows('test_users', ['username', 'balance'],
-      QueryCriterion('gt', 'balance', 10),
-      None,
-      None,
-    ))
-
-    ex_p(CountUniqueRows('test_users', 'balance', None))
-    ex_p(CountRows('test_users', None))
-
-    ex_p(CreateTable('test_users2', AutoIncrementColumn('id'), [], if_not_exists=True))
-    ex_p(ListTables(None))
-    ex_p(DeleteRows('test_users', QueryCriterion('eq', 'username', 'tester')))
-
-    ex_p(DropTableColumn('test_users', 'balance2'))
-    ex_p(CreateTable('test_users2', AutoIncrementColumn('id'), [], if_not_exists=False))
-
-    print(ex.many([
+    >>> res = ex(UpdateRows('test_users',
+    ...  QueryCriterion('eq', 'username', 'tester'),
+    ...  {'balance': 0}
+    ... ))
+    >>> res.success and res.data == {'last_row_id': 0, 'row_count': 1}
+    True
 
 
-        CreateTable(
-              'test_users3',
-              AutoIncrementColumn('id'),
-              [ ColumnDefinition('username', SQLType('VARCHAR', 30), True),
-                ColumnDefinition('drivers_licence_number', SQLType('VARCHAR', 30), True),
-                ColumnDefinition('first_name', SQLType('VARCHAR', 30), False),
-                ColumnDefinition('balance', SQLType('BIGINT'), False),
-        ], if_not_exists=False),
+    >>> res = ex(SelectRows('test_users', ['username', 'balance'],
+    ...   QueryCriterion('gt', 'balance', 10),
+    ...   None,
+    ...   None,
+    ... ))
+    >>> res.success
+    True
+    >>> res.data
+    {'username': 'tester2', 'balance': 200}
 
-        InsertRows('test_users3', ['username', 'first_name', 'balance'],
-        [['tester1', 'test', 500],
-         ['tester2', 'two', 200],
-         ['tester3', 'two', 200],
-         ['tester4', 'two', 200],
-         ['tester5', 'two', 200],
-         ['tester6', 'two', 200],
-        ]),
+    >>> res = ex(CountUniqueRows('test_users', 'balance', None))
+    >>> res.success
+    True
+    >>> res.data
+    {'balance': 0, '_count': 1}
+    {'balance': 200, '_count': 1}
 
-        ]))
+    >>> ex(CountRows('test_users', None)).data
+    2
+
+    >>> ex(CreateTable('test_users2', AutoIncrementColumn('id'), [], if_not_exists=True)).data == None
+    True
+
+    >>> ex(ListTables(None)).data
+    ['test_users', 'test_users2']
+
+    >>> ex(DeleteRows('test_users', QueryCriterion('eq', 'username', 'tester'))).data
+    {'last_row_id': 0, 'row_count': 1}
+
+    >>> res = ex.many([
+    ...     CreateTable(
+    ...           'test_users3',
+    ...           AutoIncrementColumn('id'),
+    ...           [ ColumnDefinition('username', SQLType('VARCHAR', 30), True),
+    ...             ColumnDefinition('drivers_licence_number', SQLType('VARCHAR', 30), True),
+    ...             ColumnDefinition('first_name', SQLType('VARCHAR', 30), False),
+    ...             ColumnDefinition('balance', SQLType('BIGINT'), False),
+    ...     ], if_not_exists=False),
+    ...     InsertRows('test_users3', ['username', 'first_name', 'balance'],
+    ...     [['tester1', 'test', 500],
+    ...      ['tester2', 'two', 200],
+    ...      ['tester3', 'two', 200],
+    ...      ['tester4', 'two', 200],
+    ...      ['tester5', 'two', 200],
+    ...      ['tester6', 'two', 200],
+    ...     ]),
+    ... ])
+    >>> res.data
+    >>> res.success
+    True
+    '''
+
+    import doctest, sys
+    from seneca.seneca_internal.storage.mysql_executer import Executer
+    ex = deps_provider(Executer)
+
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

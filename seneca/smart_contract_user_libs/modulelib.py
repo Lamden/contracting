@@ -25,7 +25,7 @@ exports = {
 }
 
 
-def run_tests():
+def run_tests(_):
     '''
     # TODO: Write tests for this module.
     '''

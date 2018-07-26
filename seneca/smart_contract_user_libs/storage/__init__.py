@@ -23,6 +23,6 @@ for f in os.listdir(path):
             exports[mod_name] = m['exports']
 
 
-def run_tests():
+def run_tests(_):
     import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

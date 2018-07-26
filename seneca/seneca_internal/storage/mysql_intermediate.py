@@ -623,12 +623,10 @@ class CreateTable(Query):
         ])
 
 
-def run_tests():
+def run_tests(_):
     '''
     >>> NonNullableBooleanColumn('test').to_sql()
     'test Boolean NOT NULL DEFAULT FALSE'
-
     '''
-    import sys
-    import doctest
+    import doctest, sys
     return doctest.testmod(sys.modules[__name__])

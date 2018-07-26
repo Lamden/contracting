@@ -93,21 +93,23 @@ def get_table(name):
     return Tabular(db.Table.from_existing(add_name_space(name)).run(ex))
 
 
-def add_column(t, c_def):
-    assert ex is not None, 'Mysql executer has not been set.'
-    res = t.underlying_obj.add_column(*c_def).run(ex)
-    # Refresh table definition
-    t.underlying_obj = db.Table.from_existing(t.underlying_obj._name).run(ex)
-    return res
+# Disabling add and remove columns not easily supported with Mysql non-transactional DDL
 
-
-def drop_column(t, c_name):
-    assert ex is not None, 'Mysql executer has not been set.'
-    res = t.underlying_obj.drop_column(c_name).run(ex)
-    # Refresh table definition
-    t.underlying_obj = db.Table.from_existing(t.underlying_obj._name).run(ex)
-    return res
-
+#def add_column(t, c_def):
+#    assert ex is not None, 'Mysql executer has not been set.'
+#    res = t.underlying_obj.add_column(*c_def).run(ex)
+#    # Refresh table definition
+#    t.underlying_obj = db.Table.from_existing(t.underlying_obj._name).run(ex)
+#    return res
+#
+#
+#def drop_column(t, c_name):
+#    assert ex is not None, 'Mysql executer has not been set.'
+#    res = t.underlying_obj.drop_column(c_name).run(ex)
+#    # Refresh table definition
+#    t.underlying_obj = db.Table.from_existing(t.underlying_obj._name).run(ex)
+#    return res
+#
 
 
 exports = {
@@ -116,70 +118,53 @@ exports = {
     'create_table': create_table,
     'get_table': get_table,
     'drop_table': drop_table,
-    'add_column': add_column,
-    'drop_column': drop_column,
+#    'add_column': add_column,
+#    'drop_column': drop_column,
 }
 
 
 
-def run_tests():
-    # TODO: Replace with doctest
+def run_tests(deps_provider):
+    '''
+    >>> u = create_table('users', [
+    ... ('first_name', str_len(30), True),
+    ... ('last_name', str_len(30), True),
+    ... ('nick_name', str_len(30)),
+    ... ('balance', int)
+    ... ])
+    >>> type(u) == Tabular
+    True
+
+    >>> r = u.select().run()
+    >>> len(r)
+    0
+    >>> type(r) == TabularKVs
+    True
+
+    >>> u.insert([
+    ... {'first_name': 'Test1','last_name': 'l1','nick_name': '1','balance': 10},
+    ... {'first_name': 'Test2','last_name': 'l2','nick_name': '2','balance': 20},
+    ... {'first_name': 'Test3','last_name': 'l3','nick_name': '3','balance': 30},
+    ... ]).run()
+    {'last_row_id': 1, 'row_count': 3}
+
+    >>> u2 = get_table('users')
+
+    >>> print(u.select().where(and_(u.first_name == 'test' , u.last_name == 'test2')).to_sql())
+    SELECT *
+    FROM test_tabular$users
+    WHERE (first_name = 'test' AND last_name = 'test2');
+    '''
     ## SETUP ##
     global ex
     global name_space
 
-    import sys
-    from os.path import abspath, dirname
-    import configparser
+    import doctest, sys
+    from seneca.seneca_internal.storage.mysql_base import TabularKVs
     from seneca.seneca_internal.storage.mysql_executer import Executer
 
-    import seneca.load_test_conf as lc
-
+    # Set mdules global values for tests
     name_space = 'test_tabular'
+    ex = deps_provider(Executer)
 
-    ex_ = Executer(**lc.db_settings)
-
-    def ex__(obj):
-        print('Running Query:')
-        print(obj.to_sql())
-        res = ex_(obj)
-        print(res)
-        print('\n')
-        return res
-
-    ex = ex__
-
-    ## END SETUP ##
-    print('****** STARTING TESTS******')
-
-    try:
-        print(drop_table('users'))
-        print('DROPPED TABLE')
-    except:
-        print('Table "users" not already created skipping...')
-
-    u = create_table('users', [
-    ('first_name', str_len(30), True),
-    ('last_name', str_len(30), True),
-    ('nick_name', str_len(30)),
-    ('balance', int)
-    ])
-
-    print(u.select().run())
-
-
-    u.insert([
-    {'first_name': 'Test1','last_name': 'l1','nick_name': '1','balance': 10},
-    {'first_name': 'Test2','last_name': 'l2','nick_name': '2','balance': 20},
-    {'first_name': 'Test3','last_name': 'l3','nick_name': '3','balance': 30},
-    ]).run()
-
-
-    u2 = get_table('users')
-
-    add_column(u2, ('address', str))
-    print(dir(u2.underlying_obj))
-    drop_column(u2, 'address')
-    print(dir(u2.underlying_obj))
-
-    print(u.select().where(and_(u.first_name == 'test' , u.last_name == 'test2')).to_sql())
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

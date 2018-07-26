@@ -543,108 +543,95 @@ class RunnableISQL(object):
         return self.isql.to_sql()
 
 
-def run_tests():
-    # TODO: make these into real tests with this format:
-    #def run_tests():
-    #    '''
-    #    '''
-    #    import doctest, sys, ast
-    #    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
+def run_tests(deps_provider):
+    '''
+    TODO: Tests to validate interface of return values from update, select, etc.
+    TODO: Decide whether or not object properties can be passed to select like strings
+
+    >>> u = Table('users', AutoIncrementColumn('id'),[
+    ...    Column('first_name', str),
+    ...    Column('last_name', str),
+    ...    Column('balance', int),
+    ...    Column('creation_date', datetime)
+    ... ])
+
+    >>> u.create_table(if_not_exists=False).run(ex)
+    >>> x = u.select().where(u.first_name != None).run(ex)
+    >>> type(x) == TabularKVs
+    True
+    >>> len(x) == 0
+    True
+
+    >>> _ = u.insert([
+    ...  {'first_name': 'Test', 'last_name': 'User','balance': 10},
+    ...  {'first_name': 'Test2', 'last_name': 'User','balance': 20},
+    ...  {'first_name': 'Test3', 'last_name': 'User','balance': 30},
+    ... ]).run(ex)
+
+    >>> print(repr(u.select().run(ex)))
+    {'id': 1, 'first_name': 'Test', 'last_name': 'User', 'balance': 10, 'creation_date': None}
+    {'id': 2, 'first_name': 'Test2', 'last_name': 'User', 'balance': 20, 'creation_date': None}
+    {'id': 3, 'first_name': 'Test3', 'last_name': 'User', 'balance': 30, 'creation_date': None}
+
+
+    # Test ordering of select
+    >>> u.select('id', 'first_name').order_by('id', desc=True).run(ex)
+    {'id': 3, 'first_name': 'Test3'}
+    {'id': 2, 'first_name': 'Test2'}
+    {'id': 1, 'first_name': 'Test'}
+
+    # Test counts
+    >>> u.count().run(ex)
+    3
+    >>> u.count().where(u.first_name == 'Test2').run(ex)
+    1
+    >>> u.count().where(u.first_name != 'Test2').run(ex)
+    2
+
+    # Test count uniques
+    >>> u.count_unique('first_name').run(ex)
+    {'first_name': 'Test', '_count': 1}
+    {'first_name': 'Test2', '_count': 1}
+    {'first_name': 'Test3', '_count': 1}
+
+
+    # Test full update of all rows
+    >>> _ = u.update({'balance': 1000}).run(ex)
+    >>> print(repr(u.select('balance').run(ex)))
+    {'balance': 1000}
+    {'balance': 1000}
+    {'balance': 1000}
+
+
+    # Modify columns
+    >>> u.add_column('nick_name', str).run(ex)
+    >>> u.add_column('unique_nick_name', str_len(30), True).run(ex)
+    >>> u.select('nick_name', 'unique_nick_name').run(ex)
+    {'nick_name': None, 'unique_nick_name': None}
+    {'nick_name': None, 'unique_nick_name': None}
+    {'nick_name': None, 'unique_nick_name': None}
+
+    # TODO: test to make sure unique is enforced
+
+    # Test a delete, where clause, and an or_
+    >>> _ = u.delete().where(
+    ...    or_(
+    ...        u.first_name == 'Test',
+    ...        Column('first_name') == 'Test3'
+    ...    )
+    ... ).run(ex)
+    >>> u.select('first_name').run(ex)
+    {'first_name': 'Test2'}
+
+    # Test pull existing table by name
+    >>> t2 = Table.from_existing('users').run(ex)
+    >>> t2.select('first_name').run(ex)
+    {'first_name': 'Test2'}
+    '''
+    import doctest, sys
     from seneca.seneca_internal.storage.mysql_executer import Executer
-    import seneca.load_test_conf as lc
+    from seneca.seneca_internal.storage.mysql_base import TabularKVs
 
-    ### Unit Tests ###
-    import unittest
-    import sys
+    ex = deps_provider(Executer)
 
-    u = Table('users', AutoIncrementColumn('id'),[
-        Column('first_name', str),
-        Column('last_name', str),
-        Column('balance', int),
-        Column('creation_date', datetime)
-    ])
-
-    class TestQueries(unittest.TestCase):
-
-        def test_create(self):
-            self.assertEqual(u.select().to_sql(), 'SELECT *\nFROM users;')
-
-    suite = unittest.TestSuite()
-    # TODO: discover and add all tests
-    suite.addTest(unittest.makeSuite(TestQueries))
-    unittest.TextTestRunner(verbosity=1).run(suite)
-
-    ### End to End tests ###
-    import os
-
-    ex_ = Executer(**lc.db_settings)
-
-    def ex(obj):
-        print('Running Query:')
-        print(obj.to_sql())
-        res = ex_(obj)
-        print(res)
-        print('\n')
-        return res
-
-    u = Table('users', AutoIncrementColumn('id'),[
-        Column('first_name', str),
-        Column('last_name', str),
-        Column('balance', int),
-        Column('creation_date', datetime)
-    ])
-
-    try:
-        u.drop_table().run(ex)
-    except Exception as e:
-        if not e.args[0]['error_message'] == "Unknown table 'seneca_test.users'":
-            raise
-
-    u.create_table(if_not_exists=True).run(ex)
-    u.select().where(u.first_name != None).run(ex)
-
-    u.insert([
-      {'first_name': 'Test', 'last_name': 'User','balance': 0},
-      {'first_name': 'Test2', 'last_name': 'User','balance': 0},
-      {'first_name': 'Test3', 'last_name': 'User','balance': 0},
-    ]).run(ex)
-    print(u.select().run(ex))
-
-    u.update({'balance': 1000}).run(ex)
-    print(u.select().run(ex))
-
-    print(u.select('id', 'first_name').order_by('id', desc=True).run(ex))
-
-    u.delete().where(
-        or_(
-            u.first_name == 'Test',
-            Column('first_name') == 'Test3'
-        )
-    ).run(ex)
-
-    print(u.select().run(ex))
-
-    u.insert([
-      {'first_name': 'Test1', 'last_name': 'User','balance': 0},
-      {'first_name': 'Test2', 'last_name': 'User','balance': 10},
-    ]).run(ex)
-
-    print(u.count().run(ex))
-    print(u.count().where(u.first_name == 'Test2').run(ex))
-
-    print(u.select().run(ex))
-    print(u.count_unique('first_name').run(ex))
-    print(u.count_unique('first_name').where(u.balance >= 10).run(ex))
-
-    print(u.add_column('nick_name', str).run(ex))
-    print(u.add_column('unique_nick_name', str_len(30), True).run(ex))
-    print(u.select().run(ex))
-    print(u.drop_column('nick_name').run(ex))
-    print(u.select().run(ex))
-    print(u.select().where(u.first_name == 'Test2').order_by('balance', desc=False).run(ex))
-    print(u.select().where(u.first_name == 'Test2').order_by('balance', desc=True).run(ex))
-
-    t2 = Table.from_existing('users').run(ex)
-    u.add_column('nick_name', str).run(ex)
-    t2.drop_column('nick_name').run(ex)
-    t2.add_column('nick_name', str).run(ex)
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

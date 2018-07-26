@@ -32,7 +32,7 @@ def make_exports(global_runtime_data, this_contract_runtime_data):
         'caller_contract_id': caller_contract_id
     }
 
-def run_tests():
+def run_tests(_):
     '''
     # TODO: Write tests for this module.
     '''

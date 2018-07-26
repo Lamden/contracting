@@ -3,7 +3,7 @@ import base64
 exports = {'base64': base64}
 
 
-def run_tests():
+def run_tests(_):
     '''
     >>> type(exports)
     <class 'dict'>

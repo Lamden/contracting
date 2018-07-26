@@ -208,6 +208,6 @@ def manual_import(path, name):
     return mod_dict
 
 
-def run_tests():
+def run_tests(_):
     import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

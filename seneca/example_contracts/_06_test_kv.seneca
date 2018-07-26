@@ -5,7 +5,7 @@ kv2['bar'] = 1
 kv2['baz'] = ['abc', 123]
 kv2['qux'] = {'abc': 123}
 
-print(kv2['foo'])
-print(kv2['bar'])
-print(kv2['baz'])
-print(kv2['qux'])
+#print(kv2['foo'])
+#print(kv2['bar'])
+#print(kv2['baz'])
+#print(kv2['qux'])

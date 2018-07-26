@@ -4,7 +4,6 @@ TODO: forbid queries with names matching temp tables
 
 TODO: Currently circumventing main code block that selects special query actions
 '''
-import sys
 import re
 import copy
 import MySQLdb
@@ -33,6 +32,7 @@ def make_temp_name(table_name):
     '''
     return '$temp$' + table_name
 
+
 def make_query_with_temp_name(q):
     '''
     >>> q = mysqli.InsertRows('test_users', ['username', 'first_name', 'balance'],
@@ -47,11 +47,10 @@ def make_query_with_temp_name(q):
     q1.table_name = make_temp_name(q1.table_name)
     return q1
 
-import sys
+
 def CreateTableAction(ex, q):
     '''
     Clear state:
-    >>> ex = make_ex()
     >>> _ = ex.rollback()
     >>> _ = ex.cur.execute('DROP DATABASE seneca_test;')
     >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
@@ -175,7 +174,6 @@ def ListTablesAction(ex, q):
 def DropTableAction(ex, q):
     '''
     Clear state:
-    >>> ex = make_ex()
     >>> _ = ex.rollback()
     >>> _ = ex.cur.execute('DROP DATABASE seneca_test;')
     >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
@@ -194,7 +192,6 @@ def DropTableAction(ex, q):
 
 
     Clear state:
-    >>> ex = make_ex()
     >>> _ = ex.rollback()
     >>> _ = ex.cur.execute('DROP DATABASE seneca_test;')
     >>> _ = ex.cur.execute('CREATE DATABASE seneca_test;')
@@ -342,11 +339,15 @@ SPITS does not have the needed info to execute this query.")
 
         return ex_base.SQLExecutionResult(True, None)
 
+    def kill(self):
+        self.cur.close()
+        self.conn.close()
 
-def run_tests():
+
+
+def run_tests(deps_provider):
     '''
     Setup/clear state:
-    >>> spex, bex = make_test_exes()
     >>> _ = spex.rollback(); spex.soft_deleted_tables |  spex.temp_tables
     set()
     >>> _ = spex.cur.execute('DROP DATABASE IF EXISTS seneca_test;')
@@ -421,7 +422,6 @@ def run_tests():
 
     #### TEST: Write to temporary table ####
     Setup/clear state:
-    >>> spex, bex = make_test_exes()
     >>> _ = spex.rollback(); spex.soft_deleted_tables |  spex.temp_tables
     set()
     >>> _ = spex.cur.execute('DROP DATABASE IF EXISTS seneca_test;')
@@ -439,6 +439,7 @@ def run_tests():
     {'last_row_id': 1, 'row_count': 1}
     >>> tmp.count().run(spex)
     1
+
     >>> tmp_with_tmp_name = easy_db.Table.from_existing(make_temp_name(ct.table_name)).run(bex)
     >>> tmp_with_tmp_name.count().run(bex)
     1
@@ -450,22 +451,15 @@ def run_tests():
     1
 
     '''
-    from seneca.load_test_conf import db_settings
-
-    def make_test_exes():
-        spex = Executer(**db_settings)
-        bex = ex_base.Executer(**db_settings)
-        bex.conn = spex.conn
-        bex.cur = spex.cur
-        return spex, bex
-
-    def make_ex():
-        return Executer(**db_settings)
-
-    import doctest
+    import doctest, sys
     import seneca.seneca_internal.storage.mysql_intermediate as mysqli
     import seneca.seneca_internal.storage.easy_db as easy_db
-    #doctest.testmod(extraglobs={'ex': ex})
+    from typing import Tuple
+
+    from seneca.seneca_internal.storage.mysql_executer import Executer as Raw_Executer
+    spex,bex = deps_provider(Tuple[Executer, Raw_Executer])
+    ex = spex
+
 
     ct = CreateTable(
           'test_users',

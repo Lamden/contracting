@@ -36,7 +36,7 @@ def name_space_isql(prefix, isql_obj):
 
 # In tests, verify coverage of modified module
 # : {k for (k,v) in mi.__dict__.items() if type(v) == type and issubclass(v, m_i.Query)}
-def run_tests():
+def run_tests(_):
     '''
     >>> name_space_isql('', None)
     '''
