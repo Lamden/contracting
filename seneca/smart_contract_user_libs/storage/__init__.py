@@ -17,8 +17,10 @@ for f in os.listdir(path):
     else:
         mod_name = f.split('.')[0]
         m = manual_import(full_f_path, mod_name)
-        if m['exports'] is not None:
+        if m['exports'] is not None and type(m['exports']) == dict:
             exports[mod_name] = util.dict_to_nt(m['exports'], 'module')
+        else:
+            exports[mod_name] = m['exports']
 
 
 def run_tests():

@@ -145,7 +145,7 @@ def seneca_lib_loader(imp, global_run_data, this_contract_run_data, db_executer)
     mod_file_path = seneca_module_name_to_path(real_path)
     s_mod = util.manual_import(mod_file_path, real_path.split('.')[-1])
 
-    if module_path in ('seneca.storage.tabular', 'seneca.storage.kv'):
+    if module_path in ('seneca.storage.tabular', 'seneca.storage.kv', 'seneca.storage.kv2'):
         s_mod['ex'] = db_executer
         s_mod['name_space'] = this_contract_run_data['contract_id']
 
@@ -206,7 +206,10 @@ def append_sandboxed_scope(scope, import_descriptor, exports):
             last_in_chain = call_chain.pop()
             imp_obj = build_import_object(call_chain)
         else:
-            scope[qn] = namedtuple("Exports", exports.keys())(*exports.values())
+            if qn == 'kv2':
+                scope[qn] = exports
+            else:
+                scope[qn] = namedtuple("Exports", exports.keys())(*exports.values())
     else:
         specific_names = import_descriptor['specific_names_in_mod']
 

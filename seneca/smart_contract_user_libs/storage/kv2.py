@@ -29,7 +29,7 @@ def generate_kv_table(full_name):
     ])
 
 
-class kv(object):
+class kv2(object):
     '''
     '''
     def __init__(self):
@@ -59,7 +59,8 @@ class kv(object):
         else:
             self.table.insert([{'key_': k, 'json_encoded_value': j_v}]).run(ex)
 
-exports = kv()
+kv2_obj = kv2()
+exports = kv2_obj
 
 def run_tests():
     '''
@@ -68,19 +69,19 @@ def run_tests():
     >>> print(bool(name_space))
     True
 
-    >>> kv1 = kv()
-    >>> print(type(kv1))
-    <class 'seneca.smart_contract_user_libs.storage.kv2.kv'>
+    >>> kv_obj = kv2()
+    >>> print(type(kv_obj))
+    <class 'seneca.smart_contract_user_libs.storage.kv2.kv2'>
 
-    >>> _ = print(kv1['x'])
+    >>> _ = print(kv_obj['x'])
     None
 
-    >>> kv1['x'] = 5
-    >>> print(kv1['x'])
+    >>> kv_obj['x'] = 5
+    >>> print(kv_obj['x'])
     5
 
-    >>> kv1['x'] = 6
-    >>> print(kv1['x'])
+    >>> kv_obj['x'] = 6
+    >>> print(kv_obj['x'])
     6
     '''
     global name_space, ex
