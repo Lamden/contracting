@@ -30,7 +30,7 @@ RUN yum install -y make boost-devel
 # Build
 RUN cd /opt/myrocks/mysql-5.6 && cmake . -DCMAKE_BUILD_TYPE=Release \
 -DWITH_SSL=system -DWITH_ZLIB=bundled -DMYSQL_MAINTAINER_MODE=0 \
--DENABLED_LOCAL_INFILE=1 -DENABLE_DTRACE=0 -DCMAKE_CXX_FLAGS="-march=native"
+-DENABLED_LOCAL_INFILE=1 -DENABLE_DTRACE=0
 RUN cd /opt/myrocks/mysql-5.6 && make -j8
 RUN cd /opt/myrocks/mysql-5.6 && make install
 
@@ -43,6 +43,7 @@ RUN yum clean all
 # Copy config and install db
 COPY ./my.cnf /etc/my.cnf
 
+# Copy latest start_mysql
 COPY ./start_mysql.sh /usr/local/bin/start_mysql.sh
 RUN chmod +x /usr/local/bin/start_mysql.sh
 
@@ -55,18 +56,4 @@ EXPOSE 3306
 RUN useradd -ms /bin/bash mysql
 RUN chown -R mysql:mysql /usr/local/mysql/data
 
-#RUN P=$(ps aux | grep /bin/mysqld | grep -v grep | awk '{print $2}') && \
-#kill -9 $P && \
-#echo "" && \
-#echo "Kill with 'docker kill', mysql is very stubborn, it doesn't close on sigint or sigkill" && \
-#echo ""
-
 ENTRYPOINT ["/usr/local/bin/start_mysql.sh"]
-#CMD cd /opt/mysql/usr/local/mysql/ && ./bin/mysqld_safe & \
-#echo "Waiting for mysqld to start..." && \
-#sleep 5 && \
-#cd /opt/mysql/usr/local/mysql/ && ./bin/mysql -e "CREATE DATABASE $DB_DB_NAME /*\!40100 DEFAULT CHARACTER SET utf8 */;" && \
-#cd /opt/mysql/usr/local/mysql/ && ./bin/mysql -e "CREATE USER $DB_USER@localhost IDENTIFIED BY '$DB_PASSWORD';" && \
-#cd /opt/mysql/usr/local/mysql/ && ./bin/mysql -e "GRANT ALL ON *.* to $DB_USER@'%' IDENTIFIED BY '$DB_PASSWORD';" && \
-#cd /opt/mysql/usr/local/mysql/ && ./bin/mysql -e "FLUSH PRIVILEGES;" && \
-#cd /opt/mysql/usr/local/mysql/ && ./bin/mysqld_safe

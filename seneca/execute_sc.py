@@ -105,8 +105,6 @@ def is_ast_import(item):
 
 def full_module_path():
     '''
-    >>> full_module_path()
-    '/Users/carl/src/lamden/seneca'
     '''
     return os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 

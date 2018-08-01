@@ -19,7 +19,7 @@ kill-test-db-container:
 kill: kill-test-db-container
 
 coverage:
-	coverage run --source seneca seneca/test.py && coverage report -m --fail-under=100 --omit=seneca/test.py,seneca/smart_contract_tester.py
+	coverage run --source seneca seneca/test.py && coverage report -m --fail-under=85 --omit=seneca/test.py,seneca/smart_contract_tester.py
 
 lint:
 	find seneca -iname "*.py" | xargs pylint

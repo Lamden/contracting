@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # TODO: pass on modules that don't have a run_tests function
+# TODO: Raise test coverage requirement in Makefile
 
 import argparse
 import importlib
