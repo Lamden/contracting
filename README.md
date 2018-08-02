@@ -11,7 +11,7 @@ Seneca is different because it focuses on the developer's point of view to provi
 
 Most web based applications are driven by data: usernames, passwords, email addresses, profile pictures, etc. etc. However, smart contracts today do not provide clear interfaces to storing these complex data models.
 
-Seneca treats data like a tabular SQL table and smart contracts like the group of methods that create, read, update, and delete those records. This provides a very smooth development experience and a shallow learning curve to smart contracting.
+Seneca treats data like a tabular SQL table and smart contracts as a group of methods that creates, reads, updates, and deletes that data. This provides a very smooth development experience and a shallow learning curve to smart contracting.
 
 ```
 ledger = st.create_table('ledger', [
