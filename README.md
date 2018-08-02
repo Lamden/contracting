@@ -1,7 +1,7 @@
 # Seneca Smart Contracts
 
 <img src="https://github.com/Lamden/seneca/raw/master/seneca.jpg" align="right"
-     title="Seneca" width="150" height="275">
+     title="Seneca" width="150" height="225">
 
 Seneca is a Turing-incomplete domain specific language (DSL) for writing smart contracts on the Lamden Cilantro blockchain. The philosophy is that smart contracts in practice are mainly used for data storage, access, and modification, so the blockchain data and processing should be looked at more as a public database rather than a world computer.
 
