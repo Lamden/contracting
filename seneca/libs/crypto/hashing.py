@@ -39,7 +39,13 @@ exports = {
 # explicit tests of the hash functions for sanity
 def run_tests(_):
     import doctest, sys
-    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
+    #return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
+
+    from seneca.execute_sc import Empty
+
+    res = Empty()
+    res.attempted = 0
+    res.failed = 0
 
     payload = b'testing this'
     algos = supported_hashing_functions
@@ -51,8 +57,11 @@ def run_tests(_):
         m2 = exports[algo](payload)
 
         try:
+            res.attempted += 1
             assert (m.digest() == m2)
             print('{} available'.format(algo))
         except Exception as e:
             print(e)
             print('{} not available'.format(algo))
+            res.failed += 1
+    return res
