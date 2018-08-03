@@ -17,19 +17,19 @@ def make_n_tup(d):
     return namedtuple('_', ' '.join(d.keys()))(**d)
 
 
-def make_exports(global_runtime_data, this_contract_runtime_data):
+def make_exports(global_runtime_data, this_runtime_data):
     caller = global_runtime_data['call_stack'][-1][1] if len(global_runtime_data['call_stack']) > 0 else '__main__'
 
-    # author
-    # sender
-    # caller
-    # call_stack
-    # now
+    # author - the original author of the contract
+    # sender - the wallet that is sending the contract
+    # caller - the top of the call stack
+    # call_stack - the list of callers up to this point
+    # now - execution datetime
 
     return {
-        'this_contract': make_n_tup({
-            'author': this_contract_runtime_data['author'],
-            'now': this_contract_runtime_data['now'],
+        'this': make_n_tup({
+            'author': this_runtime_data['author'],
+            'now': this_runtime_data['now'],
         }),
         'global_run_data': make_n_tup({
             'author': global_runtime_data['caller_user_id'],

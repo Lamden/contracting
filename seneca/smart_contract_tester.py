@@ -136,14 +136,14 @@ def run_contract_file_as_user(contract_file_name, user_id, contract_address):
         'caller': contract_id,
     }
 
-    this_contract_run_data = {
+    this_run_data = {
         'author': user_id,
         'now': None,
         'contract_id': contract_address
     }
 
     try:
-        res = execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=True, module_loader=ft_module_loader, db_executer=ex)
+        res = execute_contract(global_run_data, this_run_data, contract_str, is_main=True, module_loader=ft_module_loader, db_executer=ex)
     except:
         show("ERROR: Failure in contract executer (not specifically the contract).")
         finalize_contract_record(contract_address, False, contract_address)
