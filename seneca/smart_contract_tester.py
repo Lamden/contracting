@@ -133,7 +133,7 @@ def run_contract_file_as_user(contract_file_name, user_id, contract_address):
 
     global_run_data = {
         'caller_user_id': user_id,
-        'caller_contract_id': contract_id,
+        'caller': contract_id,
     }
 
     this_contract_run_data = {
