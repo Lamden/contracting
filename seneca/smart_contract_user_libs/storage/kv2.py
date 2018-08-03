@@ -7,8 +7,8 @@
 '''
 import json
 
-from seneca.seneca_internal.storage.easy_db import Column, Table, str_len
-from seneca.seneca_internal.util import auto_set_fields
+from seneca.engine.storage.easy_db import Column, Table, str_len
+from seneca.engine.util import auto_set_fields
 
 # Note: These will be set by execute_sc
 ex = None
@@ -86,7 +86,7 @@ def run_tests(deps_provider):
     '''
     global name_space, ex
     import doctest, sys
-    from seneca.seneca_internal.storage.mysql_executer import Executer
+    from seneca.engine.storage.mysql_executer import Executer
     name_space = 'test_tabular'
     ex = deps_provider(Executer)
 

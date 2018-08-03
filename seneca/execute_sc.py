@@ -17,10 +17,10 @@ from collections import namedtuple
 import os
 import importlib
 import traceback
-from seneca.seneca_internal.util import *
+from seneca.engine.util import *
 
-from seneca.seneca_internal.parser import basic_ast_whitelist
-import seneca.seneca_internal.util as util
+from seneca.engine.parser import basic_ast_whitelist
+import seneca.engine.util as util
 
 seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
 
@@ -155,12 +155,12 @@ def seneca_lib_loader(imp, global_run_data, this_contract_run_data, db_executer)
     if module_path == 'seneca.runtime':
         return s_mod['make_exports'](global_run_data, this_contract_run_data)
     else:
-        # TODO: implement complete seneca_internal and DRY this out, make internal attrs match runtime.py
+        # TODO: implement complete engine and DRY this out, make internal attrs match runtime.py
         si = Empty()
         si.called_by_internal = False
         si.smart_contract_caller = global_run_data['caller_user_id']
         si.this_contract_address = this_contract_run_data['contract_id']
-        s_mod['seneca_internal'] = si
+        s_mod['engine'] = si
 
         assert 'exports' in s_mod.keys(), "Imported module %s doesn't have any exports" % module_path
         assert s_mod['exports'] is not None, "Imported module %s has exports set to None" % module_path
@@ -346,7 +346,7 @@ def run_tests(deps_provider):
     '''
     '''
     import doctest, sys
-    from seneca.seneca_internal.storage.mysql_executer import Executer as ex_base
+    from seneca.engine.storage.mysql_executer import Executer as ex_base
 
     bex = deps_provider(ex_base)
 

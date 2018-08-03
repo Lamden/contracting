@@ -6,8 +6,8 @@
 # * type info
 # always upsert
 
-import seneca.seneca_internal.storage.easy_db as db
-from seneca.seneca_internal.storage.mysql_base import get_str_to_py_cast_func
+import seneca.engine.storage.easy_db as db
+from seneca.engine.storage.mysql_base import get_str_to_py_cast_func
 from seneca.smart_contract_user_libs.stdlib import datetime
 
 ex = None

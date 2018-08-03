@@ -17,8 +17,8 @@ import sys
 from execute_sc import execute_contract
 from datetime import datetime
 
-import seneca.seneca_internal.storage.easy_db as t
-from seneca.seneca_internal.storage.mysql_executer import Executer
+import seneca.engine.storage.easy_db as t
+from seneca.engine.storage.mysql_executer import Executer
 
 ex_ = None
 
