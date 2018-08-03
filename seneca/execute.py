@@ -19,7 +19,7 @@ import importlib
 import traceback
 from seneca.engine.util import *
 
-from seneca.engine.parser import basic_ast_whitelist
+from seneca.engine.parser import whitelist
 import seneca.engine.util as util
 
 seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
@@ -282,7 +282,7 @@ def _execute_contract(global_run_data, this_run_data, contract_str, is_main=Fals
     assert type(sc_ast) == ast.Module, "Unexpected input, 'a' should always be an _ast.Module"
 
     # Fail if forbidden AST nodes are found, e.g. for-loops
-    basic_ast_whitelist.validate(sc_ast)
+    whitelist.validate(sc_ast)
 
     # Create a new empty scope for module execution.
     module_scope = {}
