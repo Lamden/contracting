@@ -71,7 +71,7 @@ def run_tests(deps_provider):
 
     >>> kv_obj = kv2()
     >>> print(type(kv_obj))
-    <class 'seneca.smart_contract_user_libs.storage.kv2.kv2'>
+    <class 'seneca.libs.storage.kv2.kv2'>
 
     >>> _ = print(kv_obj['x'])
     None
