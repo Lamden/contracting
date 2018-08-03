@@ -15,7 +15,7 @@ import warnings
 import configparser
 import load_test_conf as lc
 from typing import Tuple
-from seneca_internal.util import auto_set_fields
+from engine.util import auto_set_fields
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import smart_contract_tester as ft
