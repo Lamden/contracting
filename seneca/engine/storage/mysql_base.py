@@ -20,7 +20,7 @@ def sql_escapes(s):
 '''
 from seneca.engine.util import auto_set_fields, fst, snd, swap
 from enum import Enum
-from seneca.libs.stdlib import datetime
+from seneca.libs.types import datetime
 from dateutil.parser import parse as parse_time
 from terminaltables import AsciiTable
 import re

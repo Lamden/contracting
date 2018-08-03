@@ -15,7 +15,7 @@ def run_tests(_):
     import doctest, sys
     #return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
 
-    from seneca.execute_sc import Empty
+    from seneca.execute import Empty
 
     res = Empty()
     res.attempted = 0

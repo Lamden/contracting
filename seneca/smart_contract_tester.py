@@ -14,7 +14,7 @@ TODO:
 '''
 import os
 import sys
-from execute_sc import execute_contract
+from execute import execute_contract
 from datetime import datetime
 
 import seneca.engine.storage.easy_db as t
