@@ -19,10 +19,17 @@ def make_n_tup(d):
 
 def make_exports(global_runtime_data, this_contract_runtime_data):
     caller_contract_id = global_runtime_data['call_stack'][-1][1] if len(global_runtime_data['call_stack']) > 0 else '__main__'
+
+    # author
+    # sender
+    # caller
+    # call_stack
+    # now
+
     return {
         'this_contract': make_n_tup({
             'author': this_contract_runtime_data['author'],
-            'execution_datetime': this_contract_runtime_data['execution_datetime'],
+            'now': this_contract_runtime_data['now'],
         }),
         'global_run_data': make_n_tup({
             'author': global_runtime_data['caller_user_id'],

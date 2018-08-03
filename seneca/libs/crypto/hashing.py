@@ -56,5 +56,3 @@ def run_tests(_):
         except Exception as e:
             print(e)
             print('{} not available'.format(algo))
-
-# run_tests()

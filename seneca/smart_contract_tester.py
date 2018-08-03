@@ -59,7 +59,7 @@ def set_up():
         t.Column('contract_address', t.str_len(30), True),
         [ t.Column('code_str', str),
           t.Column('author', t.str_len(60)),
-          t.Column('execution_datetime', datetime),
+          t.Column('now', datetime),
           t.Column('execution_status', t.str_len(30)),
         ]
     )
@@ -93,7 +93,7 @@ def ft_module_loader(contract_id):
 
     runtime_data = {
         'author': c['author'],
-        'execution_datetime': c['execution_datetime'],
+        'now': c['now'],
         'contract_id': c['contract_address']
     }
 
@@ -105,7 +105,7 @@ def store_contract(contract_str, user_id, contract_address):
         'contract_address': contract_address,
         'code_str': contract_str,
         'author': user_id,
-        'execution_datetime': None,
+        'now': None,
         'execution_status': 'pending',
     }]).run(ex)
 
@@ -114,7 +114,7 @@ def store_contract(contract_str, user_id, contract_address):
 
 def finalize_contract_record(contract_id, passed, contract_address):
     if passed:
-        payload = {'execution_status': 'executed', 'execution_datetime': datetime.now()}
+        payload = {'execution_status': 'executed', 'now': datetime.now()}
     else:
         payload = {'execution_status': 'failed'}
 
@@ -138,7 +138,7 @@ def run_contract_file_as_user(contract_file_name, user_id, contract_address):
 
     this_contract_run_data = {
         'author': user_id,
-        'execution_datetime': None,
+        'now': None,
         'contract_id': contract_address
     }
 
