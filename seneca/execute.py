@@ -36,19 +36,21 @@ def test_seneca_loader(sc_dir, mod_name):
     m_path = os.path.join(sc_dir, (mod_name + '.seneca'))
     return open(m_path, 'r').read()
 
-
-def ast_import_decoder(item):
+'''
+    AST -> dictionary
+'''
+def import_ast_to_dict(item):
     """Analyzes import statement in smart contract.
     Decide if the import is valid and supported.
     Figure out whether the module being imported is a smart contract or a Seneca lib
     Return a dict with detailed information about the import.
 
-    >>> ast_import_decoder(ast.parse('import some_sc').body[0])
+    >>> import_ast_to_dict(ast.parse('import some_sc').body[0])
     [{'module_type': 'smart_contract', 'module_path': 'some_sc', 'qualified_name': 'some_sc', 'specific_names_in_mod': None}]
-    >>> ast_import_decoder(ast.parse('import seneca.test').body[0])
+    >>> import_ast_to_dict(ast.parse('import seneca.test').body[0])
     [{'module_type': 'seneca', 'module_path': 'seneca.test', 'qualified_name': 'seneca.test', 'specific_names_in_mod': None}]
     >>> try:
-    ...    ast_import_decoder('wrong_type')
+    ...    import_ast_to_dict('wrong_type')
     ... except Exception as e:
     ...    print(e)
     Not an AST import node.
@@ -61,7 +63,7 @@ def ast_import_decoder(item):
         # TODO: Must implement this!!!
         return True
 
-    ret = {
+    dict_repr = {
         'module_type': None, # [seneca_lib, smart_contract]
         'module_path': None, # (must be populated)
         'qualified_name': None, # (either string or None)
@@ -77,12 +79,12 @@ def ast_import_decoder(item):
 
     assert item_type in path_getters.keys(), "Not an AST import node."
 
-    ret['module_path'] = path_getters[item_type](item)
+    dict_repr['module_path'] = path_getters[item_type](item)
 
-    if is_seneca(ret['module_path']):
-        ret['module_type'] = 'seneca'
-    elif is_smart_contract(ret['module_path']):
-        ret['module_type'] = 'smart_contract'
+    if is_seneca(dict_repr['module_path']):
+        dict_repr['module_type'] = 'seneca'
+    elif is_smart_contract(dict_repr['module_path']):
+        dict_repr['module_type'] = 'smart_contract'
     else:
         # TODO: custom exception types, also, consider moving this
         raise Exception("Dissallowed import, not from Seneca or smart contract")
@@ -91,12 +93,12 @@ def ast_import_decoder(item):
         # TODO: add this functionality, note, this is why return type is a list of return objects
         assert len(item.names) == 1, "Seneca doesn't currently support multiple imports in one line"
         as_name = item.names[0].asname
-        ret['qualified_name'] = as_name if as_name else ret['module_path']
+        dict_repr['qualified_name'] = as_name if as_name else dict_repr['module_path']
     else:
         # TODO: add handling for * wildcard imports
-        ret['specific_names_in_mod'] = {x.name:x.asname for x in item.names}
+        dict_repr['specific_names_in_mod'] = {x.name:x.asname for x in item.names}
 
-    return [ret]
+    return [dict_repr]
 
 
 def is_ast_import(item):
@@ -129,9 +131,14 @@ def seneca_module_name_to_path(name):
         raise Exception('bad import path:' + name)
 
 
+'''
+    Called during parsing of a seneca contract where `import seneca.*` occurs
+    imp = import AST node that can be traversed
+    global_run_data = 
+'''
 # TODO: make sure this loads modules exactly once per caller_id
-def seneca_lib_loader(imp, global_run_data, this_run_data, db_executer):
-    assert db_executer is not None, "A mysql executer must be passed to seneca_lib_loader for contracts that use tabular data storage."
+def import_seneca_library(imp, global_run_data, this_run_data, db_executer):
+    assert db_executer is not None, "A mysql executer must be passed to import_seneca_library for contracts that use tabular data storage."
     #print(imp)
 
     module_path = imp['module_path']
@@ -295,26 +302,26 @@ def _execute_contract(global_run_data, this_run_data, contract_str, is_main=Fals
 
     for item in sc_ast.body:
         if is_ast_import(item):
-            import_list = ast_import_decoder(item)
-            for imp in import_list:
-                if imp['module_type'] == 'seneca':
-                    s_exports = seneca_lib_loader(imp, global_run_data, this_run_data, db_executer)
-                    append_sandboxed_scope(module_scope, imp, s_exports)
+            import_list = import_ast_to_dict(item)
+            for import_ in import_list:
+                if import_['module_type'] == 'seneca':
+                    s_exports = import_seneca_library(import_, global_run_data, this_run_data, db_executer)
+                    append_sandboxed_scope(module_scope, import_, s_exports)
 
-                elif imp['module_type'] == 'smart_contract':
+                elif import_['module_type'] == 'smart_contract':
                     child_grd = global_run_data.copy()
                     child_call_stack = global_run_data['call_stack'].copy()
                     child_call_stack.append((this_run_data['author'], this_run_data['contract_id']))
                     child_grd['call_stack'] = child_call_stack
 
-                    downstream_contract_run_data, downstream_contract_str = module_loader(imp['module_path'])
+                    downstream_contract_run_data, downstream_contract_str = module_loader(import_['module_path'])
                     c_exports = _execute_contract(child_grd,
                                                  downstream_contract_run_data,
                                                  downstream_contract_str,
                                                  is_main=False,
                                                  module_loader=module_loader,
                                                  db_executer=db_executer)
-                    append_sandboxed_scope(module_scope, imp, c_exports._asdict())
+                    append_sandboxed_scope(module_scope, import_, c_exports._asdict())
                 else:
                    # TODO: custom exception types, also
                    raise Exception("Dissallowed import, not from Seneca or smart contract")

@@ -167,6 +167,7 @@ Stats:
 
 
 if __name__ == '__main__':
+    import load_test_conf as lc
     print('\n*** Running Tests ***', file=sys.stderr)
 
     c_dir = os.path.dirname(os.path.realpath(__file__))

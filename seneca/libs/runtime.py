@@ -12,32 +12,31 @@ TODO:
   * Finalize api (names of exports), make those names consistent in execute_sc and elsewhere
 '''
 
-def make_n_tup(d):
-    # TODO: make sure this is good/safe
-    return namedtuple('_', ' '.join(d.keys()))(**d)
+
+class Context:
+    def __init__(self, upstream_call_stack):
+        self.call_stack = upstream_call_stack
+        self.contract_address = upstream_call_stack[0][1]
+        self.author = upstream_call_stack[0][0]
+
+    def upstream(self):
+        return Context(upstream_call_stack=self.call_stack[1:])
+
+    def last(self):
+        return Context(upstream_call_stack=list(self.call_stack[-1]))
 
 
-def make_exports(global_runtime_data, this_runtime_data):
-    caller = global_runtime_data['call_stack'][-1][1] if len(global_runtime_data['call_stack']) > 0 else '__main__'
-
-    # author - the original author of the contract
-    # sender - the wallet that is sending the contract
-    # caller - the top of the call stack
-    # call_stack - the list of callers up to this point
-    # now - execution datetime
+def make_exports(global_runtime_data):
+    this = Context(global_runtime_data['call_stack'][0])
+    upstream = this.upstream()
+    sender = this.last().author
 
     return {
-        'this': make_n_tup({
-            'author': this_runtime_data['author'],
-            'now': this_runtime_data['now'],
-        }),
-        'global_run_data': make_n_tup({
-            'author': global_runtime_data['caller_user_id'],
-            'address': global_runtime_data['caller']
-        }),
-        'call_stack': global_runtime_data['call_stack'],
-        'caller': caller
+        'this': this,
+        'upstream': upstream,
+        'sender': sender
     }
+
 
 def run_tests(_):
     '''
