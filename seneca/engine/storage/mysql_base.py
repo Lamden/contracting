@@ -18,9 +18,9 @@ def sql_escapes(s):
     return re.sub("'", "''", s)
 
 '''
-from seneca.seneca_internal.util import auto_set_fields, fst, snd, swap
+from seneca.engine.util import auto_set_fields, fst, snd, swap
 from enum import Enum
-from seneca.smart_contract_user_libs.stdlib import datetime
+from seneca.libs.types import datetime
 from dateutil.parser import parse as parse_time
 from terminaltables import AsciiTable
 import re

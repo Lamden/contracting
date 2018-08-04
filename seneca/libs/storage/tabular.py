@@ -19,7 +19,7 @@
 
 # TODO: XXX: Current implementation is only for running trusted contracts, no security has been implemented.
 
-import seneca.seneca_internal.storage.easy_db as db
+import seneca.engine.storage.easy_db as db
 import datetime
 
 ex = None
@@ -160,8 +160,8 @@ def run_tests(deps_provider):
     global name_space
 
     import doctest, sys
-    from seneca.seneca_internal.storage.mysql_base import TabularKVs
-    from seneca.seneca_internal.storage.mysql_executer import Executer
+    from seneca.engine.storage.mysql_base import TabularKVs
+    from seneca.engine.storage.mysql_executer import Executer
 
     # Set mdules global values for tests
     name_space = 'test_tabular'

@@ -14,11 +14,11 @@ TODO:
 '''
 import os
 import sys
-from execute_sc import execute_contract
+from execute import execute_contract
 from datetime import datetime
 
-import seneca.seneca_internal.storage.easy_db as t
-from seneca.seneca_internal.storage.mysql_executer import Executer
+import seneca.engine.storage.easy_db as t
+from seneca.engine.storage.mysql_executer import Executer
 
 ex_ = None
 
@@ -59,7 +59,7 @@ def set_up():
         t.Column('contract_address', t.str_len(30), True),
         [ t.Column('code_str', str),
           t.Column('author', t.str_len(60)),
-          t.Column('execution_datetime', datetime),
+          t.Column('now', datetime),
           t.Column('execution_status', t.str_len(30)),
         ]
     )
@@ -93,7 +93,7 @@ def ft_module_loader(contract_id):
 
     runtime_data = {
         'author': c['author'],
-        'execution_datetime': c['execution_datetime'],
+        'now': c['now'],
         'contract_id': c['contract_address']
     }
 
@@ -105,7 +105,7 @@ def store_contract(contract_str, user_id, contract_address):
         'contract_address': contract_address,
         'code_str': contract_str,
         'author': user_id,
-        'execution_datetime': None,
+        'now': None,
         'execution_status': 'pending',
     }]).run(ex)
 
@@ -114,7 +114,7 @@ def store_contract(contract_str, user_id, contract_address):
 
 def finalize_contract_record(contract_id, passed, contract_address):
     if passed:
-        payload = {'execution_status': 'executed', 'execution_datetime': datetime.now()}
+        payload = {'execution_status': 'executed', 'now': datetime.now()}
     else:
         payload = {'execution_status': 'failed'}
 
@@ -133,17 +133,17 @@ def run_contract_file_as_user(contract_file_name, user_id, contract_address):
 
     global_run_data = {
         'caller_user_id': user_id,
-        'caller_contract_id': contract_id,
+        'caller': contract_id,
     }
 
-    this_contract_run_data = {
+    this_run_data = {
         'author': user_id,
-        'execution_datetime': None,
+        'now': None,
         'contract_id': contract_address
     }
 
     try:
-        res = execute_contract(global_run_data, this_contract_run_data, contract_str, is_main=True, module_loader=ft_module_loader, db_executer=ex)
+        res = execute_contract(global_run_data, this_run_data, contract_str, is_main=True, module_loader=ft_module_loader, db_executer=ex)
     except:
         show("ERROR: Failure in contract executer (not specifically the contract).")
         finalize_contract_record(contract_address, False, contract_address)

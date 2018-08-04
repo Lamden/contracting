@@ -1,8 +1,8 @@
 import importlib
 import os
-import seneca.seneca_internal.util as util
+import seneca.engine.util as util
 
-from seneca.seneca_internal.util import manual_import
+from seneca.engine.util import manual_import
 path = os.path.dirname(__file__)
 
 exports = {}

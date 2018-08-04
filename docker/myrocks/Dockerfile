@@ -3,6 +3,11 @@
 # Warning: Requires at least 3.5GB to build, maybe a bit more.
 
 #http://myrocks.io/docs/getting-started/
+FROM lamdencalrissian/seneca-myrocks-test:0.6
+
+# Warning: Requires at least 3.5GB to build, maybe a bit more.
+
+#http://myrocks.io/docs/getting-started/
 
 FROM centos:7.5.1804
 #https://hub.docker.com/_/centos/

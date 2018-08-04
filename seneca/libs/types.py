@@ -3,7 +3,7 @@ import pickle
 from datetime import datetime
 from datetime import timedelta
 
-#TODO please change so that it can be imported from seneca_internal
+#TODO please change so that it can be imported from engine
 supported_db_types = [int, str, bool, float, list, set]
 import hashlib
 

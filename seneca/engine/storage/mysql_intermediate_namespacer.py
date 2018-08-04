@@ -20,8 +20,8 @@ To convert:
  Just prepend table_name for everything except ListTables
 '''
 
-#from seneca.seneca_internal.util import run_super_first, auto_set_fields, intercalate
-import seneca.seneca_internal.storage.mysql_intermediate as m_i
+#from seneca.engine.util import run_super_first, auto_set_fields, intercalate
+import seneca.engine.storage.mysql_intermediate as m_i
 
 
 def name_space_isql(prefix, isql_obj):

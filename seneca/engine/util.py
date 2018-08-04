@@ -3,6 +3,12 @@ from inspect import signature, _empty
 from collections import namedtuple
 import ast
 
+
+def make_n_tup(d):
+    # TODO: make sure this is good/safe
+    return namedtuple('_', ' '.join(d.keys()))(**d)
+
+
 def auto_set_fields(f):
     f_sig = signature(f)
 
