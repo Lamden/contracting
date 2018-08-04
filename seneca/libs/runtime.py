@@ -1,4 +1,3 @@
-from collections import namedtuple
 '''
 Note: at least for now, runtime is a special module and is handled differently by the module loader.
   Why? Currently for development all smart contracts are loaded into the same
@@ -6,10 +5,6 @@ Note: at least for now, runtime is a special module and is handled differently b
     the will be isolated in containers. Runtime data is unique for each smart
     contract but since python modules are singletons runtime data would be the
     same for all contracts in execution tree.
-
-TODO:
-  * Decide if we want to present call chain
-  * Finalize api (names of exports), make those names consistent in execute_sc and elsewhere
 '''
 
 
@@ -20,16 +15,21 @@ class Context:
         self.author = upstream_call_stack[0][0]
 
     def upstream(self):
+        if len(self.call_stack) == 1:
+            return None
         return Context(upstream_call_stack=self.call_stack[1:])
 
     def last(self):
-        return Context(upstream_call_stack=list(self.call_stack[-1]))
+        if len(self.call_stack) <= 1:
+            return None
+        return Context(upstream_call_stack=self.call_stack[-1:])
 
 
 def make_exports(global_runtime_data):
-    this = Context(global_runtime_data['call_stack'][0])
-    upstream = this.upstream()
-    sender = this.last().author
+    this = Context(global_runtime_data['call_stack'])
+    return this
+    #upstream = this.upstream()
+    #sender = this.last().author
 
     return {
         'this': this,
@@ -40,7 +40,18 @@ def make_exports(global_runtime_data):
 
 def run_tests(_):
     '''
-    # TODO: Write tests for this module.
+    >>> c = {'call_stack': [('big', 'ol'), ('doinks', 'amish')]}
+    >>> x = make_exports(c)
+    >>> x.last().author
+    'doinks'
+    >>> x.last().contract_address
+    'amish'
+    >>> x.author
+    'big'
+    >>> x.contract_address
+    'ol'
+    >>> x.call_stack
+    [('big', 'ol'), ('doinks', 'amish')]
     '''
     import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
