@@ -27,9 +27,8 @@ class Context:
 
 def make_exports(global_runtime_data):
     this = Context(global_runtime_data['call_stack'])
-    return this
-    #upstream = this.upstream()
-    #sender = this.last().author
+    upstream = this.upstream()
+    sender = this.last().author
 
     return {
         'this': this,
@@ -40,18 +39,19 @@ def make_exports(global_runtime_data):
 
 def run_tests(_):
     '''
+    >>> from seneca.libs.runtime import *
     >>> c = {'call_stack': [('big', 'ol'), ('doinks', 'amish')]}
     >>> x = make_exports(c)
-    >>> x.last().author
+    >>> x['sender']
     'doinks'
-    >>> x.last().contract_address
-    'amish'
-    >>> x.author
+    >>> x['this'].author
     'big'
-    >>> x.contract_address
+    >>> x['this'].contract_address
     'ol'
-    >>> x.call_stack
-    [('big', 'ol'), ('doinks', 'amish')]
+    >>> x['upstream'].author
+    'doinks'
+    >>> x['upstream'].contract_address
+    'amish'
     '''
     import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
