@@ -7,6 +7,10 @@ Smart contracts allow people to develop open agreements to do business in a way 
 
 Seneca is different because it focuses on the developer's point of view to provide an interface that feels as close to coding traditional systems as possible.
 
+## Install and Get Started
+
+`coming soon`
+
 ## Data Driven Model
 
 Most web based applications are driven by data: usernames, passwords, email addresses, profile pictures, etc. etc. However, smart contracts today do not provide clear interfaces to storing these complex data models.
