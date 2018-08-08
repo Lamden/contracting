@@ -19,7 +19,7 @@ import importlib
 import traceback
 from seneca.engine.util import *
 
-from seneca.engine.parser import whitelist
+from seneca.engine.parser import ast_whitelist
 import seneca.engine.util as util
 
 seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
@@ -39,18 +39,18 @@ def test_seneca_loader(sc_dir, mod_name):
 '''
     AST -> dictionary
 '''
-def import_ast_to_dict(item):
+def analyze_ast_import(item):
     """Analyzes import statement in smart contract.
     Decide if the import is valid and supported.
     Figure out whether the module being imported is a smart contract or a Seneca lib
     Return a dict with detailed information about the import.
 
-    >>> import_ast_to_dict(ast.parse('import some_sc').body[0])
+    >>> analyze_ast_import(ast.parse('import some_sc').body[0])
     [{'module_type': 'smart_contract', 'module_path': 'some_sc', 'qualified_name': 'some_sc', 'specific_names_in_mod': None}]
-    >>> import_ast_to_dict(ast.parse('import seneca.test').body[0])
+    >>> analyze_ast_import(ast.parse('import seneca.test').body[0])
     [{'module_type': 'seneca', 'module_path': 'seneca.test', 'qualified_name': 'seneca.test', 'specific_names_in_mod': None}]
     >>> try:
-    ...    import_ast_to_dict('wrong_type')
+    ...    analyze_ast_import('wrong_type')
     ... except Exception as e:
     ...    print(e)
     Not an AST import node.
@@ -137,8 +137,8 @@ def seneca_module_name_to_path(name):
     global_run_data = 
 '''
 # TODO: make sure this loads modules exactly once per caller_id
-def import_seneca_library(imp, global_run_data, this_run_data, db_executer):
-    assert db_executer is not None, "A mysql executer must be passed to import_seneca_library for contracts that use tabular data storage."
+def seneca_library_loader(imp, global_run_data, this_run_data, db_executer):
+    assert db_executer is not None, "A mysql executer must be passed to seneca_library_loader for contracts that use tabular data storage."
     #print(imp)
 
     module_path = imp['module_path']
@@ -289,7 +289,7 @@ def _execute_contract(global_run_data, this_run_data, contract_str, is_main=Fals
     assert type(sc_ast) == ast.Module, "Unexpected input, 'a' should always be an _ast.Module"
 
     # Fail if forbidden AST nodes are found, e.g. for-loops
-    whitelist.validate(sc_ast)
+    ast_whitelist.validate(sc_ast)
 
     # Create a new empty scope for module execution.
     module_scope = {}
@@ -302,10 +302,10 @@ def _execute_contract(global_run_data, this_run_data, contract_str, is_main=Fals
 
     for item in sc_ast.body:
         if is_ast_import(item):
-            import_list = import_ast_to_dict(item)
+            import_list = analyze_ast_import(item)
             for import_ in import_list:
                 if import_['module_type'] == 'seneca':
-                    s_exports = import_seneca_library(import_, global_run_data, this_run_data, db_executer)
+                    s_exports = seneca_library_loader(import_, global_run_data, this_run_data, db_executer)
                     append_sandboxed_scope(module_scope, import_, s_exports)
 
                 elif import_['module_type'] == 'smart_contract':

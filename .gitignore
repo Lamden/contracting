@@ -6,3 +6,4 @@ dist
 seneca.egg-info
 .coverage
 test_db_conf.ini
+.idea/
