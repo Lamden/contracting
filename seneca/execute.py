@@ -24,7 +24,6 @@ import seneca.engine.util as util
 
 seneca_lib_path = os.path.join(os.path.realpath(__file__), 'seneca')
 
-
 # Load module from file, return code as string
 # In real application, a different function will be provided from Cilantro,
 #   which will pull module code from block chain.
@@ -134,12 +133,13 @@ def seneca_module_name_to_path(name):
 '''
     Called during parsing of a seneca contract where `import seneca.*` occurs
     imp = import AST node that can be traversed
-    global_run_data = 
+    global_run_data =
 '''
 # TODO: make sure this loads modules exactly once per caller_id
-def seneca_library_loader(imp, global_run_data, this_run_data, db_executer):
+def seneca_library_loader(imp, call_stack, db_executer):
+    current_contract_address = call_stack[-1][1]
+    sender = call_stack[0][0]
     assert db_executer is not None, "A mysql executer must be passed to seneca_library_loader for contracts that use tabular data storage."
-    #print(imp)
 
     module_path = imp['module_path']
 
@@ -152,21 +152,22 @@ def seneca_library_loader(imp, global_run_data, this_run_data, db_executer):
 
     if module_path in ('seneca.storage.tabular', 'seneca.storage.kv', 'seneca.storage.kv2'):
         s_mod['ex'] = db_executer
-        s_mod['name_space'] = this_run_data['contract_id']
+        s_mod['name_space'] = current_contract_address
 
         return s_mod['exports']
 
     elif module_path == 'seneca.storage':
         raise Exception('This feature is not implemented, for now you must import the complete module.')
-
+    # TODO: Fix the downstream seneca libs apis to use call_stack
     if module_path == 'seneca.runtime':
-        return s_mod['make_exports'](global_run_data)
+        return s_mod['make_exports'](call_stack)
     else:
         # TODO: implement complete engine and DRY this out, make internal attrs match runtime.py
         si = Empty()
         si.called_by_internal = False
-        si.smart_contract_caller = global_run_data['caller_user_id']
-        si.this_address = this_run_data['contract_id']
+        si.smart_contract_caller = sender
+        si.this_address = current_contract_address
+
         s_mod['engine'] = si
 
         assert 'exports' in s_mod.keys(), "Imported module %s doesn't have any exports" % module_path
@@ -242,47 +243,46 @@ class ContractExecutionResult(object):
         return self.passed
 
 #TODO NOTE to Carl: reafactor this
-def get_read_only_contract_obj(*args, **kwargs):
-    kwargs['is_main'] = False
+def get_read_only_contract_obj(_, this_run_data, contract_str, is_main=False, module_loader=None, db_executer=None):
+    # TODO: IMPORTANT! Change this method signature
     #TODO: assert read only db executer
-    args[0]['call_stack'] = []
-    return _execute_contract(*args, **kwargs)
+    call_stack = [(this_run_data['author'], this_run_data['contract_id'])]
+    return _execute_contract(call_stack, contract_str, is_main=False, module_loader=module_loader, db_executer=db_executer)
+
 
 #TODO NOTE to Carl: reafactor this
-def execute_contract(*args, **kwargs):
-    kwargs['is_main'] = True
+def execute_contract(_, this_run_data, contract_str, is_main=False, module_loader=None, db_executer=None):
+    # TODO: IMPORTANT! Change this method signature
+    call_stack = [(this_run_data['author'], this_run_data['contract_id'])]
+
     ret = ContractExecutionResult()
 
-    # TODO: make this not suck, adding callstack stuff
-    args[0]['call_stack'] = []
     try:
-        res = _execute_contract(*args, **kwargs)
+        res = _execute_contract(call_stack, contract_str, is_main=True, module_loader=module_loader, db_executer=db_executer)
         ret.passed = True
     except Exception as e:
         ret.passed = False
-        #TODO revert to
-        # ret.error_message = str(e)
         ret.error_message = traceback.format_exc()
         ret.exception = e
-
     return ret
 
 
-def _execute_contract(global_run_data, this_run_data, contract_str, is_main=False, module_loader=None, db_executer=None):
+def _execute_contract(call_stack, contract_str, is_main, module_loader, db_executer):
+    # TODO: Readd tests
     '''
-    >>> contract_a = 'import seneca.storage.tabular; exports={}'
-    >>> _execute_contract({}, {'contract_id':'a'}, contract_a, False, [], bex)
+    >> contract_a = 'import seneca.storage.tabular; exports={}'
+    >> _execute_contract({}, {'contract_id':'a'}, contract_a, False, [], bex)
     a()
 
-    #>>> loader = lambda _:{'contract_id':'b', 'author':'abc'}, contract_a
-    #>>> contract_b = 'import a; exports={}'
-    #>>> _execute_contract({'call_stack':[], 'author':'abc'}, {'contract_id':'b', 'author':'abc'}, contract_b, True, loader, bex)
+    >> loader = lambda _:{'contract_id':'b', 'author':'abc'}, contract_a
+    >> contract_b = 'import a; exports={}'
+    >> _execute_contract({'call_stack':[], 'author':'abc'}, {'contract_id':'b', 'author':'abc'}, contract_b, True, loader, bex)
 
     '''
-
     assert module_loader is not None, 'No module loader provided'
+    contract_id = call_stack[-1][1]
 
-    sc_display_name = "seneca_contract_addr: %s" % this_run_data['contract_id']
+    sc_display_name = "seneca_contract_addr: %s" % contract_id
 
     #  Parse Seneca smart contract, generate AST
     sc_ast = ast.parse(contract_str)
@@ -295,7 +295,7 @@ def _execute_contract(global_run_data, this_run_data, contract_str, is_main=Fals
     module_scope = {}
 
     # Set module name, emulate the behavior of the CPython, '__main__' for the main entry point.
-    module_scope['__name__'] = '__main__' if is_main else this_run_data['contract_id']
+    module_scope['__name__'] = '__main__' if is_main else contract_id
 
     # Find all imports and recursively add them to namespaces
     new_ast_body = []
@@ -305,18 +305,15 @@ def _execute_contract(global_run_data, this_run_data, contract_str, is_main=Fals
             import_list = analyze_ast_import(item)
             for import_ in import_list:
                 if import_['module_type'] == 'seneca':
-                    s_exports = seneca_library_loader(import_, global_run_data, this_run_data, db_executer)
+                    s_exports = seneca_library_loader(import_, call_stack, db_executer)
                     append_sandboxed_scope(module_scope, import_, s_exports)
 
                 elif import_['module_type'] == 'smart_contract':
-                    child_grd = global_run_data.copy()
-                    child_call_stack = global_run_data['call_stack'].copy()
-                    child_call_stack.append((this_run_data['author'], this_run_data['contract_id']))
-                    child_grd['call_stack'] = child_call_stack
-
                     downstream_contract_run_data, downstream_contract_str = module_loader(import_['module_path'])
-                    c_exports = _execute_contract(child_grd,
-                                                 downstream_contract_run_data,
+                    child_call_stack = call_stack.copy()
+                    child_call_stack.append((downstream_contract_run_data['author'], downstream_contract_run_data['contract_id']))
+
+                    c_exports = _execute_contract(child_call_stack,
                                                  downstream_contract_str,
                                                  is_main=False,
                                                  module_loader=module_loader,
@@ -343,7 +340,7 @@ def _execute_contract(global_run_data, this_run_data, contract_str, is_main=Fals
         # If this isn't the primary smart contract, take everythig bound to the name
         # 'exports' and return it, for addition to caller's scope, i.e. imported.
         x = module_scope['exports']
-        return namedtuple(this_run_data['contract_id'], x.keys())(**x)
+        return namedtuple(contract_id, x.keys())(**x)
     else:
         # TODO: figure out return for passed or failed contract
         return True
@@ -351,9 +348,54 @@ def _execute_contract(global_run_data, this_run_data, contract_str, is_main=Fals
 
 def run_tests(deps_provider):
     '''
+    >>> global_run_data = {
+    ...     'caller_user_id': 'user_id',
+    ...     'caller': 'contract_id',
+    ... }
+
+    >>> this_run_data = {
+    ...     'author': 'user_id',
+    ...     'now': None,
+    ...     'contract_id': 'contract_address'
+    ... }
+
+    >>> contract_str = """
+    ... import seneca.types
+    ... """
+
+    >>> res = execute_contract(global_run_data, this_run_data, contract_str, is_main=False, module_loader=[], db_executer=bex)
+    >>> print(type(res))
+    <class 'seneca.execute.ContractExecutionResult'>
+    >>> res.passed
+    True
+
+    >>> scft.set_up()
+    >>> for s in glob.glob('./seneca/example_contracts/*'):
+    ...     scft.run_contract(s)
+    >>> scft.clean_up()
+
+    >>> contract_str_ro = """
+    ... import seneca.types
+    ... exports = {
+    ...    'foo':'bar',
+    ...    'baz':'qux'
+    ... }
+    ... """
+
+    >>> ro = get_read_only_contract_obj(global_run_data, this_run_data, contract_str_ro, is_main=False, module_loader=[], db_executer=bex)
+
+    >> ro.foo
+    'bar'
+    >> ro.baz
+    'qux'
+
     '''
     import doctest, sys
+    import seneca.smart_contract_tester as scft
+
+    import glob
     from seneca.engine.storage.mysql_executer import Executer as ex_base
+
 
     bex = deps_provider(ex_base)
 

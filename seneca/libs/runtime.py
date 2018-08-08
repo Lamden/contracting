@@ -7,6 +7,8 @@ Note: at least for now, runtime is a special module and is handled differently b
     same for all contracts in execution tree.
 '''
 
+# TODO: Readd execution datetime to parameters on callstack
+
 from seneca.engine.util import auto_set_fields, make_n_tup
 '''
 sender
@@ -39,9 +41,9 @@ class ContactData:
         return str(self.__dict__)
 
 
-def make_exports(global_runtime_data):
+def make_exports(call_stack_as_list):
     global call_stack
-    call_stack = list(map(lambda x: ContactData(x[1][0], x[1][1], x[0]), enumerate(global_runtime_data['call_stack'])))
+    call_stack = list(map(lambda x: ContactData(x[1][0], x[1][1], x[0]), enumerate(call_stack_as_list)))
 
     return {
         'this_contract': call_stack[-1],
@@ -52,7 +54,7 @@ def make_exports(global_runtime_data):
 def run_tests(_):
     '''
     >>> from seneca.libs.runtime import *
-    >>> x = make_n_tup(make_exports({'call_stack': [('test_author', 'test_contract_addr')]}))
+    >>> x = make_n_tup(make_exports([('test_author', 'test_contract_addr')]))
     >>> x.sender
     'test_author'
     >>> x.this_contract.author
@@ -67,10 +69,10 @@ def run_tests(_):
     ...     print(e)
     No upstream contract exists
 
-    >>> x = make_n_tup(make_exports({'call_stack': [
+    >>> x = make_n_tup(make_exports([
     ...    ('caller_author', 'caller_contract'),
     ...    ('lib_author','lib_contract')
-    ... ]}))
+    ... ]))
     >>> x.sender
     'caller_author'
     >>> x.this_contract.author
