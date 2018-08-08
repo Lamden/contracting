@@ -160,7 +160,7 @@ def seneca_library_loader(imp, global_run_data, this_run_data, db_executer):
         raise Exception('This feature is not implemented, for now you must import the complete module.')
 
     if module_path == 'seneca.runtime':
-        return s_mod['make_exports'](global_run_data, this_run_data)
+        return s_mod['make_exports'](global_run_data)
     else:
         # TODO: implement complete engine and DRY this out, make internal attrs match runtime.py
         si = Empty()
