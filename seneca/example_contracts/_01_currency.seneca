@@ -3,7 +3,6 @@
 
 import seneca.storage.tabular as st
 import seneca.crypto as crypto
-import seneca.runtime as rt
 from seneca import runtime
 from seneca import types
 from seneca.modulelib import export, make_exports
@@ -56,8 +55,7 @@ def remove_coins(wallet_id, amount_to_remove):
 
 @export
 def transfer_coins(receiver_id, amount):
-    sender_id = runtime.global_run_data.caller
-    remove_coins(sender_id, amount)
+    remove_coins(runtime.sender, amount)
     add_coins(receiver_id, amount)
 
 
