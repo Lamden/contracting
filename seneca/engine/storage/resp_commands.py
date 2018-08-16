@@ -34,12 +34,13 @@ class TypeDependant():
     pass
 
 
+# Memoize this
 def is_dependant_on(resp_type):
     return type(
-    'Foo',
+    'Foo', # Fix this
     (TypeDependant, resp_type),
     {
-        'resp_type': lambda _ : resp_type # todo: try to make this a static method instead
+        'resp_type': lambda _ : resp_type # todo: try to make this a static method instead, is this needed?
     }
     )
 
