@@ -1,31 +1,24 @@
 from abc import ABCMeta, abstractmethod
-
 from seneca.engine.util import auto_set_fields
+from seneca.engine.storage import resp_types as rtypes
 
-class RESPType(metaclass=ABCMeta):
-    @staticmethod
-    @abstractmethod
-    def resp_type():
-        raise NotImplementedError
-
-class RESPKey(RESPType): pass
-class RESPString(RESPType): pass
-class RESPList(RESPType): pass
-class RESPHashMap(RESPType): pass
-class RESPSet(RESPType): pass
-class RESPSortedSet(RESPType): pass
-class RESPBitmap(RESPType): pass
-class RESPHyperLogLog(RESPType): pass
-
+# TODO: figure out how to enforce or at least test varying return types for run method.
 
 class Command(metaclass=ABCMeta):
-    pass
+    @abstractmethod
+    def run(self, ex):
+        raise NotImplementedError
+
+    # Base implementation is an empty check
+    def verify_runnable(self, executer):
+        return True
 
 class Reads(Command):
     pass
 
 class Writes(Command):
     pass
+
 
 class TypeDependant():
     '''
@@ -34,16 +27,15 @@ class TypeDependant():
     pass
 
 
-# Memoize this
+# TODO: Memoize this
 def is_dependant_on(resp_type):
     return type(
-    'Foo', # Fix this
+    'Foo', # TODO: Fix this
     (TypeDependant, resp_type),
     {
         'resp_type': lambda _ : resp_type # todo: try to make this a static method instead, is this needed?
     }
     )
-
 
 # May not be needed
 # class MultiWrite(RedisCommand):
@@ -56,7 +48,18 @@ def is_dependant_on(resp_type):
 
 # DUMP not implemented
 
-# EXISTS
+class Exists(Reads):
+    @auto_set_fields
+    def __init__(self, key):
+        pass
+    # run returns int
+
+class NotExists(Reads):
+    @auto_set_fields
+    def __init__(self, key):
+        pass
+    # run returns int
+
 
 # EXPIRE not implemented
 # EXPIREAT not implemented
@@ -80,122 +83,152 @@ def is_dependant_on(resp_type):
 # TOUCH not implemented
 # TTL not implemented
 
-# TYPE
+class Type(Reads):
+    @auto_set_fields
+    def __init__(self, key):
+        pass
+    # run returns rtype.Container
 
-# UNLINK not implemented, asynchronous
+class ScalarType(Type):
+    def verify_runnable(self, executer):
+        return issubclass(ex(Type(self.key)), rtypes.RScalar)
+    # run returns rtype.Container
+
+
+# UNLINK
 # WAIT not implemented
 
+def must_be_scalar(self, executer):
+    return issubclass(ex(Type(self.key)), rtypes.RScalar)
+
 # String Commands #
-class Append(Writes, is_dependant_on(RESPString)):
+class Append(Reads, Writes, is_dependant_on(RESPString)):
     @auto_set_fields
     def __init__(self, key, value):
-        pass
+Append.run_requirement = must_be_scalar
 
-class BitCount(Reads, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, key, start=None, end=None):
-        pass
+
+
+
+# class BitCount(Reads, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, start=None, end=None):
+#         pass
 
 # BITFIELD, not implemented
+#
+# class BitOp(Reads, Writes, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, operation, dest, *keys):
+#         pass
+#
+# class BitPos(Reads, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, bit, start=None, end=None):
+#         pass
 
-class BitOp(Reads, Writes, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, operation, dest, *keys):
-        pass
-
-class BitPos(Reads, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, key, bit, start=None, end=None):
-        pass
-
-class Decr(Reads, Writes, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, key):
-        pass
-
-class DecrBy(Reads, Writes, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, key, amount):
-        pass
-
-class Get(Reads, is_dependant_on(RESPString)):
+class Incr(Reads, Writes):
     @auto_set_fields
     def __init__(self, key):
         pass
 
-class GetBit(Reads, is_dependant_on(RESPString)):
+    def verify_runnable(self, executer):
+        return issubclass(ex(ScalarType(self.key)), rtypes.RScalarInt)
+
+class Decr(Incr): pass
+
+class IncrBy(Incr):
     @auto_set_fields
-    def __init__(self, key, offset):
+    def __init__(self, key, amount):
         pass
 
-class GetRange(Reads, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, key, start, end):
-        pass
+class DecrBy(IncrBy): pass
 
-class GetSet(Reads, Writes, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, key, start, end):
-        pass
 
-class Incr(Reads, Writes, is_dependant_on(RESPString)):
+class Get(Reads):
     @auto_set_fields
     def __init__(self, key):
         pass
 
-class IncrBy(Reads, Writes, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, key, amount):
-        pass
+    def verify_runnable(self, executer):
+        return issubclass(ex(Type(self.key)), rtypes.RScalar)
 
-class IncrByFloat(Reads, Writes, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, key, amount):
-        pass
+# class GetBit(Reads, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, offset):
+#         pass
+#
+# class GetRange(Reads, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, start, end):
+#         pass
+#
+# class GetSet(Reads, Writes, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, start, end):
+#         pass
 
-class MGet(Reads, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, keys):
-        pass
 
-class MSet(Writes, RESPString):
-    @auto_set_fields
-    def __init__(self, kv_dict):
-        pass
 
-class MSetNX(Reads, Writes, RESPString):
-    @auto_set_fields
-    def __init__(self, kv_dict):
-        pass
+
+
+
+# TODO: decide if we actually want floats in Redis, could be a source of non-determinism
+# class IncrByFloat(Reads, Writes, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, amount):
+#         pass
+#
+# class MGet(Reads, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, keys):
+#         pass
+#
+# class MSet(Writes, RESPString):
+#     @auto_set_fields
+#     def __init__(self, kv_dict):
+#         pass
+#
+# class MSetNX(Reads, Writes, RESPString):
+#     @auto_set_fields
+#     def __init__(self, kv_dict):
+#         pass
 
 # PSETEX not implementing
 
-class Set(Writes, RESPString):
+class Set(Writes):
     @auto_set_fields
     def __init__(self, key, value):
         pass
+    # No verify_runnable needed always succeeds.
 
-class SetBit(Writes, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, key, offset, value):
-        pass
+
+#
+# class SetBit(Writes, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, offset, value):
+#         pass
 
 # SETEX not implemented
-
-class SetNX(Reads, Writes, RESPString):
-    @auto_set_fields
-    def __init__(self, key, value):
-        pass
-
-class SetRange(Writes, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, key, offset, value):
-        pass
+#
+# class SetNX(Reads, Writes, RESPString):
+#     @auto_set_fields
+#     def __init__(self, key, value):
+#         pass
+#
+# class SetRange(Writes, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, offset, value):
+#         pass
 
 class StrLen(Reads, is_dependant_on(RESPString)):
     @auto_set_fields
     def __init__(self, key, offset, value):
         pass
+
+    def verify_runnable(self, executer):
+        return issubclass(ex(Type(self.key)), rtypes.RScalar)
+
 
 """
 # Hash Commands #

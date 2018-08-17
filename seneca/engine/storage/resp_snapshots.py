@@ -10,6 +10,7 @@ class Transaction:
         self._write_only_revision = 0
 
     def _do_type_check(self, key):
+        # Because of the complixity of testing type, if string coercible to int, etc, may want to implement this in Lua
         raise NotImplementedError()
 
     def _do_read(self, key):
