@@ -1,66 +1,179 @@
 from abc import ABCMeta, abstractmethod
-from seneca.engine.util import auto_set_fields
-from seneca.engine.storage import resp_types as rtypes
+from typing import Union
 
-# TODO: figure out how to enforce or at least test varying return types for run method.
+from seneca.engine.util import auto_set_fields
+from seneca.engine.storage.resp_types import *
+
+
+# TODO: Enforce run return types for run method in executer libs.
 
 class Command(metaclass=ABCMeta):
-    @abstractmethod
     def run(self, ex):
+        '''
+        Execute the command. Passing an executer like this allows the command
+        objects to exist completely separate from an executer. We'll implement
+        at least two executers, direct Redis and nested snapshots, a.k.a.
+        transactions with savepoints.
+
+        It may seem oddly inside-out: obj.run(ex) -> ex(obj). It's done like
+        this to enforce correct return type from executers that handle these
+        commands.
+        '''
+        return ex(self)
+
+    @abstractmethod
+    def success_requires(self, executer):
         raise NotImplementedError
 
-    # Base implementation is an empty check
-    def verify_runnable(self, executer):
-        return True
 
 class Reads(Command):
+    '''
+    Inheritting this class designates the command performs a read. This
+    information will be used to build snapshot dependency graphs.
+    '''
     pass
+
 
 class Writes(Command):
-    pass
-
-
-class TypeDependant():
     '''
-    Depends on type of previously written value
+    Inheritting this class designates the command performs a write. This
+    information will be used to build snapshot dependency graphs.
     '''
-    pass
+    @abstractmethod
+    def writes_type(self):
+        raise NotImplementedError
 
 
-# TODO: Memoize this
-def is_dependant_on(resp_type):
+# TODO: memoize this.
+def writes_type(t):
+    '''
+    Type (i.e. class) constructor, parameterized on a type, attatches a method
+    onto the created class called 'writes_type' that returns the passed type.
+
+    Objects that inherit the outputed classes of this function have been
+    designated to perform Redis writes of a specific Redis type t.
+    '''
     return type(
-    'Foo', # TODO: Fix this
-    (TypeDependant, resp_type),
-    {
-        'resp_type': lambda _ : resp_type # todo: try to make this a static method instead, is this needed?
-    }
+        'WritesType_' + str(t),
+        (Writes, ),
+        {
+            'writes_type': lambda _ : t
+        }
     )
 
-# May not be needed
-# class MultiWrite(RedisCommand):
-#     # list of writes
-#     pass
 
+class WritesPolymorphicScalar(Writes):
+    '''
+    Inheritting this class designates the command performs a write to a Scalar
+    (i.e. a Redis string) with it's type inferred by Redis.
+    '''
+    def writes_type(self):
+        try:
+            int(str(self.value))
+            return ScalarInt
+        except ValueError:
+            pass
+
+        try:
+            float(str(self.value))
+            return ScalarFloat
+        except ValueError:
+            pass
+
+        return ScalarString
+
+
+###############################
+# Shared validation functions #
+###############################
+def nothing_always_succeeds(_,__):
+    return True
+
+
+def key_exists(self, executer):
+    return Exists(self.key).run(executer)
+
+
+def nx_or_existing_type_must_be(desired_type):
+    '''
+    Higher order function, takes a type parameter and returns a validation func.
+    '''
+    def f(self, executer):
+        if Exists(self.key).run(executer):
+            return True
+        elif issubclass(GetExactType(self.key).run(executer), desired_type):
+            return True
+        else:
+            return False
+
+    return f
+
+
+#NOTE: This is a decorator function, not a class!
+class run_returns_type:
+    '''
+    '''
+    @auto_set_fields
+    def __init__(self, t):
+        pass
+
+    def __call__(self, cls):
+        cls.run.__annotations__['return'] = self.t
+        return cls
+
+
+#NOTE: This is a decorator function, not a class!
+class success_requires:
+    # TODO: abstract this functionality and move to util
+    '''
+    '''
+    @auto_set_fields
+    def __init__(self, validation_function):
+        pass
+
+    def __call__(self, cls):
+        if hasattr(cls, '__abstractmethods__'):
+            abstr_methods = set(cls.__abstractmethods__)
+            abstr_methods.remove('success_requires')
+            cls.__abstractmethods__ = frozenset(abstr_methods)
+        setattr(cls, 'success_requires', self.validation_function)
+        return cls
+
+
+################
 # Key Commands #
+################
+@run_returns_type(RType)
+@success_requires(key_exists)
+class GetExactType(Reads):
+    '''
+    Note: Custom command for this lib, not implemented by Redis. This is here to
+    Handle polymorphism in strings and hash values.
+    '''
+    @auto_set_fields
+    def __init__(self, key: str):
+        pass
 
-# DEL
 
-# DUMP not implemented
+@run_returns_type(RType)
+@success_requires(key_exists)
+class Type(Reads):
+    @auto_set_fields
+    def __init__(self, key: str):
+        pass
 
+
+@run_returns_type(bool)
+@success_requires(nothing_always_succeeds)
 class Exists(Reads):
     @auto_set_fields
-    def __init__(self, key):
+    def __init__(self, key: str):
         pass
-    # run returns int
 
-class NotExists(Reads):
-    @auto_set_fields
-    def __init__(self, key):
-        pass
-    # run returns int
+class NotExists(Exists): pass
 
-
+# DEL
+# DUMP not implemented
 # EXPIRE not implemented
 # EXPIREAT not implemented
 # KEYS not implemented, from docs Warning: consider KEYS as a command that should only be used in production environments with extreme care
@@ -72,42 +185,61 @@ class NotExists(Reads):
 # PEXPIREAT not implemented
 # PTTL not implemented
 # RANDOMKEY not implemented
-
 # RENAME
-
 # RENAMENX
-
 # RESTORE not implemented
 # SCAN not implemented, will be hard to maintain the cursor and sequence of existing and newly added keys
 # SORT not implemented
 # TOUCH not implemented
 # TTL not implemented
-
-class Type(Reads):
-    @auto_set_fields
-    def __init__(self, key):
-        pass
-    # run returns rtype.Container
-
-class ScalarType(Type):
-    def verify_runnable(self, executer):
-        return issubclass(ex(Type(self.key)), rtypes.RScalar)
-    # run returns rtype.Container
-
-
 # UNLINK
 # WAIT not implemented
 
-def must_be_scalar(self, executer):
-    return issubclass(ex(Type(self.key)), rtypes.RScalar)
 
+# TODO: must add constraints on inputs, annotations + typeguard @typechecked should be sufficient
+###################
 # String Commands #
-class Append(Reads, Writes, is_dependant_on(RESPString)):
+###################
+@run_returns_type(type(None))
+@success_requires(nx_or_existing_type_must_be(RScalar))
+class Append(Reads, WritesPolymorphicScalar):
     @auto_set_fields
-    def __init__(self, key, value):
-Append.run_requirement = must_be_scalar
+    def __init__(self, key: str, value: str):
+        pass
 
 
+@run_returns_type(bytes)
+@success_requires(nx_or_existing_type_must_be(RScalar))
+class Get(Reads):
+    @auto_set_fields
+    def __init__(self, key: str):
+        pass
+
+
+@run_returns_type(type(None))
+@success_requires(nothing_always_succeeds)
+class Set(WritesPolymorphicScalar):
+    @auto_set_fields
+    def __init__(self, key:str , value: Union[str, float, int]):
+        pass
+
+
+@run_returns_type(type(None))
+@success_requires(nx_or_existing_type_must_be(ScalarInt))
+class Incr(Reads, writes_type(ScalarInt)):
+    @auto_set_fields
+    def __init__(self, key: str):
+        pass
+
+
+class Decr(Incr): pass
+
+class IncrBy(Incr):
+    @auto_set_fields
+    def __init__(self, key: str, amount: int):
+        pass
+
+class DecrBy(IncrBy): pass
 
 
 # class BitCount(Reads, is_dependant_on(RESPString)):
@@ -126,33 +258,7 @@ Append.run_requirement = must_be_scalar
 #     @auto_set_fields
 #     def __init__(self, key, bit, start=None, end=None):
 #         pass
-
-class Incr(Reads, Writes):
-    @auto_set_fields
-    def __init__(self, key):
-        pass
-
-    def verify_runnable(self, executer):
-        return issubclass(ex(ScalarType(self.key)), rtypes.RScalarInt)
-
-class Decr(Incr): pass
-
-class IncrBy(Incr):
-    @auto_set_fields
-    def __init__(self, key, amount):
-        pass
-
-class DecrBy(IncrBy): pass
-
-
-class Get(Reads):
-    @auto_set_fields
-    def __init__(self, key):
-        pass
-
-    def verify_runnable(self, executer):
-        return issubclass(ex(Type(self.key)), rtypes.RScalar)
-
+#
 # class GetBit(Reads, is_dependant_on(RESPString)):
 #     @auto_set_fields
 #     def __init__(self, key, offset):
@@ -167,10 +273,6 @@ class Get(Reads):
 #     @auto_set_fields
 #     def __init__(self, key, start, end):
 #         pass
-
-
-
-
 
 
 # TODO: decide if we actually want floats in Redis, could be a source of non-determinism
@@ -196,14 +298,7 @@ class Get(Reads):
 
 # PSETEX not implementing
 
-class Set(Writes):
-    @auto_set_fields
-    def __init__(self, key, value):
-        pass
-    # No verify_runnable needed always succeeds.
 
-
-#
 # class SetBit(Writes, is_dependant_on(RESPString)):
 #     @auto_set_fields
 #     def __init__(self, key, offset, value):
@@ -221,13 +316,13 @@ class Set(Writes):
 #     def __init__(self, key, offset, value):
 #         pass
 
-class StrLen(Reads, is_dependant_on(RESPString)):
-    @auto_set_fields
-    def __init__(self, key, offset, value):
-        pass
-
-    def verify_runnable(self, executer):
-        return issubclass(ex(Type(self.key)), rtypes.RScalar)
+# class StrLen(Reads):
+#     @auto_set_fields
+#     def __init__(self, key, offset, value):
+#         pass
+#
+#     def verify_runnable(self, executer):
+#         return issubclass(ex(Type(self.key)), rtypes.RScalar)
 
 
 """
@@ -315,15 +410,36 @@ class HVals(Command, RESPHashMap):
 
 def run_tests(deps_provider):
     '''
-    >>> a = Append('foo', 'bar')
-    >>> isinstance(a, RESPString)
-    True
-    >>> isinstance(a, TypeDependant)
-    True
-    >>> isinstance(a, Writes)
-    True
-    >>> a.resp_type()
-    <class 'seneca.engine.storage.resp_commands.RESPString'>
+    Test basics of Set
+    >>> s = Set('a', 'b')
+    >>> s.__dict__
+    {'key': 'a', 'value': 'b'}
+    >>> s.run.__annotations__
+    {'return': <class 'NoneType'>}
+    >>> s.writes_type()
+    <class 'seneca.engine.storage.resp_types.ScalarString'>
+
+    Test polymorphic scalars
+    >>> Set('a', 1).writes_type()
+    <class 'seneca.engine.storage.resp_types.ScalarInt'>
+
+    >>> Set('a', 1.0).writes_type()
+    <class 'seneca.engine.storage.resp_types.ScalarFloat'>
+
+    Test polymorphic scalars saved as strings
+    >>> Set('a', '1').writes_type()
+    <class 'seneca.engine.storage.resp_types.ScalarInt'>
+
+    >>> Set('a', '1.0').writes_type()
+    <class 'seneca.engine.storage.resp_types.ScalarFloat'>
+
+    >>> _ = Get('a')
+
+    Test basics of Incr
+    >>> i = Incr('a')
+
+
+
     '''
     import doctest, sys
     import seneca.smart_contract_tester as scft
