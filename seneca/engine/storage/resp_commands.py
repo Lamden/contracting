@@ -4,7 +4,6 @@ from typing import Union
 from seneca.engine.util import auto_set_fields
 from seneca.engine.storage.resp_types import *
 
-
 # TODO: Enforce run return types for run method in executer libs.
 
 class Command(metaclass=ABCMeta):

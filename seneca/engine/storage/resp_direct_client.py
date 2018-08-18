@@ -1,5 +1,5 @@
 '''
-Some code for GetExactType
+Some code for GetExactType, or better, use Lua
 
 if issubclass(existing_type, desired_type):
     return True
@@ -17,4 +17,22 @@ else:
     raise Exception('Unknown type.')
 
 
+TODO, implement:
+* Get
+* Set
+* Incr
+* IncrBy
+* Decr
+* DecrBy
+
+* Exists
+* Type
+* GetExactType
+
+*
+
+
+
+
 '''
+from seneca.engine.storage.resp_commands import *
