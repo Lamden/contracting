@@ -6,9 +6,8 @@
 # * type info
 # always upsert
 
-import seneca.engine.storage.easy_db as db
-from seneca.engine.storage.mysql_base import get_str_to_py_cast_func
-from seneca.libs.types import datetime
+import seneca.engine.storage.sql.easy_db as db
+from seneca.engine.storage.sql.mysql_base import get_str_to_py_cast_func
 
 ex = None
 name_space = None

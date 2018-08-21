@@ -7,10 +7,9 @@ TODO: Currently circumventing main code block that selects special query actions
 import re
 import copy
 import MySQLdb
-from seneca.engine.util import *
 
-import seneca.engine.storage.mysql_executer as ex_base
-from seneca.engine.storage.mysql_intermediate import *
+import seneca.engine.storage.sql.mysql_executer as ex_base
+from seneca.engine.storage.sql.mysql_intermediate import *
 
 unalterted_queries = [ DeleteRows,
                        UpdateRows,
@@ -452,11 +451,9 @@ def run_tests(deps_provider):
 
     '''
     import doctest, sys
-    import seneca.engine.storage.mysql_intermediate as mysqli
-    import seneca.engine.storage.easy_db as easy_db
     from typing import Tuple
 
-    from seneca.engine.storage.mysql_executer import Executer as Raw_Executer
+    from seneca.engine.storage.sql.mysql_executer import Executer as Raw_Executer
     spex,bex = deps_provider(Tuple[Executer, Raw_Executer])
     ex = spex
 

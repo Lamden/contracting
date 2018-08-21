@@ -10,12 +10,7 @@
 # * _fields - Each concrete class has an attribute _fields which gives the names
 #   of all child nodes.
 
-import sys
-import ast
-import astpretty
-from collections import namedtuple
 import os
-import importlib
 import traceback
 from seneca.engine.util import *
 
@@ -394,7 +389,7 @@ def run_tests(deps_provider):
     import seneca.smart_contract_tester as scft
 
     import glob
-    from seneca.engine.storage.mysql_executer import Executer as ex_base
+    from seneca.engine.storage.sql.mysql_executer import Executer as ex_base
 
 
     bex = deps_provider(ex_base)

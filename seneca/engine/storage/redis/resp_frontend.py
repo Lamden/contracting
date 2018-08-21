@@ -5,7 +5,7 @@ This module is a redis-py compatible library.
 * It generates resp command objects that are run by the backend
 '''
 
-from seneca.engine.storage.resp_commands import *
+from seneca.engine.storage.redis.resp_commands import *
 
 class Client:
     '''

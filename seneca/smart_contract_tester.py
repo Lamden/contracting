@@ -13,12 +13,11 @@ TODO:
 * TODO: Real testing functions for Seneca contracts
 '''
 import os
-import sys
 from execute import execute_contract
 from datetime import datetime
 
-import seneca.engine.storage.easy_db as t
-from seneca.engine.storage.mysql_executer import Executer
+import seneca.engine.storage.sql.easy_db as t
+from seneca.engine.storage.sql.mysql_executer import Executer
 
 ex_ = None
 

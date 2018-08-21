@@ -12,8 +12,7 @@ TODOs:
   * Construct executer from existing connection (mainly for testing)
 '''
 import MySQLdb
-from seneca.engine.storage.mysql_intermediate import *
-import warnings
+from seneca.engine.storage.sql.mysql_intermediate import *
 
 requires_commit = [ DeleteRows,
                     UpdateRows,
@@ -240,7 +239,7 @@ def run_tests(deps_provider):
     '''
 
     import doctest, sys
-    from seneca.engine.storage.mysql_executer import Executer
+    from seneca.engine.storage.sql.mysql_executer import Executer
     ex = deps_provider(Executer)
 
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

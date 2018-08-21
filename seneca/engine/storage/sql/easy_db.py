@@ -15,14 +15,14 @@
   * Type annotations
 '''
 
-from itertools import zip_longest
-import warnings
 import datetime
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from seneca.engine.util import auto_set_fields, add_methods, add_method_as, filter_split, assert_len
-import seneca.engine.storage.mysql_intermediate as isql
-from seneca.engine.storage.mysql_base import FixedStr, cast_py_to_sql
+import seneca.engine.storage.sql.mysql_intermediate as isql
+from seneca.engine.storage.sql.mysql_base import FixedStr
+
+
 #from inflection import  underscore, camelize
 
 # Convenience functions for dealing with lists, dicts, and objects
@@ -629,8 +629,8 @@ def run_tests(deps_provider):
     {'first_name': 'Test2'}
     '''
     import doctest, sys
-    from seneca.engine.storage.mysql_executer import Executer
-    from seneca.engine.storage.mysql_base import TabularKVs
+    from seneca.engine.storage.sql.mysql_executer import Executer
+    from seneca.engine.storage.sql.mysql_base import TabularKVs
 
     ex = deps_provider(Executer)
 

@@ -1,5 +1,4 @@
-from seneca.engine.util import *
-from seneca.engine.storage.mysql_intermediate import *
+from seneca.engine.storage.sql.mysql_intermediate import *
 
 dissallowed_queries = [ AddTableColumn,
                         DropTableColumn,
@@ -84,7 +83,7 @@ def run_tests(deps_provider):
     True
     '''
     import doctest, sys
-    from seneca.engine.storage.mysql_executer import Executer
+    from seneca.engine.storage.sql.mysql_executer import Executer
     bex = deps_provider(Executer)
 
     ct = CreateTable('test_users',

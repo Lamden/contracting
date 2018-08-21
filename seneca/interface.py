@@ -1,5 +1,3 @@
-from seneca.engine.storage.mysql_executer import Executer
-from seneca.engine.storage.mysql_spits_executer import Executer as Spits
 # a
 # class Driver:
 #     def __init__(self, username, password, database, port):
