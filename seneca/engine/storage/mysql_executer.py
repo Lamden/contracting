@@ -9,10 +9,10 @@ TODOs:
     * Table already exists
     * What else?
   * Make sure we're using cursor correctly
-  * Construct executer from existing connection (mainly for testing)f
-'''
+  * Construct executer from existing connection (mainly for testing)f'''
 import MySQLdb
 from seneca.engine.storage.mysql_intermediate import *
+import warnings
 
 requires_commit = [ DeleteRows,
                     UpdateRows,
