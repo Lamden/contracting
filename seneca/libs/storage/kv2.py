@@ -8,7 +8,6 @@
 import json
 
 from seneca.engine.storage.easy_db import Column, Table, str_len
-from seneca.engine.util import auto_set_fields
 
 # Note: These will be set by execute_sc
 ex = None

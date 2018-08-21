@@ -13,7 +13,6 @@ TODOs:
 '''
 import MySQLdb
 from seneca.engine.storage.mysql_intermediate import *
-import warnings
 
 requires_commit = [ DeleteRows,
                     UpdateRows,

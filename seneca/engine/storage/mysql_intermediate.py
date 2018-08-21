@@ -25,11 +25,10 @@ NOTE: We don't enforce caller to have any criteria, i.e. without "WHERE" all
 rows will be updated, this enforcement should be added in a higher level API to
 prevent accidental updates of all records.
 '''
-from typing import Type, Dict, Tuple, List
 
 #cls: Type[A]
 
-from seneca.engine.storage.mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern, TabularKVs, py_mysql_dict
+from seneca.engine.storage.mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern
 from seneca.engine.util import *
 
 class Query(object):

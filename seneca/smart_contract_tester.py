@@ -13,7 +13,6 @@ TODO:
 * TODO: Real testing functions for Seneca contracts
 '''
 import os
-import sys
 from execute import execute_contract
 from datetime import datetime
 
