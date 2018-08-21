@@ -3,7 +3,7 @@ Note: Not threadsafe
 
 
 """
-from seneca.engine.storage.redis.resp_commands import *
+from seneca.engine.storage.resp_commands import *
 
 
 class Executer():

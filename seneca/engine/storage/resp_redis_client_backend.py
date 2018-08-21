@@ -4,7 +4,7 @@ Some code for GetExactType, or better, use Lua
 
 '''
 import redis
-from seneca.engine.storage.redis.resp_commands import *
+from seneca.engine.storage.resp_commands import *
 
 
 class Executer():

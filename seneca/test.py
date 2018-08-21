@@ -15,8 +15,8 @@ from engine.util import auto_set_fields
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import smart_contract_tester as ft
 
-from seneca.engine.storage.sql.mysql_executer import Executer as Raw_Executer
-from seneca.engine.storage.sql.mysql_spits_executer import Executer as Spits_Executer
+from seneca.engine.storage.mysql_executer import Executer as Raw_Executer
+from seneca.engine.storage.mysql_spits_executer import Executer as Spits_Executer
 
 clean_up_actions = []
 

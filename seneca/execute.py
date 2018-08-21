@@ -389,7 +389,7 @@ def run_tests(deps_provider):
     import seneca.smart_contract_tester as scft
 
     import glob
-    from seneca.engine.storage.sql.mysql_executer import Executer as ex_base
+    from seneca.engine.storage.mysql_executer import Executer as ex_base
 
 
     bex = deps_provider(ex_base)

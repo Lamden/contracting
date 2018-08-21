@@ -1,5 +1,5 @@
 import redis as rr
-from seneca.engine.storage.redis.resp_commands import *
+from seneca.engine.storage.resp_commands import *
 
 class Transaction:
     def __init__(self, transaction_group):

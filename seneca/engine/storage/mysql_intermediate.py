@@ -28,7 +28,7 @@ prevent accidental updates of all records.
 
 #cls: Type[A]
 
-from seneca.engine.storage.sql.mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern
+from seneca.engine.storage.mysql_base import SQLType, get_py_to_sql_cast_func, cast_py_to_sql, escape_sql_pattern
 from seneca.engine.util import *
 
 class Query(object):
