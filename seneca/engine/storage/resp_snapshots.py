@@ -346,5 +346,4 @@ def run_tests(deps_provider):
     '''
     '''
     import doctest, sys
-    import seneca.smart_contract_tester as scft
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

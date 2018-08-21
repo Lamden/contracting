@@ -20,6 +20,9 @@ class Command(metaclass=ABCMeta):
         '''
         return ex(self)
 
+    def __repr__(self):
+        return '<RESP (%s) %s>' % (self.__class__.__name__, str(self.__dict__))
+
     @abstractmethod
     def success_requires(self, executer):
         raise NotImplementedError
@@ -64,22 +67,22 @@ def writes_type(t):
 class WritesPolymorphicScalar(Writes):
     '''
     Inheritting this class designates the command performs a write to a Scalar
-    (i.e. a Redis string) with it's type inferred by Redis.
+    (i.e. a Redis string) with the scalar's type inferred by Redis.
     '''
     def writes_type(self):
         try:
             int(str(self.value))
-            return ScalarInt
+            return RScalarInt
         except ValueError:
             pass
 
         try:
             float(str(self.value))
-            return ScalarFloat
+            return RScalarFloat
         except ValueError:
             pass
 
-        return ScalarString
+        return RScalar
 
 
 ###############################
@@ -169,6 +172,7 @@ class Exists(Reads):
     def __init__(self, key: str):
         pass
 
+
 class NotExists(Exists): pass
 
 # DEL
@@ -199,7 +203,7 @@ class NotExists(Exists): pass
 ###################
 # String Commands #
 ###################
-@run_returns_type(type(None))
+@run_returns_type(int) # Length of new value (I think)
 @success_requires(nx_or_existing_type_must_be(RScalar))
 class Append(Reads, WritesPolymorphicScalar):
     @auto_set_fields
@@ -207,7 +211,8 @@ class Append(Reads, WritesPolymorphicScalar):
         pass
 
 
-@run_returns_type(bytes)
+# Do we want to allow 'nones'?
+@run_returns_type(RScalar)
 @success_requires(nx_or_existing_type_must_be(RScalar))
 class Get(Reads):
     @auto_set_fields
@@ -223,9 +228,9 @@ class Set(WritesPolymorphicScalar):
         pass
 
 
-@run_returns_type(type(None))
-@success_requires(nx_or_existing_type_must_be(ScalarInt))
-class Incr(Reads, writes_type(ScalarInt)):
+@run_returns_type(int)
+@success_requires(nx_or_existing_type_must_be(RScalarInt))
+class Incr(Reads, writes_type(RScalarInt)):
     @auto_set_fields
     def __init__(self, key: str):
         pass
@@ -233,10 +238,12 @@ class Incr(Reads, writes_type(ScalarInt)):
 
 class Decr(Incr): pass
 
+
 class IncrBy(Incr):
     @auto_set_fields
     def __init__(self, key: str, amount: int):
         pass
+
 
 class DecrBy(IncrBy): pass
 
@@ -414,23 +421,23 @@ def run_tests(deps_provider):
     >>> s.__dict__
     {'key': 'a', 'value': 'b'}
     >>> s.run.__annotations__
-    {'return': <class 'NoneType'>}
+    {'return': <class 'int'>}
     >>> s.writes_type()
-    <class 'seneca.engine.storage.resp_types.ScalarString'>
+    <class 'seneca.engine.storage.resp_types.RScalar'>
 
     Test polymorphic scalars
     >>> Set('a', 1).writes_type()
-    <class 'seneca.engine.storage.resp_types.ScalarInt'>
+    <class 'seneca.engine.storage.resp_types.RScalarInt'>
 
     >>> Set('a', 1.0).writes_type()
-    <class 'seneca.engine.storage.resp_types.ScalarFloat'>
+    <class 'seneca.engine.storage.resp_types.RScalarFloat'>
 
     Test polymorphic scalars saved as strings
     >>> Set('a', '1').writes_type()
-    <class 'seneca.engine.storage.resp_types.ScalarInt'>
+    <class 'seneca.engine.storage.resp_types.RScalarInt'>
 
     >>> Set('a', '1.0').writes_type()
-    <class 'seneca.engine.storage.resp_types.ScalarFloat'>
+    <class 'seneca.engine.storage.resp_types.RScalarFloat'>
 
     >>> _ = Get('a')
 
@@ -441,5 +448,4 @@ def run_tests(deps_provider):
 
     '''
     import doctest, sys
-    import seneca.smart_contract_tester as scft
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
