@@ -1,5 +1,6 @@
 from unittest import TestCase
 from seneca.libs.runtime import *
+from seneca.engine.util import make_n_tup
 
 
 class TestRuntime(TestCase):
