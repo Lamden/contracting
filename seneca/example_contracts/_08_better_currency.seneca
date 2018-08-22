@@ -45,8 +45,8 @@ def redeem(owner, amount):
 
 
 @export
-def get_locked(approver, spender):
-    return locked[approver][spender]
+def get_locked(owner, spender):
+    return locked[owner][spender]
 
 
 @export
