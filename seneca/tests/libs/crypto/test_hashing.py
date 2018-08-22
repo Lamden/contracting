@@ -2,6 +2,7 @@ from unittest import TestCase
 from seneca.libs.crypto import hashing
 import hashlib
 
+
 class TestHashing(TestCase):
     def test_hashes(self):
         payload = b'testing this'
