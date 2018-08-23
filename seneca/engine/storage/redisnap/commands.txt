@@ -24,91 +24,8 @@ class Command(metaclass=ABCMeta):
         return '<RESP (%s) %s>' % (self.__class__.__name__, str(self.__dict__))
 
     @abstractmethod
-    def success_requires(self, executer):
-        raise NotImplementedError
-
-
-class Reads(Command):
-    '''
-    Inheritting this class designates the command performs a read. This
-    information will be used to build snapshot dependency graphs.
-    '''
-    pass
-
-
-class Writes(Command):
-    '''
-    Inheritting this class designates the command performs a write. This
-    information will be used to build snapshot dependency graphs.
-    '''
-    @abstractmethod
-    def writes_type(self):
-        raise NotImplementedError
-
-
-# TODO: memoize this.
-def writes_type(t):
-    '''
-    Type (i.e. class) constructor, parameterized on a type, attatches a method
-    onto the created class called 'writes_type' that returns the passed type.
-
-    Objects that inherit the outputed classes of this function have been
-    designated to perform Redis writes of a specific Redis type t.
-    '''
-    return type(
-        'WritesType_' + str(t),
-        (Writes, ),
-        {
-            'writes_type': lambda _ : t
-        }
-    )
-
-
-class WritesPolymorphicScalar(Writes):
-    '''
-    Inheritting this class designates the command performs a write to a Scalar
-    (i.e. a Redis string) with the scalar's type inferred by Redis.
-    '''
-    def writes_type(self):
-        try:
-            int(str(self.value))
-            return RScalarInt
-        except ValueError:
-            pass
-
-        try:
-            float(str(self.value))
-            return RScalarFloat
-        except ValueError:
-            pass
-
-        return RScalar
-
-
-###############################
-# Shared validation functions #
-###############################
-def nothing_always_succeeds(_,__):
-    return True
-
-
-def key_exists(self, executer):
-    return Exists(self.key).run(executer)
-
-
-def nx_or_existing_type_must_be(desired_type):
-    '''
-    Higher order function, takes a type parameter and returns a validation func.
-    '''
-    def f(self, executer):
-        if Exists(self.key).run(executer):
-            return True
-        elif issubclass(GetExactType(self.key).run(executer), desired_type):
-            return True
-        else:
-            return False
-
-    return f
+    def run_as_micro_ops(self, local_ex):
+        pass
 
 
 #NOTE: This is a decorator function, not a class!
@@ -124,58 +41,53 @@ class run_returns_type:
         return cls
 
 
-#NOTE: This is a decorator function, not a class!
-class success_requires:
-    # TODO: abstract this functionality and move to util
-    '''
-    '''
-    @auto_set_fields
-    def __init__(self, validation_function):
-        pass
-
-    def __call__(self, cls):
-        if hasattr(cls, '__abstractmethods__'):
-            abstr_methods = set(cls.__abstractmethods__)
-            abstr_methods.remove('success_requires')
-            cls.__abstractmethods__ = frozenset(abstr_methods)
-        setattr(cls, 'success_requires', self.validation_function)
-        return cls
-
-
 ################
 # Key Commands #
 ################
 @run_returns_type(RType)
 @success_requires(key_exists)
-class GetExactType(Reads):
+class GetExactType(Command):
     '''
     Note: Custom command for this lib, not implemented by Redis. This is here to
     Handle polymorphism in strings and hash values.
     '''
     @auto_set_fields
-    def __init__(self, key: str):
+    def __init__(self, addr):
         pass
 
+    def run_as_micro_ops(self, ex):
+        _, type_ = ex(DeepTypeCheckMicroOP(addr.base_address(), RDoesNotExist))
+        return type_
 
-@run_returns_type(RType)
-@success_requires(key_exists)
-class Type(Reads):
+
+class Type(Command):
     @auto_set_fields
-    def __init__(self, key: str):
+    def __init__(self, addr):
         pass
 
+    def run_as_micro_ops(self, ex):
+        return ex(ShallowTypeCheckMicroOP(addr.base_address()))
 
-@run_returns_type(bool)
-@success_requires(nothing_always_succeeds)
-class Exists(Reads):
+
+class Exists(Command):
     @auto_set_fields
-    def __init__(self, key: str):
+    def __init__(self, addr):
         pass
 
+    def run_as_micro_ops(self, ex):
+        type_ = ex(ShallowTypeCheckMicroOP(addr.base_address()))
+        return type_ != RDoesNotExist
 
-class NotExists(Exists): pass
 
-# DEL
+class Del(Command):
+    @auto_set_fields
+    def __init__(self, addr):
+        pass
+
+    def run_as_micro_ops(self, ex):
+        type_ = ex(WriteMicroOP(addr.base_address(), RDoesNotExist()))
+
+
 # DUMP not implemented
 # EXPIRE not implemented
 # EXPIREAT not implemented
@@ -203,50 +115,42 @@ class NotExists(Exists): pass
 ###################
 # String Commands #
 ###################
-@run_returns_type(int) # Length of new value (I think)
-@success_requires(nx_or_existing_type_must_be(RScalar))
-class Append(Reads, WritesPolymorphicScalar):
+class Append(Command):
     @auto_set_fields
-    def __init__(self, key: str, value: str):
+    def __init__(self, addr: ScalarAddress, value: str):
         pass
 
+    def run_as_micro_ops(self, ex):
+        return ex(AppendMicroOP(self.addr, value))
 
-# Do we want to allow 'nones'?
-@run_returns_type(RScalar)
-@success_requires(nx_or_existing_type_must_be(RScalar))
-class Get(Reads):
+
+class Get(Command):
     @auto_set_fields
-    def __init__(self, key: str):
+    def __init__(self, addr: ScalarAddress):
         pass
 
+    def run_as_micro_ops(self, ex):
+        return ex(ReadMicroOP(self.addr, RScalar))
 
-@run_returns_type(type(None))
-@success_requires(nothing_always_succeeds)
-class Set(WritesPolymorphicScalar):
+
+class Set(Command):
     @auto_set_fields
-    def __init__(self, key:str , value: Union[str, float, int]):
+    def __init__(self, addr: ScalarAddress, value: Union[str, float, int]):
         pass
 
+    def run_as_micro_ops(self, ex):
+        return x(WriteMicroOP(self.addr, new_scalar))
 
-@run_returns_type(int)
-@success_requires(nx_or_existing_type_must_be(RScalarInt))
-class Incr(Reads, writes_type(RScalarInt)):
+
+class IncrBy(Command):
     @auto_set_fields
-    def __init__(self, key: str):
+    def __init__(self, addr, amount: int):
         pass
 
+    def run_as_micro_ops(self, ex):
+        return ex(IncrByMicroOP(self.addr, amount))
 
-class Decr(Incr): pass
-
-
-class IncrBy(Incr):
-    @auto_set_fields
-    def __init__(self, key: str, amount: int):
-        pass
-
-
-class DecrBy(IncrBy): pass
-
+# Note: Front end must convert Incr, Decr, and DecrBy to IncrBy
 
 # class BitCount(Reads, is_dependant_on(RESPString)):
 #     @auto_set_fields

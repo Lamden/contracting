@@ -10,9 +10,13 @@ class Executer():
     '''
     Maps command objects to actual Redis commands and runs them, leans heavily
     on redis.py
+
+    TODO: We should efficiently track collisions and decide whether we want to
+    use a log of transactions to commit, or create ops from the stored data
     '''
     def __init__(self):
         self.data = {}
+        self.log =[]
 
     def type(self, cmd):
         return type(self.get(Get(cmd.key)))
@@ -46,10 +50,7 @@ class Executer():
         return self.incrby(IncrBy(cmd.key, -1))
 
 
-
     def __call__(self, cmd):
-        d = self.data
-
         # TODO: Make sure this is efficient and generally okay.
         return getattr(self, cmd.__class__.__name__.lower())(cmd)
 
