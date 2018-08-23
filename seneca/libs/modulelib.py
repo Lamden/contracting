@@ -23,11 +23,3 @@ exports = {
     'make_exports': make_exports,
     'export': export
 }
-
-
-def run_tests(_):
-    '''
-    # TODO: Write tests for this module.
-    '''
-    import doctest, sys
-    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

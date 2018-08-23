@@ -7,6 +7,8 @@ from datetime import timedelta
 supported_db_types = [int, str, bool, float, list, set]
 import hashlib
 
+from seneca.engine.datatypes import table, hmap, hlist
+
 #TODO replace with crypto
 def sha256(secret):
     m = hashlib.sha256()
@@ -28,7 +30,10 @@ exports = {
     'timedelta': timedelta,
     'enum': enum,
     'sha256': sha256,
-    'supported_db_types': supported_db_types
+    'supported_db_types': supported_db_types,
+    'table': table,
+    'hmap': hmap,
+    'hlist': hlist
 }
 
 
