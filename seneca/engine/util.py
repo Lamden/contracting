@@ -42,19 +42,11 @@ def run_super_first(f):
 
 
 def fst(tup):
-    '''
-    >>> fst((1,2))
-    1
-    '''
-    return(tup[0])
+    return tup[0]
 
 
 def snd(tup):
-    '''
-    >>> snd((1,2))
-    2
-    '''
-    return(tup[1])
+    return tup[1]
 
 
 def swap(tup):
