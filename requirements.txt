@@ -4,3 +4,4 @@ terminaltables==3.1.0
 pynacl
 # WARNING replace dateutil!
 python-dateutil==2.7.3
+redis==2.10.6
