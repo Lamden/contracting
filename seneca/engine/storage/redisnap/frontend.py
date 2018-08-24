@@ -3,9 +3,12 @@ This module is a redis-py compatible library.
 * Unlike redis-py, the backend is configurable, it could write to a Redis, it
   could save the data locally.
 * It generates resp command objects that are run by the backend
+
+Reference API: https://github.com/andymccurdy/redis-py/blob/master/redis/client.py
 '''
 
 from seneca.engine.storage.redisnap.commands import *
+import seneca.engine.storage.redisnap.resp_types as resp_types
 
 class Client:
     '''
@@ -75,7 +78,9 @@ class Client:
     def set(self, name, value, ex=None, px=None, nx=False, xx=False):
         """
         >>> c.set('foo', 'bar')
-        <RESP (Set) {'addr': <RESP ADDRESS (ScalarAddress) {'key': 'foo'}>, 'value': 'bar'}>
+        <RESP (Set) {'addr': <RESP ADDRESS (ScalarAddress) {'key': 'foo'}>, 'value': <RESP (RScalar) {'value': 'bar'}>}>
+
+        >>> s.set('foo', 'bar')
 
         Set the value at key ``name`` to ``value``
         ``ex`` sets an expire flag on key ``name`` for ``ex`` seconds.
@@ -90,13 +95,13 @@ class Client:
         assert nx is False # TODO: Will add this later
         assert nx is False # TODO: Will add this later
 
-        return self.execute_command(Set(ScalarAddress(name), value))
+        return self.execute_command(Set(ScalarAddress(name), resp_types.make_rscalar(value)))
 
 
     def __setitem__(self, name, value):
         """
         >>> c['foo'] = 'bar'
-        <RESP (Set) {'addr': <RESP ADDRESS (ScalarAddress) {'key': 'foo'}>, 'value': 'bar'}>
+        <RESP (Set) {'addr': <RESP ADDRESS (ScalarAddress) {'key': 'foo'}>, 'value': <RESP (RScalar) {'value': 'bar'}>}>
         """
         self.set(name, value)
 
@@ -107,9 +112,6 @@ class Client:
         the value will be initialized as ``amount``
         >>> c.incr('foo', 1)
         <RESP (IncrBy) {'addr': <RESP ADDRESS (ScalarAddress) {'key': 'foo'}>, 'amount': 1}>
-
-
-
         """
         return self.execute_command(IncrBy(ScalarAddress(name), amount))
 
@@ -127,8 +129,6 @@ class Client:
         2
         >> s.set('foo', 1)
 
-
-
         """
         return self.execute_command(IncrBy(ScalarAddress(name), amount))
 
@@ -137,9 +137,27 @@ class Client:
         Decrements the value of ``key`` by ``amount``.  If no key exists,
         the value will be initialized as 0 - ``amount``
         >>> c.decr('foo', 1)
-        <RESP (IncrBy) {'addr': 'foo', 'amount': -1}>
+        <RESP (IncrBy) {'addr': <RESP ADDRESS (ScalarAddress) {'key': 'foo'}>, 'amount': -1}>
         """
-        return self.execute_command(IncrBy(name, 0 - amount))
+        return self.execute_command(IncrBy(ScalarAddress(name), 0 - amount))
+
+    def hget(self, name, key):
+        """
+        >>> c.hget('foo', 'bar')
+        <RESP (HGet) {'addr': <RESP ADDRESS (RHashFieldAddress) {'key': 'foo', 'field': 'bar'}>}>
+
+        TODO: for s type, we must decode from RScalar type
+        """
+        return self.execute_command(HGet(RHashFieldAddress(name, key)))
+
+    def hset(self, name, key, value):
+        """
+        >>> c.hset('foo', 'bar', 'baz')
+        <RESP (HSet) {'addr': <RESP ADDRESS (RHashFieldAddress) {'key': 'foo', 'field': 'bar'}>, 'value': <RESP (RScalar) {'value': 'baz'}>}>
+
+        >>> _ = s.hset('foo', 'bar', 'baz')
+        """
+        return self.execute_command(HSet(RHashFieldAddress(name, key), resp_types.make_rscalar(value)))
 
 
 def run_tests(deps_provider):

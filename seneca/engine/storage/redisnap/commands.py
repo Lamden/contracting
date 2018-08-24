@@ -115,7 +115,20 @@ class Del(Command):
 @run_method_is_safe
 class AssertType(TypeCheck):
     '''
-    This is not part of RESP, it's a RediSnap add-on, it does deep type inspection
+    This is not part of RESP, it's a RediSnap add-on, it can do deep type
+    inspection.
+
+    NOTE: Very important, In Redis empty fields are fully polymorphic, so
+    asserting any type on non-existent key will always succeed. This is how
+    Redis behaves:
+    > hget some_non_existent_key foo
+    (nil)
+
+    Only if an existing value exists of the wrong type is there a problem:
+    > set some_string abc
+    OK
+    > hget some_string field_name
+    (error) WRONGTYPE Operation against a key holding the wrong kind of value
     '''
     @auto_set_fields
     def __init__(self, addr: Address, r_type: RESPType):
@@ -148,7 +161,6 @@ class Set(Write):
     def __init__(self, addr: ScalarAddress, value: Union[str, float, int]):
         pass
 
-
 # Note: Front end must convert Incr, Decr, and DecrBy to IncrBy
 @run_methods_return_type(int)
 class IncrBy(Write):
@@ -158,6 +170,27 @@ class IncrBy(Write):
 
     def safe_run(self, ex):
         assert ex(AssertType(self.addr, RScalarInt))
+        ex(self)
+
+@run_methods_return_type(bytes)
+class HGet(Read):
+    @auto_set_fields
+    def __init__(self, addr: RHashFieldAddress):
+        pass
+
+    def safe_run(self, ex):
+        assert ex(AssertType(self.addr.base_address, RHash))
+        ex(self)
+
+@run_methods_return_type(type(None))
+class HSet(Write):
+    @auto_set_fields
+    def __init__(self, addr: RHashFieldAddress, value: Union[str, float, int]):
+        pass
+
+    def safe_run(self, ex):
+        # Just assert that the key has
+        assert ex(AssertType(self.addr.base_address, RHash))
         ex(self)
 
 
@@ -334,7 +367,7 @@ def run_tests(deps_provider):
     >>> s.__dict__
     {'addr': 'a', 'value': 'b'}
     >>> s.run.__annotations__
-    {'return': <class 'int'>}
+    {'return': <class 'NoneType'>}
 
     Test polymorphic scalars
 

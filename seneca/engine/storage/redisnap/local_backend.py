@@ -48,6 +48,9 @@ class Executer():
         self.set(Set(cmd.addr, v))
         return v.value
 
+    def hset(self, cmd):
+        assert isinstance(cmd.value, RScalar)
+        # TODO: Encode and put in db
 
     def __call__(self, cmd):
         # TODO: Make sure this is efficient and generally okay.

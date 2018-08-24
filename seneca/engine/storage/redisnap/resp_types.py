@@ -53,23 +53,23 @@ class RDoesNotExist(RScalarInt, RScalarFloat, RHash, RList, RSet, RSortedSet):
 
 # TODO: Make a class for hset, may look a bit like row polymorphism
 
-def make_rscalar(key, val):
+def make_rscalar(val):
     if isinstance(val, int):
-        return RScalarInt(key, val)
+        return RScalarInt(val)
     elif isinstance(val, float):
-        return RScalarFloat(key, val)
+        return RScalarFloat(val)
     else:
         try:
             i = int(val)
-            return RScalarInt(key, i)
+            return RScalarInt(i)
         except ValueError:
             pass
 
         try:
             f = float(val)
-            return RScalarFloat(key, f)
+            return RScalarFloat(f)
         except ValueError:
             pass
 
         assert isinstance(val, str)
-        return RScalar(key, val)
+        return RScalar(val)
