@@ -9,6 +9,12 @@ from seneca.engine.util import auto_set_fields
 # TODO: must pick a behavior based on address type.
 # TODO: probably want a field on all MicroOps called required ops. May want to rename MicroOps to just Ops
 
+def run_incr_with_type_check(addr, ex):
+    type_matches, _ = ex(DeepTypeCheckMicroOP(addr, RScalarInt))
+    assert(type_matches)
+    return ex(IncrByMicroOP(self.addr, amount))
+
+
 class MicroOp(metaclass=ABCMeta):
     """
     MicroOps:
@@ -26,8 +32,17 @@ class MicroOp(metaclass=ABCMeta):
         return '<RESP MicroOP (%s) %s>' % (self.__class__.__name__, str(self.__dict__))
 
     @abstractmethod
-    def to_command():
-        pass
+    def run_as_commands(self, ex):
+        """
+        This function is needed because the Redis backend doesn't know how to
+        execute micro-ops, only commands. As micro-ops fallthrough the savepoint
+        stack, they may need to be executed on Redis, in that case they must be
+        converted to commands. This is the crux of why micro-ops exist in this
+        system: Redis commands are not granular enough, some functionalities of
+        the commands need to selectively fall through the savepoint stack.
+        """
+        raise NotImplementedError()
+
 
 class ShallowTypeCheckMicroOP(MicroOp):
     @auto_set_fields
@@ -38,6 +53,10 @@ class ShallowTypeCheckMicroOP(MicroOp):
         """
         pass
 
+    def run_as_commands(self, ex):
+        return ex(Type(self.addr.base_address()))
+
+
 class DeepTypeCheckMicroOP(MicroOp):
     @auto_set_fields
     def __init__(self, addr, exact_expected_type):
@@ -47,15 +66,39 @@ class DeepTypeCheckMicroOP(MicroOp):
         """
         pass
 
+    def run_as_commands(self, ex):
+        pass
+
+
 class ReadMicroOP(MicroOp):
     @auto_set_fields
     def __init__(self, addr):
         pass
 
+    def run_as_commands(self, ex):
+        addr_types_to_commands = {
+            ScalarAddress: Get
+            RHashAddress:
+            RHashFieldAddress:
+        }
+
+
+
+
+        pass
+
+
+
+
+
 class WriteMicroOP(MicroOp):
     @auto_set_fields
     def __init__(self, addr, payload):
         pass
+
+    def run_as_commands(self, ex):
+        pass
+
 
 class IncrByMicroOP(MicroOp):
     # TODO: Must always do type check
@@ -63,10 +106,18 @@ class IncrByMicroOP(MicroOp):
     def __init__(self, addr, payload):
         pass
 
+    def run_as_commands(self, ex):
+        pass
+
+
+# TODO: Make macro ops
 class AppendMicroOP(MicroOp):
     # TODO: Must always do type check
     @auto_set_fields
     def __init__(self, addr, payload):
+        pass
+
+    def run_as_commands(self, ex):
         pass
 
 # NOTE: It would be possible to add more granular operations like check-exists,

@@ -2,7 +2,8 @@ from abc import ABCMeta, abstractmethod
 from typing import Union
 
 from seneca.engine.util import auto_set_fields
-from seneca.engine.storage.resp_types import *
+from seneca.engine.storage.redisnap.resp_types import *
+from seneca.engine.storage.redisnap.addresses import *
 
 # TODO: Enforce run return types for run method in executer libs.
 
@@ -24,12 +25,16 @@ class Command(metaclass=ABCMeta):
         return '<RESP (%s) %s>' % (self.__class__.__name__, str(self.__dict__))
 
     @abstractmethod
-    def run_as_micro_ops(self, local_ex):
+    def safe_run(self, local_ex):
         pass
+
+class TypeCheck(Command): pass
+class Read(Command): pass
+class Write(Command): pass
 
 
 #NOTE: This is a decorator function, not a class!
-class run_returns_type:
+class run_methods_return_type:
     '''
     '''
     @auto_set_fields
@@ -41,51 +46,42 @@ class run_returns_type:
         return cls
 
 
+#NOTE: This is a decorator function, not a class!
+def run_method_is_safe(cls):
+    # TODO: abstract this functionality and move to util
+    if hasattr(cls, '__abstractmethods__'):
+        abstr_methods = set(cls.__abstractmethods__)
+        abstr_methods.remove('safe_run')
+        cls.__abstractmethods__ = frozenset(abstr_methods)
+    setattr(cls, 'safe_run', cls.run)
+    return cls
+
 ################
 # Key Commands #
 ################
-@run_returns_type(RType)
-@success_requires(key_exists)
-class GetExactType(Command):
-    '''
-    Note: Custom command for this lib, not implemented by Redis. This is here to
-    Handle polymorphism in strings and hash values.
-    '''
-    @auto_set_fields
-    def __init__(self, addr):
-        pass
-
-    def run_as_micro_ops(self, ex):
-        _, type_ = ex(DeepTypeCheckMicroOP(addr.base_address(), RDoesNotExist))
-        return type_
-
-
+@run_methods_return_type(type)
+@run_method_is_safe
 class Type(Command):
+    """
+    This is the built-in shallow Redis typecheck.
+    """
     @auto_set_fields
     def __init__(self, addr):
         pass
 
-    def run_as_micro_ops(self, ex):
-        return ex(ShallowTypeCheckMicroOP(addr.base_address()))
-
-
+@run_methods_return_type(bool)
+@run_method_is_safe
 class Exists(Command):
     @auto_set_fields
     def __init__(self, addr):
         pass
 
-    def run_as_micro_ops(self, ex):
-        type_ = ex(ShallowTypeCheckMicroOP(addr.base_address()))
-        return type_ != RDoesNotExist
-
-
+@run_methods_return_type(type(None))
+@run_method_is_safe
 class Del(Command):
     @auto_set_fields
     def __init__(self, addr):
         pass
-
-    def run_as_micro_ops(self, ex):
-        type_ = ex(WriteMicroOP(addr.base_address(), RDoesNotExist()))
 
 
 # DUMP not implemented
@@ -115,42 +111,55 @@ class Del(Command):
 ###################
 # String Commands #
 ###################
-class Append(Command):
+@run_methods_return_type(bool)
+@run_method_is_safe
+class AssertType(TypeCheck):
+    '''
+    This is not part of RESP, it's a RediSnap add-on, it does deep type inspection
+    '''
+    @auto_set_fields
+    def __init__(self, addr: Address, r_type: RESPType):
+        self.safe_run = self.run
+
+@run_methods_return_type(int)
+class Append(Write):
     @auto_set_fields
     def __init__(self, addr: ScalarAddress, value: str):
         pass
 
-    def run_as_micro_ops(self, ex):
-        return ex(AppendMicroOP(self.addr, value))
+    def safe_run(self, ex):
+        assert ex(AssertType(self.addr, RScalar))
+        ex(self)
 
-
-class Get(Command):
+@run_methods_return_type(bytes)
+class Get(Read):
     @auto_set_fields
     def __init__(self, addr: ScalarAddress):
         pass
 
-    def run_as_micro_ops(self, ex):
-        return ex(ReadMicroOP(self.addr, RScalar))
+    def safe_run(self, ex):
+        assert ex(AssertType(self.addr, RScalar))
+        ex(self)
 
-
-class Set(Command):
+@run_methods_return_type(type(None))
+@run_method_is_safe
+class Set(Write):
     @auto_set_fields
     def __init__(self, addr: ScalarAddress, value: Union[str, float, int]):
         pass
 
-    def run_as_micro_ops(self, ex):
-        return x(WriteMicroOP(self.addr, new_scalar))
 
-
-class IncrBy(Command):
+# Note: Front end must convert Incr, Decr, and DecrBy to IncrBy
+@run_methods_return_type(int)
+class IncrBy(Write):
     @auto_set_fields
     def __init__(self, addr, amount: int):
         pass
 
-    def run_as_micro_ops(self, ex):
-        return ex(IncrByMicroOP(self.addr, amount))
+    def safe_run(self, ex):
+        assert ex(AssertType(self.addr, RScalarInt))
+        ex(self)
 
-# Note: Front end must convert Incr, Decr, and DecrBy to IncrBy
 
 # class BitCount(Reads, is_dependant_on(RESPString)):
 #     @auto_set_fields
@@ -323,33 +332,16 @@ def run_tests(deps_provider):
     Test basics of Set
     >>> s = Set('a', 'b')
     >>> s.__dict__
-    {'key': 'a', 'value': 'b'}
+    {'addr': 'a', 'value': 'b'}
     >>> s.run.__annotations__
     {'return': <class 'int'>}
-    >>> s.writes_type()
-    <class 'seneca.engine.storage.resp_types.RScalar'>
 
     Test polymorphic scalars
-    >>> Set('a', 1).writes_type()
-    <class 'seneca.engine.storage.resp_types.RScalarInt'>
-
-    >>> Set('a', 1.0).writes_type()
-    <class 'seneca.engine.storage.resp_types.RScalarFloat'>
-
-    Test polymorphic scalars saved as strings
-    >>> Set('a', '1').writes_type()
-    <class 'seneca.engine.storage.resp_types.RScalarInt'>
-
-    >>> Set('a', '1.0').writes_type()
-    <class 'seneca.engine.storage.resp_types.RScalarFloat'>
 
     >>> _ = Get('a')
 
     Test basics of Incr
-    >>> i = Incr('a')
-
-
-
+    >>> i = IncrBy('a', 1)
     '''
     import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

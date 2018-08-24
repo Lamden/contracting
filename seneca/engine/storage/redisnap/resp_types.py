@@ -1,7 +1,7 @@
-from seneca.engin.util import auto_set_fields
+from seneca.engine.util import auto_set_fields
 from abc import ABCMeta, abstractmethod
 
-class RedisKey():
+class RESPType():
     @auto_set_fields
     def __init__(self):
         pass
@@ -9,7 +9,7 @@ class RedisKey():
         return '<RESP (%s) %s>' % (self.__class__.__name__, str(self.__dict__))
 
 # Scalar Types
-class RScalar(RedisKey):
+class RScalar(RESPType):
     @auto_set_fields
     def __init__(self, value):
         pass
@@ -17,7 +17,7 @@ class RScalarInt(RScalar): pass
 class RScalarFloat(RScalar): pass
 
 # Collections
-class RHash(RedisKey):
+class RHash(RESPType):
     def __init__(self, field_value_dict):
         self.key = key
         self.fields = {k:make_rscalar(v) for k,v in field_value_dict.items()}
@@ -27,19 +27,19 @@ class RHash(RedisKey):
         self.fields.update(other_rhash.fields)
 # We can have a derived type RHashField that statically has field name
 
-class RList(RedisKey):
+class RList(RESPType):
     # Address scheme ('key', 1)
     pass
 
-class RSet(RedisKey):
+class RSet(RESPType):
     # Just key
     pass
 
-class RSortedSet(RedisKey):
+class RSortedSet(RESPType):
     # Just key
     pass
 
-class RDoesNotExist(RScalar, RScalarInt, RScalarFloat, RHash, RList, RSet, RSortedSet):
+class RDoesNotExist(RScalarInt, RScalarFloat, RHash, RList, RSet, RSortedSet):
     """
     In Redis nonexistent keys are fully polymorphic.
     These must be stored in addresses after we do a del, so reads don't fall through and create a spurious dependency.

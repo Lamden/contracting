@@ -1,10 +1,8 @@
 '''
 Some code for GetExactType, or better, use Lua
-
-
 '''
 import redis
-from seneca.engine.storage.resp_commands import *
+from seneca.engine.storage.redisnap.commands import *
 
 
 class Executer():
@@ -19,15 +17,12 @@ class Executer():
         r = self.redis
 
         converters = {
-            Type: lambda c: r.type(c.key),
-            Exists: lambda c: r.exists(c.key),
-            Get: lambda c: r.get(c.key),
-            Set: lambda c: r.set(c.key, c.value),
-            Append: lambda c: r.append(c.key, c.value),
-            Incr: lambda c: r.incr(c.key, 1),
-            Decr: lambda c: r.decr(c.key, 1),
-            IncrBy: lambda c: r.incr(c.key, c.amount),
-            DecrBy: lambda c: r.decr(c.key, c.amount),
+            Type: lambda c: r.type(c.addr),
+            Exists: lambda c: r.exists(c.addr),
+            Get: lambda c: r.get(c.addr),
+            Set: lambda c: r.set(c.addr, c.value),
+            Append: lambda c: r.append(c.addr, c.value),
+            IncrBy: lambda c: r.incr(c.addr, c.amount),
         }
 
         return converters[type(cmd)](cmd)
@@ -45,14 +40,8 @@ def run_tests(deps_provider):
     SET foo bar
     >>> ex(Append('foo', 'bar'))
     APPEND foo bar
-    >>> ex(Incr('foo'))
+    >>> ex(IncrBy('foo', 1))
     INCRBY foo 1
-    >>> ex(IncrBy('foo', 3))
-    INCRBY foo 3
-    >>> ex(Decr('foo'))
-    DECRBY foo 1
-    >>> ex(DecrBy('foo', 3))
-    DECRBY foo 3
     '''
 
     import doctest, sys

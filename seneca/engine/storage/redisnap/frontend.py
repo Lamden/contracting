@@ -5,7 +5,7 @@ This module is a redis-py compatible library.
 * It generates resp command objects that are run by the backend
 '''
 
-from seneca.engine.storage.resp_commands import *
+from seneca.engine.storage.redisnap.commands import *
 
 class Client:
     '''
@@ -19,7 +19,7 @@ class Client:
         """
         Returns a boolean indicating whether key ``name`` exists
         >>> c.exists('foo')
-        <RESP (Exists) {'key': 'foo'}>
+        <RESP (Exists) {'addr': 'foo'}>
         """
         return self.execute_command(Exists(name))
     __contains__ = exists
@@ -29,7 +29,7 @@ class Client:
         """
         Returns the type of key ``name``
         >>> c.type('foo')
-        <RESP (Type) {'key': 'foo'}>
+        <RESP (Type) {'addr': 'foo'}>
         """
         return self.execute_command(Type(name))
 
@@ -41,7 +41,7 @@ class Client:
         Returns the new length of the value at ``key``.
 
         >>> c.append('foo', 'bar')
-        <RESP (Append) {'key': 'foo', 'value': 'bar'}>
+        <RESP (Append) {'addr': 'foo', 'value': 'bar'}>
         """
         return self.execute_command(Append(key, value))
 
@@ -50,7 +50,7 @@ class Client:
         """
         Return the value at key ``name``, or None if the key doesn't exist
         >>> c.get('foo')
-        <RESP (Get) {'key': 'foo'}>
+        <RESP (Get) {'addr': 'foo'}>
         """
         # TODO: Decide how we want to handle non-existing keys in the commands api
         return self.execute_command(Get(name))
@@ -64,7 +64,7 @@ class Client:
         ...     c['foo']
         ... except Exception as e:
         ...     print(e)
-        <RESP (Get) {'key': 'foo'}>
+        <RESP (Get) {'addr': 'foo'}>
         'foo'
         """
         value = self.get(name)
@@ -75,7 +75,7 @@ class Client:
     def set(self, name, value, ex=None, px=None, nx=False, xx=False):
         """
         >>> c.set('foo', 'bar')
-        <RESP (Set) {'key': 'foo', 'value': 'bar'}>
+        <RESP (Set) {'addr': <RESP ADDRESS (ScalarAddress) {'key': 'foo'}>, 'value': 'bar'}>
 
         Set the value at key ``name`` to ``value``
         ``ex`` sets an expire flag on key ``name`` for ``ex`` seconds.
@@ -90,13 +90,13 @@ class Client:
         assert nx is False # TODO: Will add this later
         assert nx is False # TODO: Will add this later
 
-        return self.execute_command(Set(name, value))
+        return self.execute_command(Set(ScalarAddress(name), value))
 
 
     def __setitem__(self, name, value):
         """
         >>> c['foo'] = 'bar'
-        <RESP (Set) {'key': 'foo', 'value': 'bar'}>
+        <RESP (Set) {'addr': <RESP ADDRESS (ScalarAddress) {'key': 'foo'}>, 'value': 'bar'}>
         """
         self.set(name, value)
 
@@ -106,33 +106,49 @@ class Client:
         Increments the value of ``key`` by ``amount``.  If no key exists,
         the value will be initialized as ``amount``
         >>> c.incr('foo', 1)
-        <RESP (IncrBy) {'key': 'foo', 'amount': 1}>
+        <RESP (IncrBy) {'addr': <RESP ADDRESS (ScalarAddress) {'key': 'foo'}>, 'amount': 1}>
+
+
+
         """
-        return self.incrby(name, amount)
+        return self.execute_command(IncrBy(ScalarAddress(name), amount))
 
 
     def incrby(self, name, amount=1):
         """
         Increments the value of ``key`` by ``amount``.  If no key exists,
         the value will be initialized as ``amount``
-        """
-        return self.execute_command(IncrBy(name, amount))
 
+
+        >>> s.incrby('foo', 1)
+        1
+
+        >> s.incrby('foo', 1)
+        2
+        >> s.set('foo', 1)
+
+
+
+        """
+        return self.execute_command(IncrBy(ScalarAddress(name), amount))
 
     def decr(self, name, amount=1):
         """
         Decrements the value of ``key`` by ``amount``.  If no key exists,
         the value will be initialized as 0 - ``amount``
         >>> c.decr('foo', 1)
-        <RESP (DecrBy) {'key': 'foo', 'amount': 1}>
+        <RESP (IncrBy) {'addr': 'foo', 'amount': -1}>
         """
-        return self.execute_command(DecrBy(name, amount))
+        return self.execute_command(IncrBy(name, 0 - amount))
 
 
 def run_tests(deps_provider):
     '''
     '''
+    import seneca.engine.storage.redisnap.local_backend as lb
+
     c = Client(executer = print)
+    s = Client(executer = lb.Executer())
 
     import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

@@ -3,8 +3,8 @@ Note: Not threadsafe
 
 
 """
-from seneca.engine.storage.resp_commands import *
-
+from seneca.engine.storage.redisnap.commands import *
+#from seneca.engine.storage.redisnap.addresses import *
 
 class Executer():
     '''
@@ -19,35 +19,34 @@ class Executer():
         self.log =[]
 
     def type(self, cmd):
-        return type(self.get(Get(cmd.key)))
+        return type(self.get(Get(cmd.addr)))
 
     def get(self, cmd):
+        addr = cmd.addr
+        addr_type = type(cmd.addr)
+        assert addr_type == ScalarAddress
         try:
-            ret = self.data[cmd.key]
-            assert isinstance(ret, RScalar)
+            ret = self.data[addr.key]
+            assert isinstance(ret, RScalar), 'FSR we got the wrong type!'
             return ret
         except KeyError:
-            return RNoValueExists()
+            return RDoesNotExist()
 
     def set(self, cmd):
         assert isinstance(cmd.value, RScalar)
-        self.data[cmd.key] = cmd.value
+        self.data[cmd.addr] = cmd.value
 
     def exists(self, cmd):
-        return cmd.key in self.data
+        return cmd.addr in self.data
 
     def incrby(self, cmd):
-        v = self.get(Get(cmd.key))
-        assert isinstance(v, RScalarInt)
-        v.value += cmd.amount
-        self.set(Set(cmd.key, v))
-        return v
-
-    def incr(self, cmd):
-        return self.incrby(IncrBy(cmd.key, 1))
-
-    def decr(self, cmd):
-        return self.incrby(IncrBy(cmd.key, -1))
+        v = self.get(Get(cmd.addr))
+        if isinstance(v, RDoesNotExist):
+            v.value = cmd.amount
+        elif isinstance(v, RScalarInt):
+            v.value += cmd.amount
+        self.set(Set(cmd.addr, v))
+        return v.value
 
 
     def __call__(self, cmd):
@@ -57,43 +56,43 @@ class Executer():
 
 def run_tests(deps_provider):
     '''
-    >>> ex(Exists('foo')); ex(Get('foo')); ex(Type('foo'))
+    >> ex(Exists('foo')); ex(Get('foo')); ex(Type('foo'))
     False
-    <RESP (RNoValueExists) {}>
-    <class 'seneca.engine.storage.resp_types.RNoValueExists'>
+    <RESP (RDoesNotExist) {}>
+    <class 'seneca.engine.storage.resp_types.RDoesNotExist'>
 
-    >>> _ = ex(Set('foo', make_rscalar('bar')))
-    >>> ex(Exists('foo')); ex(Get('foo')); ex(Type('foo'))
+    >> _ = ex(Set('foo', make_rscalar('bar')))
+    >> ex(Exists('foo')); ex(Get('foo')); ex(Type('foo'))
     True
     <RESP (RScalar) {'value': 'bar'}>
     <class 'seneca.engine.storage.resp_types.RScalar'>
 
     Running set with an Float, value is stored as a RScalarFloat
-    >>> ex(Set('foo', make_rscalar(1.0))); ex(Get('foo')); ex(Type('foo'))
+    >> ex(Set('foo', make_rscalar(1.0))); ex(Get('foo')); ex(Type('foo'))
     <RESP (RScalarFloat) {'value': 1.0}>
     <class 'seneca.engine.storage.resp_types.RScalarFloat'>
 
     Running set with a string that looks like a Float, value is STILL stored as
     a RScalarFloat
-    >>> ex(Set('foo', make_rscalar('1.0'))); ex(Get('foo')); ex(Type('foo'))
+    >> ex(Set('foo', make_rscalar('1.0'))); ex(Get('foo')); ex(Type('foo'))
     <RESP (RScalarFloat) {'value': 1.0}>
     <class 'seneca.engine.storage.resp_types.RScalarFloat'>
 
     Running set with an Int, value is stored as a RScalarInt
-    >>> ex(Set('foo', make_rscalar(1))); ex(Get('foo')); ex(Type('foo'))
+    >> ex(Set('foo', make_rscalar(1))); ex(Get('foo')); ex(Type('foo'))
     <RESP (RScalarInt) {'value': 1}>
     <class 'seneca.engine.storage.resp_types.RScalarInt'>
 
     Running set with a string that looks like an Int, value is STILL stored as
     a RScalarInt
-    >>> ex(Set('foo', make_rscalar('1'))); ex(Get('foo')); ex(Type('foo'))
+    >> ex(Set('foo', make_rscalar('1'))); ex(Get('foo')); ex(Type('foo'))
     <RESP (RScalarInt) {'value': 1}>
     <class 'seneca.engine.storage.resp_types.RScalarInt'>
 
-    >>> ex(Incr('foo'))
+    >> ex(Incr('foo'))
     <RESP (RScalarInt) {'value': 2}>
 
-    >>> ex(IncrBy('foo', 10))
+    >> ex(IncrBy('foo', 10))
     <RESP (RScalarInt) {'value': 12}>
 
 
