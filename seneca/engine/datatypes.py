@@ -88,8 +88,9 @@ class RObject:
         try:
             return parse_representation(value.decode())
         except Exception as e:
-            value = value.decode()
-            value = json.loads(value)
+            if value is not None:
+                value = value.decode()
+                value = json.loads(value)
             return value
 
     def check_key_type(self, key):
@@ -146,11 +147,10 @@ def hmap(prefix=None, key_type=str, value_type=int):
 ####################
 class HList(RObject):
     def __init__(self, prefix=None,
-                 key_type=str,
                  value_type=int
                  ):
         super().__init__(prefix=prefix,
-                         key_type=key_type,
+                         key_type=str,
                          value_type=value_type,
                          rep_str='list')
 
@@ -163,6 +163,7 @@ class HList(RObject):
         return g
 
     def set(self, i, value):
+        #TODO add error handling for trying to set indexes that don't exist
         v = self.encode_value(value)
         return self.driver.lset(self.p, i, v)
 
@@ -175,8 +176,8 @@ class HList(RObject):
         g = self.decode_value(g)
         return g
 
-    def remove(self, i):
-        g = self.driver.lrem(self.p, i)
+    def pop_right(self):
+        g = self.driver.rpop(self.p)
         g = self.decode_value(g)
         return g
 
@@ -198,6 +199,11 @@ class HList(RObject):
 
     def __setitem__(self, i, v):
         return self.set(i, v)
+
+    def rep(self):
+        return self.delimiter + self.rep_str \
+               + self.delimiter + self.prefix \
+               + self.delimiter + type_to_string[self.value_type] + self.delimiter
 
 
 def hlist(prefix=None, key_type=str, value_type=int):
