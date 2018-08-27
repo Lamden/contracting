@@ -7,15 +7,11 @@ type_to_string = {
     bool: 'bool',
 }
 
-type_to_string = {
-    str: 'str',
-    int: 'int',
-    bool: 'bool',
-}
 
 string_to_type = {
     'str': str,
-    'int': int
+    'int': int,
+    'bool': bool
 }
 
 
@@ -81,6 +77,8 @@ class RObject:
             assert type(value) == self.value_type or self.value_type is None, \
                 'Value is not of type "{}"'.format(self.value_type)
             v = json.dumps(value)
+
+        v = v.encode()
         return v
 
     def decode_value(self, value):
