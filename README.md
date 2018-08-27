@@ -28,7 +28,7 @@ ledger.insert([{'wallet_id': 'carl', 'balance': 1000000}]).run()
 
 ## Clear Syntax
 
-Seneca is Python. We restrict a lot of functionality, such as infinate loops, random number generation, etc., because it does not play well with the concepts found in the blockchain realm. But, the core syntax is 100% valid Python. You can run Seneca code on a plain MySQL database instance with the standard Python interpreter and it will function exactly as it will on the blockchain.
+Seneca is Python. We restrict a lot of functionality, such as infinite loops, random number generation, etc., because it does not play well with the concepts found in the blockchain realm. But, the core syntax is 100% valid Python. You can run Seneca code on a plain MySQL database instance with the standard Python interpreter and it will function exactly as it will on the blockchain.
 
 ## Straightforward Extendability
 
