@@ -12,6 +12,12 @@ class TestDatatypes(TestCase):
                                    port=6379,
                                    db=0)
 
+        self.l = HList(prefix='yo')
+
+        # clears the list so it's easier to push and pop to / test
+        while self.l.pop() is not None:
+            pass
+
     def test_type_mappings(self):
         self.assertTrue(type_to_string[str] == 'str')
         self.assertTrue(type_to_string[int] == 'int')
@@ -123,102 +129,112 @@ class TestDatatypes(TestCase):
         self.assertTrue(isinstance(m2, HMap))
 
     def test_hlist_init_repr(self):
-        l = HList(prefix='yo')
-        self.assertEqual(l.rep(), ':list:yo:int:')
-        self.assertEqual(l.len, None)
-        self.assertEqual(l.p, 'yo:')
+        self.assertEqual(self.l.rep(), ':list:yo:int:')
+        self.assertEqual(self.l.p, 'yo:')
 
     def test_hlist_push_pop(self):
-        l = HList(prefix='yo')
-        l.push(123)
+        self.l.push(123)
 
         with self.assertRaises(AssertionError):
-            l.push('123')
+            self.l.push('123')
 
-        x = l.pop()
+        x = self.l.pop()
 
         self.assertEqual(x, 123)
 
     def test_hlist_get(self):
-        l = HList(prefix='yo')
-        l.push(123)
-        l.push(567)
+        self.l.push(123)
+        self.l.push(567)
 
-        x = l.get(1)
-        y = l.get(0)
+        x = self.l.get(1)
+        y = self.l.get(0)
 
         self.assertEqual(x, 123)
         self.assertEqual(y, 567)
 
         # empty the list so we can use it again
-        l.pop()
-        l.pop()
+        self.l.pop()
+        self.l.pop()
 
     def test_hlist_get_index_error(self):
-        l = HList(prefix='yo')
-        self.assertEqual(l.get(10000), None)
+        self.assertEqual(self.l.get(10000), None)
 
     def test_hlist_set(self):
-        l = HList(prefix='yo')
-        l.push(123)
-        l.push(567)
+        self.l.push(123)
+        self.l.push(567)
 
-        l.set(1, 890)
-        l.set(0, 166)
+        self.l.set(1, 890)
+        self.l.set(0, 166)
 
-        x = l.get(1)
-        y = l.get(0)
+        x = self.l.get(1)
+        y = self.l.get(0)
 
         self.assertEqual(x, 890)
         self.assertEqual(y, 166)
 
         # empty the list so we can use it again
-        l.pop()
-        l.pop()
+        self.l.pop()
+        self.l.pop()
 
     def test_hlist_set_index_error(self):
-        l = HList(prefix='yo')
 
         with self.assertRaises(redis.exceptions.ResponseError):
-            l.set(10000, 123)
+            self.l.set(10000, 123)
 
     def test_hlist_pop_right(self):
-        l = HList(prefix='yo')
 
-        l.push(123)
-        l.push(456)
+        self.l.push(123)
+        self.l.push(456)
 
-        x = l.pop_right()
+        x = self.l.pop_right()
 
         self.assertEqual(x, 123)
 
-        l.pop()
+        self.l.pop()
 
     def test_hlist_append(self):
-        l = HList(prefix='yo')
 
-        l.push(123)
-        l.append(456)
+        self.l.push(123)
+        self.l.append(456)
 
-        x = l.pop_right()
+        x = self.l.pop_right()
 
         self.assertEqual(x, 456)
 
-        l.pop()
+        self.l.pop()
 
     def test_hlist_extend(self):
-        l = HList(prefix='yo')
 
-        l.extend([1, 2, 3, 4, 5])
+        self.l.extend([1, 2, 3, 4, 5])
 
-        a = l.pop()
-        b = l.pop()
-        c = l.pop()
-        d = l.pop()
-        e = l.pop()
+        a = self.l.pop()
+        b = self.l.pop()
+        c = self.l.pop()
+        d = self.l.pop()
+        e = self.l.pop()
 
         self.assertEqual(a, 1)
         self.assertEqual(b, 2)
         self.assertEqual(c, 3)
         self.assertEqual(d, 4)
         self.assertEqual(e, 5)
+
+    def test_hlist_getitem_setitem(self):
+
+        self.l.push(123)
+        self.l[0] = 123456789
+
+        self.assertEqual(self.l[0], 123456789)
+
+        self.l.pop()
+
+    def test_hlist_convenience_methods(self):
+        p = hlist()
+
+        self.assertTrue(isinstance(p, Placeholder))
+        self.assertTrue(p.value_type == int)
+
+        ll = hlist('hello_there')
+        self.assertTrue(isinstance(ll, HList))
+        self.assertEqual(ll.prefix, 'hello_there')
+        self.assertEqual(p.value_type, int)

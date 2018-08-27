@@ -154,7 +154,6 @@ class HList(RObject):
                          value_type=value_type,
                          rep_str='list')
 
-        self.len = None
         self.p = self.prefix + self.delimiter
 
     def get(self, i):
@@ -189,11 +188,6 @@ class HList(RObject):
         for ll in l:
             self.append(ll)
 
-    def __len__(self):
-        if self.len is None:
-            self.len = self.driver.llen(self.p)
-        return self.len
-
     def __getitem__(self, i):
         return self.get(i)
 
@@ -206,10 +200,10 @@ class HList(RObject):
                + self.delimiter + type_to_string[self.value_type] + self.delimiter
 
 
-def hlist(prefix=None, key_type=str, value_type=int):
+def hlist(prefix=None, value_type=int):
     if prefix is None:
-        return Placeholder(key_type=key_type, value_type=value_type, placeholder_type=HList)
-    return HList(prefix=prefix, key_type=key_type, value_type=value_type)
+        return Placeholder(value_type=value_type, placeholder_type=HList)
+    return HList(prefix=prefix, value_type=value_type)
 
 
 ####################
