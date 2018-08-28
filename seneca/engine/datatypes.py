@@ -74,9 +74,11 @@ class TablePlaceholder(Placeholder):
         self.placeholder_type = Table
 
     def valid(self, t):
-        mock_table = Table(prefix=None, key_type=self.key_type, schema=self.schema)
-        if self.key_type == t.key_type and \
-                mock_table.dict_matches_schema(t):
+        self_keys = set(self.schema.keys())
+        t_keys = set(t.schema.keys())
+
+        if self_keys == t_keys and self.key_type == t.key_type \
+                and t.prefix is not None and isinstance(t, Table):
             return True
         return False
 
@@ -317,9 +319,8 @@ class Table(RObject):
     def __getitem__(self, k):
         return self.get(k)
 
-    def __setitem__(self, i, v):
+    def __setitem__(self, k, v):
         return self.set(k, v)
-
 
 
 def table(prefix=None, key_type=str, schema=None):

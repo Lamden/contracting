@@ -295,3 +295,38 @@ class TestDatatypes(TestCase):
         v = t.encode_value(l, p)
 
         self.assertEqual(v, repr_str.encode())
+
+    def test_table_set_get(self):
+        pets = Table(prefix='pets', schema={'breed': str, 'owner': str, 'age': int})
+        pets.set('henry', {'breed': 'mutt', 'owner': 'stu', 'age': 13})
+
+        henry_all = pets.get('henry')
+        henry_single = pets.get('henry', ('age',))
+        henry_subset = pets.get('henry', ('owner', 'breed',))
+
+        self.assertDictEqual(henry_all, {'breed': 'mutt', 'owner': 'stu', 'age': 13})
+        self.assertDictEqual(henry_single, {'age': 13})
+        self.assertDictEqual(henry_subset, {'breed': 'mutt', 'owner': 'stu'})
+
+    def test_table_itemset_itemget(self):
+        pets = Table(prefix='pets', schema={'breed': str, 'owner': str, 'age': int})
+        pets['black_kitty'] = {'breed': 'fatso', 'owner': 'stu', 'age': 6}
+
+        black_kitty = pets['black_kitty']
+
+        self.assertDictEqual(black_kitty, {'breed': 'fatso', 'owner': 'stu', 'age': 6})
+
+    def test_table_convenience_methods(self):
+        p = table(schema={'breed': str, 'age': int})
+
+        self.assertTrue(isinstance(p, TablePlaceholder))
+        self.assertDictEqual(p.schema, {'breed': str, 'age': int})
+
+        t = table(prefix='birbs', schema={'breed': str, 'age': int})
+        self.assertTrue(isinstance(t, Table))
+
+    def test_table_placeholder_validity(self):
+        p = table(schema={'breed': str, 'age': int})
+        t = table(prefix='birbs', schema={'breed': str, 'age': int})
+
+        self.assertTrue(p.valid(t))
