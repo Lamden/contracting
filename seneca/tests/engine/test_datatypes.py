@@ -45,6 +45,8 @@ class TestDatatypes(TestCase):
         good_repr_str = ':map:some_map:str:int'
         good_map = parse_representation(good_repr_str)
 
+        print(good_map)
+
         self.assertTrue(p.valid(good_map))
 
         bad_repr_str = ':map:some_other_map:int:str'
@@ -238,3 +240,58 @@ class TestDatatypes(TestCase):
         self.assertTrue(isinstance(ll, HList))
         self.assertEqual(ll.prefix, 'hello_there')
         self.assertEqual(p.value_type, int)
+
+    def test_hlist_store_placeholders(self):
+        pass
+
+    def test_table_init(self):
+        t = Table(prefix='holla', schema={'name': str, 'balance': int})
+
+        self.assertEqual(t.schema, {'name': str, 'balance': int})
+        self.assertEqual(t.p, 'holla:')
+
+        with self.assertRaises(AssertionError):
+            bad_t = Table(prefix='bad_boy', schema={'howdy': 'partner'})
+
+        with self.assertRaises(AssertionError):
+            bad_t = Table(prefix='oh_no', schema={1: True})
+
+    def test_table_schema_matching(self):
+        t = Table(prefix='holla', schema={'name': str, 'balance': int})
+
+        good_dict = {'name': 'stu', 'balance': 100}
+        subset_dict = {'name': 'stu'}
+
+        mismatched_type_dict = {'name': 1, 'balance': '100'}
+        wrong_keys_dict = {'pizza_hut': 'taco_bell', 'im_at_the': 123}
+
+
+        t.dict_matches_schema(good_dict)
+        t.dict_matches_schema(subset_dict)
+
+        with self.assertRaises(AssertionError):
+            t.dict_matches_schema(mismatched_type_dict)
+
+        with self.assertRaises(AssertionError):
+            t.dict_matches_schema(wrong_keys_dict)
+
+    def test_table_encoding_variable(self):
+        t = Table(prefix='holla', schema={'name': str, 'balance': int})
+
+        v = t.encode_value(1, int)
+        self.assertEqual(v, b'1')
+
+        with self.assertRaises(AssertionError):
+            t.encode_value('b', int)
+
+    def test_table_encoding_placeholders(self):
+        p = ListPlaceholder()
+
+        t = Table(prefix='complex', schema={'name': str, 'list': p})
+
+        repr_str = ':list:some_list:int:'
+        l = parse_representation(repr_str)
+
+        v = t.encode_value(l, p)
+
+        self.assertEqual(v, repr_str.encode())

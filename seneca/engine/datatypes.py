@@ -20,14 +20,24 @@ def parse_representation(r, delimiter=':'):
     assert r[0] == delimiter
 
     components = r[1:].split(delimiter)
+    components[:] = [x for x in components if x != '']
 
-    _type = components[0]
-    _prefix = components[1]
-    _key_type = string_to_type[components[2]]
-    _value_type = string_to_type[components[3]]
+    if len(components) == 4:
+        _type = components[0]
+        _prefix = components[1]
+        _key_type = string_to_type[components[2]]
+        _value_type = string_to_type[components[3]]
 
-    if _type == 'map':
-        return HMap(_prefix, _key_type, _value_type)
+        if _type == 'map':
+            return HMap(_prefix, _key_type, _value_type)
+
+    if len(components) == 3:
+        _type = components[0]
+        _prefix = components[1]
+        _value_type = string_to_type[components[2]]
+
+        if _type == 'list':
+            return HList(_prefix, _value_type)
 
 
 class Placeholder:
@@ -41,6 +51,32 @@ class Placeholder:
         if self.key_type == t.key_type and \
                 self.value_type == t.value_type and \
                 type(t) == self.placeholder_type:
+            return True
+        return False
+
+
+class ListPlaceholder(Placeholder):
+    def __init__(self, value_type=int):
+        self.key_type = str
+        self.value_type = value_type
+        self.placeholder_type = HList
+
+    def valid(self, t):
+        if self.value_type == t.value_type and type(t) == self.placeholder_type:
+            return True
+        return False
+
+
+class TablePlaceholder(Placeholder):
+    def __init__(self, key_type=str, schema=None):
+        self.key_type = key_type
+        self.schema = schema
+        self.placeholder_type = Table
+
+    def valid(self, t):
+        mock_table = Table(prefix=None, key_type=self.key_type, schema=self.schema)
+        if self.key_type == t.key_type and \
+                mock_table.dict_matches_schema(t):
             return True
         return False
 
@@ -202,7 +238,7 @@ class HList(RObject):
 
 def hlist(prefix=None, value_type=int):
     if prefix is None:
-        return Placeholder(value_type=value_type, placeholder_type=HList)
+        return ListPlaceholder(value_type=value_type)
     return HList(prefix=prefix, value_type=value_type)
 
 
@@ -223,7 +259,7 @@ class Table(RObject):
         for k, v in d.items():
             if not isinstance(k, str):
                 return False
-            if not isinstance(v, type):
+            if not isinstance(v, type) and not isinstance(v, Placeholder):
                 return False
         return True
 
@@ -251,6 +287,7 @@ class Table(RObject):
                 'Value is not of type "{}"'.format(t)
             v = json.dumps(value)
 
+        v = v.encode()
         return v
 
     def set(self, k, v):
@@ -283,19 +320,6 @@ class Table(RObject):
     def __setitem__(self, i, v):
         return self.set(k, v)
 
-
-class TablePlaceholder(Placeholder):
-    def __init__(self, key_type=str, schema=None):
-        self.key_type = key_type
-        self.schema = schema
-        self.placeholder_type = Table
-
-    def valid(self, t):
-        mock_table = Table(prefix=None, key_type=self.key_type, schema=self.schema)
-        if self.key_type == t.key_type and \
-                mock_table.dict_matches_schema(t):
-            return True
-        return False
 
 
 def table(prefix=None, key_type=str, schema=None):
