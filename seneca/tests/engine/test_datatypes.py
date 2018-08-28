@@ -242,7 +242,12 @@ class TestDatatypes(TestCase):
         self.assertEqual(p.value_type, int)
 
     def test_hlist_store_placeholders(self):
-        pass
+        complex_l = hlist('goodtimes', value_type=hmap())
+
+        complex_l.push(hmap('some map'))
+
+        m = complex_l.pop()
+        self.assertTrue(m.prefix, 'some map')
 
     def test_table_init(self):
         t = Table(prefix='holla', schema={'name': str, 'balance': int})
@@ -330,3 +335,14 @@ class TestDatatypes(TestCase):
         t = table(prefix='birbs', schema={'breed': str, 'age': int})
 
         self.assertTrue(p.valid(t))
+
+        bad_t = table(prefix='bribs', schema={'kaw': int, 'age': str})
+
+        self.assertFalse(p.valid(bad_t))
+
+    def test_table_list_placeholder_not_valid(self):
+        lp = hlist()
+
+        bad_l = hlist('BAD', value_type=str)
+
+        self.assertFalse(lp.valid(bad_l))
