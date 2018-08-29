@@ -181,7 +181,7 @@ class Set(Write):
 
 # Note: Front end must convert Incr, Decr, and DecrBy to IncrBy
 @run_methods_return_type(int)
-class IncrByWo(Write):
+class IncrByWO(Write):
     @auto_set_fields
     def __init__(self, key, amount: int):
         pass

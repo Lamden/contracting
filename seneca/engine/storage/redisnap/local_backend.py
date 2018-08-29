@@ -91,24 +91,24 @@ class Executer():
         >>> ex.purge()
 
         Increment an empty key
-        >>> ex(IncrByWo('foo', 1));
+        >>> ex(IncrByWO('foo', 1));
 
         >>> ex(Get('foo'))
         RScalarInt(1)
 
         Increment an existing key
-        >>> ex(IncrByWo('foo', 1));
+        >>> ex(IncrByWO('foo', 1));
 
         >>> ex(Get('foo'))
         RScalarInt(2)
 
         Incremenent non-int scalars
         >>> ex(Set('foo', 'bar'))
-        >>> exception_to_string(ex, IncrByWo('foo', 1))
+        >>> exception_to_string(ex, IncrByWO('foo', 1))
         'Existing value has wrong type.'
 
         >>> ex(Set('foo', 1.0))
-        >>> exception_to_string(ex, IncrByWo('foo', 1))
+        >>> exception_to_string(ex, IncrByWO('foo', 1))
         'Existing value has wrong type.'
 
         TODO: Increment non-scalar

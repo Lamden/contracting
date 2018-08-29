@@ -10,41 +10,6 @@ class ReprIsConstructor(metaclass=ABCMeta):
         return '%s(%s)' % (self.__class__.__name__, auto_constructor_args)
 
 
-# ## Addres types##
-# class Address(ReprIsConstructor):
-#     '''
-#     >>> ScalarAddress('key_is_something')
-#     ScalarAddress('key_is_something')
-#
-#     >>> RHashFieldAddress('key_str', 'field_str')
-#     RHashFieldAddress('key_str', 'field_str')
-#
-#     '''
-#     @auto_set_fields
-#     def __init__(self, key):
-#         pass
-#
-#     def base_address(self):
-#         """
-#         Address can reference sub-items in containers e.g. fields in hashmaps.
-#         This method returns the container's address. For simple typles it just
-#         returns self.
-#         """
-#         raise Exception('Address is lowest level, already base.')
-#
-#
-#
-# class ScalarAddress(Address): pass
-# class RHashAddress(Address): pass
-#
-# class RHashFieldAddress(Address):
-#     @auto_set_fields
-#     def __init__(self, key, field):
-#         pass
-#
-#     def base_address(self):
-#         return self.key
-
 ## Data types ##
 class RESPType(ReprIsConstructor):
     @auto_set_fields
@@ -57,8 +22,17 @@ class RScalar(RESPType):
     @auto_set_fields
     def __init__(self, value):
         pass
-class RScalarInt(RScalar): pass
-class RScalarFloat(RScalar): pass
+
+    def to_bytes(self):
+        return str.encode(self.value)
+
+class RScalarInt(RScalar):
+    def to_bytes(self):
+        return str.encode(str(self.value))
+
+class RScalarFloat(RScalar):
+    def to_bytes(self):
+        return str.encode(str(self.value))
 
 class RList(RESPType): pass
 class RSet(RESPType): pass

@@ -20,11 +20,15 @@ class Client:
     def __init__(self, executer):
         self.execute_command = executer
 
+    def _purge(self):
+        return self.execute_command.purge()
+
     def exists(self, name):
         """
         Returns a boolean indicating whether key ``name`` exists
-        >>> c.exists('foo')
-        Exists('foo')
+        >>> s._purge()
+        >>> s.exists('foo')
+        False
         """
         return self.execute_command(Exists(name))
     __contains__ = exists
@@ -32,55 +36,54 @@ class Client:
     def type(self, name):
         """
         Returns the type of key ``name``
-        >> c.purge()
-        >> c.type('foo')
+        >>> s._purge()
+        >>> s.type('foo')
         b'none'
         """
-
         rtype = self.execute_command(Type(name))
-        #resp_types.
 
-        return rtype
-        if isinstance(rtype, RScalar):
+        if issubclass(rtype, RDoesNotExist):
+            return str.encode('none')
+        elif issubclass(rtype, RScalar):
             return str.encode('string')
-        elif isinstance(rtype, RHash):
+        elif issubclass(rtype, RHash):
             return str.encode('hash')
         else:
             raise NotImplementedError()
 
-
-    def append_wo(self, key, value):
-        """
-        Appends the string ``value`` to the value at ``key``. If ``key``
-        doesn't already exist, create it with a value of ``value``.
-        Returns the new length of the value at ``key``.
-
-        >> c.append('foo', 'bar')
-        <RESP (Append) {'key': 'foo', 'value': 'bar'}>
-        """
-        return self.execute_command(Append(key, value))
-
+#   TODO: Implement in localbackend and here.
+#   def append_wo(self, key, value):
+#       """
+#       Appends the string ``value`` to the value at ``key``. If ``key``
+#       doesn't already exist, create it with a value of ``value``.
+#       Returns the new length of the value at ``key``.
+#
+#       >>> s.append('foo', 'bar')
+#
+#       """
+#       return self.execute_command(Append(key, value))
 
     def get(self, name):
         """
+        >>> s._purge()
+
         Return the value at key ``name``, or None if the key doesn't exist
-        >> c.get('foo')
-        <RESP (Get) {'key': 'foo'}>
+        >>> s.get('foo') is None
+        True
         """
         # TODO: Decide how we want to handle non-existing keys in the commands api
-        return self.execute_command(Get(name))
+        ret = self.execute_command(Get(name))
+        if isinstance(ret, RDoesNotExist):
+            return None
+        elif isinstance(ret, RScalar):
+            return ret.to_bytes()
+        else:
+            raise Exception('Something went wrong.')
 
     def __getitem__(self, name):
         """
         Return the value at key ``name``, raises a KeyError if the key
         doesn't exist.
-
-        >> try:
-        ...     c['foo']
-        ... except Exception as e:
-        ...     print(e)
-        <RESP (Get) {'key': 'foo'}>
-        'foo'
         """
         value = self.get(name)
         if value is not None:
@@ -89,10 +92,11 @@ class Client:
 
     def set(self, name, value, ex=None, px=None, nx=False, xx=False):
         """
-        >> c.set('foo', 'bar')
-        <RESP (Set) {'key': <RESP ADDRESS (ScalarAddress) {'key': 'foo'}>, 'value': <RESP (RScalar) {'value': 'bar'}>}>
+        >>> s.set('foo', 'bar'); s.get('foo')
+        b'bar'
 
-        >> s.set('foo', 'bar')
+        >>> s.set('foo', 'baz'); s.get('foo')
+        b'baz'
 
         Set the value at key ``name`` to ``value``
         ``ex`` sets an expire flag on key ``name`` for ``ex`` seconds.
@@ -107,7 +111,7 @@ class Client:
         assert nx is False # TODO: Will add this later
         assert nx is False # TODO: Will add this later
 
-        self.execute_command(Set(ScalarAddress(name), resp_types.make_rscalar(value)))
+        self.execute_command(Set(name, value))
 
 
     def __setitem__(self, name, value):
@@ -119,40 +123,52 @@ class Client:
 
     def incr_wo(self, name, amount=1):
         """
+        >>> s._purge() is None
+        True
+
         Increments the value of ``key`` by ``amount``.  If no key exists,
         the value will be initialized as ``amount``
-        >> c.incr('foo', 1)
+        >>> s.incr_wo('foo', 1) is None
+        True
         """
-        self.execute_command(IncrBy(ScalarAddress(name), amount))
+        self.execute_command(IncrByWO(name, amount))
 
 
     def incrby_wo(self, name, amount=1):
         """
         Increments the value of ``key`` by ``amount``.  If no key exists,
         the value will be initialized as ``amount``
-        >> s.incrby('foo', 1)
+        >>> s.incrby_wo('foo', 1) is None
+        True
         """
-        self.execute_command(IncrBy(ScalarAddress(name), amount))
+        self.execute_command(IncrByWO(name, amount))
 
     def decr_wo(self, name, amount=1):
         """
         Decrements the value of ``key`` by ``amount``.  If no key exists,
         the value will be initialized as 0 - ``amount``
-        >> c.decr('foo', 1)
+        >>> s.decr_wo('foo', 1) is None
+        True
         """
-        self.execute_command(IncrBy(ScalarAddress(name), 0 - amount))
+        self.execute_command(IncrByWO(name, 0 - amount))
 
     def hget(self, name, key):
         """
-        >> c.hget('foo', 'bar')
+        >>> s.hget('foo', 'bar') is None
+        True
         """
-        return self.execute_command(HGet(RHashFieldAddress(name, key)))
+        ret = self.execute_command(HGet(name, key))
+        if isinstance(ret, RDoesNotExist):
+            return None
+        elif isinstance(ret, RScalar):
+            return ret.to_bytes()
 
     def hset_wo(self, name, key, value):
         """
-        >> c.hset('foo', 'bar', 'baz')
+        >>> s.hset_wo('foo', 'bar', 'baz'); s.hget('foo', 'bar')
+        b'baz'
         """
-        self.execute_command(HSet(RHashFieldAddress(name, key), resp_types.make_rscalar(value)))
+        self.execute_command(HSet(name, key, value))
 
 
 def run_tests(deps_provider):
