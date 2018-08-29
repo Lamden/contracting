@@ -18,6 +18,7 @@ import os
 import importlib
 import traceback
 from seneca.engine.util import *
+from functools import lru_cache
 
 from seneca.engine.parser import ast_whitelist
 import seneca.engine.util as util
@@ -136,6 +137,8 @@ def seneca_module_name_to_path(name):
     global_run_data =
 '''
 # TODO: make sure this loads modules exactly once per caller_id
+
+maual_import_lru = lru_cache(maxsize=128)(util.manual_import)
 def seneca_library_loader(imp, call_stack, db_executer):
     current_contract_address = call_stack[-1][1]
     sender = call_stack[0][0]
@@ -148,7 +151,7 @@ def seneca_library_loader(imp, call_stack, db_executer):
 
     #s_mod = importlib.import_module(real_path)
     mod_file_path = seneca_module_name_to_path(real_path)
-    s_mod = util.manual_import(mod_file_path, real_path.split('.')[-1])
+    s_mod = maual_import_lru(mod_file_path, real_path.split('.')[-1])
 
     if module_path in ('seneca.storage.tabular', 'seneca.storage.kv', 'seneca.storage.kv2'):
         s_mod['ex'] = db_executer
@@ -266,6 +269,15 @@ def execute_contract(_, this_run_data, contract_str, is_main=False, module_loade
         ret.exception = e
     return ret
 
+@lru_cache(maxsize=128)
+def contract_str_to_ast(contract_str):
+    sc_ast = ast.parse(contract_str)
+    assert type(sc_ast) == ast.Module, "Unexpected input, 'a' should always be an _ast.Module"
+
+    # Fail if forbidden AST nodes are found, e.g. for-loops
+    ast_whitelist.validate(sc_ast)
+    return sc_ast
+
 
 def _execute_contract(call_stack, contract_str, is_main, module_loader, db_executer):
     # TODO: Readd tests
@@ -277,7 +289,6 @@ def _execute_contract(call_stack, contract_str, is_main, module_loader, db_execu
     >> loader = lambda _:{'contract_id':'b', 'author':'abc'}, contract_a
     >> contract_b = 'import a; exports={}'
     >> _execute_contract({'call_stack':[], 'author':'abc'}, {'contract_id':'b', 'author':'abc'}, contract_b, True, loader, bex)
-
     '''
     assert module_loader is not None, 'No module loader provided'
     contract_id = call_stack[-1][1]
@@ -285,11 +296,7 @@ def _execute_contract(call_stack, contract_str, is_main, module_loader, db_execu
     sc_display_name = "seneca_contract_addr: %s" % contract_id
 
     #  Parse Seneca smart contract, generate AST
-    sc_ast = ast.parse(contract_str)
-    assert type(sc_ast) == ast.Module, "Unexpected input, 'a' should always be an _ast.Module"
-
-    # Fail if forbidden AST nodes are found, e.g. for-loops
-    ast_whitelist.validate(sc_ast)
+    sc_ast = contract_str_to_ast(contract_str)
 
     # Create a new empty scope for module execution.
     module_scope = {}
