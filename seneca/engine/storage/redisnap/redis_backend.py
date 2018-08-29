@@ -30,18 +30,6 @@ class Executer():
 
 def run_tests(deps_provider):
     '''
-    >>> ex(Get('foo'))
-    GET foo
-    >>> ex(Exists('foo'))
-    EXISTS foo
-    >>> ex(Type('foo'))
-    TYPE foo
-    >>> ex(Set('foo', 'bar'))
-    SET foo bar
-    >>> ex(Append('foo', 'bar'))
-    APPEND foo bar
-    >>> ex(IncrBy('foo', 1))
-    INCRBY foo 1
     '''
 
     import doctest, sys
