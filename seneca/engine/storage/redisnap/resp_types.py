@@ -65,6 +65,8 @@ class RDoesNotExist(RScalarInt, RScalarFloat, RHash, RList, RSet, RSortedSet):
 
 
 def make_rscalar(val):
+    if val is None:
+        return RDoesNotExist()
     if isinstance(val, int):
         return RScalarInt(val)
     elif isinstance(val, float):
@@ -85,7 +87,14 @@ def make_rscalar(val):
         assert isinstance(val, str)
         return RScalar(val)
 
-
+def from_resp_str(type_byte_str):
+    d = { 'string': RScalar,
+          'hash': RHash,
+          'none': RDoesNotExist
+          # TODO: Finish this.
+        }
+    assert type_byte_str in d
+    return d[type_byte_str]
 
 def run_tests(deps_provider):
     import doctest, sys

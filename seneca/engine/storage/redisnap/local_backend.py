@@ -18,26 +18,20 @@ import seneca.engine.storage.redisnap.resp_types as rtype
 #from seneca.engine.storage.redisnap.addresses import *
 
 class Executer():
-    '''
-    Maps command objects to actual Redis commands and runs them, leans heavily
-    on redis.py
-
-    TODO: We should efficiently track collisions and decide whether we want to
-    use a log of transactions to commit, or create ops from the stored data
-    '''
+    """
+    """
     def __init__(self):
         self.data = {}
-        self.log =[]
 
     def purge(self):
         self.data = {}
 
     def exists(self, cmd):
-        '''
+        """
         >>> _ = ex.purge()
         >>> ex(Exists('foo'));
         False
-        '''
+        """
         return cmd.key in self.data
 
     def type(self, cmd):
@@ -49,7 +43,11 @@ class Executer():
         >>> issubclass(t, RScalar)
         True
         """
-        return type(self.get(Get(cmd.key)))
+        t = type(self.get(Get(cmd.key)))
+        if t in [RScalarInt, RScalarFloat]:
+            return RScalar
+
+        return t
 
     def get(self, cmd):
         """
@@ -76,9 +74,8 @@ class Executer():
         'RScalar'
         RScalar('bar')
 
-
         >>> _ = ex(Set('foo', 1)); ex(Type('foo')).__name__; ex(Get('foo'))
-        'RScalarInt'
+        'RScalar'
         RScalarInt(1)
         """
         self.data[cmd.key] = make_rscalar(cmd.value)
@@ -87,7 +84,7 @@ class Executer():
 
     def incrbywo(self, cmd):
         #TODO: Change name to incrby_wo()
-        '''
+        """
         >>> ex.purge()
 
         Increment an empty key
@@ -110,9 +107,7 @@ class Executer():
         >>> ex(Set('foo', 1.0))
         >>> exception_to_string(ex, IncrByWO('foo', 1))
         'Existing value has wrong type.'
-
-        TODO: Increment non-scalar
-        '''
+        """
         old = self(Get(cmd.key))
         old_type = type(old)
 
