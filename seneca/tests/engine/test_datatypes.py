@@ -269,7 +269,6 @@ class TestDatatypes(TestCase):
         mismatched_type_dict = {'name': 1, 'balance': '100'}
         wrong_keys_dict = {'pizza_hut': 'taco_bell', 'im_at_the': 123}
 
-
         t.dict_matches_schema(good_dict)
         t.dict_matches_schema(subset_dict)
 
@@ -348,7 +347,6 @@ class TestDatatypes(TestCase):
 
     def test_table_repr_reconstruction(self):
         t = table(prefix='something', schema={'blah': int, 'blerg': str})
-        print(t.rep())
 
     def test_complex_type_repr(self):
         s = '*table({howdy:int,boiii:*map(str,int)})'
@@ -361,9 +359,44 @@ class TestDatatypes(TestCase):
         self.assertEqual(ph.key_type, ph2.key_type)
         self.assertEqual(ph.value_type, ph2.value_type)
 
-
     def test_table_type_repr_with_prefix(self):
         s = '*table<lazytown>({howdy:int,boiii:*map(str,int)})'
         t = parse_complex_type_repr(s)
         self.assertTrue(t.prefix, 'lazytown')
-        print(t.prefix)
+
+    def test_none_typing(self):
+        s = hmap(prefix='hello', value_type=None)
+        s.set('yo', 123)
+        self.assertEqual(s.get('yo'), 123)
+
+    def test_key_typing(self):
+        s = hmap(prefix='hello', key_type=int)
+        s.set(1, 123)
+        _s = s.get(1)
+        self.assertEqual(_s, 123)
+
+    def test_complex_key_typing(self):
+        s = hmap(prefix='hello', key_type=hmap())
+        s.set(hmap(prefix='uhoh'), 123)
+
+        self.assertEqual(s.get(hmap(prefix='uhoh')), 123)
+
+    def test_none_typing_list(self):
+        s = hlist(prefix='hello', value_type=None)
+        s.push(123)
+        self.assertEqual(s.pop(), 123)
+
+    def test_key_typing_table(self):
+        s = table(prefix='hello123', key_type=int, schema={'test1': int, 'test2': str})
+        s.set(1, {'test1': 123, 'test2': 'hello'})
+        _s = s.get(1)
+        print(_s)
+        self.assertDictEqual(_s, {'test1': 123, 'test2': 'hello'})
+
+    def test_complex_key_typing_table(self):
+        s = table(prefix='hello123', key_type=hlist(), schema={'test1': int, 'test2': str})
+        s.set(hlist(prefix='uhoh'), {'test1': 123, 'test2': 'hello'})
+
+        _s = s.get(hlist(prefix='uhoh'))
+
+        self.assertDictEqual(_s, {'test1': 123, 'test2': 'hello'})

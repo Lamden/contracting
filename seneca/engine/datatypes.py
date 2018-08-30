@@ -31,7 +31,7 @@ string_to_type = {
     'bool': bool
 }
 
-primitive_types = [int, str, bool]
+primitive_types = [int, str, bool, None]
 
 
 def encode_type(t):
@@ -273,11 +273,14 @@ class RObject:
                 value = json.loads(value)
         return value
 
-
     def check_key_type(self, key):
-        assert isinstance(key, self.key_type) or \
-               self.key_type is None, \
-               'Key {} is not of type "{}"'.format(type(key), self.key_type)
+        msg = 'Key {} is not of type "{}"'.format(type(key), self.key_type)
+        if type(self.key_type) == type:
+            assert isinstance(key, self.key_type), msg
+        elif isinstance(self.key_type, Placeholder):
+            assert self.key_type.valid(key), msg
+        else:
+            assert self.key_type is not None, msg
 
     def rep(self):
         return self.delimiter + self.rep_str \
@@ -303,10 +306,10 @@ class HMap(RObject):
         v = self.encode_value(value)
         self.check_key_type(key)
 
-        return self.driver.set(self.prefix + self.delimiter + key, v)
+        return self.driver.set('{}{}{}'.format(self.prefix, self.delimiter, key), v)
 
     def get(self, key):
-        g = self.driver.get(self.prefix + self.delimiter + key)
+        g = self.driver.get('{}{}{}'.format(self.prefix, self.delimiter, key))
         g = self.decode_value(g)
         return g
 
@@ -445,7 +448,7 @@ class Table(RObject):
         for _k, _v in v.items():
             v[_k] = self.encode_value(_v, self.schema[_k])
 
-        self.driver.hmset(self.p + k, v)
+        self.driver.hmset('{}{}'.format(self.p, k), v)
 
     def get(self, k, s=None):
         d = {}
@@ -455,7 +458,7 @@ class Table(RObject):
         else:
             keys = s
 
-        result = self.driver.hmget(self.p + k, keys)
+        result = self.driver.hmget('{}{}'.format(self.p, k), keys)
         result = [self.decode_value(r) for r in result]
 
         for i in range(len(keys)):
@@ -481,9 +484,7 @@ class Table(RObject):
             d += ','
         d = d[:-1]
         d += '})'
-        return CTP + self.rep_str \
-               + '<' + self.prefix \
-               + '>' + d
+        return CTP + self.rep_str + '<' + self.prefix + '>' + d
 
 
 def table(prefix=None, key_type=str, schema=None):
