@@ -7,13 +7,16 @@ Datatype serialization format:
 
 type<prefix>(declaration)
 
-map(str, int)
-map<coins>(str, int)
+:map(str, int)
+:map<coins>(str, int)
 
-list<todo>(map(str, int))
+:list<todo>(:map(str, int))
 
 
 '''
+
+COMPLEX_TYPE_PREFIX = '*'
+CTP = COMPLEX_TYPE_PREFIX
 
 type_to_string = {
     str: 'str',
@@ -39,41 +42,19 @@ def encode_type(t):
             return primitive_tokens[i]
     return None
 
+
 primitive_tokens = ['int', 'str', 'bool']
 complex_tokens = ['map', 'list', 'table']
 all_tokens = ['int', 'str', 'bool', 'map', 'list', 'table']
 
 
-# def parse_representation(r, delimiter=':'):
-#     assert type(r) == str
-#     assert r[0] == delimiter
-#
-#     components = r[1:].split(delimiter)
-#     components[:] = [x for x in components if x != '']
-#
-#     if len(components) == 4:
-#         _type = components[0]
-#         _prefix = components[1]
-#         _key_type = string_to_type[components[2]]
-#         _value_type = string_to_type[components[3]]
-#
-#         if _type == 'map':
-#             return HMap(_prefix, _key_type, _value_type)
-#
-#     if len(components) == 3:
-#         _type = components[0]
-#         _prefix = components[1]
-#         _value_type = string_to_type[components[2]]
-#
-#         if _type == 'list':
-#             return HList(_prefix, _value_type)
-
 def parse_representation(s):
     print('PARSE: {}'.format(s))
-    if s[0] == ':':
+    if s[0] == CTP:
         return parse_complex_type_repr(s)
     else:
         return parse_simple_type_repr(s)
+
 
 def parse_type_repr(s):
     print(s)
@@ -85,7 +66,7 @@ def parse_type_repr(s):
 
 
 def parse_complex_type_repr(s):
-    assert s[0] == ':'
+    assert s[0] == CTP
     s = s[1:]
     for t in complex_tokens:
         if s.startswith(t):
@@ -284,7 +265,7 @@ class RObject:
         '''
         if value is not None:
             value = value.decode()
-            if value[0] == ':':
+            if value[0] == CTP:
                 return parse_complex_type_repr(value)
             else:
                 value = json.loads(value)
@@ -334,7 +315,10 @@ class HMap(RObject):
         return self.set(k, v)
 
     def rep(self):
-        return ':map<{}>({},{})'.format(self.prefix, encode_type(self.key_type), encode_type(self.value_type))
+        return '{}map<{}>({},{})'.format(CTP,
+                                         self.prefix,
+                                         encode_type(self.key_type),
+                                         encode_type(self.value_type))
 
 
 def hmap(prefix=None, key_type=str, value_type=int):
@@ -397,7 +381,7 @@ class HList(RObject):
         return self.set(i, v)
 
     def rep(self):
-        return ':list<{}>({})'.format(self.prefix, encode_type(self.value_type))
+        return '{}list<{}>({})'.format(CTP, self.prefix, encode_type(self.value_type))
 
 
 def hlist(prefix=None, value_type=int):
@@ -489,7 +473,7 @@ class Table(RObject):
         for k, v in self.schema.items():
             d += '"{}"'.format(k)
             d += ':'
-        return self.delimiter + self.rep_str \
+        return CTP + self.rep_str \
                + self.delimiter + self.prefix \
                + self.delimiter + type_to_string[self.key_type] \
                + self.delimiter + str(self.schema) + self.delimiter
