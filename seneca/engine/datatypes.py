@@ -37,6 +37,8 @@ primitive_types = [int, str, bool, None]
 def encode_type(t):
     if isinstance(t, RObject):
         return t.rep()
+    if isinstance(t, Placeholder):
+        return t.rep()
     for i in range(len(primitive_types)):
         if t == primitive_types[i]:
             return primitive_tokens[i]
@@ -191,6 +193,9 @@ class Placeholder:
             return True
         return False
 
+    def rep(self):
+        return CTP + 'map' + '(' + encode_type(self.key_type) + ',' + encode_type(self.value_type) + ')'
+
 
 class ListPlaceholder(Placeholder):
     def __init__(self, value_type=int):
@@ -202,6 +207,9 @@ class ListPlaceholder(Placeholder):
         if self.value_type == t.value_type and type(t) == self.placeholder_type:
             return True
         return False
+
+    def rep(self):
+        return CTP + 'list' + '(' + encode_type(self.value_type) + ')'
 
 
 class TablePlaceholder(Placeholder):
@@ -218,6 +226,18 @@ class TablePlaceholder(Placeholder):
                 and t.prefix is not None and isinstance(t, Table):
             return True
         return False
+
+    def rep(self):
+        d = '({'
+        for k, v in self.schema.items():
+            print(k, v)
+            d += '{}'.format(k)
+            d += ':'
+            d += encode_type(v)
+            d += ','
+        d = d[:-1]
+        d += '})'
+        return CTP + 'table' + d
 
 
 class RObject:

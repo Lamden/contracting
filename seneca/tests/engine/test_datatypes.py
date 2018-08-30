@@ -400,3 +400,8 @@ class TestDatatypes(TestCase):
         _s = s.get(hlist(prefix='uhoh'))
 
         self.assertDictEqual(_s, {'test1': 123, 'test2': 'hello'})
+
+    def test_table_representation(self):
+        s = '*table<lazytown>({howdy:int,boiii:*map(str,int)})'
+        _s = table(prefix='lazytown', schema={'howdy': int, 'boiii': hmap()})
+        self.assertEqual(s, _s.rep())
