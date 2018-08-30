@@ -405,3 +405,22 @@ class TestDatatypes(TestCase):
         s = '*table<lazytown>({howdy:int,boiii:*map(str,int)})'
         _s = table(prefix='lazytown', schema={'howdy': int, 'boiii': hmap()})
         self.assertEqual(s, _s.rep())
+
+    def test_table_placeholder_rep(self):
+        s = '*table({howdy:int,boiii:*map(str,int)})'
+        _s = table(schema={'howdy': int, 'boiii': hmap()})
+        self.assertEqual(s, _s.rep())
+
+    def test_robject_raises_error(self):
+        r = RObject()
+        with self.assertRaises(NotImplementedError):
+            r.rep()
+
+    def test_robject_raises_on_none_type(self):
+        with self.assertRaises(AssertionError):
+            r = RObject(key_type=None)
+
+    def test_complex_types(self):
+        self.assertTrue(is_complex_type(hmap()))
+        self.assertTrue(is_complex_type(hmap(prefix='ass')))
+        self.assertFalse(is_complex_type('literally anything else'))

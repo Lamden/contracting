@@ -33,7 +33,6 @@ string_to_type = {
 
 primitive_types = [int, str, bool, None]
 
-
 def encode_type(t):
     if isinstance(t, RObject):
         return t.rep()
@@ -230,7 +229,6 @@ class TablePlaceholder(Placeholder):
     def rep(self):
         d = '({'
         for k, v in self.schema.items():
-            print(k, v)
             d += '{}'.format(k)
             d += ':'
             d += encode_type(v)
@@ -238,6 +236,14 @@ class TablePlaceholder(Placeholder):
         d = d[:-1]
         d += '})'
         return CTP + 'table' + d
+
+
+def is_complex_type(v):
+    for t in complex_types:
+        if (issubclass(type(v), Placeholder) and issubclass(v.placeholder_type, t)) \
+                or issubclass(type(v), t):
+            return True
+    return False
 
 
 class RObject:
@@ -254,6 +260,8 @@ class RObject:
         self.driver = driver
 
         self.prefix = prefix
+        assert key_type is not None, 'Key type cannot be None'
+        assert key_type in primitive_types or is_complex_type(key_type)
         self.key_type = key_type
 
         # prevents you from requiring an RObject instance that has a prefix as a value type
@@ -297,16 +305,11 @@ class RObject:
         msg = 'Key {} is not of type "{}"'.format(type(key), self.key_type)
         if type(self.key_type) == type:
             assert isinstance(key, self.key_type), msg
-        elif isinstance(self.key_type, Placeholder):
-            assert self.key_type.valid(key), msg
         else:
-            assert self.key_type is not None, msg
+            assert self.key_type.valid(key), msg
 
     def rep(self):
-        return self.delimiter + self.rep_str \
-               + self.delimiter + self.prefix \
-               + self.delimiter + type_to_string[self.key_type] \
-               + self.delimiter + type_to_string[self.value_type] + self.delimiter
+        raise NotImplementedError
 
 
 ####################
@@ -464,7 +467,7 @@ class Table(RObject):
 
     def set(self, k, v):
         assert self.dict_matches_schema(v)
-
+        self.check_key_type(k)
         for _k, _v in v.items():
             v[_k] = self.encode_value(_v, self.schema[_k])
 
@@ -492,9 +495,6 @@ class Table(RObject):
     def __setitem__(self, k, v):
         return self.set(k, v)
 
-    def schema_to_rep(self):
-        pass
-
     def rep(self):
         d = '({'
         for k, v in self.schema.items():
@@ -511,3 +511,5 @@ def table(prefix=None, key_type=str, schema=None):
     if prefix is None:
         return TablePlaceholder(key_type=key_type, schema=schema)
     return Table(prefix=prefix, key_type=key_type, schema=schema)
+
+complex_types = [HMap, HList, Table]
