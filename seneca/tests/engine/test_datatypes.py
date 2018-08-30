@@ -6,6 +6,7 @@ test complex key types and value types
 test more failure cases
 '''
 
+
 class TestDatatypes(TestCase):
     def setUp(self):
         self.r = redis.StrictRedis(host='localhost',
@@ -28,7 +29,7 @@ class TestDatatypes(TestCase):
         self.assertTrue(string_to_type['bool'] == bool)
 
     def test_parse_representation_map(self):
-        repr_str = ':map:test:int:str'
+        repr_str = ':map<test>(int,str)'
         m = parse_representation(repr_str)
 
         self.assertTrue(type(m) == HMap)
@@ -42,14 +43,17 @@ class TestDatatypes(TestCase):
         self.assertTrue(p.value_type == int)
         self.assertTrue(p.placeholder_type == HMap)
 
-        good_repr_str = ':map:some_map:str:int'
+        good_repr_str = ':map<some_map>(str,int)'
         good_map = parse_representation(good_repr_str)
 
         print(good_map)
+        print(good_map.prefix)
+        print(good_map.key_type)
+        print(good_map.value_type)
 
         self.assertTrue(p.valid(good_map))
 
-        bad_repr_str = ':map:some_other_map:int:str'
+        bad_repr_str = ':map<some_other_map>(int,str)'
         bad_map = parse_representation(bad_repr_str)
 
         self.assertFalse(p.valid(bad_map))
@@ -69,7 +73,7 @@ class TestDatatypes(TestCase):
         p = Placeholder(placeholder_type=HMap)
         r = RObject(value_type=p)
 
-        repr_str = ':map:howdy:str:int'
+        repr_str = ':map<howdy>(str,int)'
         _map = parse_representation(repr_str)
 
         v = r.encode_value(_map)
@@ -83,7 +87,7 @@ class TestDatatypes(TestCase):
         self.assertTrue(r.decode_value(b'"s"'), 's')
         self.assertTrue(r.decode_value(b'[1, 2, 3]'), [1, 2, 3])
 
-        repr_str = b':map:howdy:str:int'
+        repr_str = b':map<howdy>(str,int)'
         decoded_map = r.decode_value(repr_str)
 
         self.assertTrue(type(decoded_map), HMap)
@@ -131,7 +135,7 @@ class TestDatatypes(TestCase):
         self.assertTrue(isinstance(m2, HMap))
 
     def test_hlist_init_repr(self):
-        self.assertEqual(self.l.rep(), ':list:yo:int:')
+        self.assertEqual(self.l.rep(), ':list<yo>(int)')
         self.assertEqual(self.l.p, 'yo:')
 
     def test_hlist_push_pop(self):
@@ -294,7 +298,7 @@ class TestDatatypes(TestCase):
 
         t = Table(prefix='complex', schema={'name': str, 'list': p})
 
-        repr_str = ':list:some_list:int:'
+        repr_str = ':list<some_list>(int)'
         l = parse_representation(repr_str)
 
         v = t.encode_value(l, p)
@@ -346,3 +350,18 @@ class TestDatatypes(TestCase):
         bad_l = hlist('BAD', value_type=str)
 
         self.assertFalse(lp.valid(bad_l))
+
+    def test_table_repr_reconstruction(self):
+        t = table(prefix='something', schema={'blah': int, 'blerg': str})
+        print(t.rep())
+
+    def test_complex_type_repr(self):
+        s = ':table({howdy:int,boiii::map(str,int)})'
+        t = parse_complex_type_repr(s)
+        print(t.key_type)
+        print(t.schema)
+
+    def test_table_type_repr_with_prefix(self):
+        s = ':table<lazytown>({howdy:int,boiii::map(str,int)})'
+        t = parse_complex_type_repr(s)
+        print(t.prefix)

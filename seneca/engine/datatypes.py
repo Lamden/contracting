@@ -1,6 +1,20 @@
 import redis
 import json
 
+'''
+
+Datatype serialization format:
+
+type<prefix>(declaration)
+
+map(str, int)
+map<coins>(str, int)
+
+list<todo>(map(str, int))
+
+
+'''
+
 type_to_string = {
     str: 'str',
     int: 'int',
@@ -14,30 +28,175 @@ string_to_type = {
     'bool': bool
 }
 
+primitive_types = [int, str, bool]
 
-def parse_representation(r, delimiter=':'):
-    assert type(r) == str
-    assert r[0] == delimiter
 
-    components = r[1:].split(delimiter)
-    components[:] = [x for x in components if x != '']
+def encode_type(t):
+    if isinstance(t, RObject):
+        return t.rep()
+    for i in range(len(primitive_types)):
+        if t == primitive_types[i]:
+            return primitive_tokens[i]
+    return None
 
-    if len(components) == 4:
-        _type = components[0]
-        _prefix = components[1]
-        _key_type = string_to_type[components[2]]
-        _value_type = string_to_type[components[3]]
+primitive_tokens = ['int', 'str', 'bool']
+complex_tokens = ['map', 'list', 'table']
+all_tokens = ['int', 'str', 'bool', 'map', 'list', 'table']
 
-        if _type == 'map':
-            return HMap(_prefix, _key_type, _value_type)
 
-    if len(components) == 3:
-        _type = components[0]
-        _prefix = components[1]
-        _value_type = string_to_type[components[2]]
+# def parse_representation(r, delimiter=':'):
+#     assert type(r) == str
+#     assert r[0] == delimiter
+#
+#     components = r[1:].split(delimiter)
+#     components[:] = [x for x in components if x != '']
+#
+#     if len(components) == 4:
+#         _type = components[0]
+#         _prefix = components[1]
+#         _key_type = string_to_type[components[2]]
+#         _value_type = string_to_type[components[3]]
+#
+#         if _type == 'map':
+#             return HMap(_prefix, _key_type, _value_type)
+#
+#     if len(components) == 3:
+#         _type = components[0]
+#         _prefix = components[1]
+#         _value_type = string_to_type[components[2]]
+#
+#         if _type == 'list':
+#             return HList(_prefix, _value_type)
 
-        if _type == 'list':
-            return HList(_prefix, _value_type)
+def parse_representation(s):
+    print('PARSE: {}'.format(s))
+    if s[0] == ':':
+        return parse_complex_type_repr(s)
+    else:
+        return parse_simple_type_repr(s)
+
+def parse_type_repr(s):
+    print(s)
+    if s in complex_tokens:
+        return parse_complex_type_repr(s)
+    elif s in primitive_tokens:
+        return parse_simple_type_repr(s)
+    return None
+
+
+def parse_complex_type_repr(s):
+    assert s[0] == ':'
+    s = s[1:]
+    for t in complex_tokens:
+        if s.startswith(t):
+            if t == 'table':
+                return build_table_from_repr(s)
+            elif t == 'list':
+                return build_list_from_repr(s)
+            elif t == 'map':
+                return build_map_from_repr(s)
+
+
+def parse_simple_type_repr(s):
+    if s == 'str':
+        return str
+    if s == 'int':
+        return int
+    if s == 'bool':
+        return bool
+
+
+def build_table_from_repr(s):
+    t = {}
+
+    slice_idx = s.find('table') + len('table')
+    s = s[slice_idx:]
+
+    # check if the prefix has been defined
+    prefix = None
+    if s[0] == '<':
+        prefix_idx_end = s.find('>')
+        prefix = s[1:prefix_idx_end]
+        s = s[1 + prefix_idx_end:]
+
+    start = s.find('({') + 2
+    end = s.find('})')
+
+    s = s[start:end]
+
+    while len(s) > 0:
+
+        key_end = s.find(':')
+        key = s[:key_end]
+
+        s = s[key_end:]
+
+        # whichever index is lower is the next value
+        # hi:int, ...
+        # hi:map(str, ...
+        next_simple_type = s.find(',')
+        next_complex_type = s.find('(')
+
+        true_next_type = next_simple_type if next_simple_type < next_complex_type else next_complex_type
+
+        if next_simple_type < next_complex_type:
+            value = s[1:true_next_type]
+            t[key] = parse_simple_type_repr(value)
+            s = s[1 + true_next_type:]
+
+        else:
+            value_idx_end = s.find(')', next_complex_type)
+            value = s[1:value_idx_end + 1]
+            t[key] = parse_complex_type_repr(value)
+            s = s[1 + value_idx_end + 1:]
+
+    if prefix is not None:
+        return table(prefix=prefix, schema=t)
+    return TablePlaceholder(schema=t)
+
+
+def build_list_from_repr(s):
+    slice_idx = s.find('list') + len('list')
+    s = s[slice_idx:]
+
+    # check if the prefix has been defined
+    prefix = None
+    if s[0] == '<':
+        prefix_idx_end = s.find('>')
+        prefix = s[1:prefix_idx_end]
+        s = s[1 + prefix_idx_end:]
+
+    _type = s[1:-1]
+
+    value_type = parse_type_repr(_type)
+
+    if prefix is not None:
+        return hlist(prefix=prefix, value_type=value_type)
+    return ListPlaceholder(value_type=value_type)
+
+
+def build_map_from_repr(s):
+    slice_idx = s.find('map') + len('map')
+    s = s[slice_idx:]
+
+    # check if the prefix has been defined
+    prefix = None
+    if s[0] == '<':
+        prefix_idx_end = s.find('>')
+        prefix = s[1:prefix_idx_end]
+        print('PEFIX: {}'.format(prefix))
+        s = s[1 + prefix_idx_end:]
+
+    types = s.split(',')
+
+    assert len(types) == 2, 'Too many types provided to the map representation string! {}'.format(types)
+
+    key_type = parse_type_repr(types[0][1:])
+    value_type = parse_type_repr(types[1][:-1])
+
+    if prefix is not None:
+        return hmap(prefix=prefix, key_type=key_type, value_type=value_type)
+    return Placeholder(key_type=key_type, value_type=value_type, placeholder_type=HMap)
 
 
 class Placeholder:
@@ -123,13 +282,14 @@ class RObject:
         '''
         This is where that fun shit goes for 'parsing representation'
         '''
-        try:
-            return parse_representation(value.decode())
-        except Exception as e:
-            if value is not None:
-                value = value.decode()
+        if value is not None:
+            value = value.decode()
+            if value[0] == ':':
+                return parse_complex_type_repr(value)
+            else:
                 value = json.loads(value)
-            return value
+        return value
+
 
     def check_key_type(self, key):
         assert isinstance(key, self.key_type) or \
@@ -173,6 +333,9 @@ class HMap(RObject):
     def __setitem__(self, k, v):
         return self.set(k, v)
 
+    def rep(self):
+        return ':map<{}>({},{})'.format(self.prefix, encode_type(self.key_type), encode_type(self.value_type))
+
 
 def hmap(prefix=None, key_type=str, value_type=int):
     if prefix is None:
@@ -206,6 +369,7 @@ class HList(RObject):
 
     def push(self, value):
         v = self.encode_value(value)
+        print('pushing to {}, {}'.format(self.p, v))
         return self.driver.lpush(self.p, v)
 
     def pop(self):
@@ -233,9 +397,7 @@ class HList(RObject):
         return self.set(i, v)
 
     def rep(self):
-        return self.delimiter + self.rep_str \
-               + self.delimiter + self.prefix \
-               + self.delimiter + type_to_string[self.value_type] + self.delimiter
+        return ':list<{}>({})'.format(self.prefix, encode_type(self.value_type))
 
 
 def hlist(prefix=None, value_type=int):
@@ -321,6 +483,16 @@ class Table(RObject):
 
     def __setitem__(self, k, v):
         return self.set(k, v)
+
+    def rep(self):
+        d = '{'
+        for k, v in self.schema.items():
+            d += '"{}"'.format(k)
+            d += ':'
+        return self.delimiter + self.rep_str \
+               + self.delimiter + self.prefix \
+               + self.delimiter + type_to_string[self.key_type] \
+               + self.delimiter + str(self.schema) + self.delimiter
 
 
 def table(prefix=None, key_type=str, schema=None):
