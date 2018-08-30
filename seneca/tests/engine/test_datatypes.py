@@ -46,11 +46,6 @@ class TestDatatypes(TestCase):
         good_repr_str = '*map<some_map>(str,int)'
         good_map = parse_representation(good_repr_str)
 
-        print(good_map)
-        print(good_map.prefix)
-        print(good_map.key_type)
-        print(good_map.value_type)
-
         self.assertTrue(p.valid(good_map))
 
         bad_repr_str = '*map<some_other_map>(int,str)'
@@ -358,10 +353,17 @@ class TestDatatypes(TestCase):
     def test_complex_type_repr(self):
         s = '*table({howdy:int,boiii:*map(str,int)})'
         t = parse_complex_type_repr(s)
-        print(t.key_type)
-        print(t.schema)
+
+        self.assertTrue(t.key_type == str)
+        ph = t.schema['boiii']
+        ph2 = hmap(key_type=str, value_type=int)
+
+        self.assertEqual(ph.key_type, ph2.key_type)
+        self.assertEqual(ph.value_type, ph2.value_type)
+
 
     def test_table_type_repr_with_prefix(self):
         s = '*table<lazytown>({howdy:int,boiii:*map(str,int)})'
         t = parse_complex_type_repr(s)
+        self.assertTrue(t.prefix, 'lazytown')
         print(t.prefix)

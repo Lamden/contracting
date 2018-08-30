@@ -49,7 +49,6 @@ all_tokens = ['int', 'str', 'bool', 'map', 'list', 'table']
 
 
 def parse_representation(s):
-    print('PARSE: {}'.format(s))
     if s[0] == CTP:
         return parse_complex_type_repr(s)
     else:
@@ -57,7 +56,6 @@ def parse_representation(s):
 
 
 def parse_type_repr(s):
-    print(s)
     if s in complex_tokens:
         return parse_complex_type_repr(s)
     elif s in primitive_tokens:
@@ -165,7 +163,6 @@ def build_map_from_repr(s):
     if s[0] == '<':
         prefix_idx_end = s.find('>')
         prefix = s[1:prefix_idx_end]
-        print('PEFIX: {}'.format(prefix))
         s = s[1 + prefix_idx_end:]
 
     types = s.split(',')
@@ -358,7 +355,6 @@ class HList(RObject):
 
     def push(self, value):
         v = self.encode_value(value)
-        print('pushing to {}, {}'.format(self.p, v))
         return self.driver.lpush(self.p, v)
 
     def pop(self):
@@ -402,7 +398,7 @@ class Table(RObject):
     def __init__(self, prefix=None, key_type=str, schema=None):
         super().__init__(prefix=prefix,
                          key_type=key_type,
-                         value_type=dict,
+                         value_type=str,
                          rep_str='table')
         assert self.validate_schema(schema), 'Schema is not the correct type.'
         self.schema = schema
@@ -473,15 +469,21 @@ class Table(RObject):
     def __setitem__(self, k, v):
         return self.set(k, v)
 
+    def schema_to_rep(self):
+        pass
+
     def rep(self):
-        d = '{'
+        d = '({'
         for k, v in self.schema.items():
-            d += '"{}"'.format(k)
+            d += '{}'.format(k)
             d += ':'
+            d += encode_type(v)
+            d += ','
+        d = d[:-1]
+        d += '})'
         return CTP + self.rep_str \
-               + self.delimiter + self.prefix \
-               + self.delimiter + type_to_string[self.key_type] \
-               + self.delimiter + str(self.schema) + self.delimiter
+               + '<' + self.prefix \
+               + '>' + d
 
 
 def table(prefix=None, key_type=str, schema=None):
