@@ -26,7 +26,7 @@ def poll_for_build(build_num: int, max_time=300, poll_freq=8, project='cilantro'
           succ = False
           break
 
-      print("Build num {} has status {} that is not success yet. Waiting {} before next retry."
+      print("Build #{} has status <{}>. Waiting {} seconds before next retry."
             .format(build_num, status, poll_freq))
       time.sleep(poll_freq)
       max_time -= poll_freq
@@ -62,8 +62,8 @@ if __name__ == '__main__':
 
   args.add_argument('--cilantro_branch', nargs='?', type=str, default='master')
   args.add_argument('--seneca_branch', nargs='?', type=str, default='master')
-  args.add_argument('--max_wait', nargs='?', type=int, default=300)
-  args.add_argument('--poll_freq', nargs='?', type=int, default=8)
+  args.add_argument('--max_wait', nargs='?', type=int, default=600)
+  args.add_argument('--poll_freq', nargs='?', type=int, default=10)
 
   cli_args = args.parse_args()
   trigger_and_wait_for_build(max_time=cli_args.max_wait, poll_freq=cli_args.poll_freq, branch=cli_args.cilantro_branch,

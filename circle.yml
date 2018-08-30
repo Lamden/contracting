@@ -70,7 +70,7 @@ jobs:
           command: |
             pip3 install requests
             echo "Testing Cilantro using Seneca Branch $CIRCLE_BRANCH"
-            python3 scripts/cilantro_ci.py --seneca_branch $CIRCLE_BRANCH
+            python3 scripts/cilantro_tester.py --seneca_branch $CIRCLE_BRANCH
 
 
 workflows:
