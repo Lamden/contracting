@@ -34,3 +34,30 @@ def f(algo: str):
 exports = {
     key: f(key) for key in supported_hashing_functions
 }
+
+
+# explicit tests of the hash functions for sanity
+def run_tests(_):
+    import doctest, sys
+
+    from seneca.execute import Empty
+
+    res = Empty()
+    res.attempted = 0
+    res.failed = 0
+
+    payload = b'testing this'
+    algos = supported_hashing_functions
+
+    for algo in algos:
+        m = hashlib.new(algo)
+        m.update(payload)
+
+        m2 = exports[algo](payload)
+
+        try:
+            res.attempted += 1
+            assert (m.digest() == m2)
+        except Exception as e:
+            res.failed += 1
+    return res
