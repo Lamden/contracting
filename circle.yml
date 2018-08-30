@@ -56,7 +56,7 @@ jobs:
           command: |
             make coverage
 
-  test-cilantro:
+  test-cilantro-from-seneca:
     docker:
       - image: circleci/python:3.6.5
     working_directory: ~/src/lamden/seneca
@@ -78,4 +78,4 @@ workflows:
   build_and_test_cilantro:
     jobs:
       - build
-      - test-cilantro
+      - test-cilantro-from-seneca
