@@ -18,9 +18,11 @@ def poll_for_build(build_num: int, max_time=300, poll_freq=8, project='cilantro'
       status = _get_build_status(build_num=build_num, project=project, org=org)['status']
 
       if status == 'success':
+          print("Build succeeded! :)")
           succ = True
           break
       elif status == 'failed':
+          print("Build failed! :(")
           succ = False
           break
 
