@@ -67,6 +67,7 @@ jobs:
           name: Test Cilantro
           command: |
             echo "Testing Cilantro using Seneca Branch {{ .Branch }}"
+            pip3 install requests
             python3 scripts/cilantro_ci.py --seneca_branch {{ .Branch }}
 
 
