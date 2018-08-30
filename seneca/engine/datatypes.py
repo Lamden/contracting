@@ -238,6 +238,11 @@ class RObject:
 
         self.prefix = prefix
         self.key_type = key_type
+
+        # prevents you from requiring an RObject instance that has a prefix as a value type
+        assert value_type in primitive_types or isinstance(value_type, Placeholder), \
+            'You must pass a Placeholder object that does not contain a prefix as a value type. {}'.format(value_type)
+
         self.value_type = value_type
 
         self.delimiter = delimiter
@@ -275,7 +280,7 @@ class RObject:
     def check_key_type(self, key):
         assert isinstance(key, self.key_type) or \
                self.key_type is None, \
-            'Key {} is not of type "{}"'.format(type(key), self.key_type)
+               'Key {} is not of type "{}"'.format(type(key), self.key_type)
 
     def rep(self):
         return self.delimiter + self.rep_str \
