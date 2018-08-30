@@ -68,8 +68,8 @@ jobs:
       - run:
           name: Test Cilantro
           command: |
-            echo "Testing Cilantro using Seneca Branch $CIRCLE_BRANCH"
             pip3 install requests
+            echo "Testing Cilantro using Seneca Branch $CIRCLE_BRANCH"
             python3 scripts/cilantro_ci.py --seneca_branch $CIRCLE_BRANCH
 
 
