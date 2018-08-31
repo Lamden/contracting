@@ -76,28 +76,3 @@ class RedisContractStorage(ContractStorage):
         encoding = base58.b58encode(h.digest()).decode()
 
         return encoding
-
-code_str = open('./example_contracts/_01_currency.seneca', 'r').read()
-
-rr = RedisContractStorage()
-contract = Contract.build(code_str=code_str, author='stu', datetime=None, random_seed=None)
-
-r = rr.save(contract)
-print(r)
-print(rr.load(r))
-
-# def numberToBase(n, b):
-#     if n == 0:
-#         return [0]
-#     digits = []
-#     while n:
-#         digits.append(int(n % b))
-#         n //= b
-#     return digits[::-1]
-
-# h = int(hashlib.sha3_256(b'asdfsf').hexdigest(), 16)
-# hh = numberToBase(h, 32)
-# alpha = 'ybndrfg8ejkmcpqxot1uwisza345h769'
-
-# print(''.join([alpha[i] for i in hh]))
-
