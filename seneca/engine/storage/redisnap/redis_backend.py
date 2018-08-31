@@ -108,6 +108,21 @@ class Executer():
             else:
                 raise
 
+    def appendwo(self, cmd):
+        """
+        >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
+        RScalar('abc')
+        >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
+        RScalar('abcabc')
+
+        >>> ex(AppendWO('fooint', '1')); ex(Get('fooint'))
+        RScalarInt(1)
+        >>> ex(AppendWO('fooint', '1')); ex(Get('fooint'))
+        RScalarInt(11)
+        """
+        self._redis_executer.append(cmd.key, cmd.value)
+
+
     def hget(self, cmd):
         """
         >>> ex.purge()
@@ -122,7 +137,7 @@ class Executer():
         >>> ex(HSet('foo', 'bar', 'baz'))
         >>> ex(HGet('foo', 'bar'))
         RScalar('baz')
-        
+
         >>> ex(HSet('foo', 'bar', 1))
         >>> ex(HGet('foo', 'bar'))
         RScalarInt(1)

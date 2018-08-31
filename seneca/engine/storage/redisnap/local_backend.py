@@ -118,6 +118,33 @@ class Executer():
         else:
             raise Exception('Existing value has wrong type.')
 
+
+    def appendwo(self, cmd):
+        """
+        >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
+        RScalar('abc')
+        >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
+        RScalar('abcabc')
+
+        >>> ex(AppendWO('fooint', '1')); ex(Get('fooint'))
+        RScalarInt(1)
+        >>> ex(AppendWO('fooint', '1')); ex(Get('fooint'))
+        RScalarInt(11)
+        """
+        old = self(Get(cmd.key))
+        old_type = type(old)
+        assert isinstance(old, RScalar)
+
+        if issubclass(old_type, RDoesNotExist):
+            self(Set(cmd.key, cmd.value))
+        elif issubclass(old_type, RScalarInt) or issubclass(old_type, RScalarFloat):
+            self(Set(cmd.key, str(old.value) + cmd.value))
+        elif issubclass(old_type, RScalar):
+            old.value += cmd.value
+        else:
+            raise Exception('Existing value has wrong type.')
+
+
     def hget(self, cmd):
         """
         >>> ex.purge()

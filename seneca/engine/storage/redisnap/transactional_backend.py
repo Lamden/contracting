@@ -7,63 +7,89 @@ creation of new transactions, commits, and rollbacks.
 """
 import redis as rr
 from seneca.engine.storage.redisnap.commands import *
+import seneca.engine.storage.redisnap.local_backend as l_back
+import seneca.engine.storage.redisnap.redis_backend as r_back
+from collections import OrderedDict
+
+class KeyNotFoundTryOlder(Exception):
+    pass
 
 class Transaction:
-    def __init__(self, transaction_group):
-        self._pending_changes = {} # dict of keys, figure out how this words with mset
-        self._transaction_group = transaction_group6
-        self._is_soft_commited = False
-        self._revision = 0
-        self._write_only_revision = 0
+    def __init__(self, transaction_group, tag):
+        self._local_executer = l_back.Executer()
+        self._dependencies = set()
+        self._status = 'in-progress'
+        self.tag = tag
+        self._transaction_group = transaction_group # Needed?
 
-    def soft_commit(self):
-        if self._transaction_group:
-            # get downstream committed transactions (if there are any)
-            # check for read dependencies in those transactions against writes in this one.
-            raise NotImplementedError()
-            # self._is_soft_commited = True
+    def set_status(self, status):
+        assert status in ['in-progress', 'done', 'dirty'], 'Invalid status: ' + str(status)
+        self._status = status
 
-        self._is_soft_commited = True
-        return True
+    def get_status(self):
+        return self._status
 
-    def get_soft_committed(self):
-        return self._is_soft_commited
+    def __call__(self, cmd):
+        """
+        * If read or type_dep, add to
 
-    def clear(self):
-        if self._transaction_group:
-            raise NotImplementedError()
+        """
+        raise NotImplementedError()
 
-        self._pending_changes = {}
 
 
 class TransactionGroup:
     def __init__(self, *args, **kwargs):
-        raise NotImplementedError()
-        self.executer = rr.StrictRedis(*args, **kwargs)
-        self.save_points = []
+        self._redis_backend = r_back.Executer(*args, **kwargs)
+        self._active_transaction = None
+        self._transactions = []
+        self._transaction_tags = set()
 
-    def append_new_transaction(self):
-        return self.insert_new_transaction(len(self.save_points))
-
-    def insert_new_transaction(self, index):
-        sp = SavePoint(self)
-        self.save_points.index(indesx, sp)
-        return sp
-
-    def get_upstream(self, transaction):
+    def finalize_current_transaction(self):
+        #check contracts after current for dependecies
+        #set current as done
+        #self._active_transaction = None
+        # What else?
         raise NotImplementedError()
 
-    def get_upstream(self, transaction):
+    def start_new_transaction(self, tag, index=None):
+        """
+        Specify an index to start writing
+        """
+        assert index <= len(self.save_points)
+        assert tag not in self._save_point_tags, 'Tags must be unique.'
+        # TODO: assert no bad transactions before this one
+
+        index = index if index else len(self.save_points)
+        s = SavePoint(tag)
+        self._save_points.insert(index, s)
+
+        self._active_save_point = s
+        self._save_point_tags.add(s.tag)
+
+    def start_new_transaction_before_tag(self, this_tag, other_tag):
+        # find this_tag index
+        # start_new_transaction(self, tag, index=None)
         raise NotImplementedError()
 
-    def write_out(self):
-        # TODO: optimize by compacting transactions before sending
-        # TODO: commit to Redis
+    def rework_transaction(self, tag):
+        raise NotImplementedError()
+
+    def commit_all_to_redis(self):
+        raise NotImplementedError()
+
+    def clear(self):
+        self.__init__()
+
+    def __call__(self, cmd):
         raise NotImplementedError()
 
 
 def run_tests(deps_provider):
     '''
+    >>> ex = TransactionGroup(host='127.0.0.1', port=32768)
+
     '''
+
     import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

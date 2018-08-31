@@ -143,6 +143,16 @@ class Client:
         """
         self.execute_command(IncrByWO(name, amount))
 
+    def append_wo(self, name, value):
+        """
+        Increments the value of ``key`` by ``amount``.  If no key exists,
+        the value will be initialized as ``amount``
+        >>> s.append_wo('foo', 1) is None
+        True
+        """
+        self.execute_command(AppendWO(name, value))
+
+
     def decr_wo(self, name, amount=1):
         """
         Decrements the value of ``key`` by ``amount``.  If no key exists,

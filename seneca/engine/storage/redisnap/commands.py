@@ -152,8 +152,8 @@ class AssertType(TypeCheck):
 
 
 
-@run_methods_return_type(int)
-class Append(Write):
+@run_methods_return_type(type(None))
+class AppendWO(Write):
     @auto_set_fields
     def __init__(self, key: str, value: str):
         pass
