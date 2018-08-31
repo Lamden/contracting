@@ -1,0 +1,355 @@
+from abc import ABCMeta, abstractmethod
+from typing import Union
+
+from seneca.engine.util import auto_set_fields
+from seneca.engine.storage.resp_types import *
+
+# TODO: Enforce run return types for run method in executer libs.
+
+class Command(metaclass=ABCMeta):
+    def run(self, ex):
+        '''
+        Execute the command. Passing an executer like this allows the command
+        objects to exist completely separate from an executer. We'll implement
+        at least two executers, direct Redis and nested snapshots, a.k.a.
+        transactions with savepoints.
+
+        It may seem oddly inside-out: obj.run(ex) -> ex(obj). It's done like
+        this to enforce correct return type from executers that handle these
+        commands.
+        '''
+        return ex(self)
+
+    def __repr__(self):
+        return '<RESP (%s) %s>' % (self.__class__.__name__, str(self.__dict__))
+
+    @abstractmethod
+    def run_as_micro_ops(self, local_ex):
+        pass
+
+
+#NOTE: This is a decorator function, not a class!
+class run_returns_type:
+    '''
+    '''
+    @auto_set_fields
+    def __init__(self, t):
+        pass
+
+    def __call__(self, cls):
+        cls.run.__annotations__['return'] = self.t
+        return cls
+
+
+################
+# Key Commands #
+################
+@run_returns_type(RType)
+@success_requires(key_exists)
+class GetExactType(Command):
+    '''
+    Note: Custom command for this lib, not implemented by Redis. This is here to
+    Handle polymorphism in strings and hash values.
+    '''
+    @auto_set_fields
+    def __init__(self, addr):
+        pass
+
+    def run_as_micro_ops(self, ex):
+        _, type_ = ex(DeepTypeCheckMicroOP(addr.base_address(), RDoesNotExist))
+        return type_
+
+
+class Type(Command):
+    @auto_set_fields
+    def __init__(self, addr):
+        pass
+
+    def run_as_micro_ops(self, ex):
+        return ex(ShallowTypeCheckMicroOP(addr.base_address()))
+
+
+class Exists(Command):
+    @auto_set_fields
+    def __init__(self, addr):
+        pass
+
+    def run_as_micro_ops(self, ex):
+        type_ = ex(ShallowTypeCheckMicroOP(addr.base_address()))
+        return type_ != RDoesNotExist
+
+
+class Del(Command):
+    @auto_set_fields
+    def __init__(self, addr):
+        pass
+
+    def run_as_micro_ops(self, ex):
+        type_ = ex(WriteMicroOP(addr.base_address(), RDoesNotExist()))
+
+
+# DUMP not implemented
+# EXPIRE not implemented
+# EXPIREAT not implemented
+# KEYS not implemented, from docs Warning: consider KEYS as a command that should only be used in production environments with extreme care
+# MIGRATE not implemented
+# MOVE not implemented
+# OBJECT not implemented
+# PERSIST not implemented
+# PEXPIRE not implemented
+# PEXPIREAT not implemented
+# PTTL not implemented
+# RANDOMKEY not implemented
+# RENAME
+# RENAMENX
+# RESTORE not implemented
+# SCAN not implemented, will be hard to maintain the cursor and sequence of existing and newly added keys
+# SORT not implemented
+# TOUCH not implemented
+# TTL not implemented
+# UNLINK
+# WAIT not implemented
+
+
+# TODO: must add constraints on inputs, annotations + typeguard @typechecked should be sufficient
+###################
+# String Commands #
+###################
+class Append(Command):
+    @auto_set_fields
+    def __init__(self, addr: ScalarAddress, value: str):
+        pass
+
+    def run_as_micro_ops(self, ex):
+        return ex(AppendMicroOP(self.addr, value))
+
+
+class Get(Command):
+    @auto_set_fields
+    def __init__(self, addr: ScalarAddress):
+        pass
+
+    def run_as_micro_ops(self, ex):
+        return ex(ReadMicroOP(self.addr, RScalar))
+
+
+class Set(Command):
+    @auto_set_fields
+    def __init__(self, addr: ScalarAddress, value: Union[str, float, int]):
+        pass
+
+    def run_as_micro_ops(self, ex):
+        return x(WriteMicroOP(self.addr, new_scalar))
+
+
+class IncrBy(Command):
+    @auto_set_fields
+    def __init__(self, addr, amount: int):
+        pass
+
+    def run_as_micro_ops(self, ex):
+        return ex(IncrByMicroOP(self.addr, amount))
+
+# Note: Front end must convert Incr, Decr, and DecrBy to IncrBy
+
+# class BitCount(Reads, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, start=None, end=None):
+#         pass
+
+# BITFIELD, not implemented
+#
+# class BitOp(Reads, Writes, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, operation, dest, *keys):
+#         pass
+#
+# class BitPos(Reads, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, bit, start=None, end=None):
+#         pass
+#
+# class GetBit(Reads, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, offset):
+#         pass
+#
+# class GetRange(Reads, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, start, end):
+#         pass
+#
+# class GetSet(Reads, Writes, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, start, end):
+#         pass
+
+
+# TODO: decide if we actually want floats in Redis, could be a source of non-determinism
+# class IncrByFloat(Reads, Writes, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, amount):
+#         pass
+#
+# class MGet(Reads, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, keys):
+#         pass
+#
+# class MSet(Writes, RESPString):
+#     @auto_set_fields
+#     def __init__(self, kv_dict):
+#         pass
+#
+# class MSetNX(Reads, Writes, RESPString):
+#     @auto_set_fields
+#     def __init__(self, kv_dict):
+#         pass
+
+# PSETEX not implementing
+
+
+# class SetBit(Writes, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, offset, value):
+#         pass
+
+# SETEX not implemented
+#
+# class SetNX(Reads, Writes, RESPString):
+#     @auto_set_fields
+#     def __init__(self, key, value):
+#         pass
+#
+# class SetRange(Writes, is_dependant_on(RESPString)):
+#     @auto_set_fields
+#     def __init__(self, key, offset, value):
+#         pass
+
+# class StrLen(Reads):
+#     @auto_set_fields
+#     def __init__(self, key, offset, value):
+#         pass
+#
+#     def verify_runnable(self, executer):
+#         return issubclass(ex(Type(self.key)), rtypes.RScalar)
+
+
+"""
+# Hash Commands #
+class HDel(TypeDependantWrites, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key, fields):
+        pass
+
+class HExists(Reads, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key, field):
+        pass
+
+class HGet(Reads, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key, field):
+        pass
+
+class HGetAll(Reads, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key):
+        pass
+
+class HIncrBy(TypeDependantWrites, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key, field, amount):
+        pass
+
+class HIncrByFloat(TypeDependantWrites, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key, amount):
+        pass
+
+class HKeys(Reads, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key):
+        pass
+
+class HLen(Reads, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key):
+        pass
+
+class HMGet(Reads, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key, fields):
+        pass
+
+class HMSet(TypeDependantWrites, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key, kv_dict):
+        pass
+
+# HScan - not implemented
+
+class HSet(TypeDependantWrites, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key, field, value):
+        pass
+
+class HSetNX(Writes, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key, field, value):
+        pass
+
+class HStrLen(Command, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key, field):
+        pass
+
+class HVals(Command, RESPHashMap):
+    @auto_set_fields
+    def __init__(self, key):
+        pass
+
+# TODO: List Commands #
+# TODO: Sets Commands #
+# TODO: OrderedSets Commands #
+# TODO: Bitmaps Commands #
+# TODO: hyperloglogs Commands #
+"""
+
+
+
+def run_tests(deps_provider):
+    '''
+    Test basics of Set
+    >>> s = Set('a', 'b')
+    >>> s.__dict__
+    {'key': 'a', 'value': 'b'}
+    >>> s.run.__annotations__
+    {'return': <class 'int'>}
+    >>> s.writes_type()
+    <class 'seneca.engine.storage.resp_types.RScalar'>
+
+    Test polymorphic scalars
+    >>> Set('a', 1).writes_type()
+    <class 'seneca.engine.storage.resp_types.RScalarInt'>
+
+    >>> Set('a', 1.0).writes_type()
+    <class 'seneca.engine.storage.resp_types.RScalarFloat'>
+
+    Test polymorphic scalars saved as strings
+    >>> Set('a', '1').writes_type()
+    <class 'seneca.engine.storage.resp_types.RScalarInt'>
+
+    >>> Set('a', '1.0').writes_type()
+    <class 'seneca.engine.storage.resp_types.RScalarFloat'>
+
+    >>> _ = Get('a')
+
+    Test basics of Incr
+    >>> i = Incr('a')
+
+
+
+    '''
+    import doctest, sys
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
