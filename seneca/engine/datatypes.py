@@ -1,6 +1,7 @@
 import redis
 import json
 
+
 '''
 
 Datatype serialization format:
@@ -324,6 +325,8 @@ class HMap(RObject):
                          key_type=key_type,
                          value_type=value_type,
                          rep_str='map')
+
+        self.vivification_idx = 0
 
     def set(self, key, value):
         v = self.encode_value(value)
