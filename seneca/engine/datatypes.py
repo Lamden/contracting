@@ -196,6 +196,9 @@ class Placeholder:
     def rep(self):
         return CTP + 'map' + '(' + encode_type(self.key_type) + ',' + encode_type(self.value_type) + ')'
 
+    def vivified(self, prefix):
+        return self.placeholder_type(prefix=prefix, key_type=self.key_type, value_type=self.value_type)
+
 
 class ListPlaceholder(Placeholder):
     def __init__(self, value_type=int):
@@ -238,6 +241,9 @@ class TablePlaceholder(Placeholder):
         d += '})'
         return CTP + 'table' + d
 
+    def vivified(self, prefix):
+        return self.placeholder_type(prefix=prefix, key_type=self.key_type, schema=self.schema)
+
 
 def is_complex_type(v):
     for t in complex_types:
@@ -245,6 +251,34 @@ def is_complex_type(v):
                 or issubclass(type(v), t):
             return True
     return False
+
+
+vivified_primitives = {
+    int: 0,
+    str: '',
+    bool: False
+}
+
+
+def vivify_complex_type(potential_prefix, t):
+    if type(t) == HMap:
+        return hmap(prefix=potential_prefix, key_type=t.key_type, value_type=t.value_type)
+    elif type(t) == HList:
+        return hlist(prefix=potential_prefix, value_type=t.value_type)
+    elif type(t) == Table:
+        return table(prefix=potential_prefix, key_type=t.key_type, schema=t.schema)
+    return None
+
+
+def vivify(potential_prefix, t):
+    if t in primitive_types:
+        return vivified_primitives[t]
+    elif t in complex_types:
+        if issubclass(type(t), Placeholder):
+            return vivify_complex_type(potential_prefix, t.placeholder_type)
+        else:
+            return vivify_complex_type(potential_prefix, t)
+    return None
 
 
 class RObject:
@@ -340,7 +374,10 @@ class HMap(RObject):
         return g
 
     def __getitem__(self, k):
-        return self.get(k)
+        item = self.get(k)
+        if item is None and self.value_type is not None:
+            return vivify('{}.{}'.format(self.prefix, k), self.value_type)
+        return item
 
     def __setitem__(self, k, v):
         return self.set(k, v)
@@ -350,7 +387,6 @@ class HMap(RObject):
                                          self.prefix,
                                          encode_type(self.key_type),
                                          encode_type(self.value_type))
-
 
 def hmap(prefix=None, key_type=str, value_type=int):
     if prefix is None:
@@ -405,7 +441,10 @@ class HList(RObject):
             self.append(ll)
 
     def __getitem__(self, i):
-        return self.get(i)
+        item = self.get(i)
+        if item is None and self.value_type is not None:
+            return vivify('{}.{}'.format(self.prefix, k), self.value_type)
+        return item
 
     def __setitem__(self, i, v):
         return self.set(i, v)
@@ -493,7 +532,10 @@ class Table(RObject):
         return d
 
     def __getitem__(self, k):
-        return self.get(k)
+        item = self.get(k)
+        if item is None and self.value_type is not None:
+            return vivify('{}.{}'.format(self.prefix, k), self.value_type)
+        return item
 
     def __setitem__(self, k, v):
         return self.set(k, v)
