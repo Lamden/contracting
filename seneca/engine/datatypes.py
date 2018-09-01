@@ -196,9 +196,6 @@ class Placeholder:
     def rep(self):
         return CTP + 'map' + '(' + encode_type(self.key_type) + ',' + encode_type(self.value_type) + ')'
 
-    def vivified(self, prefix):
-        return self.placeholder_type(prefix=prefix, key_type=self.key_type, value_type=self.value_type)
-
 
 class ListPlaceholder(Placeholder):
     def __init__(self, value_type=int):
@@ -241,9 +238,6 @@ class TablePlaceholder(Placeholder):
         d += '})'
         return CTP + 'table' + d
 
-    def vivified(self, prefix):
-        return self.placeholder_type(prefix=prefix, key_type=self.key_type, schema=self.schema)
-
 
 def is_complex_type(v):
     for t in complex_types:
@@ -259,25 +253,26 @@ vivified_primitives = {
     bool: False
 }
 
-
-def vivify_complex_type(potential_prefix, t):
-    if type(t) == HMap:
-        return hmap(prefix=potential_prefix, key_type=t.key_type, value_type=t.value_type)
-    elif type(t) == HList:
-        return hlist(prefix=potential_prefix, value_type=t.value_type)
-    elif type(t) == Table:
-        return table(prefix=potential_prefix, key_type=t.key_type, schema=t.schema)
-    return None
-
-
+# table to be done later
 def vivify(potential_prefix, t):
+    print(type(t))
     if t in primitive_types:
         return vivified_primitives[t]
+    elif issubclass(type(t), Placeholder):
+        print('mmhmm')
+        if t.placeholder_type == HMap:
+            return hmap(prefix=potential_prefix, key_type=t.key_type, value_type=t.value_type)
+        elif t.placeholder_type == HList:
+            return hlist(prefix=potential_prefix, value_type=t.value_type)
+        #elif t == Table:
+        #    return table(prefix=potential_prefix, key_type=t.key_type, schema=t.schema)
     elif t in complex_types:
-        if issubclass(type(t), Placeholder):
-            return vivify_complex_type(potential_prefix, t.placeholder_type)
-        else:
-            return vivify_complex_type(potential_prefix, t)
+        if type(t) == HMap:
+            return hmap(prefix=potential_prefix, key_type=t.key_type, value_type=t.value_type)
+        elif type(t) == HList:
+            return hlist(prefix=potential_prefix, value_type=t.value_type)
+        #elif type(t) == Table:
+        #    return table(prefix=potential_prefix, key_type=t.key_type, schema=t.schema)
     return None
 
 

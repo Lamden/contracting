@@ -120,7 +120,7 @@ class TestDatatypes(TestCase):
             m['stu'] = 'stu'
 
         n = m['not_stu']
-        self.assertEqual(n, None)
+        self.assertEqual(n, 0)
 
     def test_hmap_convenience_function(self):
         m = hmap()
@@ -424,3 +424,32 @@ class TestDatatypes(TestCase):
         self.assertTrue(is_complex_type(hmap()))
         self.assertTrue(is_complex_type(hmap(prefix='ass')))
         self.assertFalse(is_complex_type('literally anything else'))
+
+    def test_vivify_simple_types(self):
+        h = hmap(prefix='yoyo')
+        self.assertEqual(h['doesntexist'], 0)
+
+        h = hmap(prefix='yoyo', value_type=str)
+        self.assertEqual(h['doesntexist'], '')
+
+        h = hmap(prefix='yoyo', value_type=bool)
+        self.assertEqual(h['doesntexist'], False)
+
+    def test_vivify_complex_types(self):
+        h = hmap(prefix='yoyo', value_type=hmap())
+        _h = h['sdgdfgdfg']
+        self.assertEqual(_h.value_type, int)
+        self.assertEqual(_h.key_type, str)
+        self.assertEqual(_h.prefix, 'yoyo.sdgdfgdfg')
+
+        z = h['sdgdfgdfg']['blah']
+        self.assertEqual(z, 0)
+
+    def test_vivify_complex_list(self):
+        h = hlist(prefix='yoyo', value_type=hlist())
+        _h = h[0]
+        self.assertEqual(_h.value_type, int)
+        self.assertEqual(_h.prefix, 'yoyo.0')
+
+        z = h[0][0]
+        self.assertEqual(z, 0)
