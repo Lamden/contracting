@@ -6,3 +6,4 @@ pynacl
 python-dateutil==2.7.3
 redis==2.10.6
 base58
+clove
