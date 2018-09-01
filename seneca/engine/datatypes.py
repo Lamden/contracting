@@ -443,7 +443,7 @@ class HList(RObject):
     def __getitem__(self, i):
         item = self.get(i)
         if item is None and self.value_type is not None:
-            return vivify('{}.{}'.format(self.prefix, k), self.value_type)
+            return vivify('{}.{}'.format(self.prefix, i), self.value_type)
         return item
 
     def __setitem__(self, i, v):
