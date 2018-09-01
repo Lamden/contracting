@@ -255,7 +255,6 @@ vivified_primitives = {
 
 # table to be done later
 def vivify(potential_prefix, t):
-    print(type(t))
     if t in primitive_types:
         return vivified_primitives[t]
     elif issubclass(type(t), Placeholder):
