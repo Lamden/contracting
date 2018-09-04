@@ -11,16 +11,19 @@ import seneca.engine.storage.redisnap.local_backend as l_back
 import seneca.engine.storage.redisnap.redis_backend as r_back
 from collections import OrderedDict
 
-class KeyNotFoundTryOlder(Exception):
+class KeyNotFoundTryAncestor(Exception):
+    pass
+
+class NoTransactionsInGroup(Exception):
     pass
 
 class Transaction:
-    def __init__(self, transaction_group, tag):
+    def __init__(self, tag):
         self._local_executer = l_back.Executer()
         self._dependencies = set()
         self._status = 'in-progress'
         self.tag = tag
-        self._transaction_group = transaction_group # Needed?
+        #self._transaction_group = transaction_group # Needed
 
     def set_status(self, status):
         assert status in ['in-progress', 'done', 'dirty'], 'Invalid status: ' + str(status)
@@ -34,7 +37,11 @@ class Transaction:
         * If read or type_dep, add to
 
         """
-        raise NotImplementedError()
+        res = self._local_executer(cmd)
+        if isinstance(res, RDoesNotExist):
+            raise KeyNotFoundTryAncestor()
+        else:
+            return res
 
 
 
@@ -56,16 +63,18 @@ class TransactionGroup:
         """
         Specify an index to start writing
         """
-        assert index <= len(self.save_points)
-        assert tag not in self._save_point_tags, 'Tags must be unique.'
+        index = index if index else len(self._transactions)
+
+        assert index <= len(self._transactions)
+        assert tag not in self._transaction_tags, 'Tags must be unique.'
         # TODO: assert no bad transactions before this one
 
-        index = index if index else len(self.save_points)
-        s = SavePoint(tag)
-        self._save_points.insert(index, s)
+        s = Transaction(tag)
+        self._transactions.insert(index, s)
 
-        self._active_save_point = s
-        self._save_point_tags.add(s.tag)
+        self._active_transaction_index = index
+        self._active_transaction = s
+        self._transaction_tags.add(s.tag)
 
     def start_new_transaction_before_tag(self, this_tag, other_tag):
         # find this_tag index
@@ -79,17 +88,79 @@ class TransactionGroup:
         raise NotImplementedError()
 
     def clear(self):
-        self.__init__()
+        raise NotImplementedError()
 
     def __call__(self, cmd):
-        raise NotImplementedError()
+        # Dissallow writes directly to Redis, reads and typechecks are okay.
+        if not self._transactions:
+            if isinstance(cmd, Write):
+                raise NoTransactionsInGroup('You must create a transaction before executing write commands.')
+            else:
+                return self._redis_backend(cmd)
+
+        i = self._active_transaction_index
+        while i >= 0:
+            try:
+                return self._transactions[i](cmd)
+            except KeyNotFoundTryAncestor:
+                pass
+            i -= 1
+
+        return self._redis_backend(cmd)
 
 
 def run_tests(deps_provider):
     '''
     >>> ex = TransactionGroup(host='127.0.0.1', port=32768)
+    >>> ex._redis_backend.purge()
+
+    # Test readonly direct redis access before transaction has been created.
+    >>> ex(Get('foo'))
+    RDoesNotExist()
+
+    # Test write to direct redis access fails before transaction has been created.
+    >>> exception_to_string(ex, Set('foo', 'bar'))
+    'You must create a transaction before executing write commands.'
+
+
+    ### Run the following test without a Redis backend ###
+    >>> rbe = ex._redis_backend
+    >>> ex._redis_backend = None
+
+    # Create transaction
+    >>> ex.start_new_transaction('testing-trans-1')
+
+    # Test tries to fall through to Redis, but it has been removed
+    >>> exception_to_string(ex, Get('baz'))
+    "'NoneType' object is not callable"
+
+    # Set key in transaction 'testing-trans-1'
+    >>> ex(Set('foo', 'bar'))
+
+    >>> ex._active_transaction._local_executer(Get('foo'))
+    RScalar('bar')
+
+    ### Add Redis backend to TransactionGroup for more tests ###
+    >>> ex._redis_backend = rbe
+
+    # Read falls through to Redis
+    >>> exception_to_string(ex, Get('baz'))
+    RDoesNotExist()
+
+
+
+
+
+
 
     '''
 
     import doctest, sys
+
+    def exception_to_string(*args):
+        try:
+            return args[0](*args[1:])
+        except Exception as e:
+            return str(e)
+
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
