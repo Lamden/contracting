@@ -34,7 +34,7 @@ string_to_type = {
     'bytes': bytes
 }
 
-primitive_types = [int, str, bool, None]
+primitive_types = [int, str, bool, bytes, None]
 
 def encode_type(t):
     if isinstance(t, RObject):
@@ -47,9 +47,9 @@ def encode_type(t):
     return None
 
 
-primitive_tokens = ['int', 'str', 'bool']
+primitive_tokens = ['int', 'str', 'bool', 'bytes']
 complex_tokens = ['map', 'list', 'table']
-all_tokens = ['int', 'str', 'bool', 'map', 'list', 'table']
+all_tokens = ['int', 'str', 'bool', 'bytes', 'map', 'list', 'table']
 
 
 def parse_representation(s):
