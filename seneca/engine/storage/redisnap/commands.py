@@ -29,7 +29,7 @@ constructors (not wrapped/RTypes like RScalarInt). The executers that run them
 will generate RTypes for writing to db, and for returning local store and for
 return values.
 
-TODO: Switch from addr input type to strings that more closely match RESP
+TODO: Switch from key input type to strings that more closely match RESP
 """
 from abc import ABCMeta, abstractmethod
 from typing import Union
@@ -62,6 +62,7 @@ class Command(ReprIsConstructor):
 class TypeCheck(Command): pass
 class Read(Command): pass
 class Write(Command): pass
+class Mutate(Command): pass
 
 
 #NOTE: This is a decorator function, not a class!
@@ -147,20 +148,21 @@ class AssertType(TypeCheck):
     '''
     @auto_set_fields
     def __init__(self, key: str, r_type: RESPType):
-        self.safe_run = self.run
+        pass
+        #self.safe_run = self.run
 
 
 
 
 @run_methods_return_type(type(None))
-class AppendWO(Write):
+class AppendWO(Mutate):
     @auto_set_fields
     def __init__(self, key: str, value: str):
         pass
 
     def safe_run(self, ex):
-        assert ex(AssertType(self.addr, RScalar))
-        ex(self)
+        assert ex(AssertType(self.key, RScalar))
+        return ex(self)
 
 @run_methods_return_type(bytes)
 class Get(Read):
@@ -169,8 +171,8 @@ class Get(Read):
         pass
 
     def safe_run(self, ex):
-        assert ex(AssertType(self.addr, RScalar))
-        ex(self)
+        assert ex(AssertType(self.key, RScalar))
+        return ex(self)
 
 @run_methods_return_type(type(None))
 @run_method_is_safe
@@ -181,14 +183,14 @@ class Set(Write):
 
 # Note: Front end must convert Incr, Decr, and DecrBy to IncrBy
 @run_methods_return_type(int)
-class IncrByWO(Write):
+class IncrByWO(Mutate):
     @auto_set_fields
     def __init__(self, key, amount: int):
         pass
 
     def safe_run(self, ex):
-        assert ex(AssertType(self.addr, RScalarInt))
-        ex(self)
+        assert ex(AssertType(self.key, RScalarInt))
+        return ex(self)
 
 
 #################
@@ -226,7 +228,7 @@ class HGet(Read):
 
     def safe_run(self, ex):
         assert ex(AssertType(self.key, RHash))
-        ex(self)
+        return ex(self)
 
 #@run_methods_return_type(type(None))
 class HSet(Write):
@@ -237,7 +239,7 @@ class HSet(Write):
     def safe_run(self, ex):
         # Just assert that the key has
         assert ex(AssertType(self.key, RHash))
-        ex(self)
+        return ex(self)
 
 
 # class BitCount(Reads, is_dependant_on(RESPString)):
@@ -412,7 +414,7 @@ def run_tests(deps_provider):
     Test basics of Set
     >> s = Set('a', 'b')
     >> s.__dict__
-    {'addr': 'a', 'value': 'b'}
+    {'key': 'a', 'value': 'b'}
     >> s.run.__annotations__
     {'return': <class 'NoneType'>}
 

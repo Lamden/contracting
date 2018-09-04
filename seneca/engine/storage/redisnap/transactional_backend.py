@@ -18,12 +18,13 @@ class NoTransactionsInGroup(Exception):
     pass
 
 class Transaction:
-    def __init__(self, tag):
+    def __init__(self, transaction_group, tag):
         self._local_executer = l_back.Executer()
-        self._dependencies = set()
+        self._dependencies = {}
+        self._redo_ops = {}
         self._status = 'in-progress'
         self.tag = tag
-        #self._transaction_group = transaction_group # Needed
+        self._transaction_group = transaction_group # Needed
 
     def set_status(self, status):
         assert status in ['in-progress', 'done', 'dirty'], 'Invalid status: ' + str(status)
@@ -32,25 +33,50 @@ class Transaction:
     def get_status(self):
         return self._status
 
-    def __call__(self, cmd):
-        """
-        * If read or type_dep, add to
+    def _get_upstream(self):
+        return self._transaction_group._get_upstream_executer(self)
 
-        """
+    def __call__(self, cmd):
+        if isinstance(cmd, Write) or isinstance(cmd, Mutate):
+            # TODO: don't replace, merge
+            self._redo_ops[cmd.key] = cmd
+        elif isinstance(cmd, Read) or isinstance(cmd, TypeCheck):
+            # TODO: don't replace, merge
+            self._dependencies[cmd.key] = cmd
+
+        return self.run_only_no_logs(cmd)
+
+    def run_only_no_logs(self, cmd):
         res = self._local_executer(cmd)
         if isinstance(res, RDoesNotExist):
-            raise KeyNotFoundTryAncestor()
+            return self._get_upstream().run_only_no_logs(cmd)
         else:
             return res
 
 
+class RedisBackendWapper:
+    """
+    Wrapper adds un_only_no_logs to Redis backend object.
+    """
+    def __init__(self, *args, **kwargs):
+        self.wrapped = r_back.Executer(*args, **kwargs)
+
+    def __call__(self, cmd):
+        return self.wrapped(cmd)
+
+    def run_only_no_logs(self, cmd):
+        return self(cmd)
+
+    def __getattr__(self, attr):
+        return getattr(self.wrapped, attr)
+
 
 class TransactionGroup:
     def __init__(self, *args, **kwargs):
-        self._redis_backend = r_back.Executer(*args, **kwargs)
+        self._redis_backend = RedisBackendWapper(*args, **kwargs)
         self._active_transaction = None
         self._transactions = []
-        self._transaction_tags = set()
+        self._transactions_by_tag = {}
 
     def finalize_current_transaction(self):
         #check contracts after current for dependecies
@@ -59,6 +85,18 @@ class TransactionGroup:
         # What else?
         raise NotImplementedError()
 
+    def _get_active_transaction_index(self):
+        # TODO: make this look nicer
+        return list(filter(lambda i_x: i_x[1] == self._active_transaction, enumerate(self._transactions)))[0][0]
+
+    def _get_upstream_executer(self, ex):
+        i = self._get_active_transaction_index()
+        if i == 0:
+            return self._redis_backend
+        else:
+            return self._transactions[i - 1]
+
+
     def start_new_transaction(self, tag, index=None):
         """
         Specify an index to start writing
@@ -66,15 +104,14 @@ class TransactionGroup:
         index = index if index else len(self._transactions)
 
         assert index <= len(self._transactions)
-        assert tag not in self._transaction_tags, 'Tags must be unique.'
+        assert tag not in self._transactions_by_tag, 'Tags must be unique.'
         # TODO: assert no bad transactions before this one
 
-        s = Transaction(tag)
+        s = Transaction(self, tag)
         self._transactions.insert(index, s)
 
-        self._active_transaction_index = index
         self._active_transaction = s
-        self._transaction_tags.add(s.tag)
+        self._transactions_by_tag[s.tag] = s
 
     def start_new_transaction_before_tag(self, this_tag, other_tag):
         # find this_tag index
@@ -98,15 +135,9 @@ class TransactionGroup:
             else:
                 return self._redis_backend(cmd)
 
-        i = self._active_transaction_index
-        while i >= 0:
-            try:
-                return self._transactions[i](cmd)
-            except KeyNotFoundTryAncestor:
-                pass
-            i -= 1
+        return cmd.safe_run(self._active_transaction)
 
-        return self._redis_backend(cmd)
+
 
 
 def run_tests(deps_provider):
@@ -122,7 +153,6 @@ def run_tests(deps_provider):
     >>> exception_to_string(ex, Set('foo', 'bar'))
     'You must create a transaction before executing write commands.'
 
-
     ### Run the following test without a Redis backend ###
     >>> rbe = ex._redis_backend
     >>> ex._redis_backend = None
@@ -132,7 +162,7 @@ def run_tests(deps_provider):
 
     # Test tries to fall through to Redis, but it has been removed
     >>> exception_to_string(ex, Get('baz'))
-    "'NoneType' object is not callable"
+    "'NoneType' object has no attribute 'run_only_no_logs'"
 
     # Set key in transaction 'testing-trans-1'
     >>> ex(Set('foo', 'bar'))
@@ -144,14 +174,34 @@ def run_tests(deps_provider):
     >>> ex._redis_backend = rbe
 
     # Read falls through to Redis
-    >>> exception_to_string(ex, Get('baz'))
+    >>> ex(Get('baz'))
     RDoesNotExist()
 
+    # Add a second transaction on stack
 
+    # Same tag value, will fail.
+    >>> exception_to_string(ex.start_new_transaction, 'testing-trans-1')
+    'Tags must be unique.'
 
+    >>> ex.start_new_transaction('testing-trans-2')
 
+    # Foo not in active
+    >> ex._active_transaction._local_executer(Get('foo'))
+    RDoesNotExist()
 
+    # Foo not in Redis
+    >>> ex._redis_backend(Get('foo'))
+    RDoesNotExist()
 
+    # Foo comes from testing-trans-1
+    >>> ex(Get('foo'))
+    RScalar('bar')
+
+    # Overwrite foo in testing-trans-2
+    >> ex(Set('foo', 'baz')); ex(Get('foo'))
+    RScalar('baz')
+    >>> ex._transactions[0](Get('foo'))
+    RScalar('bar')
 
     '''
 

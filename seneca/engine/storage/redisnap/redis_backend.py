@@ -46,6 +46,19 @@ class Executer():
         """
         return rtype.from_resp_str(self._redis_executer.type(cmd.key).decode("utf-8"))
 
+    def asserttype(self, cmd):
+        """
+        >>> ex.purge()
+        >>> ex(Set('foo', 'bar'))
+        >>> ex(AssertType('foo', RScalar))
+        True
+        >>> ex(AssertType('foo', RHash))
+        False
+
+        NOTE: This is the exact same implementation in local and redis backends
+        """
+        return isinstance(self.get(cmd), cmd.r_type)
+
     def get(self, cmd):
         """
         >> _ = ex.purge()

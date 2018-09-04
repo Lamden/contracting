@@ -49,6 +49,19 @@ class Executer():
 
         return t
 
+    def asserttype(self, cmd):
+        """
+        >>> ex.purge()
+        >>> ex(Set('foo', 'bar'))
+        >>> ex(AssertType('foo', RScalar))
+        True
+        >>> ex(AssertType('foo', RHash))
+        False
+
+        NOTE: This is the exact same implementation in local and redis backends
+        """
+        return isinstance(self.get(cmd), cmd.r_type)
+
     def get(self, cmd):
         """
         >>> _ = ex.purge()
@@ -183,9 +196,11 @@ class Executer():
             self.data[cmd.key] = RHash({cmd.field: make_rscalar(cmd.value)})
 
 
+
     def __call__(self, cmd):
         # TODO: Make sure this is efficient and generally okay.
         return getattr(self, cmd.__class__.__name__.lower())(cmd)
+
 
 
 def run_tests(deps_provider):
