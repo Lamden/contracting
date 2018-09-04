@@ -8,8 +8,6 @@ r = redis.StrictRedis(host='localhost', port=6379, db=0)
 class RedisImportFinder:
 
     def find_module(self, fullname, path=None):
-        print('looking for {!r} with path {!r}'.format(fullname, path))
-
         if fullname[0:2] == 'c_':
             return RedisImportLoader()
         return None
@@ -21,7 +19,6 @@ class RedisImportLoader:
         return r.get(fullname)
 
     def load_module(self, fullname):
-        print(fullname)
         code = self.get_code(fullname)
         if code is None:
             return None
