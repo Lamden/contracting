@@ -23,13 +23,15 @@ type_to_string = {
     str: 'str',
     int: 'int',
     bool: 'bool',
+    bytes: 'bytes'
 }
 
 
 string_to_type = {
     'str': str,
     'int': int,
-    'bool': bool
+    'bool': bool,
+    'bytes': bytes
 }
 
 primitive_types = [int, str, bool, None]
@@ -382,6 +384,9 @@ class HMap(RObject):
                                          encode_type(self.key_type),
                                          encode_type(self.value_type))
 
+    def exists(self, k):
+        return self.driver.exists(k)
+
 def hmap(prefix=None, key_type=str, value_type=int):
     if prefix is None:
         return Placeholder(key_type=key_type, value_type=value_type, placeholder_type=HMap)
@@ -445,6 +450,9 @@ class HList(RObject):
 
     def rep(self):
         return '{}list<{}>({})'.format(CTP, self.prefix, encode_type(self.value_type))
+
+    def exists(self, k):
+        return self.driver.exists(k)
 
 
 def hlist(prefix=None, value_type=int):
@@ -534,6 +542,9 @@ class Table(RObject):
     def __setitem__(self, k, v):
         return self.set(k, v)
 
+    def exists(self, k):
+        return self.driver.exists(k)
+
     def rep(self):
         d = '({'
         for k, v in self.schema.items():
@@ -544,7 +555,6 @@ class Table(RObject):
         d = d[:-1]
         d += '})'
         return CTP + self.rep_str + '<' + self.prefix + '>' + d
-
 
 def table(prefix=None, key_type=str, schema=None):
     if prefix is None:
