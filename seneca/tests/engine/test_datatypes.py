@@ -390,7 +390,6 @@ class TestDatatypes(TestCase):
         s = table(prefix='hello123', key_type=int, schema={'test1': int, 'test2': str})
         s.set(1, {'test1': 123, 'test2': 'hello'})
         _s = s.get(1)
-        print(_s)
         self.assertDictEqual(_s, {'test1': 123, 'test2': 'hello'})
 
     def test_complex_key_typing_table(self):
@@ -453,3 +452,11 @@ class TestDatatypes(TestCase):
 
         z = h[0][0]
         self.assertEqual(z, 0)
+
+    def test_ranked_add_get(self):
+        r = Ranked(prefix='hello_there')
+        r.add('stu', 1000)
+        r.add('davis', 100)
+
+        self.assertEqual(r.get_max(), 'stu')
+        self.assertEqual(r.get_min(), 'davis')

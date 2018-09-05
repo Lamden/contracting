@@ -581,16 +581,18 @@ class Ranked(RObject):
         self.driver.zrem(self.prefix, member)
 
     def get_max(self):
-        m = self.driver.zrevrangebyscore(self.prefix, '+inf', '-inf', 1)
+        m = self.driver.zrevrangebyscore(self.prefix, max='+inf', min='-inf', start=0, num=1)
+        m = m.pop()
         m = self.decode_value(m)
         return m
 
     def get_min(self):
-        m = self.driver.zrangebyscore(self.prefix, '-inf', '-inf', 1)
+        m = self.driver.zrangebyscore(self.prefix, min='-inf', max='+inf', start=0, num=1)
+        m = m.pop()
         m = self.decode_value(m)
         return m
 
-    def increment(self, member, i):
+    def increment(self, member, i: int):
         m = self.encode_value(member)
         return self.driver.zincrby(self.prefix, m, i)
 
