@@ -305,7 +305,6 @@ def vivify(potential_prefix, t):
     if t in primitive_types:
         return vivified_primitives[t]
     elif issubclass(type(t), Placeholder):
-        print('mmhmm')
         if t.placeholder_type == HMap:
             return hmap(prefix=potential_prefix, key_type=t.key_type, value_type=t.value_type)
         elif t.placeholder_type == HList:
@@ -387,6 +386,9 @@ class RObject:
     def rep(self):
         raise NotImplementedError
 
+    def drop(self):
+        return self.driver.delete(self.prefix)
+
 
 ####################
 # HMap Datatype
@@ -450,35 +452,33 @@ class HList(RObject):
                          value_type=value_type,
                          rep_str='list')
 
-        self.p = self.prefix + self.delimiter
-
     def get(self, i):
-        g = self.driver.lindex(self.p, i)
+        g = self.driver.lindex(self.prefix, i)
         g = self.decode_value(g)
         return g
 
     def set(self, i, value):
         #TODO add error handling for trying to set indexes that don't exist
         v = self.encode_value(value)
-        return self.driver.lset(self.p, i, v)
+        return self.driver.lset(self.prefix, i, v)
 
     def push(self, value):
         v = self.encode_value(value)
-        return self.driver.lpush(self.p, v)
+        return self.driver.lpush(self.prefix, v)
 
     def pop(self):
-        g = self.driver.lpop(self.p)
+        g = self.driver.lpop(self.prefix)
         g = self.decode_value(g)
         return g
 
     def pop_right(self):
-        g = self.driver.rpop(self.p)
+        g = self.driver.rpop(self.prefix)
         g = self.decode_value(g)
         return g
 
     def append(self, value):
         v = self.encode_value(value)
-        return self.driver.rpush(self.p, v)
+        return self.driver.rpush(self.prefix, v)
 
     def extend(self, l):
         for ll in l:

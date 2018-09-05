@@ -131,7 +131,7 @@ class TestDatatypes(TestCase):
 
     def test_hlist_init_repr(self):
         self.assertEqual(self.l.rep(), '*list<yo>(int)')
-        self.assertEqual(self.l.p, 'yo:')
+        self.assertEqual(self.l.prefix, 'yo')
 
     def test_hlist_push_pop(self):
         self.l.push(123)
@@ -491,3 +491,12 @@ class TestDatatypes(TestCase):
         self.assertEqual(_r.prefix, r.prefix)
         self.assertEqual(_r.key_type, r.key_type)
         self.assertEqual(_r.value_type, r.value_type)
+
+    def test_drop(self):
+        l = HList('something', str)
+        l.push('yoyoyo')
+        l.push('supsupsup')
+
+        l.drop()
+
+        self.assertEqual(l.pop(), None)
