@@ -42,7 +42,7 @@ def encode_type(t):
         return t.rep()
     if isinstance(t, Placeholder):
         return t.rep()
-    for i in range(len(primitive_types)):
+    for i in range(len(primitive_types)-1):
         if t == primitive_types[i]:
             return primitive_tokens[i]
     return None
@@ -79,6 +79,8 @@ def parse_complex_type_repr(s):
                 return build_list_from_repr(s)
             elif t == 'map':
                 return build_map_from_repr(s)
+            elif t == 'ranked':
+                return build_ranked_from_repr(s)
 
 
 def parse_simple_type_repr(s):
@@ -184,6 +186,29 @@ def build_map_from_repr(s):
     return Placeholder(key_type=key_type, value_type=value_type, placeholder_type=HMap)
 
 
+def build_ranked_from_repr(s):
+    slice_idx = s.find('ranked') + len('ranked')
+    s = s[slice_idx:]
+
+    # check if the prefix has been defined
+    prefix = None
+    if s[0] == '<':
+        prefix_idx_end = s.find('>')
+        prefix = s[1:prefix_idx_end]
+        s = s[1 + prefix_idx_end:]
+
+    types = s.split(',')
+
+    assert len(types) == 2, 'Too many types provided to the map representation string! {}'.format(types)
+
+    key_type = parse_type_repr(types[0][1:])
+    value_type = parse_type_repr(types[1][:-1])
+
+    if prefix is not None:
+        return ranked(prefix=prefix, key_type=key_type, value_type=value_type)
+    return Placeholder(key_type=key_type, value_type=value_type, placeholder_type=Ranked)
+
+
 class Placeholder:
     def __init__(self, key_type=str, value_type=int, placeholder_type=None):
         assert placeholder_type is not None and type(placeholder_type) == type, 'Provide a type to represent.'
@@ -242,6 +267,23 @@ class TablePlaceholder(Placeholder):
         d = d[:-1]
         d += '})'
         return CTP + 'table' + d
+
+class RankedPlaceholder(Placeholder):
+    def __init__(self, key_type=str, value_type=int):
+        self.key_type = str
+        self.value_type = value_type
+        self.placeholder_type = Ranked
+
+    def valid(self, t):
+        if self.key_type == t.key_type and \
+                self.value_type == t.value_type and \
+                type(t) == self.placeholder_type:
+            return True
+        return False
+
+    def rep(self):
+        return CTP + 'ranked' + '(' + encode_type(self.key_type) + ',' + encode_type(self.value_type) + ')'
+
 
 
 def is_complex_type(v):
@@ -575,10 +617,11 @@ class Ranked(RObject):
 
     def add(self, member, score: int):
         m = self.encode_value(member)
-        self.driver.zadd(self.prefix, score, m)
+        return self.driver.zadd(self.prefix, score, m)
 
     def delete(self, member):
-        self.driver.zrem(self.prefix, member)
+        m = self.encode_value(member)
+        return self.driver.zrem(self.prefix, m)
 
     def get_max(self):
         m = self.driver.zrevrangebyscore(self.prefix, max='+inf', min='-inf', start=0, num=1)
@@ -592,6 +635,10 @@ class Ranked(RObject):
         m = self.decode_value(m)
         return m
 
+    def score(self, member):
+        m = self.encode_value(member)
+        return self.driver.zscore(self.prefix, m)
+
     def increment(self, member, i: int):
         m = self.encode_value(member)
         return self.driver.zincrby(self.prefix, m, i)
@@ -602,5 +649,11 @@ class Ranked(RObject):
                                             encode_type(self.key_type),
                                             encode_type(self.value_type))
 
+
+def ranked(prefix=None, key_type=str, value_type=int):
+    if prefix is None:
+        return RankedPlaceholder(key_type=key_type, value_type=value_type)
+    else:
+        return Ranked(prefix=prefix, key_type=key_type, value_type=value_type)
 
 complex_types = [HMap, HList, Table, Ranked]

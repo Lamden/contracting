@@ -460,3 +460,34 @@ class TestDatatypes(TestCase):
 
         self.assertEqual(r.get_max(), 'stu')
         self.assertEqual(r.get_min(), 'davis')
+
+    def test_ranked_delete(self):
+        r = Ranked(prefix='hello_there2')
+        r.add('stu', 1000)
+        r.add('davis', 100)
+
+        r.delete('stu')
+
+        print(r.get_max())
+
+        self.assertEqual(r.get_max(), 'davis')
+
+    def test_ranked_increment(self):
+        r = Ranked(prefix='delegates')
+
+        r.increment('stu', 165)
+
+        self.assertEqual(r.score('stu'), 165.0)
+
+        r.delete('stu')
+
+    def test_ranked_rep(self):
+        r = Ranked('testing')
+
+        r_str = r.rep()
+
+        _r = parse_representation(r_str)
+
+        self.assertEqual(_r.prefix, r.prefix)
+        self.assertEqual(_r.key_type, r.key_type)
+        self.assertEqual(_r.value_type, r.value_type)
