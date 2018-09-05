@@ -19,6 +19,7 @@ type<prefix>(declaration)
 COMPLEX_TYPE_PREFIX = '*'
 CTP = COMPLEX_TYPE_PREFIX
 
+# # # CLEAN THIS UP! GOOD LORD!!!
 type_to_string = {
     str: 'str',
     int: 'int',
@@ -48,9 +49,9 @@ def encode_type(t):
 
 
 primitive_tokens = ['int', 'str', 'bool', 'bytes']
-complex_tokens = ['map', 'list', 'table']
-all_tokens = ['int', 'str', 'bool', 'bytes', 'map', 'list', 'table']
-
+complex_tokens = ['map', 'list', 'table', 'ranked']
+all_tokens = ['int', 'str', 'bool', 'bytes', 'map', 'list', 'table', 'ranked']
+# # #
 
 def parse_representation(s):
     if s[0] == CTP:
@@ -87,6 +88,8 @@ def parse_simple_type_repr(s):
         return int
     if s == 'bool':
         return bool
+    if s == 'bytes':
+        return bytes
 
 
 def build_table_from_repr(s):
@@ -556,9 +559,46 @@ class Table(RObject):
         d += '})'
         return CTP + self.rep_str + '<' + self.prefix + '>' + d
 
+
 def table(prefix=None, key_type=str, schema=None):
     if prefix is None:
         return TablePlaceholder(key_type=key_type, schema=schema)
     return Table(prefix=prefix, key_type=key_type, schema=schema)
 
-complex_types = [HMap, HList, Table]
+
+class Ranked(RObject):
+    def __init__(self, prefix=None, key_type=str, value_type=None):
+        super().__init__(prefix=prefix,
+                         key_type=key_type,
+                         value_type=value_type,
+                         rep_str='ranked')
+
+    def add(self, member, score: int):
+        m = self.encode_value(member)
+        self.driver.zadd(self.prefix, score, m)
+
+    def delete(self, member):
+        self.driver.zrem(self.prefix, member)
+
+    def get_max(self):
+        m = self.driver.zrevrangebyscore(self.prefix, '+inf', '-inf', 1)
+        m = self.decode_value(m)
+        return m
+
+    def get_min(self):
+        m = self.driver.zrangebyscore(self.prefix, '-inf', '-inf', 1)
+        m = self.decode_value(m)
+        return m
+
+    def increment(self, member, i):
+        m = self.encode_value(member)
+        return self.driver.zincrby(self.prefix, m, i)
+
+    def rep(self):
+        return '{}ranked<{}>({},{})'.format(CTP,
+                                            self.prefix,
+                                            encode_type(self.key_type),
+                                            encode_type(self.value_type))
+
+
+complex_types = [HMap, HList, Table, Ranked]
