@@ -635,6 +635,14 @@ class Ranked(RObject):
         m = self.decode_value(m)
         return m
 
+    def pop_max(self):
+        m = self.get_max()
+        return self.delete(m)
+
+    def pop_min(self):
+        m = self.get_min()
+        return self.delete(m)
+
     def score(self, member):
         m = self.encode_value(member)
         return self.driver.zscore(self.prefix, m)
