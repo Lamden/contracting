@@ -19,9 +19,14 @@ import seneca.engine.storage.redisnap.resp_types as rtype
 
 class Executer():
     """
+    >>> e = Executer(); print(e)
+    Executer({})
     """
     def __init__(self):
         self.data = {}
+
+    def __repr__(self):
+        return 'Executer(%s)' % str(self.data)
 
     def purge(self):
         self.data = {}

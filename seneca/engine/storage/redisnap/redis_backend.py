@@ -123,6 +123,7 @@ class Executer():
 
     def appendwo(self, cmd):
         """
+        >>> ex.purge()
         >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
         RScalar('abc')
         >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
@@ -157,10 +158,17 @@ class Executer():
         """
         self._redis_executer.hset(cmd.key, cmd.field, cmd.value)
 
+    def del_(self, cmd):
+        self._redis_executer.delete(cmd.key)
+
 
     def __call__(self, cmd):
         # TODO: Make sure this is efficient and generally okay.
-        return getattr(self, cmd.__class__.__name__.lower())(cmd)
+
+        if isinstance(cmd, Del):
+            self.del_(cmd)
+        else:
+            return getattr(self, cmd.__class__.__name__.lower())(cmd)
 
 
 def run_tests(deps_provider):

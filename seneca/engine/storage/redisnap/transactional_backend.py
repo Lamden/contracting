@@ -18,6 +18,14 @@ class NoTransactionsInGroup(Exception):
 
 
 class OpTracker(ReprIsConstructor):
+    """
+    >>> o = OpTracker()
+    >>> print(o)
+    OpTracker({})
+
+    >>> o.add(Get('foo')); print(o)
+    OpTracker({'foo': [Get('foo')]})
+    """
     # TODO: implement for hash field addrs as well
     def __init__(self):
         self.data = {}
@@ -37,8 +45,18 @@ class OpTracker(ReprIsConstructor):
 
         return cmd.key in self.data
 
+    def __repr__(self):
+        return 'OpTracker(%s)' % str(self.data)
+
 
 class Transaction:
+    """
+    >>> t = Transaction(None, 'testing')
+    >>> print(t)
+    Transaction({'_local_executer': Executer({}), '_read_deps': OpTracker({}), '_typecheck_deps': OpTracker({}), '_redo_log': OpTracker({}), '_mutation_tracker': OpTracker({}), '_status': 'open', 'tag': 'testing', '_transaction_group': None})
+
+
+    """
     def __init__(self, transaction_group, tag):
         #self._local_executer = TransactionalExecuter()
         self._local_executer = l_back.Executer()
@@ -48,12 +66,15 @@ class Transaction:
         self._redo_log = OpTracker()
         self._mutation_tracker = OpTracker()
 
-        self._status = 'in-progress'
+        self._status = 'open'
         self.tag = tag
         self._transaction_group = transaction_group # Needed
 
+    def __repr__(self):
+        return 'Transaction(%s)' % str(self.__dict__)
+
     def set_status(self, status):
-        assert status in ['in-progress', 'done', 'dirty'], 'Invalid status: ' + str(status)
+        assert status in ['open', 'closed', 'dirty'], 'Invalid status: ' + str(status)
         self._status = status
 
     def get_status(self):
@@ -70,7 +91,6 @@ class Transaction:
         else:
             self._local_executer(Set(cmd.key, current + cmd.value))
 
-
     def run_mutate_command(self, cmd):
         cmd_type = type(cmd)
 
@@ -78,7 +98,6 @@ class Transaction:
             return self.appendwo(cmd)
         else:
             raise NotImplementedError()
-
 
     def __call__(self, cmd):
         if isinstance(cmd, Write):
@@ -165,11 +184,11 @@ class TransactionGroup:
         self._transactions_by_tag = {}
 
     def finalize_current_transaction(self):
-        #check contracts after current for dependecies
-        #set current as done
-        #self._active_transaction = None
-        # What else?
-        raise NotImplementedError()
+        if self._get_transaction_index(self._active_transaction) == len(self._transactions) - 1:
+            self._active_transaction.set_status('closed')
+            self._active_transaction = None
+        else:
+            raise NotImplementedError()
 
     def _get_transaction_index(self, ex):
         return list(filter(lambda i_x: i_x[1] == ex, enumerate(self._transactions)))[0][0]
@@ -206,8 +225,20 @@ class TransactionGroup:
     def rework_transaction(self, tag):
         raise NotImplementedError()
 
+    def get_pending_ops(self):
+        ret = []
+        for t in self._transactions:
+            for cmd_list in t._redo_log.data.values():
+                for c in cmd_list:
+                    ret.append(c)
+
+        return ret
+
     def commit_all_to_redis(self):
-        raise NotImplementedError()
+        for c in self.get_pending_ops():
+            self._redis_backend(c)
+        self._transactions = []
+
 
     def clear(self):
         raise NotImplementedError()
@@ -255,8 +286,8 @@ def run_tests(deps_provider):
 
 
     # Test tries to fall through to Redis, but it has been removed
-    >>> exception_to_string(ex, Get('baz'))
-    "'NoneType' object has no attribute 'recursive_upstream_call'"
+    >>> exception_type_name(ex, Get('baz'))
+    'AttributeError'
 
 
     # Set key in transaction 'testing-trans-1'
@@ -290,10 +321,10 @@ def run_tests(deps_provider):
     RDoesNotExist()
 
     # Same tag value, will fail.
-    >>> exception_to_string(ex.start_new_transaction, 'testing-trans-1')
-    'Tags must be unique.'
+    >>> exception_type_name(ex.start_new_transaction, 'testing-trans-1')
+    'AssertionError'
 
-    >> ex.start_new_transaction('testing-trans-2')
+    >>> ex.start_new_transaction('testing-trans-3')
 
     # Foo not in active
     >>> ex._active_transaction._local_executer(Get('foo'))
@@ -322,16 +353,34 @@ def run_tests(deps_provider):
     >>> ex(Get('new_key_doesnt_exist'))
     RDoesNotExist()
 
+    ### Test commit ordering ###
+    >>> ex = TransactionGroup(host='127.0.0.1', port=32768)
+    >>> ex._redis_backend.purge()
+    >>> ex.start_new_transaction('a')
+    >>> ex(Set('foo', 'a'))
+    >>> ex(Set('foo', 'b'))
+    >>> ex(Set('foo', 'c'))
+    >>> ex(Set('foo', 'd'))
+    >>> ex.start_new_transaction('b')
+    >>> ex(Set('foo', 'e'))
+    >>> ex(Set('foo', 'f'))
+    >>> ex(Set('foo', 'g'))
+    >>> ex(Set('foo', 'h'))
+    >>> _ = [print(x) for x in ex.get_pending_ops()]
+    Set('foo', 'a')
+    Set('foo', 'b')
+    Set('foo', 'c')
+    Set('foo', 'd')
+    Set('foo', 'e')
+    Set('foo', 'f')
+    Set('foo', 'g')
+    Set('foo', 'h')
+
+
+    >>> ex.commit_all_to_redis()
     '''
 
     import doctest, sys
-
-    def exception_to_string(*args):
-        try:
-            return args[0](*args[1:])
-        except Exception as e:
-            return str(e)
-
 
     def exception_type_name(*args):
         try:
