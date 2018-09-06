@@ -2,6 +2,10 @@ from seneca.engine.util import auto_set_fields
 from abc import ABCMeta, abstractmethod
 import inspect
 
+
+class RedisKeyTypeError(Exception):
+    pass
+
 class ReprIsConstructor(metaclass=ABCMeta):
     def __repr__(self):
         #return '<RESP ADDRESS (%s) %s>' % (self.__class__.__name__, str(self.__dict__))
@@ -63,6 +67,27 @@ class RDoesNotExist(RScalarInt, RScalarFloat, RHash, RList, RSet, RSortedSet):
     def __init__(self):
         pass
 
+class DataDependancy(ReprIsConstructor):
+    @auto_set_fields
+    def __init__(self, key):
+        pass
+
+class ExistentialDependancy(ReprIsConstructor):
+    pass
+
+class GeneralTypeDependancy(DataDependancy):
+    pass
+
+class ExactTypeDependancy(DataDependancy):
+    pass
+
+class KeyReadDependancy(DataDependancy):
+    pass
+
+class HashFieldReadDependancy(DataDependancy):
+    @auto_set_fields
+    def __init__(self, key, field):
+        pass
 
 def make_rscalar(val):
     if val is None:

@@ -10,18 +10,44 @@ from seneca.engine.storage.redisnap.commands import *
 import seneca.engine.storage.redisnap.local_backend as l_back
 import seneca.engine.storage.redisnap.redis_backend as r_back
 from collections import OrderedDict
-
-class KeyNotFoundTryAncestor(Exception):
-    pass
+from seneca.engine.util import auto_set_fields
+from abc import ABCMeta, abstractmethod
 
 class NoTransactionsInGroup(Exception):
     pass
 
+
+class OpTracker(ReprIsConstructor):
+    # TODO: implement for hash field addrs as well
+    def __init__(self):
+        self.data = {}
+
+    def add(self, cmd):
+        if hasattr(cmd, 'field'):
+            raise NotImplementedError()
+
+        if cmd.key not in self.data:
+            self.data[cmd.key] = []
+
+        self.data[cmd.key].append(cmd)
+
+    def contains_command_addr(self, cmd):
+        if hasattr(cmd, 'field'):
+            raise NotImplementedError()
+
+        return cmd.key in self.data
+
+
 class Transaction:
     def __init__(self, transaction_group, tag):
+        #self._local_executer = TransactionalExecuter()
         self._local_executer = l_back.Executer()
-        self._dependencies = {}
-        self._redo_ops = {}
+
+        self._read_deps = OpTracker()
+        self._typecheck_deps = OpTracker()
+        self._redo_log = OpTracker()
+        self._mutation_tracker = OpTracker()
+
         self._status = 'in-progress'
         self.tag = tag
         self._transaction_group = transaction_group # Needed
@@ -36,35 +62,95 @@ class Transaction:
     def _get_upstream(self):
         return self._transaction_group._get_upstream_executer(self)
 
-    def __call__(self, cmd):
-        if isinstance(cmd, Write) or isinstance(cmd, Mutate):
-            # TODO: don't replace, merge
-            self._redo_ops[cmd.key] = cmd
-        elif isinstance(cmd, Read) or isinstance(cmd, TypeCheck):
-            # TODO: don't replace, merge
-            self._dependencies[cmd.key] = cmd
+    def appendwo(self, cmd):
+        current = self.recursive_upstream_call(Get(cmd.key))
 
-        return self.run_only_no_logs(cmd)
-
-    def run_only_no_logs(self, cmd):
-        res = self._local_executer(cmd)
-        if isinstance(res, RDoesNotExist):
-            return self._get_upstream().run_only_no_logs(cmd)
+        if isinstance(current, RDoesNotExist):
+            self._local_executer(cmd)
         else:
-            return res
+            self._local_executer(Set(cmd.key, current + cmd.value))
+
+
+    def run_mutate_command(self, cmd):
+        cmd_type = type(cmd)
+
+        if cmd_type == AppendWO:
+            return self.appendwo(cmd)
+        else:
+            raise NotImplementedError()
+
+
+    def __call__(self, cmd):
+        if isinstance(cmd, Write):
+            '''
+            Writes are the simplest case: add them to the redo_log, run locally
+            '''
+            self._redo_log.add(cmd)
+            return self._local_executer(cmd)
+
+        elif isinstance(cmd, TypeCheck):
+            '''
+            Typechecks are also simple. The really difficult stuff is a result
+            of lazily evaluated mutating operations, typechecks don't care about
+            those because they don't change the type.
+            '''
+            if self._local_executer.contains_command_addr(cmd):
+                return self._local_executer(cmd)
+            else:
+                self._typecheck_deps.add(cmd)
+                return self.recursive_upstream_call(cmd)
+
+        elif isinstance(cmd, Mutate):
+            '''
+            If the data is already present locally, it can simply be edited.
+            If not, we need to recurse to get the data to be mutated, then write
+            locally, and also track the mutation so if there are any subsequent
+            reads, they get registered as external reads.
+            '''
+            self._redo_log.add(cmd)
+
+            if self._local_executer.contains_command_addr(cmd):
+                return self._local_executer(cmd)
+            else:
+                self._mutation_tracker.add(cmd)
+                self.run_mutate_command(cmd)
+
+        elif isinstance(cmd, Read):
+            '''
+            Reads recurse if data not present locally, lack of local data
+            triggers creation of a read dependency. Also, data that's read and
+            has been regiestered in the mutation tracker also triggers a read
+            dependency.
+            '''
+            if not self._local_executer.contains_command_addr(cmd):
+                self._read_deps.add(cmd)
+                return self.recursive_upstream_call(cmd)
+            else:
+                if self._mutation_tracker.contains_command_addr(cmd):
+                    self._read_deps.add(cmd)
+
+                return self._local_executer(cmd)
+        else:
+            raise NotImplementedError()
+
+
+    def recursive_upstream_call(self, cmd):
+        # Note: There should never be and dependency/redo logging in the method.
+        if self._local_executer.contains_command_addr(cmd):
+            return self._local_executer(cmd)
+        else:
+            return self._get_upstream().recursive_upstream_call(cmd)
+
 
 
 class RedisBackendWapper:
-    """
-    Wrapper adds un_only_no_logs to Redis backend object.
-    """
     def __init__(self, *args, **kwargs):
         self.wrapped = r_back.Executer(*args, **kwargs)
 
     def __call__(self, cmd):
         return self.wrapped(cmd)
 
-    def run_only_no_logs(self, cmd):
+    def recursive_upstream_call(self, cmd):
         return self(cmd)
 
     def __getattr__(self, attr):
@@ -85,16 +171,15 @@ class TransactionGroup:
         # What else?
         raise NotImplementedError()
 
-    def _get_active_transaction_index(self):
-        # TODO: make this look nicer
-        return list(filter(lambda i_x: i_x[1] == self._active_transaction, enumerate(self._transactions)))[0][0]
+    def _get_transaction_index(self, ex):
+        return list(filter(lambda i_x: i_x[1] == ex, enumerate(self._transactions)))[0][0]
 
     def _get_upstream_executer(self, ex):
-        i = self._get_active_transaction_index()
-        if i == 0:
-            return self._redis_backend
-        else:
+        i = self._get_transaction_index(ex)
+        if i > 0:
             return self._transactions[i - 1]
+        else:
+            return self._redis_backend
 
 
     def start_new_transaction(self, tag, index=None):
@@ -130,14 +215,9 @@ class TransactionGroup:
     def __call__(self, cmd):
         # Dissallow writes directly to Redis, reads and typechecks are okay.
         if not self._transactions:
-            if isinstance(cmd, Write):
-                raise NoTransactionsInGroup('You must create a transaction before executing write commands.')
-            else:
-                return self._redis_backend(cmd)
+            raise NoTransactionsInGroup('You must create a transaction before executing write commands.')
 
         return cmd.safe_run(self._active_transaction)
-
-
 
 
 def run_tests(deps_provider):
@@ -145,24 +225,39 @@ def run_tests(deps_provider):
     >>> ex = TransactionGroup(host='127.0.0.1', port=32768)
     >>> ex._redis_backend.purge()
 
-    # Test readonly direct redis access before transaction has been created.
+    # Operations should fail before transaction has been created.
+    >>> exception_type_name(ex, Get('foo'))
+    'NoTransactionsInGroup'
+
+    >>> ex.start_new_transaction('testing-trans-1')
+
+    >>> ex(AppendWO('foo', 'bar'))
+    >>> ex._active_transaction._read_deps.contains_command_addr(Get('foo'))
+    False
+    >>> ex._active_transaction._mutation_tracker.contains_command_addr(Get('foo'))
+    True
+
+    >>> ex(Get('foo'))
+    RScalar('bar')
+    >>> ex._active_transaction._read_deps.contains_command_addr(Get('foo'))
+    True
+    >>> ex._active_transaction._mutation_tracker.contains_command_addr(Get('foo'))
+    True
+
+    >>> ex(Del('foo'))
     >>> ex(Get('foo'))
     RDoesNotExist()
 
-    # Test write to direct redis access fails before transaction has been created.
-    >>> exception_to_string(ex, Set('foo', 'bar'))
-    'You must create a transaction before executing write commands.'
 
     ### Run the following test without a Redis backend ###
     >>> rbe = ex._redis_backend
     >>> ex._redis_backend = None
 
-    # Create transaction
-    >>> ex.start_new_transaction('testing-trans-1')
 
     # Test tries to fall through to Redis, but it has been removed
     >>> exception_to_string(ex, Get('baz'))
-    "'NoneType' object has no attribute 'run_only_no_logs'"
+    "'NoneType' object has no attribute 'recursive_upstream_call'"
+
 
     # Set key in transaction 'testing-trans-1'
     >>> ex(Set('foo', 'bar'))
@@ -177,16 +272,31 @@ def run_tests(deps_provider):
     >>> ex(Get('baz'))
     RDoesNotExist()
 
-    # Add a second transaction on stack
+    >>> ex.start_new_transaction('testing-trans-2')
+    >>> ex._active_transaction.tag
+    'testing-trans-2'
+
+    >>> ex._get_upstream_executer(ex._active_transaction) != ex._active_transaction
+    True
+
+    >>> t1 = ex._get_upstream_executer(ex._active_transaction)
+    >>> t1.tag
+    'testing-trans-1'
+
+    >>> type(ex._get_upstream_executer(t1)).__name__
+    'RedisBackendWapper'
+
+    >>> ex(Get('baz'))
+    RDoesNotExist()
 
     # Same tag value, will fail.
     >>> exception_to_string(ex.start_new_transaction, 'testing-trans-1')
     'Tags must be unique.'
 
-    >>> ex.start_new_transaction('testing-trans-2')
+    >> ex.start_new_transaction('testing-trans-2')
 
     # Foo not in active
-    >> ex._active_transaction._local_executer(Get('foo'))
+    >>> ex._active_transaction._local_executer(Get('foo'))
     RDoesNotExist()
 
     # Foo not in Redis
@@ -198,10 +308,19 @@ def run_tests(deps_provider):
     RScalar('bar')
 
     # Overwrite foo in testing-trans-2
-    >> ex(Set('foo', 'baz')); ex(Get('foo'))
+    >>> ex(Set('foo', 'baz')); ex(Get('foo'))
     RScalar('baz')
     >>> ex._transactions[0](Get('foo'))
     RScalar('bar')
+
+    >>> ex(AppendWO('foo', 'bar'))
+    >>> ex(Get('foo'))
+    RScalar('bazbar')
+
+    >>> ex._active_transaction._mutation_tracker.contains_command_addr(Get('foo'))
+    False
+    >>> ex(Get('new_key_doesnt_exist'))
+    RDoesNotExist()
 
     '''
 
@@ -212,5 +331,13 @@ def run_tests(deps_provider):
             return args[0](*args[1:])
         except Exception as e:
             return str(e)
+
+
+    def exception_type_name(*args):
+        try:
+            return args[0](*args[1:])
+        except Exception as e:
+            return type(e).__name__
+
 
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

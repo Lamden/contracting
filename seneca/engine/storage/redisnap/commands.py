@@ -39,6 +39,7 @@ from seneca.engine.storage.redisnap.resp_types import *
 
 # TODO: Enforce run return types for run method in executer libs.
 
+
 class Command(ReprIsConstructor):
     def run(self, ex):
         '''
@@ -57,12 +58,24 @@ class Command(ReprIsConstructor):
     def safe_run(self, local_ex):
         pass
 
+    # @abstractmethod
+    # def to_data_dependency(self):
+    #     pass
+
 # Inheriting these classes designates the subtype as performing these general
 # types of operation on Redis.
 class TypeCheck(Command): pass
 class Read(Command): pass
-class Write(Command): pass
-class Mutate(Command): pass
+
+class Write(Command):
+    # def to_data_dependency(self):
+    #     return None
+    pass
+
+class Mutate(Command):
+    # def to_data_dependency(self):
+    #     return None
+    pass
 
 
 #NOTE: This is a decorator function, not a class!
@@ -110,6 +123,9 @@ class Type(Command):
     def __init__(self, key):
         pass
 
+    # to_data_dependency(self):
+    #     return GeneralTypeDependancy(self.key)
+
 @run_methods_return_type(bool)
 @run_method_is_safe
 class Exists(Command):
@@ -117,12 +133,18 @@ class Exists(Command):
     def __init__(self, key):
         pass
 
+    # to_data_dependency(self):
+    #     return ExistentialDependancy(self.key)
+
 @run_methods_return_type(type(None))
 @run_method_is_safe
-class Del(Command):
+class Del(Write):
     @auto_set_fields
     def __init__(self, key):
         pass
+
+    # to_data_dependency(self):
+    #     return None
 
 '''
 Not yet implmented:
@@ -149,9 +171,9 @@ class AssertType(TypeCheck):
     @auto_set_fields
     def __init__(self, key: str, r_type: RESPType):
         pass
-        #self.safe_run = self.run
 
-
+    # to_data_dependency(self):
+    #     return ExactTypeDependancy(self.key)
 
 
 @run_methods_return_type(type(None))
@@ -164,6 +186,7 @@ class AppendWO(Mutate):
         assert ex(AssertType(self.key, RScalar))
         return ex(self)
 
+
 @run_methods_return_type(bytes)
 class Get(Read):
     @auto_set_fields
@@ -173,6 +196,7 @@ class Get(Read):
     def safe_run(self, ex):
         assert ex(AssertType(self.key, RScalar))
         return ex(self)
+
 
 @run_methods_return_type(type(None))
 @run_method_is_safe
@@ -240,6 +264,49 @@ class HSet(Write):
         # Just assert that the key has
         assert ex(AssertType(self.key, RHash))
         return ex(self)
+
+class HExists(Read):
+    @auto_set_fields
+    def __init__(self, key: str, field: str):
+        pass
+
+    def safe_run(self, ex):
+        # Just assert that the key has
+        assert ex(AssertType(self.key, RHash))
+        return ex(self)
+
+
+# TODO: refactor this and the function below
+def merge_write_commands(to_merge, merged_on):
+    """
+    TODO: Important: as commands are added, this function must be updated.
+    """
+    supported_commands = [Set]
+    assert type(to_merge) in supported_commands, "Unsupported command"
+    assert type(merged_on) in supported_commands, "Unsupported command"
+    assert to_merge.key == merged_on.key, "Cannot merge, keys don't match"
+
+    if type(to_merge) == Set:
+        return to_merge
+
+    raise Exception('Unsupport combination of commands.')
+
+
+def merge_read_commands(to_merge, merged_on):
+    """
+    TODO: Important: as commands are added, this function must be updated.
+    """
+    supported_commands = [Get]
+    assert type(to_merge) in supported_commands, "Unsupported command"
+    assert type(merged_on) in supported_commands, "Unsupported command"
+    assert to_merge.key == merged_on.key, "Cannot merge, keys don't match"
+
+    if type(to_merge) == Get:
+        return to_merge
+
+    raise Exception('Unsupport combination of commands.')
+
+
 
 
 # class BitCount(Reads, is_dependant_on(RESPString)):

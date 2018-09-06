@@ -94,6 +94,9 @@ class Executer():
         self.data[cmd.key] = make_rscalar(cmd.value)
 
 
+    def del_(self, cmd):
+        self.data.pop(cmd.key)
+
 
     def incrbywo(self, cmd):
         #TODO: Change name to incrby_wo()
@@ -169,7 +172,8 @@ class Executer():
             if isinstance(maybe_rhash, RHash):
                 return maybe_rhash.value[cmd.field]
             else:
-                raise Exception('Existing value has wrong type.')
+                # TODO: custom exception type
+                raise RedisKeyTypeError('Existing value has wrong type.')
         except KeyError:
             return RDoesNotExist()
 
@@ -188,19 +192,68 @@ class Executer():
         if cmd.key in self.data:
             old_val = self.data[cmd.key]
             if not isinstance(old_val, RHash):
-                raise Exception('Existing value has wrong type.')
+                raise RedisKeyTypeError('Existing value has wrong type.')
             else:
                 inner_dict = self.data[cmd.key].value
                 inner_dict[cmd.field] = make_rscalar(cmd.value)
         else:
             self.data[cmd.key] = RHash({cmd.field: make_rscalar(cmd.value)})
 
+    def hexists(self, cmd):
+        """
+        >>> ex.purge()
+        >>> ex(HExists('foo', 'bar'))
+        False
+
+        >>> ex(HSet('foo', 'bar', 'baz'))
+        >>> ex(HExists('foo', 'bar'))
+        True
+
+        >>> ex(Set('foo', 'bar'))
+        >>> exception_type_name(ex, HExists('foo', 'bar'))
+        'RedisKeyTypeError'
+        """
+        try:
+            maybe_rhash = self.data[cmd.key]
+            if isinstance(maybe_rhash, RHash):
+                return cmd.field in maybe_rhash.value
+            else:
+                raise RedisKeyTypeError('Existing value has wrong type.')
+        except KeyError:
+            return False
 
 
     def __call__(self, cmd):
         # TODO: Make sure this is efficient and generally okay.
+        if isinstance(cmd, Del):
+            return self.del_(cmd)
         return getattr(self, cmd.__class__.__name__.lower())(cmd)
 
+    def contains_command_addr(self, cmd):
+        """
+        >>> ex.purge()
+        >>> ex.contains_command_addr(Get('foo'))
+        False
+        >>> ex.contains_command_addr(HGet('foo', 'bar'))
+        False
+
+        >>> ex(Set('foo', 'bar'))
+        >>> ex.contains_command_addr(Get('foo'))
+        True
+
+        >>> exception_type_name(ex.contains_command_addr, HGet('foo', 'bar'))
+        'RedisKeyTypeError'
+
+        >>> ex(Del('foo'))
+        >>> ex(HSet('foo', 'bar', 'baz'))
+
+        >>> ex.contains_command_addr(HGet('foo', 'bar'))
+        True
+        """
+        if hasattr(cmd, 'field'):
+            return self.hexists(cmd)
+        else:
+            return self.exists(cmd)
 
 
 def run_tests(deps_provider):
@@ -211,6 +264,12 @@ def run_tests(deps_provider):
             return args[0](*args[1:])
         except Exception as e:
             return str(e)
+
+    def exception_type_name(*args):
+        try:
+            return args[0](*args[1:])
+        except Exception as e:
+            return type(e).__name__
 
     import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
