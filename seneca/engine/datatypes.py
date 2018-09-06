@@ -651,6 +651,10 @@ class Ranked(RObject):
         m = self.encode_value(member)
         return self.driver.zincrby(self.prefix, m, i)
 
+    def decrement(self, member, i: int):
+        i *= -1
+        self.increment(member, i)
+
     def rep(self):
         return '{}ranked<{}>({},{})'.format(CTP,
                                             self.prefix,
