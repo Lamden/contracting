@@ -30,9 +30,10 @@ will generate RTypes for writing to db, and for returning local store and for
 return values.
 
 TODO: Switch from key input type to strings that more closely match RESP
+TODO: Switch all "WO" - write-only commands to "NR" - no-read
 """
 from abc import ABCMeta, abstractmethod
-from typing import Union
+from typing import Union, List
 
 from seneca.engine.util import auto_set_fields
 from seneca.engine.storage.redisnap.resp_types import *
@@ -73,8 +74,11 @@ class Write(Command):
     pass
 
 class Mutate(Command):
-    # def to_data_dependency(self):
-    #     return None
+    """
+    Mutates alter data like writes, but unlike writes, if the mutated value
+    is read, it will create a read dependancy on previous contracts, this
+    is not the case with regular writes.
+    """
     pass
 
 
@@ -273,6 +277,81 @@ class HExists(Read):
     def safe_run(self, ex):
         # Just assert that the key has
         assert ex(AssertType(self.key, RHash))
+        return ex(self)
+
+#################
+# List Commands #
+#################
+class LLen(Read):
+    @auto_set_fields
+    def __init__(self, key: str):
+        pass
+
+    def safe_run(self, ex):
+        assert ex(AssertType(self.key, RList))
+        return ex(self)
+
+
+class LIndex(Read):
+    @auto_set_fields
+    def __init__(self, key: str, index: int):
+        pass
+
+    def safe_run(self, ex):
+        assert ex(AssertType(self.key, RList))
+        return ex(self)
+
+
+class LSet(Write):
+    @auto_set_fields
+    def __init__(self, key: str, index: int, value: Union[str, float, int]):
+        pass
+
+    def safe_run(self, ex):
+        assert ex(AssertType(self.key, RList))
+        list_len = ex(LLen(self.key))
+        assert list_len > self.index
+        return ex(self)
+
+
+class LPushNR(Mutate):
+    @auto_set_fields
+    def __init__(self, key: str, value: List[Union[str, float, int]]):
+        pass
+
+    def safe_run(self, ex):
+        assert ex(AssertType(self.key, RList))
+        return ex(self)
+
+
+class RPushNR(Mutate):
+    @auto_set_fields
+    def __init__(self, key: str, value: List[Union[str, float, int]]):
+        pass
+
+    def safe_run(self, ex):
+        raise NotImplementedError()
+        assert ex(AssertType(self.key, RList))
+        return ex(self)
+
+
+class LPop(Mutate, Read):
+    @auto_set_fields
+    def __init__(self, key: str, index: int, value: List[Union[str, float, int]]):
+        pass
+
+    def safe_run(self, ex):
+        assert ex(AssertType(self.key, RList))
+        return ex(self)
+
+
+class RPop(Mutate, Read):
+    @auto_set_fields
+    def __init__(self, key: str, index: int, value: List[Union[str, float, int]]):
+        pass
+
+    def safe_run(self, ex):
+        assert ex(AssertType(self.key, RList))
         return ex(self)
 
 

@@ -175,7 +175,7 @@ class Executer():
         try:
             maybe_rhash = self.data[cmd.key]
             if isinstance(maybe_rhash, RHash):
-                return maybe_rhash.value[cmd.field]
+                return maybe_rhash.data[cmd.field]
             else:
                 # TODO: custom exception type
                 raise RedisKeyTypeError('Existing value has wrong type.')
@@ -199,7 +199,7 @@ class Executer():
             if not isinstance(old_val, RHash):
                 raise RedisKeyTypeError('Existing value has wrong type.')
             else:
-                inner_dict = self.data[cmd.key].value
+                inner_dict = self.data[cmd.key].data
                 inner_dict[cmd.field] = make_rscalar(cmd.value)
         else:
             self.data[cmd.key] = RHash({cmd.field: make_rscalar(cmd.value)})
@@ -221,11 +221,109 @@ class Executer():
         try:
             maybe_rhash = self.data[cmd.key]
             if isinstance(maybe_rhash, RHash):
-                return cmd.field in maybe_rhash.value
+                return cmd.field in maybe_rhash.data
             else:
                 raise RedisKeyTypeError('Existing value has wrong type.')
         except KeyError:
             return False
+
+    def lindex(self, cmd):
+        """
+        >>> ex.purge()
+
+        >>> ex(RPushNR('foo', 'bar'))
+        >>> ex(LIndex('foo', 0))
+        RScalar('bar')
+
+        >>> ex(LIndex('foo', 20))
+        RDoesNotExist()
+
+        >>> ex.purge()
+
+        >>> ex(LIndex('foo', 0))
+        RDoesNotExist()
+
+        >>> ex(Set('foo', 'bar'))
+        >>> exception_type_name(ex, LIndex('foo', 0))
+        'RedisKeyTypeError'
+        """
+        try:
+            maybe_rlist = self.data[cmd.key]
+            if isinstance(maybe_rlist, RList):
+                if len(maybe_rlist.data) <= cmd.index:
+                     return RDoesNotExist()
+                else:
+                    return maybe_rlist.data[cmd.index]
+            else:
+                raise RedisKeyTypeError('Existing value has wrong type.')
+        except KeyError:
+            return RDoesNotExist()
+
+
+    def lset(self, cmd):
+        """
+        >>> ex.purge()
+        >>> exception_to_string(ex, LSet('foo', 0, 'bar'))
+        'Cannot LSet an nonexistent key.'
+
+        >>> ex(RPushNR('foo', 'bar'))
+        >>> ex(LSet('foo', 0, 'baz'))
+
+        >>> exception_to_string(ex, LSet('foo', 1, 'bar'))
+        'Index out of range.'
+        """
+        try:
+            maybe_rlist = self.data[cmd.key]
+            if isinstance(maybe_rlist, RList):
+                assert len(maybe_rlist.data) > cmd.index, 'Index out of range.'
+                maybe_rlist.data[cmd.index] = cmd.value
+            else:
+                raise RedisKeyTypeError('Existing value has wrong type.')
+        except KeyError:
+            raise RedisKeyTypeError('Cannot LSet an nonexistent key.')
+
+    def push_nr_proto(self, method_name, cmd):
+        if cmd.key in self.data:
+            old_val = self.data[cmd.key]
+            if not isinstance(old_val, RList):
+                raise RedisKeyTypeError('Existing value has wrong type.')
+            else:
+                getattr(old_val.data, method_name)(make_rscalar(cmd.value))
+        else:
+            self.data[cmd.key] = RList([make_rscalar(cmd.value)])
+
+    def lpushnr(self, cmd):
+        """
+        >>> ex.purge()
+        >>> ex(LPushNR('foo', 'bar'))
+        >>> ex(LPushNR('foo', 'baz'))
+        >>> ex.data['foo'].data
+        deque([RScalar('baz'), RScalar('bar')])
+        """
+        return self.push_nr_proto('appendleft', cmd)
+
+
+    def rpushnr(self, cmd):
+        """
+        >>> ex.purge()
+        >>> ex(RPushNR('foo', 'bar'))
+        >>> ex.data['foo'].data
+        deque([RScalar('bar')])
+
+        >>> ex(RPushNR('foo', 'baz'))
+        >>> ex.data['foo'].data
+        deque([RScalar('bar'), RScalar('baz')])
+
+        """
+        return self.push_nr_proto('append', cmd)
+
+
+
+    def lpop(self, cmd):pass
+
+
+
+    def rpop(self, cmd):pass
 
 
     def __call__(self, cmd):

@@ -1,6 +1,7 @@
 from seneca.engine.util import auto_set_fields
 from abc import ABCMeta, abstractmethod
 import inspect
+from collections import deque
 
 
 class RedisKeyTypeError(Exception):
@@ -38,14 +39,20 @@ class RScalarFloat(RScalar):
     def to_bytes(self):
         return str.encode(str(self.value))
 
-class RList(RESPType): pass
+class RList(RESPType):
+    def __init__(self, data_list):
+        self.data = deque(data_list)
+
+    def __repr__(self):
+        return 'RList(%s)' % self.data
+
 class RSet(RESPType): pass
 class RSortedSet(RESPType): pass
 
 # Collections
 class RHash(RESPType):
     @auto_set_fields
-    def __init__(self, value):
+    def __init__(self, data):
         pass
 
 class RDoesNotExist(RScalarInt, RScalarFloat, RHash, RList, RSet, RSortedSet):
@@ -66,6 +73,9 @@ class RDoesNotExist(RScalarInt, RScalarFloat, RHash, RList, RSet, RSortedSet):
     @auto_set_fields
     def __init__(self):
         pass
+
+    def __repr__(_):
+        return 'RDoesNotExist()'
 
 class DataDependancy(ReprIsConstructor):
     @auto_set_fields
