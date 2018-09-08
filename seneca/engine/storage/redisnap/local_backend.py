@@ -282,7 +282,7 @@ class Executer():
         except KeyError:
             raise RedisKeyTypeError('Cannot LSet an nonexistent key.')
 
-    def push_nr_proto(self, method_name, cmd):
+    def _push_nr_base(self, method_name, cmd):
         if cmd.key in self.data:
             old_val = self.data[cmd.key]
             if not isinstance(old_val, RList):
@@ -292,6 +292,7 @@ class Executer():
         else:
             self.data[cmd.key] = RList([make_rscalar(cmd.value)])
 
+
     def lpushnr(self, cmd):
         """
         >>> ex.purge()
@@ -300,7 +301,7 @@ class Executer():
         >>> ex.data['foo'].data
         deque([RScalar('baz'), RScalar('bar')])
         """
-        return self.push_nr_proto('appendleft', cmd)
+        return self._push_nr_base('appendleft', cmd)
 
 
     def rpushnr(self, cmd):
@@ -315,15 +316,55 @@ class Executer():
         deque([RScalar('bar'), RScalar('baz')])
 
         """
-        return self.push_nr_proto('append', cmd)
+        return self._push_nr_base('append', cmd)
 
 
+    def _pop_base(self, method_name, cmd):
+        try:
+            maybe_rlist = self.data[cmd.key]
+            if isinstance(maybe_rlist, RList):
+                if not maybe_rlist.data:
+                    raise Exception("Inconsistent state: should never have an empty RList, panic!")
+                if len(maybe_rlist.data) == 1:
+                    # Redis deletes lists on last pop
+                    self.data.pop(cmd.key)
+                    return maybe_rlist.data[0]
+                else:
+                    return getattr(maybe_rlist.data, method_name)()
+            else:
+                # TODO: custom exception type
+                raise RedisKeyTypeError('Existing value has wrong type.')
+        except KeyError:
+            return RDoesNotExist()
 
-    def lpop(self, cmd):pass
 
+    def lpop(self, cmd):
+        """
+        >>> ex.purge()
+        >>> ex(LPop('foo'))
+        RDoesNotExist()
 
+        >>> ex(Set('foo', 'bar'))
+        >>> exception_type_name(ex, LPop('foo'))
+        'RedisKeyTypeError'
 
-    def rpop(self, cmd):pass
+        >>> ex.purge()
+        >>> ex(LPushNR('foo', 'bar')); ex(LPushNR('foo', 'baz'))
+        >>> ex(LPop('foo')); ex(LPop('foo'))
+        RScalar('baz')
+        RScalar('bar')
+        """
+        return self._pop_base('popleft', cmd)
+
+    def rpop(self, cmd):
+        """
+        >>> ex.purge()
+        >>> ex(RPushNR('foo', 'bar')); ex(RPushNR('foo', 'baz'))
+        >>> ex(RPop('foo')); ex(RPop('foo'))
+        RScalar('baz')
+        RScalar('bar')
+        """
+        return self._pop_base('pop', cmd)
 
 
     def __call__(self, cmd):

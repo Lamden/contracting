@@ -337,7 +337,7 @@ class RPushNR(Mutate):
 
 class LPop(Mutate, Read):
     @auto_set_fields
-    def __init__(self, key: str, index: int, value: List[Union[str, float, int]]):
+    def __init__(self, key: str):
         pass
 
     def safe_run(self, ex):
@@ -347,7 +347,7 @@ class LPop(Mutate, Read):
 
 class RPop(Mutate, Read):
     @auto_set_fields
-    def __init__(self, key: str, index: int, value: List[Union[str, float, int]]):
+    def __init__(self, key: str):
         pass
 
     def safe_run(self, ex):
