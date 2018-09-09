@@ -231,7 +231,7 @@ class Executer():
         """
         >>> ex.purge()
 
-        >>> ex(RPushNR('foo', 'bar'))
+        >>> ex(RPushNR('foo', ['bar']))
         >>> ex(LIndex('foo', 0))
         RScalar('bar')
 
@@ -266,7 +266,7 @@ class Executer():
         >>> exception_to_string(ex, LSet('foo', 0, 'bar'))
         'Cannot LSet an nonexistent key.'
 
-        >>> ex(RPushNR('foo', 'bar'))
+        >>> ex(RPushNR('foo', ['bar']))
         >>> ex(LSet('foo', 0, 'baz'))
 
         >>> exception_to_string(ex, LSet('foo', 1, 'bar'))
@@ -282,41 +282,54 @@ class Executer():
         except KeyError:
             raise RedisKeyTypeError('Cannot LSet an nonexistent key.')
 
-    def _push_nr_base(self, method_name, cmd):
-        if cmd.key in self.data:
-            old_val = self.data[cmd.key]
+
+    def _push_nr_base(self, method_name, key, values):
+        if key in self.data:
+            old_val = self.data[key]
             if not isinstance(old_val, RList):
                 raise RedisKeyTypeError('Existing value has wrong type.')
             else:
-                getattr(old_val.data, method_name)(make_rscalar(cmd.value))
+                getattr(old_val.data, method_name)(*map(make_rscalar, values))
         else:
-            self.data[cmd.key] = RList([make_rscalar(cmd.value)])
+            self.data[key] = RList(list(map(make_rscalar, values)))
 
 
     def lpushnr(self, cmd):
         """
         >>> ex.purge()
-        >>> ex(LPushNR('foo', 'bar'))
-        >>> ex(LPushNR('foo', 'baz'))
+        >>> ex(LPushNR('foo', ['bar']))
+        >>> ex.data['foo']
+        RList(deque([RScalar('bar')]))
+
+        >>> ex(LPushNR('foo', ['baz']))
+        >>> ex.data['foo']
+        RList(deque([RScalar('baz'), RScalar('bar')]))
+
+        >>> ex.purge()
+        >>> ex(LPushNR('foo', ['bar', 'baz']))
         >>> ex.data['foo'].data
         deque([RScalar('baz'), RScalar('bar')])
         """
-        return self._push_nr_base('appendleft', cmd)
+        return self._push_nr_base('appendleft', cmd.key, cmd.value[::-1])
 
 
     def rpushnr(self, cmd):
         """
         >>> ex.purge()
-        >>> ex(RPushNR('foo', 'bar'))
+        >>> ex(RPushNR('foo', ['bar']))
         >>> ex.data['foo'].data
         deque([RScalar('bar')])
 
-        >>> ex(RPushNR('foo', 'baz'))
+        >>> ex(RPushNR('foo', ['baz']))
         >>> ex.data['foo'].data
         deque([RScalar('bar'), RScalar('baz')])
 
+        >>> ex.purge()
+        >>> ex(RPushNR('foo', ['bar', 'baz']))
+        >>> ex.data['foo'].data
+        deque([RScalar('bar'), RScalar('baz')])
         """
-        return self._push_nr_base('append', cmd)
+        return self._push_nr_base('append', cmd.key, cmd.value)
 
 
     def _pop_base(self, method_name, cmd):
@@ -349,7 +362,7 @@ class Executer():
         'RedisKeyTypeError'
 
         >>> ex.purge()
-        >>> ex(LPushNR('foo', 'bar')); ex(LPushNR('foo', 'baz'))
+        >>> ex(LPushNR('foo', ['bar', 'baz']))
         >>> ex(LPop('foo')); ex(LPop('foo'))
         RScalar('baz')
         RScalar('bar')
@@ -359,7 +372,7 @@ class Executer():
     def rpop(self, cmd):
         """
         >>> ex.purge()
-        >>> ex(RPushNR('foo', 'bar')); ex(RPushNR('foo', 'baz'))
+        >>> ex(RPushNR('foo', ['bar', 'baz']))
         >>> ex(RPop('foo')); ex(RPop('foo'))
         RScalar('baz')
         RScalar('bar')
