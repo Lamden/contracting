@@ -162,6 +162,119 @@ class Executer():
         self._redis_executer.delete(cmd.key)
 
 
+    def lindex(self, cmd):
+        """
+        >>> ex.purge()
+
+        >>> ex(RPushNR('foo', ['bar']))
+        >>> ex(LIndex('foo', 0))
+        RScalar('bar')
+
+        >>> ex(LIndex('foo', 20))
+        RDoesNotExist()
+
+        >>> ex.purge()
+
+        >>> ex(LIndex('foo', 0))
+        RDoesNotExist()
+
+        >>> ex(Set('foo', 'bar'))
+        >>> e = return_exception(ex, LIndex('foo', 0))
+        >>> type(e).__name__; str(e)
+        'RedisKeyTypeError'
+        'Existing value has wrong type.'
+        """
+        try:
+            return bytes_to_rscalar(self._redis_executer.lindex(cmd.key, cmd.index))
+        except redis.exceptions.ResponseError as e:
+            if e.args[0] == 'WRONGTYPE Operation against a key holding the wrong kind of value':
+                raise RedisKeyTypeError('Existing value has wrong type.')
+            else:
+                raise
+
+
+    def lset(self, cmd):
+        """
+        >>> ex.purge()
+        >>> e = return_exception(ex, LSet('foo', 0, 'bar'))
+        >>> str(e)
+        'Cannot LSet an nonexistent key.'
+
+        >>> ex(RPushNR('foo', ['bar']))
+        >>> ex(LSet('foo', 0, 'baz'))
+
+        >>> e = return_exception(ex, LSet('foo', 1, 'bar'))
+        >>> type(e).__name__; str(e);
+        'RedisKeyTypeError'
+        'Index out of range.'
+        """
+        try:
+            self._redis_executer.lset(cmd.key, cmd.index, cmd.value)
+        except redis.exceptions.ResponseError as e:
+            if e.args[0] == 'no such key':
+                raise RedisKeyTypeError('Cannot LSet an nonexistent key.')
+            elif e.args[0] == 'index out of range':
+                return RedisKeyTypeError('Index out of range.')
+            else:
+                raise
+
+
+    def lpushnr(self, cmd):
+        """
+        >>> ex.purge()
+        >>> ex(LPushNR('foo', ['bar']))
+        """
+        self._redis_executer.lpush(cmd.key, *cmd.value)
+
+
+    def rpushnr(self, cmd):
+        """
+        >>> ex.purge()
+        >>> ex(RPushNR('foo', ['bar']))
+        """
+        self._redis_executer.rpush(cmd.key, *cmd.value)
+
+
+    def _pop_base(self, method_name, cmd):
+        try:
+            return bytes_to_rscalar(getattr(self._redis_executer, method_name)(cmd.key))
+        except redis.exceptions.ResponseError as e:
+            if e.args[0] == 'WRONGTYPE Operation against a key holding the wrong kind of value':
+                raise RedisKeyTypeError('Existing value has wrong type.')
+            else:
+                raise
+
+
+    def lpop(self, cmd):
+        """
+        >>> ex.purge()
+        >>> ex(LPop('foo'))
+        RDoesNotExist()
+
+        >>> ex(Set('foo', 'bar'))
+        >>> exception_type_name(ex, LPop('foo'))
+        'RedisKeyTypeError'
+
+        >>> ex.purge()
+        >>> ex(LPushNR('foo', ['bar', 'baz']))
+        >>> ex(LPop('foo')); ex(LPop('foo'))
+        RScalar('baz')
+        RScalar('bar')
+        """
+        return self._pop_base('lpop', cmd)
+
+
+    def rpop(self, cmd):
+        """
+        >>> ex.purge()
+        >>> ex(RPushNR('foo', ['bar', 'baz']))
+        >>> ex(RPop('foo')); ex(RPop('foo'))
+        RScalar('baz')
+        RScalar('bar')
+        """
+        return self._pop_base('rpop', cmd)
+
+
     def __call__(self, cmd):
         # TODO: Make sure this is efficient and generally okay.
 
@@ -179,6 +292,19 @@ def run_tests(deps_provider):
             return args[0](*args[1:])
         except Exception as e:
             return str(e)
+
+    def exception_type_name(*args):
+        try:
+            return args[0](*args[1:])
+        except Exception as e:
+            return type(e).__name__
+
+    def return_exception(*args):
+        try:
+            return args[0](*args[1:])
+        except Exception as e:
+            return e
+
 
     import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
