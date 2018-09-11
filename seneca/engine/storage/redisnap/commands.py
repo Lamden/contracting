@@ -59,9 +59,6 @@ class Command(ReprIsConstructor):
     def safe_run(self, local_ex):
         pass
 
-    # @abstractmethod
-    # def to_data_dependency(self):
-    #     pass
 
 # Inheriting these classes designates the subtype as performing these general
 # types of operation on Redis.
@@ -122,17 +119,27 @@ def run_method_is_safe(cls):
 class Type(Command):
     """
     This is the built-in shallow Redis typecheck.
+
+    >>> _ = ex.purge()
+    >>> t = ex(Type('foo'))
+    >>> print(t.__name__)
+    RDoesNotExist
+    >>> issubclass(t, RScalar)
+    True
     """
     @auto_set_fields
     def __init__(self, key):
         pass
 
-    # to_data_dependency(self):
-    #     return GeneralTypeDependancy(self.key)
 
 @run_methods_return_type(bool)
 @run_method_is_safe
 class Exists(Command):
+    """
+    >>> _ = ex.purge()
+    >>> ex(Exists('foo'));
+    False
+    """
     @auto_set_fields
     def __init__(self, key):
         pass
@@ -168,10 +175,19 @@ Won't implement:
 @run_methods_return_type(bool)
 @run_method_is_safe
 class AssertType(TypeCheck):
-    '''
+    """
     This is not part of RESP, it's a RediSnap add-on, it does deep type
     inspection.
-    '''
+
+    >>> ex.purge()
+    >>> ex(Set('foo', 'bar'))
+    >>> ex(AssertType('foo', RScalar))
+    True
+    >>> ex(AssertType('foo', RHash))
+    False
+
+    NOTE: This is the exact same implementation in local and redis backends
+    """
     @auto_set_fields
     def __init__(self, key: str, r_type: RESPType):
         pass
@@ -182,6 +198,18 @@ class AssertType(TypeCheck):
 
 @run_methods_return_type(type(None))
 class AppendWO(Mutate):
+    """
+    >>> ex.purge()
+    >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
+    RScalar('abc')
+    >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
+    RScalar('abcabc')
+
+    >>> ex(AppendWO('fooint', '1')); ex(Get('fooint'))
+    RScalarInt(1)
+    >>> ex(AppendWO('fooint', '1')); ex(Get('fooint'))
+    RScalarInt(11)
+    """
     @auto_set_fields
     def __init__(self, key: str, value: str):
         pass
@@ -193,6 +221,11 @@ class AppendWO(Mutate):
 
 @run_methods_return_type(bytes)
 class Get(Read):
+    """
+    >>> _ = ex.purge()
+    >>> ex(Get('foo'))
+    RDoesNotExist()
+    """
     @auto_set_fields
     def __init__(self, key: str):
         pass
@@ -205,6 +238,22 @@ class Get(Read):
 @run_methods_return_type(type(None))
 @run_method_is_safe
 class Set(Write):
+    """
+    TODO: Rename Set_
+    >>> _ = ex.purge()
+    >>> ex(Set('foo', 'bar'))
+
+    >>> ex(Exists('foo'))
+    True
+
+    >>> ex(Type('foo')).__name__; ex(Get('foo'))
+    'RScalar'
+    RScalar('bar')
+
+    >>> _ = ex(Set('foo', 1)); ex(Type('foo')).__name__; ex(Get('foo'))
+    'RScalar'
+    RScalarInt(1)
+    """
     @auto_set_fields
     def __init__(self, key: str, value: Union[str, float, int]):
         pass
@@ -212,6 +261,31 @@ class Set(Write):
 # Note: Front end must convert Incr, Decr, and DecrBy to IncrBy
 @run_methods_return_type(int)
 class IncrByWO(Mutate):
+    """
+    >>> ex.purge()
+
+    Increment an empty key
+    >>> ex(IncrByWO('foo', 1));
+
+    >>> ex(Get('foo'))
+    RScalarInt(1)
+
+    Increment an existing key
+    >>> ex(IncrByWO('foo', 1));
+
+    >>> ex(Get('foo'))
+    RScalarInt(2)
+
+    Incremenent non-int scalars
+    >>> ex(Set('foo', 'bar'))
+    >>> return_exception_tuple(ex, IncrByWO('foo', 1))
+    ('RedisVauleTypeError', 'Existing value has wrong type.')
+
+    >>> ex(Set('foo', 1.0))
+    >>> return_exception_tuple(ex, IncrByWO('foo', 1))
+    ('RedisVauleTypeError', 'Existing value has wrong type.')
+    """
+
     @auto_set_fields
     def __init__(self, key, amount: int):
         pass
@@ -242,6 +316,9 @@ class AssertFieldType(TypeCheck):
     OK
     > hget some_string field_name
     (error) WRONGTYPE Operation against a key holding the wrong kind of value
+
+    TODO: Add a test for this command
+    >> ex(AssertFieldType('foo', 'bar', RScalar))
     '''
     @auto_set_fields
     def __init__(self, key: str, field: str, r_type: RESPType):
@@ -250,6 +327,11 @@ class AssertFieldType(TypeCheck):
 
 @run_methods_return_type(bytes)
 class HGet(Read):
+    """
+    >>> ex.purge()
+    >>> ex(HGet('foo', 'bar'))
+    RDoesNotExist()
+    """
     @auto_set_fields
     def __init__(self, key: str, field: str):
         pass
@@ -260,6 +342,16 @@ class HGet(Read):
 
 #@run_methods_return_type(type(None))
 class HSet(Write):
+    """
+    >>> ex.purge()
+    >>> ex(HSet('foo', 'bar', 'baz'))
+    >>> ex(HGet('foo', 'bar'))
+    RScalar('baz')
+
+    >>> ex(HSet('foo', 'bar', 1))
+    >>> ex(HGet('foo', 'bar'))
+    RScalarInt(1)
+    """
     @auto_set_fields
     def __init__(self, key: str, field: str, value: Union[str, float, int]):
         pass
@@ -270,6 +362,19 @@ class HSet(Write):
         return ex(self)
 
 class HExists(Read):
+    """
+    >>> ex.purge()
+    >>> ex(HExists('foo', 'bar'))
+    False
+
+    >>> ex(HSet('foo', 'bar', 'baz'))
+    >>> ex(HExists('foo', 'bar'))
+    True
+
+    >>> ex(Set('foo', 'bar'))
+    >>> return_exception_tuple(ex, HExists('foo', 'bar'))
+    ('RedisKeyTypeError', 'Existing value has wrong type.')
+    """
     @auto_set_fields
     def __init__(self, key: str, field: str):
         pass
@@ -283,6 +388,10 @@ class HExists(Read):
 # List Commands #
 #################
 class LLen(Read):
+    """
+    TODO: add test for llen
+    >> ex(LLen('foo'))
+    """
     @auto_set_fields
     def __init__(self, key: str):
         pass
@@ -293,6 +402,25 @@ class LLen(Read):
 
 
 class LIndex(Read):
+    """
+    >>> ex.purge()
+
+    >>> ex(RPushNR('foo', ['bar']))
+    >>> ex(LIndex('foo', 0))
+    RScalar('bar')
+
+    >>> ex(LIndex('foo', 20))
+    RDoesNotExist()
+
+    >>> ex.purge()
+
+    >>> ex(LIndex('foo', 0))
+    RDoesNotExist()
+
+    >>> ex(Set('foo', 'bar'))
+    >>> return_exception_tuple(ex, LIndex('foo', 0))
+    ('RedisKeyTypeError', 'Existing value has wrong type.')
+    """
     @auto_set_fields
     def __init__(self, key: str, index: int):
         pass
@@ -303,6 +431,17 @@ class LIndex(Read):
 
 
 class LSet(Write):
+    """
+    >>> ex.purge()
+    >>> return_exception_tuple(ex, LSet('foo', 0, 'bar'))
+    ('RedisKeyTypeError', 'Cannot LSet an nonexistent key.')
+
+    >>> ex(RPushNR('foo', ['bar']))
+    >>> ex(LSet('foo', 0, 'baz'))
+
+    >>> return_exception_tuple(ex, LSet('foo', 1, 'bar'))
+    ('RedisListOutOfRange', 'Index out of range.')
+    """
     @auto_set_fields
     def __init__(self, key: str, index: int, value: Union[str, float, int]):
         pass
@@ -315,6 +454,23 @@ class LSet(Write):
 
 
 class LPushNR(Mutate):
+    """
+    >>> ex.purge()
+    >>> ex(LPushNR('foo', ['bar']))
+    >>> ex(LIndex('foo', 0))
+    RScalar('bar')
+
+    >>> ex(LPushNR('foo', ['baz']))
+    >>> ex(LIndex('foo', 0)); ex(LIndex('foo', 1));
+    RScalar('baz')
+    RScalar('bar')
+
+    >>> ex.purge()
+    >>> ex(LPushNR('foo', ['bar', 'baz']))
+    >>> ex(LIndex('foo', 0)); ex(LIndex('foo', 1));
+    RScalar('baz')
+    RScalar('bar')
+    """
     @auto_set_fields
     def __init__(self, key: str, value: List[Union[str, float, int]]):
         pass
@@ -325,6 +481,24 @@ class LPushNR(Mutate):
 
 
 class RPushNR(Mutate):
+    """
+    >>> ex.purge()
+    >>> ex(RPushNR('foo', ['bar']))
+    >>> ex(LIndex('foo', 0))
+    RScalar('bar')
+
+    >>> ex(RPushNR('foo', ['baz']))
+    >>> ex(LIndex('foo', 0)); ex(LIndex('foo', 1));
+    RScalar('bar')
+    RScalar('baz')
+
+
+    >>> ex.purge()
+    >>> ex(RPushNR('foo', ['bar', 'baz']))
+    >>> ex(LIndex('foo', 0)); ex(LIndex('foo', 1));
+    RScalar('bar')
+    RScalar('baz')
+    """
     @auto_set_fields
     def __init__(self, key: str, value: List[Union[str, float, int]]):
         pass
@@ -336,6 +510,21 @@ class RPushNR(Mutate):
 
 
 class LPop(Mutate, Read):
+    """
+    >>> ex.purge()
+    >>> ex(LPop('foo'))
+    RDoesNotExist()
+
+    >>> ex(Set('foo', 'bar'))
+    >>> return_exception_tuple(ex, LPop('foo'))
+    ('RedisKeyTypeError', 'Existing value has wrong type.')
+
+    >>> ex.purge()
+    >>> ex(LPushNR('foo', ['bar', 'baz']))
+    >>> ex(LPop('foo')); ex(LPop('foo'))
+    RScalar('baz')
+    RScalar('bar')
+    """
     @auto_set_fields
     def __init__(self, key: str):
         pass
@@ -346,6 +535,13 @@ class LPop(Mutate, Read):
 
 
 class RPop(Mutate, Read):
+    """
+    >>> ex.purge()
+    >>> ex(RPushNR('foo', ['bar', 'baz']))
+    >>> ex(RPop('foo')); ex(RPop('foo'))
+    RScalar('baz')
+    RScalar('bar')
+    """
     @auto_set_fields
     def __init__(self, key: str):
         pass
@@ -353,6 +549,17 @@ class RPop(Mutate, Read):
     def safe_run(self, ex):
         assert ex(AssertType(self.key, RList))
         return ex(self)
+
+
+
+'''
+TODO: Required ZSet commands:
+zadd
+zrem
+zrevrangebyscore
+zscore
+zincrby
+'''
 
 
 # TODO: refactor this and the function below
@@ -387,189 +594,50 @@ def merge_read_commands(to_merge, merged_on):
 
 
 
-
-# class BitCount(Reads, is_dependant_on(RESPString)):
-#     @auto_set_fields
-#     def __init__(self, key, start=None, end=None):
-#         pass
-
-# BITFIELD, not implemented
-#
-# class BitOp(Reads, Writes, is_dependant_on(RESPString)):
-#     @auto_set_fields
-#     def __init__(self, operation, dest, *keys):
-#         pass
-#
-# class BitPos(Reads, is_dependant_on(RESPString)):
-#     @auto_set_fields
-#     def __init__(self, key, bit, start=None, end=None):
-#         pass
-#
-# class GetBit(Reads, is_dependant_on(RESPString)):
-#     @auto_set_fields
-#     def __init__(self, key, offset):
-#         pass
-#
-# class GetRange(Reads, is_dependant_on(RESPString)):
-#     @auto_set_fields
-#     def __init__(self, key, start, end):
-#         pass
-#
-# class GetSet(Reads, Writes, is_dependant_on(RESPString)):
-#     @auto_set_fields
-#     def __init__(self, key, start, end):
-#         pass
-
-
-# TODO: decide if we actually want floats in Redis, could be a source of non-determinism
-# class IncrByFloat(Reads, Writes, is_dependant_on(RESPString)):
-#     @auto_set_fields
-#     def __init__(self, key, amount):
-#         pass
-#
-# class MGet(Reads, is_dependant_on(RESPString)):
-#     @auto_set_fields
-#     def __init__(self, keys):
-#         pass
-#
-# class MSet(Writes, RESPString):
-#     @auto_set_fields
-#     def __init__(self, kv_dict):
-#         pass
-#
-# class MSetNX(Reads, Writes, RESPString):
-#     @auto_set_fields
-#     def __init__(self, kv_dict):
-#         pass
-
-# PSETEX not implementing
-
-
-# class SetBit(Writes, is_dependant_on(RESPString)):
-#     @auto_set_fields
-#     def __init__(self, key, offset, value):
-#         pass
-
-# SETEX not implemented
-#
-# class SetNX(Reads, Writes, RESPString):
-#     @auto_set_fields
-#     def __init__(self, key, value):
-#         pass
-#
-# class SetRange(Writes, is_dependant_on(RESPString)):
-#     @auto_set_fields
-#     def __init__(self, key, offset, value):
-#         pass
-
-# class StrLen(Reads):
-#     @auto_set_fields
-#     def __init__(self, key, offset, value):
-#         pass
-#
-#     def verify_runnable(self, executer):
-#         return issubclass(ex(Type(self.key)), rtypes.RScalar)
-
-
-"""
-# Hash Commands #
-class HDel(TypeDependantWrites, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key, fields):
-        pass
-
-class HExists(Reads, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key, field):
-        pass
-
-class HGet(Reads, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key, field):
-        pass
-
-class HGetAll(Reads, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key):
-        pass
-
-class HIncrBy(TypeDependantWrites, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key, field, amount):
-        pass
-
-class HIncrByFloat(TypeDependantWrites, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key, amount):
-        pass
-
-class HKeys(Reads, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key):
-        pass
-
-class HLen(Reads, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key):
-        pass
-
-class HMGet(Reads, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key, fields):
-        pass
-
-class HMSet(TypeDependantWrites, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key, kv_dict):
-        pass
-
-# HScan - not implemented
-
-class HSet(TypeDependantWrites, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key, field, value):
-        pass
-
-class HSetNX(Writes, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key, field, value):
-        pass
-
-class HStrLen(Command, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key, field):
-        pass
-
-class HVals(Command, RESPHashMap):
-    @auto_set_fields
-    def __init__(self, key):
-        pass
-"""
 '''
 TODO:
-* List Commands
-* Sets Commands
 * OrderedSets Commands
 * Bitmaps Commands
 * hyperloglogs Commands
 '''
 
+"""
+Note: This module currently holds shared tests for RediSnap
+"""
 
 def run_tests(deps_provider):
-    '''
-    Test basics of Set
-    >> s = Set('a', 'b')
-    >> s.__dict__
-    {'key': 'a', 'value': 'b'}
-    >> s.run.__annotations__
-    {'return': <class 'NoneType'>}
+    import seneca.engine.storage.redisnap.local_backend as l_back
+    import seneca.engine.storage.redisnap.redis_backend as r_back
 
-    Test polymorphic scalars
+    #ex = Executer(host='127.0.0.1', port=32768)
 
-    >> _ = Get('a')
+    def return_exception(*args):
+        try:
+            return args[0](*args[1:])
+            raise Exception("This test expected an exception but no exception was thrown!")
+        except Exception as e:
+            return e
 
-    Test basics of Incr
-    >> i = IncrBy('a', 1)
-    '''
+    def return_exception_tuple(*args):
+        e = return_exception(*args)
+        return (type(e).__name__, str(e))
+
+
     import doctest, sys
-    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
+
+    # Setup up three executers
+    executers = [l_back.Executer(), r_back.Executer(host='127.0.0.1', port=32768)]
+
+    ret = lambda: None
+    ret.attempted = 0
+    ret.failed = 0
+
+    for ex in executers:
+        mod_name = ex.__module__
+        print("-- Testing executer %s --\n" % type(ex))
+        res = doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
+        ret.failed += res.failed
+        ret.attempted += res.attempted
+        print("-- Done with %s --\n" % type(ex))
+
+    return ret

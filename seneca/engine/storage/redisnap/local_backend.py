@@ -32,22 +32,9 @@ class Executer():
         self.data = {}
 
     def exists(self, cmd):
-        """
-        >>> _ = ex.purge()
-        >>> ex(Exists('foo'));
-        False
-        """
         return cmd.key in self.data
 
     def type(self, cmd):
-        """
-        >>> _ = ex.purge()
-        >>> t = ex(Type('foo'))
-        >>> print(t.__name__)
-        RDoesNotExist
-        >>> issubclass(t, RScalar)
-        True
-        """
         t = type(self.get(Get(cmd.key)))
         if t in [RScalarInt, RScalarFloat]:
             return RScalar
@@ -55,24 +42,9 @@ class Executer():
         return t
 
     def asserttype(self, cmd):
-        """
-        >>> ex.purge()
-        >>> ex(Set('foo', 'bar'))
-        >>> ex(AssertType('foo', RScalar))
-        True
-        >>> ex(AssertType('foo', RHash))
-        False
-
-        NOTE: This is the exact same implementation in local and redis backends
-        """
         return isinstance(self.get(cmd), cmd.r_type)
 
     def get(self, cmd):
-        """
-        >>> _ = ex.purge()
-        >>> ex(Get('foo'))
-        RDoesNotExist()
-        """
         try:
             ret = self.data[cmd.key]
             assert isinstance(ret, RScalar), 'FSR we got the wrong type!'
@@ -81,21 +53,6 @@ class Executer():
             return RDoesNotExist()
 
     def set(self, cmd):
-        """
-        >>> _ = ex.purge()
-        >>> ex(Set('foo', 'bar'))
-
-        >>> ex(Exists('foo'))
-        True
-
-        >>> ex(Type('foo')).__name__; ex(Get('foo'))
-        'RScalar'
-        RScalar('bar')
-
-        >>> _ = ex(Set('foo', 1)); ex(Type('foo')).__name__; ex(Get('foo'))
-        'RScalar'
-        RScalarInt(1)
-        """
         self.data[cmd.key] = make_rscalar(cmd.value)
 
 
@@ -105,30 +62,6 @@ class Executer():
 
     def incrbywo(self, cmd):
         #TODO: Change name to incrby_wo()
-        """
-        >>> ex.purge()
-
-        Increment an empty key
-        >>> ex(IncrByWO('foo', 1));
-
-        >>> ex(Get('foo'))
-        RScalarInt(1)
-
-        Increment an existing key
-        >>> ex(IncrByWO('foo', 1));
-
-        >>> ex(Get('foo'))
-        RScalarInt(2)
-
-        Incremenent non-int scalars
-        >>> ex(Set('foo', 'bar'))
-        >>> exception_to_string(ex, IncrByWO('foo', 1))
-        'Existing value has wrong type.'
-
-        >>> ex(Set('foo', 1.0))
-        >>> exception_to_string(ex, IncrByWO('foo', 1))
-        'Existing value has wrong type.'
-        """
         old = self(Get(cmd.key))
         old_type = type(old)
 
@@ -137,21 +70,10 @@ class Executer():
         elif issubclass(old_type, RScalarInt):
             old.value += cmd.amount
         else:
-            raise Exception('Existing value has wrong type.')
+            raise RedisVauleTypeError('Existing value has wrong type.')
 
 
     def appendwo(self, cmd):
-        """
-        >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
-        RScalar('abc')
-        >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
-        RScalar('abcabc')
-
-        >>> ex(AppendWO('fooint', '1')); ex(Get('fooint'))
-        RScalarInt(1)
-        >>> ex(AppendWO('fooint', '1')); ex(Get('fooint'))
-        RScalarInt(11)
-        """
         old = self(Get(cmd.key))
         old_type = type(old)
         assert isinstance(old, RScalar)
@@ -167,11 +89,6 @@ class Executer():
 
 
     def hget(self, cmd):
-        """
-        >>> ex.purge()
-        >>> ex(HGet('foo', 'bar'))
-        RDoesNotExist()
-        """
         try:
             maybe_rhash = self.data[cmd.key]
             if isinstance(maybe_rhash, RHash):
@@ -184,16 +101,6 @@ class Executer():
 
 
     def hset(self, cmd):
-        """
-        >>> ex.purge()
-        >>> ex(HSet('foo', 'bar', 'baz'))
-        >>> ex(HGet('foo', 'bar'))
-        RScalar('baz')
-
-        >>> ex(HSet('foo', 'bar', 1))
-        >>> ex(HGet('foo', 'bar'))
-        RScalarInt(1)
-        """
         if cmd.key in self.data:
             old_val = self.data[cmd.key]
             if not isinstance(old_val, RHash):
@@ -205,19 +112,7 @@ class Executer():
             self.data[cmd.key] = RHash({cmd.field: make_rscalar(cmd.value)})
 
     def hexists(self, cmd):
-        """
-        >>> ex.purge()
-        >>> ex(HExists('foo', 'bar'))
-        False
 
-        >>> ex(HSet('foo', 'bar', 'baz'))
-        >>> ex(HExists('foo', 'bar'))
-        True
-
-        >>> ex(Set('foo', 'bar'))
-        >>> exception_type_name(ex, HExists('foo', 'bar'))
-        'RedisKeyTypeError'
-        """
         try:
             maybe_rhash = self.data[cmd.key]
             if isinstance(maybe_rhash, RHash):
@@ -228,25 +123,6 @@ class Executer():
             return False
 
     def lindex(self, cmd):
-        """
-        >>> ex.purge()
-
-        >>> ex(RPushNR('foo', ['bar']))
-        >>> ex(LIndex('foo', 0))
-        RScalar('bar')
-
-        >>> ex(LIndex('foo', 20))
-        RDoesNotExist()
-
-        >>> ex.purge()
-
-        >>> ex(LIndex('foo', 0))
-        RDoesNotExist()
-
-        >>> ex(Set('foo', 'bar'))
-        >>> exception_type_name(ex, LIndex('foo', 0))
-        'RedisKeyTypeError'
-        """
         try:
             maybe_rlist = self.data[cmd.key]
             if isinstance(maybe_rlist, RList):
@@ -261,21 +137,11 @@ class Executer():
 
 
     def lset(self, cmd):
-        """
-        >>> ex.purge()
-        >>> exception_to_string(ex, LSet('foo', 0, 'bar'))
-        'Cannot LSet an nonexistent key.'
-
-        >>> ex(RPushNR('foo', ['bar']))
-        >>> ex(LSet('foo', 0, 'baz'))
-
-        >>> exception_to_string(ex, LSet('foo', 1, 'bar'))
-        'Index out of range.'
-        """
         try:
             maybe_rlist = self.data[cmd.key]
             if isinstance(maybe_rlist, RList):
-                assert len(maybe_rlist.data) > cmd.index, 'Index out of range.'
+                if len(maybe_rlist.data) <= cmd.index:
+                    raise RedisListOutOfRange('Index out of range.')
                 maybe_rlist.data[cmd.index] = cmd.value
             else:
                 raise RedisKeyTypeError('Existing value has wrong type.')
@@ -295,40 +161,10 @@ class Executer():
 
 
     def lpushnr(self, cmd):
-        """
-        >>> ex.purge()
-        >>> ex(LPushNR('foo', ['bar']))
-        >>> ex.data['foo']
-        RList(deque([RScalar('bar')]))
-
-        >>> ex(LPushNR('foo', ['baz']))
-        >>> ex.data['foo']
-        RList(deque([RScalar('baz'), RScalar('bar')]))
-
-        >>> ex.purge()
-        >>> ex(LPushNR('foo', ['bar', 'baz']))
-        >>> ex.data['foo'].data
-        deque([RScalar('baz'), RScalar('bar')])
-        """
         return self._push_nr_base('appendleft', cmd.key, cmd.value[::-1])
 
 
     def rpushnr(self, cmd):
-        """
-        >>> ex.purge()
-        >>> ex(RPushNR('foo', ['bar']))
-        >>> ex.data['foo'].data
-        deque([RScalar('bar')])
-
-        >>> ex(RPushNR('foo', ['baz']))
-        >>> ex.data['foo'].data
-        deque([RScalar('bar'), RScalar('baz')])
-
-        >>> ex.purge()
-        >>> ex(RPushNR('foo', ['bar', 'baz']))
-        >>> ex.data['foo'].data
-        deque([RScalar('bar'), RScalar('baz')])
-        """
         return self._push_nr_base('append', cmd.key, cmd.value)
 
 
@@ -352,31 +188,10 @@ class Executer():
 
 
     def lpop(self, cmd):
-        """
-        >>> ex.purge()
-        >>> ex(LPop('foo'))
-        RDoesNotExist()
-
-        >>> ex(Set('foo', 'bar'))
-        >>> exception_type_name(ex, LPop('foo'))
-        'RedisKeyTypeError'
-
-        >>> ex.purge()
-        >>> ex(LPushNR('foo', ['bar', 'baz']))
-        >>> ex(LPop('foo')); ex(LPop('foo'))
-        RScalar('baz')
-        RScalar('bar')
-        """
         return self._pop_base('popleft', cmd)
 
     def rpop(self, cmd):
-        """
-        >>> ex.purge()
-        >>> ex(RPushNR('foo', ['bar', 'baz']))
-        >>> ex(RPop('foo')); ex(RPop('foo'))
-        RScalar('baz')
-        RScalar('bar')
-        """
+
         return self._pop_base('pop', cmd)
 
 

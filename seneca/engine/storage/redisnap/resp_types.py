@@ -7,6 +7,12 @@ from collections import deque
 class RedisKeyTypeError(Exception):
     pass
 
+class RedisVauleTypeError(Exception):
+    pass
+
+class RedisListOutOfRange(Exception):
+    pass
+
 class ReprIsConstructor(metaclass=ABCMeta):
     def __repr__(self):
         #return '<RESP ADDRESS (%s) %s>' % (self.__class__.__name__, str(self.__dict__))

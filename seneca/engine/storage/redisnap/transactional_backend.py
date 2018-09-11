@@ -54,8 +54,6 @@ class Transaction:
     >>> t = Transaction(None, 'testing')
     >>> print(t)
     Transaction({'_local_executer': Executer({}), '_read_deps': OpTracker({}), '_typecheck_deps': OpTracker({}), '_redo_log': OpTracker({}), '_mutation_tracker': OpTracker({}), '_status': 'open', 'tag': 'testing', '_transaction_group': None})
-
-
     """
     def __init__(self, transaction_group, tag):
         #self._local_executer = TransactionalExecuter()
@@ -105,19 +103,8 @@ class Transaction:
             Writes are the simplest case: add them to the redo_log, run locally
             '''
             self._redo_log.add(cmd)
-            return self._local_executer(cmd)
+            self._local_executer(cmd)
 
-        elif isinstance(cmd, TypeCheck):
-            '''
-            Typechecks are also simple. The really difficult stuff is a result
-            of lazily evaluated mutating operations, typechecks don't care about
-            those because they don't change the type.
-            '''
-            if self._local_executer.contains_command_addr(cmd):
-                return self._local_executer(cmd)
-            else:
-                self._typecheck_deps.add(cmd)
-                return self.recursive_upstream_call(cmd)
 
         elif isinstance(cmd, Mutate):
             '''
@@ -129,10 +116,24 @@ class Transaction:
             self._redo_log.add(cmd)
 
             if self._local_executer.contains_command_addr(cmd):
-                return self._local_executer(cmd)
+                self._local_executer(cmd)
             else:
                 self._mutation_tracker.add(cmd)
                 self.run_mutate_command(cmd)
+
+
+        if isinstance(cmd, TypeCheck):
+            '''
+            Typechecks are also simple. The really difficult stuff is a result
+            of lazily evaluated mutating operations, typechecks don't care about
+            those because they don't change the type.
+            '''
+            if self._local_executer.contains_command_addr(cmd):
+                return self._local_executer(cmd)
+            else:
+                self._typecheck_deps.add(cmd)
+                return self.recursive_upstream_call(cmd)
+
 
         elif isinstance(cmd, Read):
             '''
@@ -149,8 +150,6 @@ class Transaction:
                     self._read_deps.add(cmd)
 
                 return self._local_executer(cmd)
-        else:
-            raise NotImplementedError()
 
 
     def recursive_upstream_call(self, cmd):
