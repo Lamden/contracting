@@ -1,7 +1,8 @@
-from seneca.engine.util import auto_set_fields
+from seneca.engine.util import auto_set_fields, fst, snd, swap
 from abc import ABCMeta, abstractmethod
 import inspect
 from collections import deque
+from sortedcontainers import SortedSet
 
 
 class RedisKeyTypeError(Exception):
@@ -53,7 +54,72 @@ class RList(RESPType):
         return 'RList(%s)' % self.data
 
 class RSet(RESPType): pass
-class RSortedSet(RESPType): pass
+
+
+class RSortedSet(RESPType):
+    def __init__(self, score_element_pair_list):
+        self._sorted_set = SortedSet(score_element_pair_list, key=fst)
+        self._dict = dict(map(swap, score_element_pair_list))
+
+    def __repr__(self):
+        """
+        >>> RSortedSet([(1, 'foo'), (2, 'bar')])
+        RSortedSet([(1, 'foo'), (2, 'bar')])
+        """
+        return 'RSortedSet(%s)'  % str(list(sorted(map(swap, self._dict.items()), key=fst)))
+
+    def add(self, score, elememnt):
+        """
+        >>> s = RSortedSet([])
+        >>> s.add(1,'foo'); s
+        RSortedSet([(1, 'foo')])
+
+        >>> s.add(2,'bar'); s
+        RSortedSet([(1, 'foo'), (2, 'bar')])
+        """
+        self._sorted_set.add((score, elememnt))
+        self._dict[elememnt] = score
+
+    def rem(self, element):
+        """
+        >>> s = RSortedSet([(1, 'foo'), (2, 'bar')])
+        >>> s.rem('foo'); s
+        RSortedSet([(2, 'bar')])
+        >>> s.rem('bar'); s
+        RSortedSet([])
+
+        >>> return_exception_tuple(s.rem, ('bar'))
+        ('KeyError', "'bar'")
+        """
+        score = self._dict.pop(element)
+        self._sorted_set.discard((score, element))
+
+    def rev_range_by_score(self, min_:int, max_:int, inclusive=(True,True)):
+        """
+        ZRANGEBYSCORE zset (1 5
+        Will return all elements with 1 < score <= 5 while:
+
+        TODO: test
+        """
+        return self._sorted_set.irange(min_, max_, inclusive=inclusive)
+
+    def score(self, element):
+        """
+        TODO: test
+        """
+        return self._dict[element]
+
+    def incr_by(self, element, amount):
+        """
+        TODO: test
+        """
+        score = self._dict.pop(element, 0)
+        self._sorted_set.discard((score, element))
+
+        new_score = score + amount
+        self._dict[element] = new_score
+        self._sorted_set.set((new_score, element))
+
 
 # Collections
 class RHash(RESPType):
@@ -138,5 +204,16 @@ def from_resp_str(type_byte_str):
     return d[type_byte_str]
 
 def run_tests(deps_provider):
+    def return_exception(*args):
+        try:
+            return args[0](*args[1:])
+            raise Exception("This test expected an exception but no exception was thrown!")
+        except Exception as e:
+            return e
+
+    def return_exception_tuple(*args):
+        e = return_exception(*args)
+        return (type(e).__name__, str(e))
+
     import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

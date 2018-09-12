@@ -39,6 +39,7 @@ class OpTracker(ReprIsConstructor):
 
         self.data[cmd.key].append(cmd)
 
+    # TODO: This function has to both implement fields and get a lot smarter.
     def contains_command_addr(self, cmd):
         if hasattr(cmd, 'field'):
             raise NotImplementedError()

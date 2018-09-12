@@ -550,10 +550,22 @@ class RPop(Mutate, Read):
         assert ex(AssertType(self.key, RList))
         return ex(self)
 
+class ZAddNR(Mutate):
+    """
+    """
+    @auto_set_fields
+    def __init__(self, key: str, score: str, member: str):
+        pass
+
+    def safe_run(self, ex):
+        assert ex(AssertType(self.key, RSet))
+        return ex(self)
+
+
 
 
 '''
-TODO: Required ZSet commands:
+TODO: Required ordered set commands:
 zadd
 zrem
 zrevrangebyscore
@@ -596,7 +608,6 @@ def merge_read_commands(to_merge, merged_on):
 
 '''
 TODO:
-* OrderedSets Commands
 * Bitmaps Commands
 * hyperloglogs Commands
 '''
