@@ -99,26 +99,57 @@ class RSortedSet(RESPType):
         ZRANGEBYSCORE zset (1 5
         Will return all elements with 1 < score <= 5 while:
 
-        TODO: test
+        >>> list(RSortedSet([(1, 'foo'), (2, 'bar')]).rev_range_by_score(1,1))
+        ['foo']
+
+        >>> list(RSortedSet([(1, 'foo'), (2, 'bar')]).rev_range_by_score(3,5))
+        []
+
+        >>> list(RSortedSet([(1, 'foo'), (2, 'bar')]).rev_range_by_score(2,1))
+        []
+
+        >>> list(RSortedSet([(1, 'foo'), (2, 'bar')]).rev_range_by_score(1,2, (True,False)))
+        ['foo']
+
+        >>> list(RSortedSet([(1, 'foo'), (2, 'bar')]).rev_range_by_score(1,2, (False,False)))
+        []
         """
-        return self._sorted_set.irange(min_, max_, inclusive=inclusive)
+        return map(snd, self._sorted_set.irange((min_, None), (max_, None), inclusive=inclusive))
 
     def score(self, element):
         """
-        TODO: test
+        >>> s = RSortedSet([(1, 'foo'), (2, 'bar')])
+        >>> s.score('foo')
+        1
+        >>> s.score('bar')
+        2
+
+        >>> s.score('baz')
         """
-        return self._dict[element]
+        try:
+            return self._dict[element]
+        except KeyError:
+            return None
 
     def incr_by(self, element, amount):
         """
-        TODO: test
+        >>> s = RSortedSet([(1, 'foo'), (2, 'bar')])
+        >>> s.incr_by('foo', 1); s.score('foo')
+        2
+        >>> s.incr_by('foo', 2); s.score('foo')
+        4
+        >>> s
+        RSortedSet([(2, 'bar'), (4, 'foo')])
+
+        >>> s.incr_by('new_element', 2); s.score('new_element')
+        2
         """
         score = self._dict.pop(element, 0)
         self._sorted_set.discard((score, element))
 
         new_score = score + amount
         self._dict[element] = new_score
-        self._sorted_set.set((new_score, element))
+        self._sorted_set.add((new_score, element))
 
 
 # Collections
