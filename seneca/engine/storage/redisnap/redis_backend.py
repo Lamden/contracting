@@ -2,6 +2,7 @@
 """
 import redis
 from functools import wraps
+from seneca.engine.util import grouper
 
 from seneca.engine.storage.redisnap.commands import *
 import seneca.engine.storage.redisnap.resp_types as rtype
@@ -114,10 +115,48 @@ class Executer():
             return None
 
     def zrevrangebyscore(self, cmd):
-        return self._redis_executer.zrevrangebyscore
+        # redis> ZREVRANGEBYSCORE myzset +inf -inf
+        # 1) "three"
+        # 2) "two"
+        # 3) "one"
+        # redis> ZREVRANGEBYSCORE myzset 2 1
+        # 1) "two"
+        # 2) "one"
+        # redis> ZREVRANGEBYSCORE myzset 2 (1
+        # 1) "two"
+        # redis> ZREVRANGEBYSCORE myzset (2 (1
+        def format_redis_range_str(x: int, default: str, marked_inclusive: bool):
+            if x is None:
+                return default
+            else:
+                s = str(x)
+                if marked_inclusive:
+                    return s
+                else:
+                    return '(' + s
+
+        cmd_parts = [ 'ZREVRANGEBYSCORE',
+                      cmd.key,
+                      format_redis_range_str(cmd.max, 'inf', cmd.inclusive[0]),
+                      format_redis_range_str(cmd.min, '-inf', cmd.inclusive[1]),
+            ]
+
+        if cmd.with_scores:
+            cmd_parts.append('WITHSCORES')
+
+        full_cmd_str = ' '.join(cmd_parts)
+        res = self._redis_executer.execute_command(full_cmd_str)
+
+        if not cmd.with_scores:
+            return list(map(lambda x: x.decode('utf-8'), res))
+        else:
+            res_byte_pairs = grouper(res, 2)
+            return map(lambda x_y: ( int(x_y[1]), x_y[0].decode("utf-8") ), res_byte_pairs)
+
 
     def zremnr(self, cmd):
         self._redis_executer.zrem(cmd.key, cmd.member)
+
 
     def transform_exception(f):
         @wraps(f)

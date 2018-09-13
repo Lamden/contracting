@@ -634,19 +634,27 @@ class ZRevRangeByScore(Read):
     >>> list(ex(ZRevRangeByScore('foo', 2, 1)))
     ['two', 'one']
 
-    >>> list(ex(ZRevRangeByScore('foo', 2, 1, (False, True))))
+    >>> list(ex(ZRevRangeByScore('foo', 2, 1, (True, False))))
     ['two']
 
     >>> list(ex(ZRevRangeByScore('foo', 2, 1, (False, False))))
     []
 
+    >>> list(ex(ZRevRangeByScore('foo', None, None, with_scores=True)))
+    [(3, 'three'), (2, 'two'), (1, 'one')]
+
+
+
+
     # Testing exception on type mismatch
     >>> ex(Set('foo', 'bar'))
     >>> return_exception_tuple(ex, ZRevRangeByScore('foo',10,30))
     ('RedisKeyTypeError', 'Existing value has wrong type.')
+
+
     """
     @auto_set_fields
-    def __init__(self, key: str, min: int, max: int, inclusive=(True, True), with_scores=False):
+    def __init__(self, key: str, max: int, min: int, inclusive=(True, True), with_scores=False):
         pass
 
     def safe_run(self, ex):
@@ -655,6 +663,23 @@ class ZRevRangeByScore(Read):
 
 
 class ZScore(Read):
+    """
+    >> ex.purge()
+
+    Empty key returns None
+    >> ex(ZScore('foo', 'bar'))
+
+    Member is not present returns None too
+    >> ex(ZAddNR('foo', 1, 'bar')); ex(ZScore('foo', 'baz'))
+
+    >> ex(ZScore('foo', 'bar'))
+    1
+
+    # Testing exception on type mismatch
+    >> ex(Set('foo', 'bar'))
+    >> return_exception_tuple(ex, ZScore('foo', 'bar'))
+    ('RedisKeyTypeError', 'Existing value has wrong type.')
+    """
     @auto_set_fields
     def __init__(self, key: str, member: str):
         pass
@@ -725,7 +750,7 @@ def run_tests(deps_provider):
     import doctest, sys
 
     # Setup up three executers
-    executers = [l_back.Executer()] #, r_back.Executer(host='127.0.0.1', port=32768)]
+    executers = [l_back.Executer(), r_back.Executer(host='127.0.0.1', port=32768)]
 
     ret = lambda: None
     ret.attempted = 0

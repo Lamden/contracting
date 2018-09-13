@@ -126,7 +126,7 @@ class RSortedSet(RESPType):
         except KeyError as e:
             pass
 
-    def rev_range_by_score(self, max_:int, min_:int, inclusive=(True,True)):
+    def rev_range_by_score(self, max_:int, min_:int, inclusive=(True,True), with_scores=False):
         """
         TODO: add withscores
         ZRANGEBYSCORE zset (1 5
@@ -140,12 +140,16 @@ class RSortedSet(RESPType):
         ['two', 'one']
 
         >>> list(s.rev_range_by_score(2, 1, (False, True)))
-        ['two']
+        ['one']
 
         >>> list(s.rev_range_by_score(2, 1, (False, False)))
         []
         """
-        return map(snd, self._sorted_set.irange((min_, None), (max_, None), inclusive=inclusive, reverse=True))
+        res = self._sorted_set.irange((min_, None), (max_, None), inclusive=swap(inclusive), reverse=True)
+        if with_scores:
+            return res
+        else:
+            return map(snd, res)
 
     def score(self, member):
         """

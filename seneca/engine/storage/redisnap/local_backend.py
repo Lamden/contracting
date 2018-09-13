@@ -223,29 +223,12 @@ class Executer():
             if not isinstance(existing_sset, RSortedSet):
                 raise RedisKeyTypeError('Existing value has wrong type.')
             else:
-                return existing_sset.rev_range_by_score(cmd.min, cmd.max, cmd.inclusive)
+                return existing_sset.rev_range_by_score(cmd.max, cmd.min, cmd.inclusive, cmd.with_scores)
         else:
             return []
 
 
-    def  zscore(self, cmd):
-        """
-        >>> ex.purge()
-
-        Empty key returns None
-        >>> ex(ZScore('foo', 'bar'))
-
-        Member is not present returns None too
-        >>> ex(ZAddNR('foo', 1, 'bar')); ex(ZScore('foo', 'baz'))
-
-        >>> ex(ZScore('foo', 'bar'))
-        1
-
-        # Testing exception on type mismatch
-        >>> ex(Set('foo', 'bar'))
-        >>> return_exception_tuple(ex, ZScore('foo', 'bar'))
-        ('RedisKeyTypeError', 'Existing value has wrong type.')
-        """
+    def zscore(self, cmd):
         if cmd.key in self.data:
             existing_sset = self.data[cmd.key]
             if not isinstance(existing_sset, RSortedSet):
