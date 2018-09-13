@@ -562,16 +562,50 @@ class ZAddNR(Mutate):
         return ex(self)
 
 
+class ZRemNR(Mutate):
+    """
+    Removes the specified members from the sorted set stored at key. Non existing members are ignored.
+    """
+    @auto_set_fields
+    def __init__(self, key: str, member: str):
+        pass
+
+    def safe_run(self, ex):
+        assert ex(AssertType(self.key, RSet))
+        return ex(self)
 
 
-'''
-TODO: Required ordered set commands:
-zadd
-zrem
-zrevrangebyscore
-zscore
-zincrby
-'''
+class ZRevRangeByScore(Read):
+    """
+    Removes the specified members from the sorted set stored at key. Non existing members are ignored.
+    """
+    @auto_set_fields
+    def __init__(self, key: str, min: int, max: int, inclusive=(True, True)):
+        pass
+
+    def safe_run(self, ex):
+        assert ex(AssertType(self.key, RSet))
+        return ex(self)
+
+
+class ZScore(Read):
+    @auto_set_fields
+    def __init__(self, key: str, member: str):
+        pass
+
+    def safe_run(self, ex):
+        assert ex(AssertType(self.key, RSet))
+        return ex(self)
+
+
+class ZIncrByNR(Mutate):
+    @auto_set_fields
+    def __init__(self, key: str, member: str, amount:int):
+        pass
+
+    def safe_run(self, ex):
+        assert ex(AssertType(self.key, RSet))
+        return ex(self)
 
 
 # TODO: refactor this and the function below
@@ -620,19 +654,7 @@ def run_tests(deps_provider):
     import seneca.engine.storage.redisnap.local_backend as l_back
     import seneca.engine.storage.redisnap.redis_backend as r_back
 
-    #ex = Executer(host='127.0.0.1', port=32768)
-
-    def return_exception(*args):
-        try:
-            return args[0](*args[1:])
-            raise Exception("This test expected an exception but no exception was thrown!")
-        except Exception as e:
-            return e
-
-    def return_exception_tuple(*args):
-        e = return_exception(*args)
-        return (type(e).__name__, str(e))
-
+    from seneca.engine.util import return_exception_tuple
 
     import doctest, sys
 

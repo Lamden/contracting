@@ -55,11 +55,10 @@ class RList(RESPType):
 
 class RSet(RESPType): pass
 
-
 class RSortedSet(RESPType):
-    def __init__(self, score_element_pair_list):
-        self._sorted_set = SortedSet(score_element_pair_list, key=fst)
-        self._dict = dict(map(swap, score_element_pair_list))
+    def __init__(self, score_member_pair_list):
+        self._sorted_set = SortedSet(score_member_pair_list, key=fst)
+        self._dict = dict(map(swap, score_member_pair_list))
 
     def __repr__(self):
         """
@@ -68,7 +67,37 @@ class RSortedSet(RESPType):
         """
         return 'RSortedSet(%s)'  % str(list(sorted(map(swap, self._dict.items()), key=fst)))
 
-    def add(self, score, elememnt):
+    def __contains__(self, maybe_member):
+        """
+        >>> 'foo' in RSortedSet([(1, 'foo'), (2, 'bar')])
+        True
+
+        >>> 'baz' in RSortedSet([(1, 'foo'), (2, 'bar')])
+        False
+        """
+        return maybe_member in self._dict
+
+    def __len__(self):
+        """
+        >>> len(RSortedSet([(1, 'foo'), (2, 'bar')]))
+        2
+
+        >>> len(RSortedSet([]))
+        0
+        """
+        return len(self._dict)
+
+    def __bool__(self):
+        """
+        >>> bool(RSortedSet([(1, 'foo'), (2, 'bar')]))
+        True
+
+        >>> bool(RSortedSet([]))
+        False
+        """
+        return bool(self._dict)
+
+    def add(self, score, member):
         """
         >>> s = RSortedSet([])
         >>> s.add(1,'foo'); s
@@ -77,10 +106,10 @@ class RSortedSet(RESPType):
         >>> s.add(2,'bar'); s
         RSortedSet([(1, 'foo'), (2, 'bar')])
         """
-        self._sorted_set.add((score, elememnt))
-        self._dict[elememnt] = score
+        self._sorted_set.add((score, member))
+        self._dict[member] = score
 
-    def rem(self, element):
+    def rem(self, member):
         """
         >>> s = RSortedSet([(1, 'foo'), (2, 'bar')])
         >>> s.rem('foo'); s
@@ -88,16 +117,19 @@ class RSortedSet(RESPType):
         >>> s.rem('bar'); s
         RSortedSet([])
 
-        >>> return_exception_tuple(s.rem, ('bar'))
-        ('KeyError', "'bar'")
+        >>> s.rem('bar')
+
         """
-        score = self._dict.pop(element)
-        self._sorted_set.discard((score, element))
+        try:
+            score = self._dict.pop(member)
+            self._sorted_set.discard((score, member))
+        except KeyError as e:
+            pass
 
     def rev_range_by_score(self, min_:int, max_:int, inclusive=(True,True)):
         """
         ZRANGEBYSCORE zset (1 5
-        Will return all elements with 1 < score <= 5 while:
+        Will return all members with 1 < score <= 5 while:
 
         >>> list(RSortedSet([(1, 'foo'), (2, 'bar')]).rev_range_by_score(1,1))
         ['foo']
@@ -116,7 +148,7 @@ class RSortedSet(RESPType):
         """
         return map(snd, self._sorted_set.irange((min_, None), (max_, None), inclusive=inclusive))
 
-    def score(self, element):
+    def score(self, member):
         """
         >>> s = RSortedSet([(1, 'foo'), (2, 'bar')])
         >>> s.score('foo')
@@ -127,29 +159,29 @@ class RSortedSet(RESPType):
         >>> s.score('baz')
         """
         try:
-            return self._dict[element]
+            return self._dict[member]
         except KeyError:
             return None
 
-    def incr_by(self, element, amount):
+    def incr_by(self, amount, member):
         """
         >>> s = RSortedSet([(1, 'foo'), (2, 'bar')])
-        >>> s.incr_by('foo', 1); s.score('foo')
+        >>> s.incr_by(1, 'foo'); s.score('foo')
         2
-        >>> s.incr_by('foo', 2); s.score('foo')
+        >>> s.incr_by(2, 'foo'); s.score('foo')
         4
         >>> s
         RSortedSet([(2, 'bar'), (4, 'foo')])
 
-        >>> s.incr_by('new_element', 2); s.score('new_element')
+        >>> s.incr_by(2, 'new_member'); s.score('new_member')
         2
         """
-        score = self._dict.pop(element, 0)
-        self._sorted_set.discard((score, element))
+        score = self._dict.pop(member, 0)
+        self._sorted_set.discard((score, member))
 
         new_score = score + amount
-        self._dict[element] = new_score
-        self._sorted_set.add((new_score, element))
+        self._dict[member] = new_score
+        self._sorted_set.add((new_score, member))
 
 
 # Collections
@@ -235,16 +267,7 @@ def from_resp_str(type_byte_str):
     return d[type_byte_str]
 
 def run_tests(deps_provider):
-    def return_exception(*args):
-        try:
-            return args[0](*args[1:])
-            raise Exception("This test expected an exception but no exception was thrown!")
-        except Exception as e:
-            return e
-
-    def return_exception_tuple(*args):
-        e = return_exception(*args)
-        return (type(e).__name__, str(e))
+    from seneca.engine.util import return_exception_tuple
 
     import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

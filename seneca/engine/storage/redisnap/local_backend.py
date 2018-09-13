@@ -190,9 +190,175 @@ class Executer():
     def lpop(self, cmd):
         return self._pop_base('popleft', cmd)
 
-    def rpop(self, cmd):
 
+    def rpop(self, cmd):
         return self._pop_base('pop', cmd)
+
+
+    def zaddnr(self, cmd):
+        """
+        >>> ex.purge()
+
+        # Testing auto creation
+        >>> ex(ZAddNR('foo', 1, 'bar'))
+        >>> ex.data['foo'] # TODO: make this generic
+        RSortedSet([(1, 'bar')])
+
+        # Testing modification of an existing value
+        >>> ex(ZAddNR('foo', 2, 'baz'))
+        >>> ex.data['foo'] # TODO: make this generic
+        RSortedSet([(1, 'bar'), (2, 'baz')])
+
+        # Testing update of an existing member
+        >>> ex(ZAddNR('foo', 50, 'baz'))
+        >>> ex.data['foo'] # TODO: make this generic
+        RSortedSet([(1, 'bar'), (50, 'baz')])
+
+        # Testing exception on type mismatch
+        >>> ex(Set('foo', 'bar'))
+        >>> return_exception_tuple(ex, ZAddNR('foo', 2, 'baz'))
+        ('RedisKeyTypeError', 'Existing value has wrong type.')
+        """
+        if cmd.key in self.data:
+            existing_sset = self.data[cmd.key]
+            if not isinstance(existing_sset, RSortedSet):
+                raise RedisKeyTypeError('Existing value has wrong type.')
+            else:
+                existing_sset.add(cmd.score, cmd.member)
+        else:
+            self.data[cmd.key] = RSortedSet([(cmd.score, cmd.member)])
+
+    def zremnr(self, cmd):
+        """
+        >>> ex.purge()
+
+        Testing zrem on non existing key
+        >>> ex(ZRemNR('foo', 'bar'))
+        >>> 'foo' in ex.data # TODO: make this generic
+        False
+
+        Test modification of existing
+        >>> ex(ZAddNR('foo', 1, 'bar'))
+        >>> ex(ZAddNR('foo', 2, 'baz'))
+        >>> ex(ZRemNR('foo', 'baz'))
+        >>> ex.data['foo'] # TODO: make this generic
+        RSortedSet([(1, 'bar')])
+
+        Test zrem of non-existent member
+        >>> ex(ZRemNR('foo', 'qux'))
+
+        Test deletion of sset after last member is removed
+        >>> ex(ZRemNR('foo', 'bar'))
+        >>> 'foo' in ex.data
+        False
+
+        # Testing exception on type mismatch
+        >>> ex(Set('foo', 'bar'))
+        >>> return_exception_tuple(ex, ZRemNR('foo', 'qux'))
+        ('RedisKeyTypeError', 'Existing value has wrong type.')
+        """
+        if cmd.key in self.data:
+            existing_sset = self.data[cmd.key]
+            if not isinstance(existing_sset, RSortedSet):
+                raise RedisKeyTypeError('Existing value has wrong type.')
+            else:
+                existing_sset.rem(cmd.member)
+                if not existing_sset:
+                    self.data.pop(cmd.key)
+        else:
+            pass
+
+    def zrevrangebyscore(self, cmd):
+        """
+        key: str, min: int, max: int, inclusive
+
+        >>> ex.purge()
+        >>> ex(ZAddNR('foo', 1, 'bar')); ex(ZAddNR('foo', 2, 'baz')); ex(ZAddNR('foo', 3, 'qux'))
+        >>> list(ex(ZRevRangeByScore('foo',1,3)))
+        ['bar', 'baz', 'qux']
+
+        >>> list(ex(ZRevRangeByScore('quux',1,3)))
+        []
+
+        >>> list(ex(ZRevRangeByScore('foo',10,30)))
+        []
+
+        >>> list(ex(ZRevRangeByScore('foo',1,3, (False,False))))
+        ['baz']
+
+        # Testing exception on type mismatch
+        >>> ex(Set('foo', 'bar'))
+        >>> return_exception_tuple(ex, ZRevRangeByScore('foo',10,30))
+        ('RedisKeyTypeError', 'Existing value has wrong type.')
+        """
+        if cmd.key in self.data:
+            existing_sset = self.data[cmd.key]
+            if not isinstance(existing_sset, RSortedSet):
+                raise RedisKeyTypeError('Existing value has wrong type.')
+            else:
+                return existing_sset.rev_range_by_score(cmd.min, cmd.max, cmd.inclusive)
+        else:
+            return []
+
+
+    def  zscore(self, cmd):
+        """
+        >>> ex.purge()
+
+        Empty key returns None
+        >>> ex(ZScore('foo', 'bar'))
+
+        Member is not present returns None too
+        >>> ex(ZAddNR('foo', 1, 'bar')); ex(ZScore('foo', 'baz'))
+
+        >>> ex(ZScore('foo', 'bar'))
+        1
+
+        # Testing exception on type mismatch
+        >>> ex(Set('foo', 'bar'))
+        >>> return_exception_tuple(ex, ZScore('foo', 'bar'))
+        ('RedisKeyTypeError', 'Existing value has wrong type.')
+        """
+        if cmd.key in self.data:
+            existing_sset = self.data[cmd.key]
+            if not isinstance(existing_sset, RSortedSet):
+                raise RedisKeyTypeError('Existing value has wrong type.')
+            else:
+                try:
+                    return existing_sset.score(cmd.member)
+                except KeyError as e:
+                    return None
+        else:
+            return None
+
+
+    def zincrbynr(self, cmd):
+        """
+        >>> ex.purge()
+
+        # Totally empty key
+        >>> ex(ZIncrByNR('foo', 'bar', 1)); ex(ZScore('foo', 'bar'))
+        1
+
+        # Missing member
+        >>> ex(ZIncrByNR('foo', 'baz', 1)); ex(ZScore('foo', 'baz'))
+        1
+
+        # Update existing
+        >>> ex(ZIncrByNR('foo', 'baz', 4)); ex(ZScore('foo', 'baz'))
+        5
+        """
+        if cmd.key in self.data:
+            existing_sset = self.data[cmd.key]
+            if not isinstance(existing_sset, RSortedSet):
+                raise RedisKeyTypeError('Existing value has wrong type.')
+            else:
+                if cmd.member in existing_sset:
+                    existing_sset.incr_by(cmd.amount, cmd.member)
+                else:
+                    existing_sset.add(cmd.amount, cmd.member)
+        else:
+            self.data[cmd.key] = RSortedSet([(cmd.amount, cmd.member)])
 
 
     def __call__(self, cmd):
@@ -213,8 +379,8 @@ class Executer():
         >>> ex.contains_command_addr(Get('foo'))
         True
 
-        >>> exception_type_name(ex.contains_command_addr, HGet('foo', 'bar'))
-        'RedisKeyTypeError'
+        >>> return_exception_tuple(ex.contains_command_addr, HGet('foo', 'bar'))
+        ('RedisKeyTypeError', 'Existing value has wrong type.')
 
         >>> ex(Del('foo'))
         >>> ex(HSet('foo', 'bar', 'baz'))
@@ -230,18 +396,7 @@ class Executer():
 
 def run_tests(deps_provider):
     ex = Executer()
-
-    def exception_to_string(*args):
-        try:
-            return args[0](*args[1:])
-        except Exception as e:
-            return str(e)
-
-    def exception_type_name(*args):
-        try:
-            return args[0](*args[1:])
-        except Exception as e:
-            return type(e).__name__
+    from seneca.engine.util import return_exception_tuple
 
     import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
