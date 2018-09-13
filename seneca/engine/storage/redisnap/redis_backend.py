@@ -1,6 +1,7 @@
 """
 """
 import redis
+from functools import wraps
 
 from seneca.engine.storage.redisnap.commands import *
 import seneca.engine.storage.redisnap.resp_types as rtype
@@ -63,26 +64,14 @@ class Executer():
         self._redis_executer.hset(cmd.key, cmd.field, cmd.value)
 
     def hexists(self, cmd):
-        try:
-            return self._redis_executer.hexists(cmd.key, cmd.field)
-        except redis.exceptions.ResponseError as e:
-            if e.args[0] == 'WRONGTYPE Operation against a key holding the wrong kind of value':
-                raise RedisKeyTypeError('Existing value has wrong type.')
-            else:
-                raise
+        return self._redis_executer.hexists(cmd.key, cmd.field)
 
     def del_(self, cmd):
         self._redis_executer.delete(cmd.key)
 
 
     def lindex(self, cmd):
-        try:
-            return bytes_to_rscalar(self._redis_executer.lindex(cmd.key, cmd.index))
-        except redis.exceptions.ResponseError as e:
-            if e.args[0] == 'WRONGTYPE Operation against a key holding the wrong kind of value':
-                raise RedisKeyTypeError('Existing value has wrong type.')
-            else:
-                raise
+        return bytes_to_rscalar(self._redis_executer.lindex(cmd.key, cmd.index))
 
 
     def lset(self, cmd):
@@ -106,23 +95,44 @@ class Executer():
 
 
     def _pop_base(self, method_name, cmd):
-        try:
-            return bytes_to_rscalar(getattr(self._redis_executer, method_name)(cmd.key))
-        except redis.exceptions.ResponseError as e:
-            if e.args[0] == 'WRONGTYPE Operation against a key holding the wrong kind of value':
-                raise RedisKeyTypeError('Existing value has wrong type.')
-            else:
-                raise
-
+        return bytes_to_rscalar(getattr(self._redis_executer, method_name)(cmd.key))
 
     def lpop(self, cmd):
         return self._pop_base('lpop', cmd)
 
-
     def rpop(self, cmd):
         return self._pop_base('rpop', cmd)
 
+    def zaddnr(self, cmd):
+        self._redis_executer.zadd(cmd.key, cmd.score, cmd.member)
 
+    def zscore(self, cmd):
+        ret = self._redis_executer.zscore(cmd.key, cmd.member)
+        try:
+            return int(ret)
+        except TypeError:
+            return None
+
+    def zrevrangebyscore(self, cmd):
+        return self._redis_executer.zrevrangebyscore
+
+    def zremnr(self, cmd):
+        self._redis_executer.zrem(cmd.key, cmd.member)
+
+    def transform_exception(f):
+        @wraps(f)
+        def wrapper(self, cmd):
+            try:
+                return f(self, cmd)
+            except redis.exceptions.ResponseError as e:
+                if e.args[0] == 'WRONGTYPE Operation against a key holding the wrong kind of value':
+                    raise RedisKeyTypeError('Existing value has wrong type.')
+                else:
+                    raise
+
+        return wrapper
+
+    @transform_exception
     def __call__(self, cmd):
         # TODO: Make sure this is efficient and generally okay.
 
