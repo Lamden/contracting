@@ -126,27 +126,26 @@ class RSortedSet(RESPType):
         except KeyError as e:
             pass
 
-    def rev_range_by_score(self, min_:int, max_:int, inclusive=(True,True)):
+    def rev_range_by_score(self, max_:int, min_:int, inclusive=(True,True)):
         """
+        TODO: add withscores
         ZRANGEBYSCORE zset (1 5
         Will return all members with 1 < score <= 5 while:
 
-        >>> list(RSortedSet([(1, 'foo'), (2, 'bar')]).rev_range_by_score(1,1))
-        ['foo']
+        >>> s = RSortedSet([(1, 'one'), (2, 'two'), (3, 'three')])
+        >>> list(s.rev_range_by_score(None, None))
+        ['three', 'two', 'one']
 
-        >>> list(RSortedSet([(1, 'foo'), (2, 'bar')]).rev_range_by_score(3,5))
-        []
+        >>> list(s.rev_range_by_score(2, 1))
+        ['two', 'one']
 
-        >>> list(RSortedSet([(1, 'foo'), (2, 'bar')]).rev_range_by_score(2,1))
-        []
+        >>> list(s.rev_range_by_score(2, 1, (False, True)))
+        ['two']
 
-        >>> list(RSortedSet([(1, 'foo'), (2, 'bar')]).rev_range_by_score(1,2, (True,False)))
-        ['foo']
-
-        >>> list(RSortedSet([(1, 'foo'), (2, 'bar')]).rev_range_by_score(1,2, (False,False)))
+        >>> list(s.rev_range_by_score(2, 1, (False, False)))
         []
         """
-        return map(snd, self._sorted_set.irange((min_, None), (max_, None), inclusive=inclusive))
+        return map(snd, self._sorted_set.irange((min_, None), (max_, None), inclusive=inclusive, reverse=True))
 
     def score(self, member):
         """

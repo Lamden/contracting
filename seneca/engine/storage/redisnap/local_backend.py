@@ -196,29 +196,6 @@ class Executer():
 
 
     def zaddnr(self, cmd):
-        """
-        >>> ex.purge()
-
-        # Testing auto creation
-        >>> ex(ZAddNR('foo', 1, 'bar'))
-        >>> ex.data['foo'] # TODO: make this generic
-        RSortedSet([(1, 'bar')])
-
-        # Testing modification of an existing value
-        >>> ex(ZAddNR('foo', 2, 'baz'))
-        >>> ex.data['foo'] # TODO: make this generic
-        RSortedSet([(1, 'bar'), (2, 'baz')])
-
-        # Testing update of an existing member
-        >>> ex(ZAddNR('foo', 50, 'baz'))
-        >>> ex.data['foo'] # TODO: make this generic
-        RSortedSet([(1, 'bar'), (50, 'baz')])
-
-        # Testing exception on type mismatch
-        >>> ex(Set('foo', 'bar'))
-        >>> return_exception_tuple(ex, ZAddNR('foo', 2, 'baz'))
-        ('RedisKeyTypeError', 'Existing value has wrong type.')
-        """
         if cmd.key in self.data:
             existing_sset = self.data[cmd.key]
             if not isinstance(existing_sset, RSortedSet):
@@ -229,34 +206,6 @@ class Executer():
             self.data[cmd.key] = RSortedSet([(cmd.score, cmd.member)])
 
     def zremnr(self, cmd):
-        """
-        >>> ex.purge()
-
-        Testing zrem on non existing key
-        >>> ex(ZRemNR('foo', 'bar'))
-        >>> 'foo' in ex.data # TODO: make this generic
-        False
-
-        Test modification of existing
-        >>> ex(ZAddNR('foo', 1, 'bar'))
-        >>> ex(ZAddNR('foo', 2, 'baz'))
-        >>> ex(ZRemNR('foo', 'baz'))
-        >>> ex.data['foo'] # TODO: make this generic
-        RSortedSet([(1, 'bar')])
-
-        Test zrem of non-existent member
-        >>> ex(ZRemNR('foo', 'qux'))
-
-        Test deletion of sset after last member is removed
-        >>> ex(ZRemNR('foo', 'bar'))
-        >>> 'foo' in ex.data
-        False
-
-        # Testing exception on type mismatch
-        >>> ex(Set('foo', 'bar'))
-        >>> return_exception_tuple(ex, ZRemNR('foo', 'qux'))
-        ('RedisKeyTypeError', 'Existing value has wrong type.')
-        """
         if cmd.key in self.data:
             existing_sset = self.data[cmd.key]
             if not isinstance(existing_sset, RSortedSet):
@@ -269,28 +218,6 @@ class Executer():
             pass
 
     def zrevrangebyscore(self, cmd):
-        """
-        key: str, min: int, max: int, inclusive
-
-        >>> ex.purge()
-        >>> ex(ZAddNR('foo', 1, 'bar')); ex(ZAddNR('foo', 2, 'baz')); ex(ZAddNR('foo', 3, 'qux'))
-        >>> list(ex(ZRevRangeByScore('foo',1,3)))
-        ['bar', 'baz', 'qux']
-
-        >>> list(ex(ZRevRangeByScore('quux',1,3)))
-        []
-
-        >>> list(ex(ZRevRangeByScore('foo',10,30)))
-        []
-
-        >>> list(ex(ZRevRangeByScore('foo',1,3, (False,False))))
-        ['baz']
-
-        # Testing exception on type mismatch
-        >>> ex(Set('foo', 'bar'))
-        >>> return_exception_tuple(ex, ZRevRangeByScore('foo',10,30))
-        ('RedisKeyTypeError', 'Existing value has wrong type.')
-        """
         if cmd.key in self.data:
             existing_sset = self.data[cmd.key]
             if not isinstance(existing_sset, RSortedSet):

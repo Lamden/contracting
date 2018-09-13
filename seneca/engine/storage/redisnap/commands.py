@@ -552,6 +552,29 @@ class RPop(Mutate, Read):
 
 class ZAddNR(Mutate):
     """
+    >>> ex.purge()
+
+    # Testing auto creation
+    >>> ex(ZAddNR('foo', 1, 'bar'))
+    >>> ex(ZScore('foo', 'bar'))
+    1
+
+    # Testing modification of an existing value
+    >>> ex(ZAddNR('foo', 2, 'baz'))
+    >>> ex(ZScore('foo', 'bar'));  ex(ZScore('foo', 'baz'))
+    1
+    2
+
+    # Testing update of an existing member
+    >>> ex(ZAddNR('foo', 50, 'baz'))
+    >>> ex(ZScore('foo', 'bar')); ex(ZScore('foo', 'baz'))
+    1
+    50
+
+    # Testing exception on type mismatch
+    >>> ex(Set('foo', 'bar'))
+    >>> return_exception_tuple(ex, ZAddNR('foo', 2, 'baz'))
+    ('RedisKeyTypeError', 'Existing value has wrong type.')
     """
     @auto_set_fields
     def __init__(self, key: str, score: str, member: str):
@@ -564,7 +587,32 @@ class ZAddNR(Mutate):
 
 class ZRemNR(Mutate):
     """
-    Removes the specified members from the sorted set stored at key. Non existing members are ignored.
+    >>> ex.purge()
+
+    Testing zrem on non existing key
+    >>> ex(ZRemNR('foo', 'bar'))
+    >>> ex(Exists('foo'))
+    False
+
+    Test modification of existing
+    >>> ex(ZAddNR('foo', 1, 'bar'))
+    >>> ex(ZAddNR('foo', 2, 'baz'))
+    >>> ex(ZRemNR('foo', 'baz'))
+    >>> ex(ZScore('foo', 'bar')); ex(ZScore('foo', 'baz'))
+    1
+
+    Test zrem of non-existent member
+    >>> ex(ZRemNR('foo', 'qux'))
+
+    Test deletion of sset after last member is removed
+    >>> ex(ZRemNR('foo', 'bar'))
+    >>> ex(Exists('foo'))
+    False
+
+    # Testing exception on type mismatch
+    >>> ex(Set('foo', 'bar'))
+    >>> return_exception_tuple(ex, ZRemNR('foo', 'qux'))
+    ('RedisKeyTypeError', 'Existing value has wrong type.')
     """
     @auto_set_fields
     def __init__(self, key: str, member: str):
@@ -578,9 +626,27 @@ class ZRemNR(Mutate):
 class ZRevRangeByScore(Read):
     """
     Removes the specified members from the sorted set stored at key. Non existing members are ignored.
+    >>> ex.purge()
+    >>> ex(ZAddNR('foo', 1, 'one')); ex(ZAddNR('foo', 2, 'two')); ex(ZAddNR('foo', 3, 'three'))
+    >>> list(ex(ZRevRangeByScore('foo',None,None)))
+    ['three', 'two', 'one']
+
+    >>> list(ex(ZRevRangeByScore('foo', 2, 1)))
+    ['two', 'one']
+
+    >>> list(ex(ZRevRangeByScore('foo', 2, 1, (False, True))))
+    ['two']
+
+    >>> list(ex(ZRevRangeByScore('foo', 2, 1, (False, False))))
+    []
+
+    # Testing exception on type mismatch
+    >>> ex(Set('foo', 'bar'))
+    >>> return_exception_tuple(ex, ZRevRangeByScore('foo',10,30))
+    ('RedisKeyTypeError', 'Existing value has wrong type.')
     """
     @auto_set_fields
-    def __init__(self, key: str, min: int, max: int, inclusive=(True, True)):
+    def __init__(self, key: str, min: int, max: int, inclusive=(True, True), with_scores=False):
         pass
 
     def safe_run(self, ex):
@@ -659,7 +725,7 @@ def run_tests(deps_provider):
     import doctest, sys
 
     # Setup up three executers
-    executers = [l_back.Executer(), r_back.Executer(host='127.0.0.1', port=32768)]
+    executers = [l_back.Executer()] #, r_back.Executer(host='127.0.0.1', port=32768)]
 
     ret = lambda: None
     ret.attempted = 0
