@@ -158,6 +158,10 @@ class Executer():
         self._redis_executer.zrem(cmd.key, cmd.member)
 
 
+    def zincrbynr(self, cmd):
+        self._redis_executer.zincrby(cmd.key, cmd.member, cmd.amount)
+
+
     def transform_exception(f):
         @wraps(f)
         def wrapper(self, cmd):

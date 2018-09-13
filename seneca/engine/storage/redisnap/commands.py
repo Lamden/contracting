@@ -643,15 +643,10 @@ class ZRevRangeByScore(Read):
     >>> list(ex(ZRevRangeByScore('foo', None, None, with_scores=True)))
     [(3, 'three'), (2, 'two'), (1, 'one')]
 
-
-
-
     # Testing exception on type mismatch
     >>> ex(Set('foo', 'bar'))
     >>> return_exception_tuple(ex, ZRevRangeByScore('foo',10,30))
     ('RedisKeyTypeError', 'Existing value has wrong type.')
-
-
     """
     @auto_set_fields
     def __init__(self, key: str, max: int, min: int, inclusive=(True, True), with_scores=False):
@@ -690,8 +685,23 @@ class ZScore(Read):
 
 
 class ZIncrByNR(Mutate):
+    """
+    >>> ex.purge()
+
+    # Totally empty key
+    >>> ex(ZIncrByNR('foo', 1, 'bar')); ex(ZScore('foo', 'bar'))
+    1
+
+    # Missing member
+    >>> ex(ZIncrByNR('foo', 1, 'baz')); ex(ZScore('foo', 'baz'))
+    1
+
+    # Update existing
+    >>> ex(ZIncrByNR('foo', 4, 'baz')); ex(ZScore('foo', 'baz'))
+    5
+    """
     @auto_set_fields
-    def __init__(self, key: str, member: str, amount:int):
+    def __init__(self, key: str, amount:int, member: str):
         pass
 
     def safe_run(self, ex):
@@ -729,8 +739,6 @@ def merge_read_commands(to_merge, merged_on):
 
     raise Exception('Unsupport combination of commands.')
 
-
-
 '''
 TODO:
 * Bitmaps Commands
@@ -750,7 +758,8 @@ def run_tests(deps_provider):
     import doctest, sys
 
     # Setup up three executers
-    executers = [l_back.Executer(), r_back.Executer(host='127.0.0.1', port=32768)]
+    executers = [l_back.Executer()]
+    executers.append(r_back.Executer(host='127.0.0.1', port=32768))
 
     ret = lambda: None
     ret.attempted = 0

@@ -243,21 +243,6 @@ class Executer():
 
 
     def zincrbynr(self, cmd):
-        """
-        >>> ex.purge()
-
-        # Totally empty key
-        >>> ex(ZIncrByNR('foo', 'bar', 1)); ex(ZScore('foo', 'bar'))
-        1
-
-        # Missing member
-        >>> ex(ZIncrByNR('foo', 'baz', 1)); ex(ZScore('foo', 'baz'))
-        1
-
-        # Update existing
-        >>> ex(ZIncrByNR('foo', 'baz', 4)); ex(ZScore('foo', 'baz'))
-        5
-        """
         if cmd.key in self.data:
             existing_sset = self.data[cmd.key]
             if not isinstance(existing_sset, RSortedSet):
