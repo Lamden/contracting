@@ -7,6 +7,7 @@ from seneca.engine.util import grouper
 from seneca.engine.storage.redisnap.commands import *
 import seneca.engine.storage.redisnap.resp_types as rtype
 #from seneca.engine.storage.redisnap.addresses import *
+from seneca.engine.storage.redisnap.backend_abc import Executer as abc_executer
 
 def bytes_to_rscalar(b):
     if b:
@@ -14,7 +15,7 @@ def bytes_to_rscalar(b):
     return rtype.make_rscalar(b)
 
 
-class Executer():
+class Executer(abc_executer):
     '''
     Maps command objects to actual Redis commands and runs them, leans heavily
     on redis.py
@@ -186,7 +187,8 @@ class Executer():
 
 
 def run_tests(deps_provider):
-
-
+    ex = Executer(host='127.0.0.1', port=32768)
+    from seneca.engine.util import return_exception_tuple
     import doctest, sys
+    
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

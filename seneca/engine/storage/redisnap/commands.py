@@ -117,16 +117,6 @@ def run_method_is_safe(cls):
 @run_methods_return_type(type)
 @run_method_is_safe
 class Type(Command):
-    """
-    This is the built-in shallow Redis typecheck.
-
-    >>> _ = ex.purge()
-    >>> t = ex(Type('foo'))
-    >>> print(t.__name__)
-    RDoesNotExist
-    >>> issubclass(t, RScalar)
-    True
-    """
     @auto_set_fields
     def __init__(self, key):
         pass
@@ -135,11 +125,6 @@ class Type(Command):
 @run_methods_return_type(bool)
 @run_method_is_safe
 class Exists(Command):
-    """
-    >>> _ = ex.purge()
-    >>> ex(Exists('foo'));
-    False
-    """
     @auto_set_fields
     def __init__(self, key):
         pass
@@ -175,41 +160,13 @@ Won't implement:
 @run_methods_return_type(bool)
 @run_method_is_safe
 class AssertType(TypeCheck):
-    """
-    This is not part of RESP, it's a RediSnap add-on, it does deep type
-    inspection.
-
-    >>> ex.purge()
-    >>> ex(Set('foo', 'bar'))
-    >>> ex(AssertType('foo', RScalar))
-    True
-    >>> ex(AssertType('foo', RHash))
-    False
-
-    NOTE: This is the exact same implementation in local and redis backends
-    """
     @auto_set_fields
     def __init__(self, key: str, r_type: RESPType):
         pass
 
-    # to_data_dependency(self):
-    #     return ExactTypeDependancy(self.key)
-
 
 @run_methods_return_type(type(None))
 class AppendWO(Mutate):
-    """
-    >>> ex.purge()
-    >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
-    RScalar('abc')
-    >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
-    RScalar('abcabc')
-
-    >>> ex(AppendWO('fooint', '1')); ex(Get('fooint'))
-    RScalarInt(1)
-    >>> ex(AppendWO('fooint', '1')); ex(Get('fooint'))
-    RScalarInt(11)
-    """
     @auto_set_fields
     def __init__(self, key: str, value: str):
         pass
@@ -221,11 +178,6 @@ class AppendWO(Mutate):
 
 @run_methods_return_type(bytes)
 class Get(Read):
-    """
-    >>> _ = ex.purge()
-    >>> ex(Get('foo'))
-    RDoesNotExist()
-    """
     @auto_set_fields
     def __init__(self, key: str):
         pass
@@ -238,22 +190,6 @@ class Get(Read):
 @run_methods_return_type(type(None))
 @run_method_is_safe
 class Set(Write):
-    """
-    TODO: Rename Set_
-    >>> _ = ex.purge()
-    >>> ex(Set('foo', 'bar'))
-
-    >>> ex(Exists('foo'))
-    True
-
-    >>> ex(Type('foo')).__name__; ex(Get('foo'))
-    'RScalar'
-    RScalar('bar')
-
-    >>> _ = ex(Set('foo', 1)); ex(Type('foo')).__name__; ex(Get('foo'))
-    'RScalar'
-    RScalarInt(1)
-    """
     @auto_set_fields
     def __init__(self, key: str, value: Union[str, float, int]):
         pass
@@ -261,31 +197,6 @@ class Set(Write):
 # Note: Front end must convert Incr, Decr, and DecrBy to IncrBy
 @run_methods_return_type(int)
 class IncrByWO(Mutate):
-    """
-    >>> ex.purge()
-
-    Increment an empty key
-    >>> ex(IncrByWO('foo', 1));
-
-    >>> ex(Get('foo'))
-    RScalarInt(1)
-
-    Increment an existing key
-    >>> ex(IncrByWO('foo', 1));
-
-    >>> ex(Get('foo'))
-    RScalarInt(2)
-
-    Incremenent non-int scalars
-    >>> ex(Set('foo', 'bar'))
-    >>> return_exception_tuple(ex, IncrByWO('foo', 1))
-    ('RedisVauleTypeError', 'Existing value has wrong type.')
-
-    >>> ex(Set('foo', 1.0))
-    >>> return_exception_tuple(ex, IncrByWO('foo', 1))
-    ('RedisVauleTypeError', 'Existing value has wrong type.')
-    """
-
     @auto_set_fields
     def __init__(self, key, amount: int):
         pass
@@ -301,25 +212,6 @@ class IncrByWO(Mutate):
 @run_methods_return_type(bool)
 @run_method_is_safe
 class AssertFieldType(TypeCheck):
-    '''
-    This is not part of RESP, it's a RediSnap add-on, it does deep type
-    inspection.
-
-    NOTE: Very important, In Redis empty fields are fully polymorphic, so
-    asserting any type on non-existent key will always succeed. This is how
-    Redis behaves:
-    > get some_non_existent_key
-    (nil)
-
-    Only if an existing value exists of the wrong type is there a problem:
-    > set some_string abc
-    OK
-    > hget some_string field_name
-    (error) WRONGTYPE Operation against a key holding the wrong kind of value
-
-    TODO: Add a test for this command
-    >> ex(AssertFieldType('foo', 'bar', RScalar))
-    '''
     @auto_set_fields
     def __init__(self, key: str, field: str, r_type: RESPType):
         self.safe_run = self.run
@@ -327,11 +219,6 @@ class AssertFieldType(TypeCheck):
 
 @run_methods_return_type(bytes)
 class HGet(Read):
-    """
-    >>> ex.purge()
-    >>> ex(HGet('foo', 'bar'))
-    RDoesNotExist()
-    """
     @auto_set_fields
     def __init__(self, key: str, field: str):
         pass
@@ -342,16 +229,6 @@ class HGet(Read):
 
 #@run_methods_return_type(type(None))
 class HSet(Write):
-    """
-    >>> ex.purge()
-    >>> ex(HSet('foo', 'bar', 'baz'))
-    >>> ex(HGet('foo', 'bar'))
-    RScalar('baz')
-
-    >>> ex(HSet('foo', 'bar', 1))
-    >>> ex(HGet('foo', 'bar'))
-    RScalarInt(1)
-    """
     @auto_set_fields
     def __init__(self, key: str, field: str, value: Union[str, float, int]):
         pass
@@ -362,19 +239,6 @@ class HSet(Write):
         return ex(self)
 
 class HExists(Read):
-    """
-    >>> ex.purge()
-    >>> ex(HExists('foo', 'bar'))
-    False
-
-    >>> ex(HSet('foo', 'bar', 'baz'))
-    >>> ex(HExists('foo', 'bar'))
-    True
-
-    >>> ex(Set('foo', 'bar'))
-    >>> return_exception_tuple(ex, HExists('foo', 'bar'))
-    ('RedisKeyTypeError', 'Existing value has wrong type.')
-    """
     @auto_set_fields
     def __init__(self, key: str, field: str):
         pass
@@ -388,10 +252,7 @@ class HExists(Read):
 # List Commands #
 #################
 class LLen(Read):
-    """
-    TODO: add test for llen
-    >> ex(LLen('foo'))
-    """
+
     @auto_set_fields
     def __init__(self, key: str):
         pass
@@ -402,25 +263,6 @@ class LLen(Read):
 
 
 class LIndex(Read):
-    """
-    >>> ex.purge()
-
-    >>> ex(RPushNR('foo', ['bar']))
-    >>> ex(LIndex('foo', 0))
-    RScalar('bar')
-
-    >>> ex(LIndex('foo', 20))
-    RDoesNotExist()
-
-    >>> ex.purge()
-
-    >>> ex(LIndex('foo', 0))
-    RDoesNotExist()
-
-    >>> ex(Set('foo', 'bar'))
-    >>> return_exception_tuple(ex, LIndex('foo', 0))
-    ('RedisKeyTypeError', 'Existing value has wrong type.')
-    """
     @auto_set_fields
     def __init__(self, key: str, index: int):
         pass
@@ -431,17 +273,6 @@ class LIndex(Read):
 
 
 class LSet(Write):
-    """
-    >>> ex.purge()
-    >>> return_exception_tuple(ex, LSet('foo', 0, 'bar'))
-    ('RedisKeyTypeError', 'Cannot LSet an nonexistent key.')
-
-    >>> ex(RPushNR('foo', ['bar']))
-    >>> ex(LSet('foo', 0, 'baz'))
-
-    >>> return_exception_tuple(ex, LSet('foo', 1, 'bar'))
-    ('RedisListOutOfRange', 'Index out of range.')
-    """
     @auto_set_fields
     def __init__(self, key: str, index: int, value: Union[str, float, int]):
         pass
@@ -454,23 +285,6 @@ class LSet(Write):
 
 
 class LPushNR(Mutate):
-    """
-    >>> ex.purge()
-    >>> ex(LPushNR('foo', ['bar']))
-    >>> ex(LIndex('foo', 0))
-    RScalar('bar')
-
-    >>> ex(LPushNR('foo', ['baz']))
-    >>> ex(LIndex('foo', 0)); ex(LIndex('foo', 1));
-    RScalar('baz')
-    RScalar('bar')
-
-    >>> ex.purge()
-    >>> ex(LPushNR('foo', ['bar', 'baz']))
-    >>> ex(LIndex('foo', 0)); ex(LIndex('foo', 1));
-    RScalar('baz')
-    RScalar('bar')
-    """
     @auto_set_fields
     def __init__(self, key: str, value: List[Union[str, float, int]]):
         pass
@@ -481,24 +295,6 @@ class LPushNR(Mutate):
 
 
 class RPushNR(Mutate):
-    """
-    >>> ex.purge()
-    >>> ex(RPushNR('foo', ['bar']))
-    >>> ex(LIndex('foo', 0))
-    RScalar('bar')
-
-    >>> ex(RPushNR('foo', ['baz']))
-    >>> ex(LIndex('foo', 0)); ex(LIndex('foo', 1));
-    RScalar('bar')
-    RScalar('baz')
-
-
-    >>> ex.purge()
-    >>> ex(RPushNR('foo', ['bar', 'baz']))
-    >>> ex(LIndex('foo', 0)); ex(LIndex('foo', 1));
-    RScalar('bar')
-    RScalar('baz')
-    """
     @auto_set_fields
     def __init__(self, key: str, value: List[Union[str, float, int]]):
         pass
@@ -510,21 +306,6 @@ class RPushNR(Mutate):
 
 
 class LPop(Mutate, Read):
-    """
-    >>> ex.purge()
-    >>> ex(LPop('foo'))
-    RDoesNotExist()
-
-    >>> ex(Set('foo', 'bar'))
-    >>> return_exception_tuple(ex, LPop('foo'))
-    ('RedisKeyTypeError', 'Existing value has wrong type.')
-
-    >>> ex.purge()
-    >>> ex(LPushNR('foo', ['bar', 'baz']))
-    >>> ex(LPop('foo')); ex(LPop('foo'))
-    RScalar('baz')
-    RScalar('bar')
-    """
     @auto_set_fields
     def __init__(self, key: str):
         pass
@@ -535,13 +316,6 @@ class LPop(Mutate, Read):
 
 
 class RPop(Mutate, Read):
-    """
-    >>> ex.purge()
-    >>> ex(RPushNR('foo', ['bar', 'baz']))
-    >>> ex(RPop('foo')); ex(RPop('foo'))
-    RScalar('baz')
-    RScalar('bar')
-    """
     @auto_set_fields
     def __init__(self, key: str):
         pass
@@ -551,31 +325,6 @@ class RPop(Mutate, Read):
         return ex(self)
 
 class ZAddNR(Mutate):
-    """
-    >>> ex.purge()
-
-    # Testing auto creation
-    >>> ex(ZAddNR('foo', 1, 'bar'))
-    >>> ex(ZScore('foo', 'bar'))
-    1
-
-    # Testing modification of an existing value
-    >>> ex(ZAddNR('foo', 2, 'baz'))
-    >>> ex(ZScore('foo', 'bar'));  ex(ZScore('foo', 'baz'))
-    1
-    2
-
-    # Testing update of an existing member
-    >>> ex(ZAddNR('foo', 50, 'baz'))
-    >>> ex(ZScore('foo', 'bar')); ex(ZScore('foo', 'baz'))
-    1
-    50
-
-    # Testing exception on type mismatch
-    >>> ex(Set('foo', 'bar'))
-    >>> return_exception_tuple(ex, ZAddNR('foo', 2, 'baz'))
-    ('RedisKeyTypeError', 'Existing value has wrong type.')
-    """
     @auto_set_fields
     def __init__(self, key: str, score: str, member: str):
         pass
@@ -586,34 +335,6 @@ class ZAddNR(Mutate):
 
 
 class ZRemNR(Mutate):
-    """
-    >>> ex.purge()
-
-    Testing zrem on non existing key
-    >>> ex(ZRemNR('foo', 'bar'))
-    >>> ex(Exists('foo'))
-    False
-
-    Test modification of existing
-    >>> ex(ZAddNR('foo', 1, 'bar'))
-    >>> ex(ZAddNR('foo', 2, 'baz'))
-    >>> ex(ZRemNR('foo', 'baz'))
-    >>> ex(ZScore('foo', 'bar')); ex(ZScore('foo', 'baz'))
-    1
-
-    Test zrem of non-existent member
-    >>> ex(ZRemNR('foo', 'qux'))
-
-    Test deletion of sset after last member is removed
-    >>> ex(ZRemNR('foo', 'bar'))
-    >>> ex(Exists('foo'))
-    False
-
-    # Testing exception on type mismatch
-    >>> ex(Set('foo', 'bar'))
-    >>> return_exception_tuple(ex, ZRemNR('foo', 'qux'))
-    ('RedisKeyTypeError', 'Existing value has wrong type.')
-    """
     @auto_set_fields
     def __init__(self, key: str, member: str):
         pass
@@ -624,30 +345,6 @@ class ZRemNR(Mutate):
 
 
 class ZRevRangeByScore(Read):
-    """
-    Removes the specified members from the sorted set stored at key. Non existing members are ignored.
-    >>> ex.purge()
-    >>> ex(ZAddNR('foo', 1, 'one')); ex(ZAddNR('foo', 2, 'two')); ex(ZAddNR('foo', 3, 'three'))
-    >>> list(ex(ZRevRangeByScore('foo',None,None)))
-    ['three', 'two', 'one']
-
-    >>> list(ex(ZRevRangeByScore('foo', 2, 1)))
-    ['two', 'one']
-
-    >>> list(ex(ZRevRangeByScore('foo', 2, 1, (True, False))))
-    ['two']
-
-    >>> list(ex(ZRevRangeByScore('foo', 2, 1, (False, False))))
-    []
-
-    >>> list(ex(ZRevRangeByScore('foo', None, None, with_scores=True)))
-    [(3, 'three'), (2, 'two'), (1, 'one')]
-
-    # Testing exception on type mismatch
-    >>> ex(Set('foo', 'bar'))
-    >>> return_exception_tuple(ex, ZRevRangeByScore('foo',10,30))
-    ('RedisKeyTypeError', 'Existing value has wrong type.')
-    """
     @auto_set_fields
     def __init__(self, key: str, max: int, min: int, inclusive=(True, True), with_scores=False):
         pass
@@ -658,23 +355,6 @@ class ZRevRangeByScore(Read):
 
 
 class ZScore(Read):
-    """
-    >> ex.purge()
-
-    Empty key returns None
-    >> ex(ZScore('foo', 'bar'))
-
-    Member is not present returns None too
-    >> ex(ZAddNR('foo', 1, 'bar')); ex(ZScore('foo', 'baz'))
-
-    >> ex(ZScore('foo', 'bar'))
-    1
-
-    # Testing exception on type mismatch
-    >> ex(Set('foo', 'bar'))
-    >> return_exception_tuple(ex, ZScore('foo', 'bar'))
-    ('RedisKeyTypeError', 'Existing value has wrong type.')
-    """
     @auto_set_fields
     def __init__(self, key: str, member: str):
         pass
@@ -685,21 +365,6 @@ class ZScore(Read):
 
 
 class ZIncrByNR(Mutate):
-    """
-    >>> ex.purge()
-
-    # Totally empty key
-    >>> ex(ZIncrByNR('foo', 1, 'bar')); ex(ZScore('foo', 'bar'))
-    1
-
-    # Missing member
-    >>> ex(ZIncrByNR('foo', 1, 'baz')); ex(ZScore('foo', 'baz'))
-    1
-
-    # Update existing
-    >>> ex(ZIncrByNR('foo', 4, 'baz')); ex(ZScore('foo', 'baz'))
-    5
-    """
     @auto_set_fields
     def __init__(self, key: str, amount:int, member: str):
         pass
