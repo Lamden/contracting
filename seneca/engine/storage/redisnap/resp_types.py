@@ -215,6 +215,9 @@ class RDoesNotExist(RScalarInt, RScalarFloat, RHash, RList, RSet, RSortedSet):
     def __repr__(_):
         return 'RDoesNotExist()'
 
+    def to_bytes(self):
+        pass
+
 class DataDependancy(ReprIsConstructor):
     @auto_set_fields
     def __init__(self, key):

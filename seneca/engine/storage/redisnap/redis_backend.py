@@ -43,10 +43,10 @@ class Executer(abc_executer):
         return bytes_to_rscalar(self._redis_executer.get(cmd.key))
 
 
-    def set(self, cmd):
+    def setnr(self, cmd):
         self._redis_executer.set(cmd.key, cmd.value)
 
-    def incrbywo(self, cmd):
+    def incrbynr(self, cmd):
         try:
             self._redis_executer.incr(cmd.key, cmd.amount)
         except redis.exceptions.ResponseError as e:
@@ -55,14 +55,14 @@ class Executer(abc_executer):
             else:
                 raise
 
-    def appendwo(self, cmd):
+    def appendnr(self, cmd):
         self._redis_executer.append(cmd.key, cmd.value)
 
 
     def hget(self, cmd):
         return bytes_to_rscalar(self._redis_executer.hget(cmd.key, cmd.field))
 
-    def hset(self, cmd):
+    def hsetnr(self, cmd):
         self._redis_executer.hset(cmd.key, cmd.field, cmd.value)
 
     def hexists(self, cmd):
@@ -106,7 +106,7 @@ class Executer(abc_executer):
         return self._pop_base('rpop', cmd)
 
     def zaddnr(self, cmd):
-        self._redis_executer.zadd(cmd.key, cmd.score, cmd.member)
+        self._redis_executer.zadd(cmd.key, **cmd.members_and_scores)
 
     def zscore(self, cmd):
         ret = self._redis_executer.zscore(cmd.key, cmd.member)
@@ -156,7 +156,7 @@ class Executer(abc_executer):
 
 
     def zremnr(self, cmd):
-        self._redis_executer.zrem(cmd.key, cmd.member)
+        self._redis_executer.zrem(cmd.key, *cmd.members)
 
 
     def zincrbynr(self, cmd):
@@ -190,5 +190,5 @@ def run_tests(deps_provider):
     ex = Executer(host='127.0.0.1', port=32768)
     from seneca.engine.util import return_exception_tuple
     import doctest, sys
-    
+
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

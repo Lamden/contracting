@@ -32,6 +32,7 @@ class Executer(object, metaclass=SuperclassMeta):
         """
         """
 
+
     @abc.abstractmethod
     def exists(self, cmd):
         """
@@ -39,6 +40,7 @@ class Executer(object, metaclass=SuperclassMeta):
         >>> ex(Exists('foo'));
         False
         """
+
 
     @abc.abstractmethod
     def type(self, cmd):
@@ -58,7 +60,7 @@ class Executer(object, metaclass=SuperclassMeta):
     def asserttype(self, cmd):
         """
         >>> ex.purge()
-        >>> ex(Set('foo', 'bar'))
+        >>> ex(SetNR('foo', 'bar'))
         >>> ex(AssertType('foo', RScalar))
         True
         >>> ex(AssertType('foo', RHash))
@@ -100,11 +102,10 @@ class Executer(object, metaclass=SuperclassMeta):
 
 
     @abc.abstractmethod
-    def set(self, cmd):
+    def setnr(self, cmd):
         """
-        TODO: Rename Set_
         >>> _ = ex.purge()
-        >>> ex(Set('foo', 'bar'))
+        >>> ex(SetNR('foo', 'bar'))
 
         >>> ex(Exists('foo'))
         True
@@ -113,52 +114,55 @@ class Executer(object, metaclass=SuperclassMeta):
         'RScalar'
         RScalar('bar')
 
-        >>> _ = ex(Set('foo', 1)); ex(Type('foo')).__name__; ex(Get('foo'))
+        >>> _ = ex(SetNR('foo', 1)); ex(Type('foo')).__name__; ex(Get('foo'))
         'RScalar'
         RScalarInt(1)
         """
 
+
     @abc.abstractmethod
-    def incrbywo(self, cmd):
+    def incrbynr(self, cmd):
         """
         >>> ex.purge()
 
         Increment an empty key
-        >>> ex(IncrByWO('foo', 1));
+        >>> ex(IncrByNR('foo', 1));
 
         >>> ex(Get('foo'))
         RScalarInt(1)
 
         Increment an existing key
-        >>> ex(IncrByWO('foo', 1));
+        >>> ex(IncrByNR('foo', 1));
 
         >>> ex(Get('foo'))
         RScalarInt(2)
 
         Incremenent non-int scalars
-        >>> ex(Set('foo', 'bar'))
-        >>> return_exception_tuple(ex, IncrByWO('foo', 1))
+        >>> ex(SetNR('foo', 'bar'))
+        >>> return_exception_tuple(ex, IncrByNR('foo', 1))
         ('RedisVauleTypeError', 'Existing value has wrong type.')
 
-        >>> ex(Set('foo', 1.0))
-        >>> return_exception_tuple(ex, IncrByWO('foo', 1))
+        >>> ex(SetNR('foo', 1.0))
+        >>> return_exception_tuple(ex, IncrByNR('foo', 1))
         ('RedisVauleTypeError', 'Existing value has wrong type.')
         """
+
 
     @abc.abstractmethod
-    def appendwo(self, cmd):
+    def appendnr(self, cmd):
         """
         >>> ex.purge()
-        >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
+        >>> ex(AppendNR('foo', 'abc')); ex(Get('foo'))
         RScalar('abc')
-        >>> ex(AppendWO('foo', 'abc')); ex(Get('foo'))
+        >>> ex(AppendNR('foo', 'abc')); ex(Get('foo'))
         RScalar('abcabc')
 
-        >>> ex(AppendWO('fooint', '1')); ex(Get('fooint'))
+        >>> ex(AppendNR('fooint', '1')); ex(Get('fooint'))
         RScalarInt(1)
-        >>> ex(AppendWO('fooint', '1')); ex(Get('fooint'))
+        >>> ex(AppendNR('fooint', '1')); ex(Get('fooint'))
         RScalarInt(11)
         """
+
 
     @abc.abstractmethod
     def hget(self, cmd):
@@ -170,14 +174,14 @@ class Executer(object, metaclass=SuperclassMeta):
 
 
     @abc.abstractmethod
-    def hset(self, cmd):
+    def hsetnr(self, cmd):
         """
         >>> ex.purge()
-        >>> ex(HSet('foo', 'bar', 'baz'))
+        >>> ex(HSetNR('foo', 'bar', 'baz'))
         >>> ex(HGet('foo', 'bar'))
         RScalar('baz')
 
-        >>> ex(HSet('foo', 'bar', 1))
+        >>> ex(HSetNR('foo', 'bar', 1))
         >>> ex(HGet('foo', 'bar'))
         RScalarInt(1)
         """
@@ -190,11 +194,14 @@ class Executer(object, metaclass=SuperclassMeta):
         >>> ex(HExists('foo', 'bar'))
         False
 
-        >>> ex(HSet('foo', 'bar', 'baz'))
+        >>> ex(HSetNR('foo', 'bar', 'baz'))
+
+        >>> ex(HExists('foo', 'qux'))
+        False
         >>> ex(HExists('foo', 'bar'))
         True
 
-        >>> ex(Set('foo', 'bar'))
+        >>> ex(SetNR('foo', 'bar'))
         >>> return_exception_tuple(ex, HExists('foo', 'bar'))
         ('RedisKeyTypeError', 'Existing value has wrong type.')
         """
@@ -205,6 +212,7 @@ class Executer(object, metaclass=SuperclassMeta):
         """
         """
 
+
     # # TODO:
     # @abc.abstractmethod
     # def llen(self, cmd):
@@ -212,6 +220,7 @@ class Executer(object, metaclass=SuperclassMeta):
     #     TODO: add test for llen
     #     >> ex(LLen('foo'))
     #     """
+
 
     @abc.abstractmethod
     def lindex(self, cmd):
@@ -230,7 +239,7 @@ class Executer(object, metaclass=SuperclassMeta):
         >>> ex(LIndex('foo', 0))
         RDoesNotExist()
 
-        >>> ex(Set('foo', 'bar'))
+        >>> ex(SetNR('foo', 'bar'))
         >>> return_exception_tuple(ex, LIndex('foo', 0))
         ('RedisKeyTypeError', 'Existing value has wrong type.')
         """
@@ -249,6 +258,7 @@ class Executer(object, metaclass=SuperclassMeta):
         >>> return_exception_tuple(ex, LSet('foo', 1, 'bar'))
         ('RedisListOutOfRange', 'Index out of range.')
         """
+
 
     @abc.abstractmethod
     def lpushnr(self, cmd):
@@ -269,6 +279,7 @@ class Executer(object, metaclass=SuperclassMeta):
         RScalar('baz')
         RScalar('bar')
         """
+
 
     @abc.abstractmethod
     def rpushnr(self, cmd):
@@ -291,6 +302,7 @@ class Executer(object, metaclass=SuperclassMeta):
         RScalar('baz')
         """
 
+
     @abc.abstractmethod
     def lpop(self, cmd):
         """
@@ -298,7 +310,7 @@ class Executer(object, metaclass=SuperclassMeta):
         >>> ex(LPop('foo'))
         RDoesNotExist()
 
-        >>> ex(Set('foo', 'bar'))
+        >>> ex(SetNR('foo', 'bar'))
         >>> return_exception_tuple(ex, LPop('foo'))
         ('RedisKeyTypeError', 'Existing value has wrong type.')
 
@@ -308,6 +320,7 @@ class Executer(object, metaclass=SuperclassMeta):
         RScalar('baz')
         RScalar('bar')
         """
+
 
     @abc.abstractmethod
     def rpop(self, cmd):
@@ -319,33 +332,35 @@ class Executer(object, metaclass=SuperclassMeta):
         RScalar('bar')
         """
 
+
     @abc.abstractmethod
     def zaddnr(self, cmd):
         """
         >>> ex.purge()
 
         # Testing auto creation
-        >>> ex(ZAddNR('foo', 1, 'bar'))
+        >>> ex(ZAddNR('foo', {'bar':1}))
         >>> ex(ZScore('foo', 'bar'))
         1
 
         # Testing modification of an existing value
-        >>> ex(ZAddNR('foo', 2, 'baz'))
+        >>> ex(ZAddNR('foo', {'baz':2}))
         >>> ex(ZScore('foo', 'bar'));  ex(ZScore('foo', 'baz'))
         1
         2
 
         # Testing update of an existing member
-        >>> ex(ZAddNR('foo', 50, 'baz'))
+        >>> ex(ZAddNR('foo', {'baz':50}))
         >>> ex(ZScore('foo', 'bar')); ex(ZScore('foo', 'baz'))
         1
         50
 
         # Testing exception on type mismatch
-        >>> ex(Set('foo', 'bar'))
-        >>> return_exception_tuple(ex, ZAddNR('foo', 2, 'baz'))
+        >>> ex(SetNR('foo', 'bar'))
+        >>> return_exception_tuple(ex, ZAddNR('foo', {'baz':2}))
         ('RedisKeyTypeError', 'Existing value has wrong type.')
         """
+
 
     @abc.abstractmethod
     def zscore(self, cmd):
@@ -356,23 +371,24 @@ class Executer(object, metaclass=SuperclassMeta):
         >> ex(ZScore('foo', 'bar'))
 
         Member is not present returns None too
-        >> ex(ZAddNR('foo', 1, 'bar')); ex(ZScore('foo', 'baz'))
+        >> ex(ZAddNR('foo', {'bar':1})); ex(ZScore('foo', 'baz'))
 
         >> ex(ZScore('foo', 'bar'))
         1
 
         # Testing exception on type mismatch
-        >> ex(Set('foo', 'bar'))
+        >> ex(SetNR('foo', 'bar'))
         >> return_exception_tuple(ex, ZScore('foo', 'bar'))
         ('RedisKeyTypeError', 'Existing value has wrong type.')
         """
+
 
     @abc.abstractmethod
     def zrevrangebyscore(self, cmd):
         """
         Removes the specified members from the sorted set stored at key. Non existing members are ignored.
         >>> ex.purge()
-        >>> ex(ZAddNR('foo', 1, 'one')); ex(ZAddNR('foo', 2, 'two')); ex(ZAddNR('foo', 3, 'three'))
+        >>> ex(ZAddNR('foo', {'one': 1, 'two':2, 'three':3}))
         >>> list(ex(ZRevRangeByScore('foo',None,None)))
         ['three', 'two', 'one']
 
@@ -389,10 +405,11 @@ class Executer(object, metaclass=SuperclassMeta):
         [(3, 'three'), (2, 'two'), (1, 'one')]
 
         # Testing exception on type mismatch
-        >>> ex(Set('foo', 'bar'))
+        >>> ex(SetNR('foo', 'bar'))
         >>> return_exception_tuple(ex, ZRevRangeByScore('foo',10,30))
         ('RedisKeyTypeError', 'Existing value has wrong type.')
         """
+
 
     @abc.abstractmethod
     def zremnr(self, cmd):
@@ -400,29 +417,36 @@ class Executer(object, metaclass=SuperclassMeta):
         >>> ex.purge()
 
         Testing zrem on non existing key
-        >>> ex(ZRemNR('foo', 'bar'))
+        >>> ex(ZRemNR('foo', ['bar']))
         >>> ex(Exists('foo'))
         False
 
         Test modification of existing
-        >>> ex(ZAddNR('foo', 1, 'bar'))
-        >>> ex(ZAddNR('foo', 2, 'baz'))
-        >>> ex(ZRemNR('foo', 'baz'))
+        >>> ex(ZAddNR('foo', {'bar':1, 'baz':2}))
+        >>> ex(ZRemNR('foo', ['baz']))
         >>> ex(ZScore('foo', 'bar')); ex(ZScore('foo', 'baz'))
         1
 
         Test zrem of non-existent member
-        >>> ex(ZRemNR('foo', 'qux'))
+        >>> ex(ZRemNR('foo', ['bar']))
 
         Test deletion of sset after last member is removed
-        >>> ex(ZRemNR('foo', 'bar'))
         >>> ex(Exists('foo'))
         False
 
         # Testing exception on type mismatch
-        >>> ex(Set('foo', 'bar'))
-        >>> return_exception_tuple(ex, ZRemNR('foo', 'qux'))
+        >>> ex(SetNR('foo', 'bar'))
+        >>> return_exception_tuple(ex, ZRemNR('foo', ['qux']))
         ('RedisKeyTypeError', 'Existing value has wrong type.')
+
+
+        # Test multiple removals in single invocation
+        >>> ex(Del('foo'))
+        >>> ex(ZAddNR('foo', {'bar':1, 'baz':2}))
+        >>> ex(ZRemNR('foo', ['bar', 'baz']))
+
+        >>> ex(Exists('foo'))
+        False
         """
 
 

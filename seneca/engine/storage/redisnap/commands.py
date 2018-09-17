@@ -30,10 +30,9 @@ will generate RTypes for writing to db, and for returning local store and for
 return values.
 
 TODO: Switch from key input type to strings that more closely match RESP
-TODO: Switch all "WO" - write-only commands to "NR" - no-read
 """
 from abc import ABCMeta, abstractmethod
-from typing import Union, List
+from typing import Union, List, Dict
 
 from seneca.engine.util import auto_set_fields
 from seneca.engine.storage.redisnap.resp_types import *
@@ -166,7 +165,7 @@ class AssertType(TypeCheck):
 
 
 @run_methods_return_type(type(None))
-class AppendWO(Mutate):
+class AppendNR(Mutate):
     @auto_set_fields
     def __init__(self, key: str, value: str):
         pass
@@ -189,14 +188,14 @@ class Get(Read):
 
 @run_methods_return_type(type(None))
 @run_method_is_safe
-class Set(Write):
+class SetNR(Write):
     @auto_set_fields
     def __init__(self, key: str, value: Union[str, float, int]):
         pass
 
 # Note: Front end must convert Incr, Decr, and DecrBy to IncrBy
 @run_methods_return_type(int)
-class IncrByWO(Mutate):
+class IncrByNR(Mutate):
     @auto_set_fields
     def __init__(self, key, amount: int):
         pass
@@ -228,7 +227,7 @@ class HGet(Read):
         return ex(self)
 
 #@run_methods_return_type(type(None))
-class HSet(Write):
+class HSetNR(Write):
     @auto_set_fields
     def __init__(self, key: str, field: str, value: Union[str, float, int]):
         pass
@@ -326,7 +325,7 @@ class RPop(Mutate, Read):
 
 class ZAddNR(Mutate):
     @auto_set_fields
-    def __init__(self, key: str, score: str, member: str):
+    def __init__(self, key: str, members_and_scores: Dict[str, int]):
         pass
 
     def safe_run(self, ex):
@@ -336,7 +335,7 @@ class ZAddNR(Mutate):
 
 class ZRemNR(Mutate):
     @auto_set_fields
-    def __init__(self, key: str, member: str):
+    def __init__(self, key: str, members: List[str]):
         pass
 
     def safe_run(self, ex):
@@ -374,36 +373,7 @@ class ZIncrByNR(Mutate):
         return ex(self)
 
 
-# TODO: refactor this and the function below
-def merge_write_commands(to_merge, merged_on):
-    """
-    TODO: Important: as commands are added, this function must be updated.
-    """
-    supported_commands = [Set]
-    assert type(to_merge) in supported_commands, "Unsupported command"
-    assert type(merged_on) in supported_commands, "Unsupported command"
-    assert to_merge.key == merged_on.key, "Cannot merge, keys don't match"
-
-    if type(to_merge) == Set:
-        return to_merge
-
-    raise Exception('Unsupport combination of commands.')
-
-
-def merge_read_commands(to_merge, merged_on):
-    """
-    TODO: Important: as commands are added, this function must be updated.
-    """
-    supported_commands = [Get]
-    assert type(to_merge) in supported_commands, "Unsupported command"
-    assert type(merged_on) in supported_commands, "Unsupported command"
-    assert to_merge.key == merged_on.key, "Cannot merge, keys don't match"
-
-    if type(to_merge) == Get:
-        return to_merge
-
-    raise Exception('Unsupport combination of commands.')
-
+# TODO: command merging
 '''
 TODO:
 * Bitmaps Commands
@@ -415,27 +385,7 @@ Note: This module currently holds shared tests for RediSnap
 """
 
 def run_tests(deps_provider):
-    import seneca.engine.storage.redisnap.local_backend as l_back
-    import seneca.engine.storage.redisnap.redis_backend as r_back
-
+    import doctest, sys
     from seneca.engine.util import return_exception_tuple
 
-    import doctest, sys
-
-    # Setup up three executers
-    executers = [l_back.Executer()]
-    executers.append(r_back.Executer(host='127.0.0.1', port=32768))
-
-    ret = lambda: None
-    ret.attempted = 0
-    ret.failed = 0
-
-    for ex in executers:
-        mod_name = ex.__module__
-        print("-- Testing executer %s --\n" % type(ex))
-        res = doctest.testmod(sys.modules[__name__], extraglobs={**locals()})
-        ret.failed += res.failed
-        ret.attempted += res.attempted
-        print("-- Done with %s --\n" % type(ex))
-
-    return ret
+    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

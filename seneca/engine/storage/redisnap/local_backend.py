@@ -17,11 +17,13 @@ from seneca.engine.storage.redisnap.commands import *
 import seneca.engine.storage.redisnap.resp_types as rtype
 from seneca.engine.storage.redisnap.backend_abc import Executer as abc_executer
 
+
 class Executer(abc_executer):
     """
     >>> e = Executer(); print(e)
     Executer({})
     """
+
     def __init__(self):
         self.data = {}
 
@@ -52,7 +54,7 @@ class Executer(abc_executer):
         except KeyError:
             return RDoesNotExist()
 
-    def set(self, cmd):
+    def setnr(self, cmd):
         self.data[cmd.key] = make_rscalar(cmd.value)
 
 
@@ -60,28 +62,27 @@ class Executer(abc_executer):
         self.data.pop(cmd.key)
 
 
-    def incrbywo(self, cmd):
-        #TODO: Change name to incrby_wo()
+    def incrbynr(self, cmd):
         old = self(Get(cmd.key))
         old_type = type(old)
 
         if issubclass(old_type, RDoesNotExist):
-            self(Set(cmd.key, cmd.amount))
+            self(SetNR(cmd.key, cmd.amount))
         elif issubclass(old_type, RScalarInt):
             old.value += cmd.amount
         else:
             raise RedisVauleTypeError('Existing value has wrong type.')
 
 
-    def appendwo(self, cmd):
+    def appendnr(self, cmd):
         old = self(Get(cmd.key))
         old_type = type(old)
         assert isinstance(old, RScalar)
 
         if issubclass(old_type, RDoesNotExist):
-            self(Set(cmd.key, cmd.value))
+            self(SetNR(cmd.key, cmd.value))
         elif issubclass(old_type, RScalarInt) or issubclass(old_type, RScalarFloat):
-            self(Set(cmd.key, str(old.value) + cmd.value))
+            self(SetNR(cmd.key, str(old.value) + cmd.value))
         elif issubclass(old_type, RScalar):
             old.value += cmd.value
         else:
@@ -100,7 +101,7 @@ class Executer(abc_executer):
             return RDoesNotExist()
 
 
-    def hset(self, cmd):
+    def hsetnr(self, cmd):
         if cmd.key in self.data:
             old_val = self.data[cmd.key]
             if not isinstance(old_val, RHash):
@@ -201,9 +202,10 @@ class Executer(abc_executer):
             if not isinstance(existing_sset, RSortedSet):
                 raise RedisKeyTypeError('Existing value has wrong type.')
             else:
-                existing_sset.add(cmd.score, cmd.member)
+                for m, s in cmd.members_and_scores.items():
+                    existing_sset.add(s, m)
         else:
-            self.data[cmd.key] = RSortedSet([(cmd.score, cmd.member)])
+            self.data[cmd.key] = RSortedSet(list(map(swap, cmd.members_and_scores.items())))
 
     def zremnr(self, cmd):
         if cmd.key in self.data:
@@ -211,7 +213,8 @@ class Executer(abc_executer):
             if not isinstance(existing_sset, RSortedSet):
                 raise RedisKeyTypeError('Existing value has wrong type.')
             else:
-                existing_sset.rem(cmd.member)
+                for m in cmd.members:
+                    existing_sset.rem(m)
                 if not existing_sset:
                     self.data.pop(cmd.key)
         else:
@@ -270,7 +273,7 @@ class Executer(abc_executer):
         >>> ex.contains_command_addr(HGet('foo', 'bar'))
         False
 
-        >>> ex(Set('foo', 'bar'))
+        >>> ex(SetNR('foo', 'bar'))
         >>> ex.contains_command_addr(Get('foo'))
         True
 
@@ -278,7 +281,7 @@ class Executer(abc_executer):
         ('RedisKeyTypeError', 'Existing value has wrong type.')
 
         >>> ex(Del('foo'))
-        >>> ex(HSet('foo', 'bar', 'baz'))
+        >>> ex(HSetNR('foo', 'bar', 'baz'))
 
         >>> ex.contains_command_addr(HGet('foo', 'bar'))
         True

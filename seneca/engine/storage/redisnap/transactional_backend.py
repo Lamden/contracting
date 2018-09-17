@@ -12,6 +12,8 @@ import seneca.engine.storage.redisnap.redis_backend as r_back
 from collections import OrderedDict
 from seneca.engine.util import auto_set_fields
 from abc import ABCMeta, abstractmethod
+from seneca.engine.storage.redisnap.backend_abc import Executer as abc_executer
+
 
 class NoTransactionsInGroup(Exception):
     pass
@@ -93,7 +95,7 @@ class Transaction:
     def run_mutate_command(self, cmd):
         cmd_type = type(cmd)
 
-        if cmd_type == AppendWO:
+        if cmd_type == AppendNR:
             return self.appendwo(cmd)
         else:
             raise NotImplementedError()
@@ -176,7 +178,7 @@ class RedisBackendWapper:
         return getattr(self.wrapped, attr)
 
 
-class TransactionGroup:
+class TransactionGroup(abc_executer):
     def __init__(self, *args, **kwargs):
         self._redis_backend = RedisBackendWapper(*args, **kwargs)
         self._active_transaction = None
@@ -253,7 +255,7 @@ class TransactionGroup:
 
 def run_tests(deps_provider):
     '''
-    >>> ex = TransactionGroup(host='127.0.0.1', port=32768)
+    >>> ex1 = TransactionGroup(host='127.0.0.1', port=32768)
     >>> ex._redis_backend.purge()
 
     # Operations should fail before transaction has been created.
@@ -262,7 +264,7 @@ def run_tests(deps_provider):
 
     >>> ex.start_new_transaction('testing-trans-1')
 
-    >>> ex(AppendWO('foo', 'bar'))
+    >>> ex(AppendNR('foo', 'bar'))
     >>> ex._active_transaction._read_deps.contains_command_addr(Get('foo'))
     False
     >>> ex._active_transaction._mutation_tracker.contains_command_addr(Get('foo'))
@@ -291,7 +293,7 @@ def run_tests(deps_provider):
 
 
     # Set key in transaction 'testing-trans-1'
-    >>> ex(Set('foo', 'bar'))
+    >>> ex(SetNR('foo', 'bar'))
 
     >>> ex._active_transaction._local_executer(Get('foo'))
     RScalar('bar')
@@ -339,12 +341,12 @@ def run_tests(deps_provider):
     RScalar('bar')
 
     # Overwrite foo in testing-trans-2
-    >>> ex(Set('foo', 'baz')); ex(Get('foo'))
+    >>> ex(SetNR('foo', 'baz')); ex(Get('foo'))
     RScalar('baz')
     >>> ex._transactions[0](Get('foo'))
     RScalar('bar')
 
-    >>> ex(AppendWO('foo', 'bar'))
+    >>> ex(AppendNR('foo', 'bar'))
     >>> ex(Get('foo'))
     RScalar('bazbar')
 
@@ -354,33 +356,34 @@ def run_tests(deps_provider):
     RDoesNotExist()
 
     ### Test commit ordering ###
-    >>> ex = TransactionGroup(host='127.0.0.1', port=32768)
-    >>> ex._redis_backend.purge()
-    >>> ex.start_new_transaction('a')
-    >>> ex(Set('foo', 'a'))
-    >>> ex(Set('foo', 'b'))
-    >>> ex(Set('foo', 'c'))
-    >>> ex(Set('foo', 'd'))
-    >>> ex.start_new_transaction('b')
-    >>> ex(Set('foo', 'e'))
-    >>> ex(Set('foo', 'f'))
-    >>> ex(Set('foo', 'g'))
-    >>> ex(Set('foo', 'h'))
-    >>> _ = [print(x) for x in ex.get_pending_ops()]
-    Set('foo', 'a')
-    Set('foo', 'b')
-    Set('foo', 'c')
-    Set('foo', 'd')
-    Set('foo', 'e')
-    Set('foo', 'f')
-    Set('foo', 'g')
-    Set('foo', 'h')
-
-
+    >>> ex2 = TransactionGroup(host='127.0.0.1', port=32768)
+    >>> ex2._redis_backend.purge()
+    >>> ex2.start_new_transaction('a')
+    >>> ex2(SetNR('foo', 'a'))
+    >>> ex2(SetNR('foo', 'b'))
+    >>> ex2(SetNR('foo', 'c'))
+    >>> ex2(SetNR('foo', 'd'))
+    >>> ex2.start_new_transaction('b')
+    >>> ex2(SetNR('foo', 'e'))
+    >>> ex2(SetNR('foo', 'f'))
+    >>> ex2(SetNR('foo', 'g'))
+    >>> ex2(SetNR('foo', 'h'))
+    >>> _ = [print(x) for x in ex2.get_pending_ops()]
+    SetNR('foo', 'a')
+    SetNR('foo', 'b')
+    SetNR('foo', 'c')
+    SetNR('foo', 'd')
+    SetNR('foo', 'e')
+    SetNR('foo', 'f')
+    SetNR('foo', 'g')
+    SetNR('foo', 'h')
     >>> ex.commit_all_to_redis()
     '''
 
     import doctest, sys
+
+    ex = TransactionGroup(host='127.0.0.1', port=32768)
+    from seneca.engine.util import return_exception_tuple
 
     def exception_type_name(*args):
         try:
