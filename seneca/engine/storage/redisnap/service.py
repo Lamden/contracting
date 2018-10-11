@@ -9,7 +9,7 @@ Main process
     * finalize()
     * new_transaction(rank_info):
       * creates a process to run executer, forks main process with latest list of other transactions
-        * Executer is subscribed to latest transaction publisher
+        * ExecuterBase is subscribed to latest transaction publisher
         * Will throw an exception immediately if a new block is published that causes a conflict.
         * will publish it's own transaction when it's soft-committed and close
       *
