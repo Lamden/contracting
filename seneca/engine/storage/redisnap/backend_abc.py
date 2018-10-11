@@ -17,7 +17,7 @@ class SuperclassMeta(type):
         return cls
 
 
-class ExecuterBase(object, metaclass=SuperclassMeta):
+class Executer(object, metaclass=SuperclassMeta):
     '''
     Maps command objects to actual Redis commands and runs them, leans heavily
     on redis.py

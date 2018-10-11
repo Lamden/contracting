@@ -12,7 +12,7 @@ import seneca.engine.storage.redisnap.redis_backend as r_back
 from collections import OrderedDict
 from seneca.engine.util import auto_set_fields
 from abc import ABCMeta, abstractmethod
-from seneca.engine.storage.redisnap.backend_abc import ExecuterBase as abc_executer
+from seneca.engine.storage.redisnap.backend_abc import Executer as abc_executer
 
 
 class NoTransactionsInGroup(Exception):
@@ -56,7 +56,7 @@ class Transaction:
     """
     >>> t = Transaction(None, 'testing')
     >>> print(t)
-    Transaction({'_local_executer': ExecuterBase({}), '_read_deps': OpTracker({}), '_typecheck_deps': OpTracker({}), '_redo_log': OpTracker({}), '_mutation_tracker': OpTracker({}), '_status': 'open', 'tag': 'testing', '_transaction_group': None})
+    Transaction({'_local_executer': Executer({}), '_read_deps': OpTracker({}), '_typecheck_deps': OpTracker({}), '_redo_log': OpTracker({}), '_mutation_tracker': OpTracker({}), '_status': 'open', 'tag': 'testing', '_transaction_group': None})
     """
     def __init__(self, transaction_group, tag):
         #self._local_executer = TransactionalExecuter()

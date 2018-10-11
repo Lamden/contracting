@@ -7,7 +7,7 @@ from seneca.engine.util import grouper
 from seneca.engine.storage.redisnap.commands import *
 import seneca.engine.storage.redisnap.resp_types as rtype
 #from seneca.engine.storage.redisnap.addresses import *
-from seneca.engine.storage.redisnap.backend_abc import ExecuterBase as abc_executer
+from seneca.engine.storage.redisnap.backend_abc import Executer as abc_executer
 
 def bytes_to_rscalar(b):
     if b:

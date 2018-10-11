@@ -39,4 +39,4 @@ from seneca.engine.storage.mysql_spits_executer import Executer as Spits
 #
 #     return result
 
-# ex = ExecuterBase('seneca_test', 'ox5rnhhzcenc', 'seneca_test', '127.0.0.1')
+# ex = Executer('seneca_test', 'ox5rnhhzcenc', 'seneca_test', '127.0.0.1')

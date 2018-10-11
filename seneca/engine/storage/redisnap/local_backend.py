@@ -15,20 +15,20 @@ TODO: Custom exception types, important!
 """
 from seneca.engine.storage.redisnap.commands import *
 import seneca.engine.storage.redisnap.resp_types as rtype
-from seneca.engine.storage.redisnap.backend_abc import ExecuterBase as abc_executer
+from seneca.engine.storage.redisnap.backend_abc import Executer as abc_executer
 
 
 class Executer(abc_executer):
     """
-    >>> e = ExecuterBase(); print(e)
-    ExecuterBase({})
+    >>> e = Executer(); print(e)
+    Executer({})
     """
 
     def __init__(self):
         self.data = {}
 
     def __repr__(self):
-        return 'ExecuterBase(%s)' % str(self.data)
+        return 'Executer(%s)' % str(self.data)
 
     def purge(self):
         self.data = {}
@@ -61,6 +61,7 @@ class Executer(abc_executer):
     def del_(self, cmd):
         self.data.pop(cmd.key)
 
+
     def incrbynr(self, cmd):
         old = self(Get(cmd.key))
         old_type = type(old)
@@ -71,6 +72,7 @@ class Executer(abc_executer):
             old.value += cmd.amount
         else:
             raise RedisVauleTypeError('Existing value has wrong type.')
+
 
     def appendnr(self, cmd):
         old = self(Get(cmd.key))
@@ -86,6 +88,7 @@ class Executer(abc_executer):
         else:
             raise Exception('Existing value has wrong type.')
 
+
     def hget(self, cmd):
         try:
             maybe_rhash = self.data[cmd.key]
@@ -96,6 +99,7 @@ class Executer(abc_executer):
                 raise RedisKeyTypeError('Existing value has wrong type.')
         except KeyError:
             return RDoesNotExist()
+
 
     def hsetnr(self, cmd):
         if cmd.key in self.data:
@@ -132,6 +136,7 @@ class Executer(abc_executer):
         except KeyError:
             return RDoesNotExist()
 
+
     def lset(self, cmd):
         try:
             maybe_rlist = self.data[cmd.key]
@@ -144,6 +149,7 @@ class Executer(abc_executer):
         except KeyError:
             raise RedisKeyTypeError('Cannot LSet an nonexistent key.')
 
+
     def _push_nr_base(self, method_name, key, values):
         if key in self.data:
             old_val = self.data[key]
@@ -154,11 +160,14 @@ class Executer(abc_executer):
         else:
             self.data[key] = RList(list(map(make_rscalar, values)))
 
+
     def lpushnr(self, cmd):
         return self._push_nr_base('appendleft', cmd.key, cmd.value[::-1])
 
+
     def rpushnr(self, cmd):
         return self._push_nr_base('append', cmd.key, cmd.value)
+
 
     def _pop_base(self, method_name, cmd):
         try:
