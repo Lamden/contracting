@@ -6,3 +6,7 @@ pynacl
 python-dateutil==2.7.3
 redis==2.10.6
 sortedcontainers==2.0.5
+base58
+clove
+base58
+clove
