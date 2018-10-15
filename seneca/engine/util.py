@@ -1,4 +1,5 @@
 from functools import wraps
+from itertools import zip_longest
 from inspect import signature, _empty
 from collections import namedtuple
 import ast
@@ -212,6 +213,29 @@ def manual_import(path, name):
     exec(mod_comp, mod_dict)
 
     return mod_dict
+
+
+def return_exception(*args):
+    try:
+        return args[0](*args[1:])
+        raise Exception("This test expected an exception but no exception was thrown!")
+    except Exception as e:
+        return e
+
+def return_exception_tuple(*args):
+    e = return_exception(*args)
+    return (type(e).__name__, str(e))
+
+#https://docs.python.org/3/library/itertools.html#itertools-recipes
+def grouper(iterable, n, fillvalue=None):
+    """
+    Collect data into fixed-length chunks or blocks
+    >>> list(grouper([1,2,3,4], 2))
+    [(1, 2), (3, 4)]
+    """
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=fillvalue)
 
 
 def run_tests(_):
