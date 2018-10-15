@@ -21,7 +21,6 @@ To convert:
 '''
 
 #from seneca.engine.util import run_super_first, auto_set_fields, intercalate
-import seneca.engine.storage.mysql_intermediate as m_i
 
 
 def name_space_isql(prefix, isql_obj):
@@ -41,5 +40,5 @@ def run_tests(_):
     >>> name_space_isql('', None)
     '''
     # TODO: Add teests.
-    import doctest, sys, ast
+    import doctest, sys
     return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

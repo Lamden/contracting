@@ -10,12 +10,7 @@
 # * _fields - Each concrete class has an attribute _fields which gives the names
 #   of all child nodes.
 
-import sys
-import ast
-import astpretty
-from collections import namedtuple
 import os
-import importlib
 import traceback
 from seneca.engine.util import *
 
