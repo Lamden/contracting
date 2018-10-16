@@ -156,8 +156,21 @@ def run_contract_file_as_user(contract_file_name, user_id, contract_address):
 
     return contract_id
 
+
 def run_contract(contract_file):
         show('*** Contract:', contract_file)
         contract_id = contract_file.split('/')[-1].split('.')[0]
 
         run_contract_file_as_user(contract_file, 'this_is_user_id', contract_id)
+
+
+if __name__ == '__main__':
+    set_up()
+
+    # Obviously one would have to change this to work for their particular file system...  -- davis
+    contract_path = '/Users/davishaba/Developer/seneca/seneca/example_contracts/_06_test_kv.seneca'
+    user_id = 'DEAD' * 16  # some arbitrary verifying key
+    contract_address = 'ABCD' * 16
+
+    run_contract_file_as_user(contract_path, user_id, contract_address)
+
