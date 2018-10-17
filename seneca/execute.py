@@ -10,12 +10,7 @@
 # * _fields - Each concrete class has an attribute _fields which gives the names
 #   of all child nodes.
 
-import sys
-import ast
-import astpretty
-from collections import namedtuple
 import os
-import importlib
 import traceback
 from seneca.engine.util import *
 
@@ -249,7 +244,18 @@ def get_read_only_contract_obj(_, this_run_data, contract_str, is_main=False, mo
     call_stack = [(this_run_data['author'], this_run_data['contract_id'])]
     return _execute_contract(call_stack, contract_str, is_main=False, module_loader=module_loader, db_executer=db_executer)
 
+'''
 
+    this_run_data and contract_str should be combined together into a single interface
+    {
+        'code_str': code_str,
+        'author': author,
+        'submission_time': datetime,
+        'random_seed': random_seed
+    }
+    contract id can be determined later on if its stored
+
+'''
 #TODO NOTE to Carl: reafactor this
 def execute_contract(_, this_run_data, contract_str, is_main=False, module_loader=None, db_executer=None):
     # TODO: IMPORTANT! Change this method signature
@@ -265,7 +271,6 @@ def execute_contract(_, this_run_data, contract_str, is_main=False, module_loade
         ret.error_message = traceback.format_exc()
         ret.exception = e
     return ret
-
 
 def _execute_contract(call_stack, contract_str, is_main, module_loader, db_executer):
     # TODO: Readd tests
@@ -309,7 +314,7 @@ def _execute_contract(call_stack, contract_str, is_main, module_loader, db_execu
                     append_sandboxed_scope(module_scope, import_, s_exports)
 
                 elif import_['module_type'] == 'smart_contract':
-                    downstream_contract_run_data, downstream_contract_str = module_loader(import_['module_path'])
+                    downstream_contract_run_data, downstream_contract_str = module_loader.load(import_['module_path'])
                     child_call_stack = call_stack.copy()
                     child_call_stack.append((downstream_contract_run_data['author'], downstream_contract_run_data['contract_id']))
 
@@ -346,6 +351,7 @@ def _execute_contract(call_stack, contract_str, is_main, module_loader, db_execu
         return True
 
 
+# this_run_data => interpreter_state or metadata
 def run_tests(deps_provider):
     '''
     >>> global_run_data = {

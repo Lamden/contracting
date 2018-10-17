@@ -7,7 +7,6 @@ TODO: Currently circumventing main code block that selects special query actions
 import re
 import copy
 import MySQLdb
-from seneca.engine.util import *
 
 import seneca.engine.storage.mysql_executer as ex_base
 from seneca.engine.storage.mysql_intermediate import *
@@ -452,8 +451,6 @@ def run_tests(deps_provider):
 
     '''
     import doctest, sys
-    import seneca.engine.storage.mysql_intermediate as mysqli
-    import seneca.engine.storage.easy_db as easy_db
     from typing import Tuple
 
     from seneca.engine.storage.mysql_executer import Executer as Raw_Executer

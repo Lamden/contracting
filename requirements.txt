@@ -1,6 +1,13 @@
 astpretty==1.2.1
 mysqlclient
+redis==2.10.6
 terminaltables==3.1.0
 pynacl
 # WARNING replace dateutil!
 python-dateutil==2.7.3
+redis==2.10.6
+sortedcontainers==2.0.5
+base58
+clove
+base58
+clove

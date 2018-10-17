@@ -20,7 +20,6 @@
 # TODO: XXX: Current implementation is only for running trusted contracts, no security has been implemented.
 
 import seneca.engine.storage.easy_db as db
-import datetime
 
 ex = None
 name_space = None

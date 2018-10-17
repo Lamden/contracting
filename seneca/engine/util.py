@@ -42,35 +42,19 @@ def run_super_first(f):
 
 
 def fst(tup):
-    '''
-    >>> fst((1,2))
-    1
-    '''
-    return(tup[0])
+    return tup[0]
 
 
 def snd(tup):
-    '''
-    >>> snd((1,2))
-    2
-    '''
-    return(tup[1])
+    return tup[1]
 
 
 def swap(tup):
-    '''
-    >>> swap((1,2))
-    (2, 1)
-    '''
     x, y = tup
     return y, x
 
 
-def f_apply(f,x):
-    '''
-    >>> f_apply(lambda x:x, 1)
-    1
-    '''
+def f_apply(f, x):
     return f(x)
 
 
@@ -85,14 +69,6 @@ def compose(f,g):
 
 
 def intercalate(x, ys):
-    '''
-    Like join, but filters Falsey values.
-
-    >>> intercalate('_', 'abcde')
-    'a_b_c_d_e'
-    >>> intercalate('_', [None, 'a', None, 'b'])
-    'a_b'
-    '''
     return x.join([x for x in ys if x])
 
 
@@ -102,15 +78,6 @@ class add_methods(object):
     Attribute name collisions result in a TypeError if force is False.
     If a mixin is an ABC, the decorated class is registered to it,
     indicating that the class implements the mixin's interface.
-
-    >>> def id_(self, x):
-    ...     return x
-    >>> @add_methods(id_)
-    ... class Test(object):
-    ...     pass
-    >>> t = Test()
-    >>> t.id_('abc')
-    'abc'
     '''
     @auto_set_fields
     def __init__(self, *attrs):
@@ -133,15 +100,6 @@ class add_method_as(object):
     Attribute name collisions result in a TypeError if force is False.
     If a mixin is an ABC, the decorated class is registered to it,
     indicating that the class implements the mixin's interface.
-
-    >>> def id_(self, x):
-    ...     return x
-    >>> @add_method_as(id_, 'id_')
-    ... class Test(object):
-    ...     pass
-    >>> t = Test()
-    >>> t.id_('abc')
-    'abc'
     '''
     @auto_set_fields
     def __init__(self, attr, as_name):
@@ -158,29 +116,17 @@ class add_method_as(object):
 
 
 def filter_split(f, l):
-    '''
-    >>> filter_split(lambda x: x == 'x', 'aaxbbxccxddx')
-    (['x', 'x', 'x', 'x'], ['a', 'a', 'b', 'b', 'c', 'c', 'd', 'd'])
-    '''
     accepted = []
     rejected = []
     [accepted.append(x) if f(x) else rejected.append(x) for x in l]
-    return (accepted, rejected)
+    return accepted, rejected
 
 
 def dict_to_nt(d, typename='seneca_generate_type'):
-    '''
-    >>> dict_to_nt({'x':'y'})
-    seneca_generate_type(x='y')
-    '''
     return namedtuple(typename, d.keys())(*d.values())
 
 
 def dict_to_obj(d, typename=None):
-    '''
-    >>> dict_to_obj({'x': 'y'}).x
-    'y'
-    '''
     empty = lambda: None
 
     for k,v in d.items():
@@ -190,17 +136,7 @@ def dict_to_obj(d, typename=None):
 
 
 def manual_import(path, name):
-    '''Should work pretty similar to built-in import, but...
-    * Not a singleton
-    * Doesn't bind to scope, just returns value
-    * TODO:What else???
-
-    >>> m = manual_import(__file__, 'tester')
-    >>> type(m)
-    <class 'dict'>
-    >>> 'manual_import' in m.keys()
-    True
-
+    '''
     TODO: More tests.
     '''
     with open(path, 'r') as file:
@@ -212,8 +148,3 @@ def manual_import(path, name):
     exec(mod_comp, mod_dict)
 
     return mod_dict
-
-
-def run_tests(_):
-    import doctest, sys
-    return doctest.testmod(sys.modules[__name__], extraglobs={**locals()})

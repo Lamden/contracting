@@ -1,4 +1,3 @@
-from seneca.engine.util import *
 from seneca.engine.storage.mysql_intermediate import *
 
 dissallowed_queries = [ AddTableColumn,
