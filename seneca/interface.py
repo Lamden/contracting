@@ -1,84 +1,19 @@
-import hashlib
-import os
-import redis
-import base58
+import sys
+from seneca.engine.module import SenecaFinder, RedisFinder
+from seneca.engine.interpreter import SenecaInterpreter
 
+class SenecaInterface:
 
-# import bnb9whr3dcpguk93myqsj1ii69oscz4jsy7j8dgu1fyfp1hibbw8
-
-class Context:
-    pass
-
-
-class Session:
-    def interprete(self, contract_id):
-        pass
-
-
-class ASTParser:
-    pass
-
-
-class ContractStorage:
     def __init__(self):
-        raise NotImplementedError
+        sys.meta_path = [SenecaFinder(), RedisFinder()]
 
-    def save(self, contract):
-        raise NotImplementedError
+    def execute_code_str(self, code_str):
+        tree = SenecaInterpreter.parse_ast(code_str)
+        code_obj = compile(tree, filename='__main__', mode="exec")
+        SenecaInterpreter.execute(code_obj)
 
-    def load(self, contract_id):
-        raise NotImplementedError
+    def submit_code_str(self, fullname, code_str, keep_original=False):
+        SenecaInterpreter.set_code(fullname, code_str, keep_original)
 
-    def contract_repr(self, contract):
-        raise NotImplementedError
-
-
-class Contract:
-    def build(code_str, author, datetime, random_seed):
-        return {
-            'code_str': code_str,
-            'author': author,
-            'submission_time': datetime,
-            'random_seed': random_seed
-        }
-
-
-class RedisContractStorage(ContractStorage):
-    def __init__(self, driver=redis.StrictRedis(host='localhost',
-                                                port=6379,
-                                                db=0)):
-        self.r = driver
-
-    def save(self, contract):
-        contract_id = self.generate_address(contract)
-
-        self.r.hmset(contract_id, {'code_str': contract['code_str'],
-                                   'author': contract['author'],
-                                   'submission_time': contract['submission_time']})
-
-        return contract_id
-
-    def load(self, contract_id):
-        code_str, author, submission_time = \
-            self.r.hmget(contract_id, ('code_str', 'author', 'submission_time',))
-
-        runtime_data = {
-            'author': author.decode(),
-            'now': submission_time.decode(),
-            'contract_id': contract_id
-        }
-
-        return runtime_data, code_str.decode()
-
-    def generate_address(self, contract):
-        h = hashlib.sha3_256()
-        h.update(contract['code_str'].encode())
-        h.update(contract['author'].encode())
-
-        count = self.r.incr('contract_count:' + contract['author'])
-
-        h.update(str(count).encode())
-
-        encoding = base58.b58encode(h.digest()).decode()
-
-        return encoding
+    def get_code(self, fullname):
+        return SenecaInterpreter.get_code_str(fullname).decode()
