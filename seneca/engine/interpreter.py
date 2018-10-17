@@ -24,7 +24,6 @@ class SenecaInterpreter:
         assert not cls.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
         tree = cls.parse_ast(code_str)
         code_obj = compile(tree, filename='module_name', mode="exec")
-        SenecaInterpreter.execute(code_obj)
         pipe = cls.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
         if keep_original:
