@@ -29,6 +29,17 @@ from seneca.test_contracts.sample import good_call, reasonable_call
 from seneca.test_contracts.bad import innocent_function
             """)
 
+    def test_import_star(self):
+        """
+            Import * is currently allowed but calling on protected functions
+            will still fail
+        """
+        with self.assertRaises(ImportError) as context:
+            self.si.execute_code_str("""
+from seneca.test_contracts.sample import *
+secret_call()
+            """)
+
     def test_import_indirect_invalid_import(self):
         """
             You cannot import the entire module. You must import its functions
