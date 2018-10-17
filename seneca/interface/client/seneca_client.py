@@ -24,6 +24,7 @@ import asyncio
 # this is the seneca interpreter that sub-block builders will use it.
 # it should be pretty similar to current SenecaInterpreter
 #    - will execute the txns locally and maintains a list of txns, with status, state, etc. see interpreter.py
+#    - it will also have a higher level apis to orchestrate sub-block contenders
 
 class SenecaClient:
 
