@@ -1,5 +1,6 @@
 astpretty==1.2.1
 mysqlclient
+redis==2.10.6
 terminaltables==3.1.0
 pynacl
 # WARNING replace dateutil!
