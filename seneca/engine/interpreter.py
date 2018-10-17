@@ -1,9 +1,11 @@
-import redis, ast, marshal, array, copy, inspect
+import redis, ast, marshal, array, copy, inspect, types, uuid
 from seneca.constants.whitelists import allowed_ast_types, allowed_import_paths, safe_builtins
 
 class SenecaInterpreter:
 
     r = redis.StrictRedis(host='localhost', port=6379, db=0)
+    imports = {}
+
 
     @classmethod
     def get_code_obj(cls, fullname):
@@ -22,6 +24,7 @@ class SenecaInterpreter:
         assert not cls.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
         tree = cls.parse_ast(code_str)
         code_obj = compile(tree, filename='module_name', mode="exec")
+        SenecaInterpreter.execute(code_obj)
         pipe = cls.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
         if keep_original:
@@ -29,23 +32,52 @@ class SenecaInterpreter:
         pipe.execute()
 
     @classmethod
-    def assert_import_path(cls, import_path):
+    def assert_import_path(cls, import_path, module_name=None):
+        if module_name:
+            import_path = '.'.join([import_path, module_name])
         for path in allowed_import_paths:
             if import_path.startswith(path):
-                return True
-        raise ImportError('Forbiddened to import module "{}"'.format(import_path))
+                if len(import_path.split('.')) - len(path.split('.')) == 2:
+                    return True
+                else:
+                    raise ImportError('Instead of importing the entire "{}" module, you must import each functions directly.'.format(import_path))
+        raise ImportError('"{}" is protected and cannot be imported'.format(import_path))
 
     @classmethod
-    def parse_ast(cls, code_str):
+    def parse_ast(cls, code_str, filename=''):
+
         tree = ast.parse(code_str)
-        for item in ast.walk(tree):
+
+        for idx, item in enumerate(ast.walk(tree)):
 
             # Restrict imports to ones in allowed_import_paths
             if isinstance(item, ast.Import):
-                cls.assert_import_path(item.names[0].name)
-                print(item.names[0].name)
+                module_name = item.names[0].name
+                cls.assert_import_path(module_name)
+                if cls.imports.get(module_name) == 'protected':
+                    raise ImportError('"{}" is protected and cannot be imported'.format(module_name))
+                cls.imports[module_name] = 'imported'
+
             elif isinstance(item, ast.ImportFrom):
-                cls.assert_import_path(item.module)
+                module_name = item.names[0].name
+                cls.assert_import_path(item.module, module_name=module_name)
+                imported = '.'.join([item.module, module_name])
+                if cls.imports.get(imported) == 'protected':
+                    raise ImportError('"{}" is protected and cannot be imported'.format(imported))
+                cls.imports[imported] = 'imported'
+
+            # Add the __protected__ decorator if not export
+            elif isinstance(item, ast.FunctionDef):
+                decorators = [d.id for d in item.decorator_list]
+                if '__protected__' in decorators:
+                    raise ImportError('"{}" is protected and cannot be imported'.format(item.name))
+                elif 'export' not in decorators:
+                    node = ast.Name()
+                    node.id = '__protected__'
+                    node.ctx = ast.Load()
+                    node.lineno = item.lineno
+                    node.col_offset = 0
+                    item.decorator_list.append(node)
 
         current_ast_types = {type(x) for x in ast.walk(tree)}
         illegal_ast_nodes = current_ast_types - allowed_ast_types
@@ -58,16 +90,28 @@ class SenecaInterpreter:
     def execute(cls, code, scope={}):
         scope.update({
             '__builtins__': safe_builtins,
-            'protected': Protected()
+            '__protected__': Protected(),
+            'export': Export()
         })
         exec(code, scope)
 
-class Protected:
+class ScopeParser:
+    @property
+    def namespace(self):
+        return inspect.stack()[2].filename.replace('.sen.py', '').split('/')[-1]
+
+class Export:
     def __call__(self, fn, *args, **kwargs):
         def _fn():
-            module = inspect.stack()[1].filename.replace('.sen.py', '').split('/')
-            if len(module) >= 3:
-                if module[-3] == fn.__module__.split('.')[-3]:
-                    return fn(*args, **kwargs)
-            raise Exception('Function "{}" is protected'.format(fn.__name__))
+            return fn(*args, **kwargs)
+        return _fn
+
+class Protected(ScopeParser):
+    def __call__(self, fn, *args, **kwargs):
+        module = '.'.join([fn.__module__ or '', fn.__name__])
+        SenecaInterpreter.imports[module] = 'protected'
+        def _fn():
+            if self.namespace in fn.__module__.split('.')[-1]:
+                return fn(*args, **kwargs)
+            raise ImportError('"{}" is __protected__ and cannot be imported'.format(module))
         return _fn

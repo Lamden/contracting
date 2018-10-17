@@ -9,7 +9,7 @@ class SenecaInterface:
 
     def execute_code_str(self, code_str):
         tree = SenecaInterpreter.parse_ast(code_str)
-        code_obj = compile(tree, filename='module_name', mode="exec")
+        code_obj = compile(tree, filename='__main__', mode="exec")
         SenecaInterpreter.execute(code_obj)
 
     def submit_code_str(self, fullname, code_str, keep_original=False):

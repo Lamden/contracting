@@ -68,15 +68,14 @@ allowed_ast_types = {
 
 allowed_import_paths = [
     'seneca.contracts',
-    'seneca.libs'
+    'seneca.libs',
+    'seneca.test_contracts'
 ]
 
 _safe_names = [
     '__import__',
     '__name__',
     '__doc__',
-    'globals',
-    'locals',
 
     'help',
     'print',
