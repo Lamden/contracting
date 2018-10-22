@@ -10,12 +10,15 @@ from seneca.constants.whitelists import allowed_ast_types, allowed_import_paths,
 
 class SenecaInterpreter:
 
-    def __init__(self, loop=None, name=None, get_log_fn=None, concurrent_mode=True):
+    DB_OFFSET = 1
+
+    def __init__(self, sb_idx, loop=None, name=None, get_log_fn=None, concurrent_mode=True):
         self.loop = loop or asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         name = name or self.__class__.__name__
         get_log_fn = get_log_fn or SenecaLogger
         self.log = get_log_fn(name)
+        self.sb_index = sb_idx
         self.concurrent_mode = concurrent_mode
         # use dbs for copies  # todo - explore for namespaces also
         # change / pass port number
@@ -28,10 +31,11 @@ class SenecaInterpreter:
         self.max_number_workers = 2    # 2 sufficient for now
         # different clients have to be opened up front (as redis-py doesn't support select)
         for db_num in range(self.max_number_workers):
-            db_client = redis.StrictRedis(host='localhost', port=port, db=db_num+1)
+            db_client = redis.StrictRedis(host='localhost', port=port, db=db_num+DB_OFFSET)
             self.worker_dbs.append(db_client)
-      
-        # connect to server here # persist  # ? use password - hashing of vk + sb_index ?
+
+        # perhaps in redis itself with fixed size (work as true cache)?
+        self.imports = {}
 
 
     # will be called upon the receipt of new-block-notification
@@ -72,8 +76,7 @@ class SenecaInterpreter:
     def db_assert(self, key, assert_code):
         pass
 
-    @classmethod
-    def execute(cls, code, scope={}):
+    def _execute(self, code, scope={}):
         scope.update({
             '__builtins__': safe_builtins,
             '__protected__': Protected(),
@@ -81,38 +84,38 @@ class SenecaInterpreter:
         })
         exec(code, scope)
 
-
-    # raghu - can't be class variable without locks as many processes will try to update it simultaneously
-    # perhaps in redis itself?
-    imports = {}
+    def run_contract(self, contract):
+        if self._code_obj_exists(contract.get_full_name()):
+            code_obj = self._get_code_obj(contract.get_full_name())
+        else:
+            tree = self.parse_ast(contract.get_code_str())
+            code_obj = compile(tree, filename='__main__', mode="exec")
+            self._set_code_obj(contract.get_full_name(), code_obj)
+        self._execute(code_obj)
 
 
     # raghu todo make them instance methods (not class methods)
-    @classmethod
-    def get_code_obj(cls, fullname):
-        code_obj = cls.r.hget('contracts', fullname)
+    def get_code_obj(self, fullname):
+        code_obj = self.master_db.hget('contracts', fullname)
         assert code_obj, 'User module "{}" not found!'.format(fullname)
         return marshal.loads(code_obj)
 
-    @classmethod
-    def get_code_str(cls, fullname):
-        code_str = cls.r.hget('contracts_str', fullname)
+    def get_code_str(self, fullname):
+        code_str = self.master_db.hget('contracts_str', fullname)
         assert code_str, 'Cannot find original code string for module "{}" not found!'.format(fullname)
         return code_str
 
-    @classmethod
-    def set_code(cls, fullname, code_str, keep_original=False):
-        assert not cls.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
-        tree = cls.parse_ast(code_str)
+    def set_code(self, fullname, code_str, keep_original=False):
+        assert not self.master_db.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
+        tree = self.parse_ast(code_str)
         code_obj = compile(tree, filename='module_name', mode="exec")
-        pipe = cls.r.pipeline()
+        pipe = self.master_db.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
         if keep_original:
             pipe.hset('contracts_str', fullname, code_str)
         pipe.execute()
 
-    @classmethod
-    def assert_import_path(cls, import_path, module_name=None):
+    def assert_import_path(self, import_path, module_name=None):
         if module_name:
             import_path = '.'.join([import_path, module_name])
         for path in allowed_import_paths:
@@ -123,8 +126,8 @@ class SenecaInterpreter:
                     raise ImportError('Instead of importing the entire "{}" module, you must import each functions directly.'.format(import_path))
         raise ImportError('"{}" is protected and cannot be imported'.format(import_path))
 
-    @classmethod
-    def parse_ast(cls, code_str, filename=''):
+
+    def parse_ast(self, code_str, filename=''):
 
         tree = ast.parse(code_str)
 
@@ -133,20 +136,20 @@ class SenecaInterpreter:
             # Restrict imports to ones in allowed_import_paths
             if isinstance(item, ast.Import):
                 module_name = item.names[0].name
-                cls.assert_import_path(module_name)
-                if cls.imports.get(module_name) == 'protected':
+                self.assert_import_path(module_name)
+                if self.imports.get(module_name) == 'protected':
                     raise ImportError('"{}" is protected and cannot be imported'.format(module_name))
                 # raghu - falcon, why do we need this?
-                cls.imports[module_name] = 'imported'
+                self.imports[module_name] = 'imported'
 
             elif isinstance(item, ast.ImportFrom):
                 module_name = item.names[0].name
-                cls.assert_import_path(item.module, module_name=module_name)
+                self.assert_import_path(item.module, module_name=module_name)
                 imported = '.'.join([item.module, module_name])
-                if cls.imports.get(imported) == 'protected':
+                if self.imports.get(imported) == 'protected':
                     raise ImportError('"{}" is protected and cannot be imported'.format(imported))
                 # raghu - falcon, why do we need this?
-                cls.imports[imported] = 'imported'
+                self.imports[imported] = 'imported'
 
             # Add the __protected__ decorator if not export
             elif isinstance(item, ast.FunctionDef):

@@ -27,8 +27,8 @@ class SenecaClient:
         name = name or self.__class__.__name__
         get_log_fn = get_log_fn or SenecaLogger
         self.log = get_log_fn(name)
-        self.sb_idx = sb_idx
-        self.interpreter = <seneca-interpreter>
+        # self.sb_idx = sb_idx
+        self.interpreter = SenecaInterpreter(sb_idx)
         self.queue = deque()
 
     def finalize(self):
