@@ -43,7 +43,7 @@ class SenecaInterpreter:
 
 
     # will be called upon the receipt of new-block-notification
-    def flush(self, input/result_hash, update_state=True):
+    def flush(self, update_state=True):
         """
         If update_state is True, this will also commit the changes
         to the database. Otherwise, this method will discard any changes

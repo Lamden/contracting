@@ -23,12 +23,12 @@ class ContractStruct:
 
 class SenecaClient:
 
-    def __init__(self, loop=None, name=None, get_log_fn=None, sb_idx: int):
+    def __init__(self, loop=None, name=None, get_log_fn=None, sbb_idx: int):
         name = name or self.__class__.__name__
         get_log_fn = get_log_fn or SenecaLogger
         self.log = get_log_fn(name)
-        # self.sb_idx = sb_idx
-        self.interpreter = SenecaInterpreter(sb_idx)
+        # self.sbb_idx = sbb_idx
+        self.interpreter = SenecaInterpreter(sbb_idx)
         self.queue = deque()
 
     def finalize(self):
@@ -45,8 +45,7 @@ class SenecaClient:
         Flushes internal queue of transactions. If update_state is True, this will also commit the changes
         to the database. Otherwise, this method will discard any changes
         """
-        sb_data = self.interpreter.flush(update_state=update_state)
-        return sb_data     # this mimics original queue in interpreter with contract_str and status info
+        self.interpreter.flush(update_state=update_state)
 
     def run_contract(self, contract):
         # raghu todo need to update this to ContractStruct or something
@@ -56,14 +55,22 @@ class SenecaClient:
         self.interpreter.run_contract(contract)
 
     def start_sub_block(self):
+        # pull first one from worker set
+        # we can store input hash here
         pass
 
     def end_sub_block(self):
+        # add any synchronizing steps needed
+        # put this back to pending_db queue
         pass
 
-    def get_sub_block(self):
+    def get_next_sub_block(self):
         pass
-        # resolve conflicts
+        # pull first one from pending_db queue
+        # resolve conflicts - requires synchronization
+        # last one cleans up 
+        # puts it back to worker
+        # return set of txns and status, etc
 
 
     def start(self):
