@@ -10,12 +10,15 @@ from seneca.constants.whitelists import allowed_ast_types, allowed_import_paths,
 
 class SenecaInterpreter:
 
-    def __init__(self, loop=None, name=None, get_log_fn=None, concurrent_mode=True):
+    DB_OFFSET = 1
+
+    def __init__(self, sb_idx, loop=None, name=None, get_log_fn=None, concurrent_mode=True):
         self.loop = loop or asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         name = name or self.__class__.__name__
         get_log_fn = get_log_fn or SenecaLogger
         self.log = get_log_fn(name)
+        self.sb_index = sb_idx
         self.concurrent_mode = concurrent_mode
         # use dbs for copies  # todo - explore for namespaces also
         # change / pass port number
@@ -28,10 +31,15 @@ class SenecaInterpreter:
         self.max_number_workers = 2    # 2 sufficient for now
         # different clients have to be opened up front (as redis-py doesn't support select)
         for db_num in range(self.max_number_workers):
-            db_client = redis.StrictRedis(host='localhost', port=port, db=db_num+1)
+            db_client = redis.StrictRedis(host='localhost', port=port, db=db_num+DB_OFFSET)
             self.worker_dbs.append(db_client)
-      
-        # connect to server here # persist  # ? use password - hashing of vk + sb_index ?
+
+        # perhaps in redis itself with fixed size (work as true cache)?
+        self.imports = {}
+
+
+    def update_master_db(self, from_db):
+        # from from_db, get each k,v and update the corresponding entries in master_db
 
 
     # will be called upon the receipt of new-block-notification
@@ -43,15 +51,17 @@ class SenecaInterpreter:
         
         # need to iterate cur_db items and push them to master_db  - same as commit
         # make sure f_db is the one 
-        f_db = self.pending_dbs.pop(0)    # actually it has to match result_hash
-        if update_state:
-            self.update_master_db(f_db)
-        f_db.flushdb()
-        self.worker_dbs.append(f_db)
         # pop the right one (should be first one mostly) from active_dbs
         # save the state to master_db and purge it completely and return it to worker_dbs
+        f_db = self.pending_dbs.pop(0)    # actually it has to match result_hash
+        sb_data = None
+        if update_state:
+            sb_data = self.update_master_db(f_db)
+        f_db.flushdb()
+        self.worker_dbs.append(f_db)
+        return sb_data
 
-    def _start_next_db(self):
+    def _start_next_sb(self):
         if len(self.worker_dbs) == 0:
             return False
         self.active_db = self.worker_dbs.pop(0)
@@ -60,20 +70,30 @@ class SenecaInterpreter:
         # sync counter ??
         # return true / false so higher level can throttle it the way it want
         # phases: 1 - execute contracts, 2 - assertion check / status
+        # if sb_index == 0: then initialize two phase variables (see above) to zeros
         return True
+
+    def _end_sb(self):
+        # update the phase info in self.active_db
 
 
     def db_read(self, key):
         pass
+        # fetch from master_db
 
     def db_write(self, key, value):
         pass
+        # need to maintain two / three layers of data in cache (worker_db) layer
+        # common -> meaning everyone will update the data here. consists of conflict info:
+        #           "conflicts":key - <sorted set>  -> (sb_index:order_idx, sb_index * 1000 + order_idx (for score))
+        # cache(i):
+        #      1.  "value":key - new_set  new_incr  constraint
+        #      2.  hash [i] [ txn #] -> [ keys affected ]
 
     def db_assert(self, key, assert_code):
         pass
 
-    @classmethod
-    def execute(cls, code, scope={}):
+    def _execute(self, code, scope={}):
         scope.update({
             '__builtins__': safe_builtins,
             '__protected__': Protected(),
@@ -82,37 +102,48 @@ class SenecaInterpreter:
         exec(code, scope)
 
 
-    # raghu - can't be class variable without locks as many processes will try to update it simultaneously
-    # perhaps in redis itself?
-    imports = {}
+    # any state info we need to keep for conflict resolution and/or post assertion check
+    def _pre_execution(self, constract:ContractStruct):
+        pass
+        # save contract.contract_str in a queue for sb-index   - this serves as queue in original SenecaInterpreter
+
+    # same as above
+    def _post_execution(self):
+        pass
+
+    def run_contract(self, contract):
+        if self._code_obj_exists(contract.get_full_name()):
+            code_obj = self._get_code_obj(contract.get_full_name())
+        else:
+            tree = self.parse_ast(contract.get_code_str())
+            code_obj = compile(tree, filename='__main__', mode="exec")
+            self._set_code_obj(contract.get_full_name(), code_obj)
+        self._pre_execution(contract)
+        self._execute(code_obj)
+        self._post_execution()
 
 
-    # raghu todo make them instance methods (not class methods)
-    @classmethod
-    def get_code_obj(cls, fullname):
-        code_obj = cls.r.hget('contracts', fullname)
+    def get_code_obj(self, fullname):
+        code_obj = self.master_db.hget('contracts', fullname)
         assert code_obj, 'User module "{}" not found!'.format(fullname)
         return marshal.loads(code_obj)
 
-    @classmethod
-    def get_code_str(cls, fullname):
-        code_str = cls.r.hget('contracts_str', fullname)
+    def get_code_str(self, fullname):
+        code_str = self.master_db.hget('contracts_str', fullname)
         assert code_str, 'Cannot find original code string for module "{}" not found!'.format(fullname)
         return code_str
 
-    @classmethod
-    def set_code(cls, fullname, code_str, keep_original=False):
-        assert not cls.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
-        tree = cls.parse_ast(code_str)
+    def set_code(self, fullname, code_str, keep_original=False):
+        assert not self.master_db.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
+        tree = self.parse_ast(code_str)
         code_obj = compile(tree, filename='module_name', mode="exec")
-        pipe = cls.r.pipeline()
+        pipe = self.master_db.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
         if keep_original:
             pipe.hset('contracts_str', fullname, code_str)
         pipe.execute()
 
-    @classmethod
-    def assert_import_path(cls, import_path, module_name=None):
+    def assert_import_path(self, import_path, module_name=None):
         if module_name:
             import_path = '.'.join([import_path, module_name])
         for path in allowed_import_paths:
@@ -123,8 +154,8 @@ class SenecaInterpreter:
                     raise ImportError('Instead of importing the entire "{}" module, you must import each functions directly.'.format(import_path))
         raise ImportError('"{}" is protected and cannot be imported'.format(import_path))
 
-    @classmethod
-    def parse_ast(cls, code_str, filename=''):
+
+    def parse_ast(self, code_str, filename=''):
 
         tree = ast.parse(code_str)
 
@@ -133,20 +164,20 @@ class SenecaInterpreter:
             # Restrict imports to ones in allowed_import_paths
             if isinstance(item, ast.Import):
                 module_name = item.names[0].name
-                cls.assert_import_path(module_name)
-                if cls.imports.get(module_name) == 'protected':
+                self.assert_import_path(module_name)
+                if self.imports.get(module_name) == 'protected':
                     raise ImportError('"{}" is protected and cannot be imported'.format(module_name))
                 # raghu - falcon, why do we need this?
-                cls.imports[module_name] = 'imported'
+                self.imports[module_name] = 'imported'
 
             elif isinstance(item, ast.ImportFrom):
                 module_name = item.names[0].name
-                cls.assert_import_path(item.module, module_name=module_name)
+                self.assert_import_path(item.module, module_name=module_name)
                 imported = '.'.join([item.module, module_name])
-                if cls.imports.get(imported) == 'protected':
+                if self.imports.get(imported) == 'protected':
                     raise ImportError('"{}" is protected and cannot be imported'.format(imported))
                 # raghu - falcon, why do we need this?
-                cls.imports[imported] = 'imported'
+                self.imports[imported] = 'imported'
 
             # Add the __protected__ decorator if not export
             elif isinstance(item, ast.FunctionDef):
