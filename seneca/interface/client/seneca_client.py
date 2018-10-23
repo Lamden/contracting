@@ -45,23 +45,26 @@ class SenecaClient:
         Flushes internal queue of transactions. If update_state is True, this will also commit the changes
         to the database. Otherwise, this method will discard any changes
         """
-        self.interpreter.flush(update_state=update_state)
-        self.queue.clear()
+        sb_data = self.interpreter.flush(update_state=update_state)
+        return sb_data     # this mimics original queue in interpreter with contract_str and status info
 
     def run_contract(self, contract):
         # raghu todo need to update this to ContractStruct or something
         assert isinstance(contract, OrderingContainer), \
             "Seneca Interpreter can only interpret OrderingContainer instances"
 
-        txn = self.interpreter.run_contract(contract)
-        self.quue.append(txn)
+        self.interpreter.run_contract(contract)
 
-    def get_tx_queue(self) -> List[TransactionData]:
-        return list(self.queue)
+    def start_sub_block(self):
+        pass
 
-    @property
-    def queue_size(self):
-        return len(self.queue)
+    def end_sub_block(self):
+        pass
+
+    def get_sub_block(self):
+        pass
+        # resolve conflicts
+
 
     def start(self):
         assert self.check_contract_future is None, "Start should not be called twice without a .stop() in between!"

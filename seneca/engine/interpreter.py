@@ -38,6 +38,10 @@ class SenecaInterpreter:
         self.imports = {}
 
 
+    def update_master_db(self, from_db):
+        # from from_db, get each k,v and update the corresponding entries in master_db
+
+
     # will be called upon the receipt of new-block-notification
     def flush(self, input/result_hash, update_state=True):
         """
@@ -47,15 +51,17 @@ class SenecaInterpreter:
         
         # need to iterate cur_db items and push them to master_db  - same as commit
         # make sure f_db is the one 
-        f_db = self.pending_dbs.pop(0)    # actually it has to match result_hash
-        if update_state:
-            self.update_master_db(f_db)
-        f_db.flushdb()
-        self.worker_dbs.append(f_db)
         # pop the right one (should be first one mostly) from active_dbs
         # save the state to master_db and purge it completely and return it to worker_dbs
+        f_db = self.pending_dbs.pop(0)    # actually it has to match result_hash
+        sb_data = None
+        if update_state:
+            sb_data = self.update_master_db(f_db)
+        f_db.flushdb()
+        self.worker_dbs.append(f_db)
+        return sb_data
 
-    def _start_next_db(self):
+    def _start_next_sb(self):
         if len(self.worker_dbs) == 0:
             return False
         self.active_db = self.worker_dbs.pop(0)
@@ -64,14 +70,25 @@ class SenecaInterpreter:
         # sync counter ??
         # return true / false so higher level can throttle it the way it want
         # phases: 1 - execute contracts, 2 - assertion check / status
+        # if sb_index == 0: then initialize two phase variables (see above) to zeros
         return True
+
+    def _end_sb(self):
+        # update the phase info in self.active_db
 
 
     def db_read(self, key):
         pass
+        # fetch from master_db
 
     def db_write(self, key, value):
         pass
+        # need to maintain two / three layers of data in cache (worker_db) layer
+        # common -> meaning everyone will update the data here. consists of conflict info:
+        #           "conflicts":key - <sorted set>  -> (sb_index:order_idx, sb_index * 1000 + order_idx (for score))
+        # cache(i):
+        #      1.  "value":key - new_set  new_incr  constraint
+        #      2.  hash [i] [ txn #] -> [ keys affected ]
 
     def db_assert(self, key, assert_code):
         pass
@@ -84,6 +101,16 @@ class SenecaInterpreter:
         })
         exec(code, scope)
 
+
+    # any state info we need to keep for conflict resolution and/or post assertion check
+    def _pre_execution(self, constract:ContractStruct):
+        pass
+        # save contract.contract_str in a queue for sb-index   - this serves as queue in original SenecaInterpreter
+
+    # same as above
+    def _post_execution(self):
+        pass
+
     def run_contract(self, contract):
         if self._code_obj_exists(contract.get_full_name()):
             code_obj = self._get_code_obj(contract.get_full_name())
@@ -91,10 +118,11 @@ class SenecaInterpreter:
             tree = self.parse_ast(contract.get_code_str())
             code_obj = compile(tree, filename='__main__', mode="exec")
             self._set_code_obj(contract.get_full_name(), code_obj)
+        self._pre_execution(contract)
         self._execute(code_obj)
+        self._post_execution()
 
 
-    # raghu todo make them instance methods (not class methods)
     def get_code_obj(self, fullname):
         code_obj = self.master_db.hget('contracts', fullname)
         assert code_obj, 'User module "{}" not found!'.format(fullname)
