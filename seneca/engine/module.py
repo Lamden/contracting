@@ -5,6 +5,7 @@ from importlib.abc import Loader, MetaPathFinder
 from importlib.util import spec_from_file_location
 from seneca.engine.interpreter import SenecaInterpreter
 
+
 class SenecaFinder(MetaPathFinder):
 
     def find_spec(self, fullname, path, target=None):
@@ -31,6 +32,7 @@ class SenecaFinder(MetaPathFinder):
 
         return None # we don't know how to import this
 
+
 class SenecaLoader(Loader):
 
     def __init__(self, filename):
@@ -39,12 +41,11 @@ class SenecaLoader(Loader):
     def exec_module(self, module):
         with open(self.filename) as f:
             code_str = f.read()
-            tree = SenecaInterpreter.parse_ast(code_str)
+            tree = SenecaInterpreter._parse_ast(code_str)
             code_obj = compile(tree, filename=self.filename, mode="exec")
-            SenecaInterpreter.execute(
-                code_obj, vars(module)
-            )
+            SenecaInterpreter.execute(code_obj, vars(module))
         return module
+
 
 class RedisFinder:
 
@@ -52,6 +53,7 @@ class RedisFinder:
         if fullname.startswith('seneca.contracts'):
             return RedisLoader()
         return None
+
 
 class RedisLoader:
 

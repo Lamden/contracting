@@ -1,6 +1,6 @@
 import ast, builtins
 
-allowed_ast_types = {
+ALLOWED_AST_TYPES = {
     ast.Module,
     ast.Eq,
     ast.Call,
@@ -66,13 +66,13 @@ allowed_ast_types = {
     ast.Or
 }
 
-allowed_import_paths = [
+ALLOWED_IMPORT_PATHS = [
     'seneca.contracts',
     'seneca.libs',
     'seneca.test_contracts'
 ]
 
-_safe_names = [
+_SAFE_NAMES = [
     '__import__',
     '__name__',
     '__doc__',
@@ -109,7 +109,7 @@ _safe_names = [
     'zip'
 ]
 
-_safe_exceptions = [
+_SAFE_EXCEPTIONS = [
     'ArithmeticError',
     'AssertionError',
     'AttributeError',
@@ -159,10 +159,10 @@ _safe_exceptions = [
     'ZeroDivisionError',
 ]
 
-safe_builtins = {}
+SAFE_BUILTINS = {}
 
-for name in _safe_names:
-    safe_builtins[name] = getattr(builtins, name)
+for name in _SAFE_NAMES:
+    SAFE_BUILTINS[name] = getattr(builtins, name)
 
-for name in _safe_exceptions:
-    safe_builtins[name] = getattr(builtins, name)
+for name in _SAFE_EXCEPTIONS:
+    SAFE_BUILTINS[name] = getattr(builtins, name)

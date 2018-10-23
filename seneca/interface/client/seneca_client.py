@@ -4,9 +4,10 @@ from typing import List
 import time
 import asyncio
 from seneca.logger import SenecaLogger
+from seneca.engine.executor import SenecaExecutor
 
 # this is the seneca interpreter that sub-block builders will use it.
-# it should be pretty similar to current SenecaInterpreter
+# it should be pretty similar to current SenecaExecutor
 #    - will execute the txns locally and maintains a list of txns, with status, state, etc. see interpreter.py
 #    - it will also have a higher level apis to orchestrate sub-block contenders
 
@@ -19,16 +20,14 @@ class ContractStruct:
         self.contract_str, self.sender_id, self.order_number = contract_str, sender_id, order_idx
 
 
-
-
 class SenecaClient:
 
-    def __init__(self, loop=None, name=None, get_log_fn=None, sb_idx: int):
+    def __init__(self, sb_idx:int, loop=None, name=None, get_log_fn=None):
         name = name or self.__class__.__name__
         get_log_fn = get_log_fn or SenecaLogger
         self.log = get_log_fn(name)
         # self.sb_idx = sb_idx
-        self.interpreter = SenecaInterpreter(sb_idx)
+        self.executor = SenecaExecutor(sb_idx)
         self.queue = deque()
 
     def finalize(self):
@@ -45,7 +44,7 @@ class SenecaClient:
         Flushes internal queue of transactions. If update_state is True, this will also commit the changes
         to the database. Otherwise, this method will discard any changes
         """
-        sb_data = self.interpreter.flush(update_state=update_state)
+        sb_data = self.executor.flush(update_state=update_state)
         return sb_data     # this mimics original queue in interpreter with contract_str and status info
 
     def run_contract(self, contract):
@@ -53,7 +52,7 @@ class SenecaClient:
         assert isinstance(contract, OrderingContainer), \
             "Seneca Interpreter can only interpret OrderingContainer instances"
 
-        self.interpreter.run_contract(contract)
+        self.executor.run_contract(contract)
 
     def start_sub_block(self):
         pass
