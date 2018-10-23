@@ -65,7 +65,6 @@ class SenecaClient:
         pass
         # resolve conflicts
 
-
     def start(self):
         assert self.check_contract_future is None, "Start should not be called twice without a .stop() in between!"
 

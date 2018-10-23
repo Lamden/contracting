@@ -1,5 +1,8 @@
-import redis, ast, marshal, array, copy, inspect, types, uuid
+import redis, ast, marshal, array, copy, inspect, types, uuid, asyncio
 from seneca.constants.whitelists import allowed_ast_types, allowed_import_paths, safe_builtins
+from seneca.logger import SenecaLogger
+from seneca.interface.client.seneca_client import ContractStruct
+
 
 #0. will imports wrap into class methods or these wrappers with a default client (db=0) which redis-client can pass in active_db
 #1. how do we wrap these redis commands in a such a way that they will execute against active_db
@@ -7,6 +10,7 @@ from seneca.constants.whitelists import allowed_ast_types, allowed_import_paths,
    #also a mode where extra meta data will be added or not?
 #2. Directory structure / code organization
 #3. do we need redis_client or can be merged into seneca_client itself
+
 
 class SenecaInterpreter:
 
@@ -31,26 +35,26 @@ class SenecaInterpreter:
         self.max_number_workers = 2    # 2 sufficient for now
         # different clients have to be opened up front (as redis-py doesn't support select)
         for db_num in range(self.max_number_workers):
-            db_client = redis.StrictRedis(host='localhost', port=port, db=db_num+DB_OFFSET)
+            db_client = redis.StrictRedis(host='localhost', port=port, db=db_num+self.DB_OFFSET)
             self.worker_dbs.append(db_client)
 
         # perhaps in redis itself with fixed size (work as true cache)?
         self.imports = {}
 
-
     def update_master_db(self, from_db):
         # from from_db, get each k,v and update the corresponding entries in master_db
-
+        pass
 
     # will be called upon the receipt of new-block-notification
-    def flush(self, input/result_hash, update_state=True):
+    # do we want to pass in the input hash or result hash?? --davis
+    def flush(self, input_hash=None, result_hash=None, update_state=True):
         """
         If update_state is True, this will also commit the changes
         to the database. Otherwise, this method will discard any changes
         """
-        
+
         # need to iterate cur_db items and push them to master_db  - same as commit
-        # make sure f_db is the one 
+        # make sure f_db is the one
         # pop the right one (should be first one mostly) from active_dbs
         # save the state to master_db and purge it completely and return it to worker_dbs
         f_db = self.pending_dbs.pop(0)    # actually it has to match result_hash
@@ -75,7 +79,7 @@ class SenecaInterpreter:
 
     def _end_sb(self):
         # update the phase info in self.active_db
-
+        pass
 
     def db_read(self, key):
         pass
@@ -101,9 +105,8 @@ class SenecaInterpreter:
         })
         exec(code, scope)
 
-
     # any state info we need to keep for conflict resolution and/or post assertion check
-    def _pre_execution(self, constract:ContractStruct):
+    def _pre_execution(self, constract: ContractStruct):
         pass
         # save contract.contract_str in a queue for sb-index   - this serves as queue in original SenecaInterpreter
 
@@ -122,18 +125,21 @@ class SenecaInterpreter:
         self._execute(code_obj)
         self._post_execution()
 
+    def _code_obj_exists(self, contract_name: str) -> bool:
+        # TODO implement
+        pass
 
-    def get_code_obj(self, fullname):
+    def _get_code_obj(self, fullname):
         code_obj = self.master_db.hget('contracts', fullname)
         assert code_obj, 'User module "{}" not found!'.format(fullname)
         return marshal.loads(code_obj)
 
-    def get_code_str(self, fullname):
+    def _get_code_str(self, fullname):
         code_str = self.master_db.hget('contracts_str', fullname)
         assert code_str, 'Cannot find original code string for module "{}" not found!'.format(fullname)
         return code_str
 
-    def set_code(self, fullname, code_str, keep_original=False):
+    def _set_code_obj(self, fullname, code_str, keep_original=False):
         assert not self.master_db.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
         tree = self.parse_ast(code_str)
         code_obj = compile(tree, filename='module_name', mode="exec")
@@ -154,9 +160,7 @@ class SenecaInterpreter:
                     raise ImportError('Instead of importing the entire "{}" module, you must import each functions directly.'.format(import_path))
         raise ImportError('"{}" is protected and cannot be imported'.format(import_path))
 
-
     def parse_ast(self, code_str, filename=''):
-
         tree = ast.parse(code_str)
 
         for idx, item in enumerate(ast.walk(tree)):
@@ -194,10 +198,10 @@ class SenecaInterpreter:
 
         current_ast_types = {type(x) for x in ast.walk(tree)}
         illegal_ast_nodes = current_ast_types - allowed_ast_types
-        assert not illegal_ast_nodes, 'Illegal AST node(s) in module: {}'.format(
-            ', '.join(map(str, illegal_ast_nodes)))
+        assert not illegal_ast_nodes, 'Illegal AST node(s) in module: {}'.format(', '.join(map(str, illegal_ast_nodes)))
 
         return tree
+
 
 class ScopeParser:
     @property
