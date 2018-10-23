@@ -63,7 +63,7 @@ def tests():
     print(balance_of('ass'))
 
     print("rep of balances: {}".format(balances.rep()))
-    print("rep of balances[ass]: {}".format(balances['ass'].rep()))
+    # print("rep of balances[ass]: {}".format(balances['ass'].rep()))
 
 
 def clean_up():
