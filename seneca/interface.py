@@ -8,7 +8,7 @@ class SenecaInterface:
         sys.meta_path = [SenecaFinder(), RedisFinder()]
 
     def execute_code_str(self, code_str, scope={}):
-        tree = SenecaInterpreter.parse_ast(code_str)
+        tree = SenecaInterpreter.parse_ast(code_str, protected_variables=list(scope.keys()))
         code_obj = compile(tree, filename='__main__', mode="exec")
         return SenecaInterpreter.execute(code_obj, scope)
 

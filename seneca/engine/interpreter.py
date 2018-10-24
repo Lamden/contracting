@@ -1,6 +1,9 @@
 import redis, ast, marshal, array, copy, inspect, types, uuid, copy
 from seneca.constants.whitelists import allowed_ast_types, allowed_import_paths, safe_builtins
 
+class ReadOnlyException(Exception):
+    pass
+
 class SenecaInterpreter:
 
     r = redis.StrictRedis(host='localhost', port=6379, db=0)
@@ -42,9 +45,10 @@ class SenecaInterpreter:
         raise ImportError('"{}" is protected and cannot be imported'.format(import_path))
 
     @classmethod
-    def parse_ast(cls, code_str, filename=''):
+    def parse_ast(cls, code_str, filename='', protected_variables=[]):
 
         tree = ast.parse(code_str)
+        protected_variables += ['export']
 
         for idx, item in enumerate(ast.walk(tree)):
 
@@ -64,10 +68,11 @@ class SenecaInterpreter:
 
             # Restrict variable assignment
             elif isinstance(item, ast.Assign):
-                pass
+                for target in item.targets:
+                    cls.check_protected(target, protected_variables)
 
             elif isinstance(item, ast.AugAssign):
-                pass
+                cls.check_protected(item.target, protected_variables)
 
             # Add the __protected__ decorator if not export
             elif isinstance(item, ast.FunctionDef):
@@ -88,6 +93,12 @@ class SenecaInterpreter:
             ', '.join(map(str, illegal_ast_nodes)))
 
         return tree
+
+    @staticmethod
+    def check_protected(target, protected_variables):
+        if target.id.startswith('__') and target.id.endswith('__') \
+            or target.id in protected_variables:
+            raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
 
     @classmethod
     def execute(cls, code, scope={}):

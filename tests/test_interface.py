@@ -1,6 +1,7 @@
 from unittest import TestCase
 from seneca.interface import SenecaInterface
-from seneca.engine.interpreter import SenecaInterpreter
+from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
+from tests.utils import captured_output
 import redis, unittest
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
@@ -9,7 +10,11 @@ class TestInterface(TestCase):
     def setUp(self):
         r.flushdb()
         self.si = SenecaInterface()
-        print('\n\n\n{}:::'.format(self.id))
+        print('''
+################################################################################
+{}
+################################################################################
+        '''.format(self.id))
 
     def test_import_valid(self):
         """
@@ -141,10 +146,30 @@ from seneca.test_contracts.good import one_you_cannot_export
             """)
 
     def test_globals(self):
-        self.si.execute_code_str("""
+        with captured_output() as (out, err):
+            self.si.execute_code_str("""
 from seneca.test_contracts.reasonable import reasonable_call
 print(reasonable_call())
-        """, {'__sender__': '123'})
+            """, {'__sender__': '123'})
+            self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: reasonable')
+
+    def test_read_only_variables(self):
+        with self.assertRaises(ReadOnlyException) as context:
+            self.si.execute_code_str("""
+__contract__ = 'hacks'
+            """)
+
+    def test_read_only_variables_custom(self):
+        with self.assertRaises(ReadOnlyException) as context:
+            self.si.execute_code_str("""
+bird = 'hacks'
+            """, {'bird': '123'})
+
+    def test_read_only_variables_aug_assign(self):
+        with self.assertRaises(ReadOnlyException) as context:
+            self.si.execute_code_str("""
+bird += 1
+            """, {'bird': 123})
 
 if __name__ == '__main__':
     unittest.main()
