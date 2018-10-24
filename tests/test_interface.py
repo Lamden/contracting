@@ -140,6 +140,11 @@ one_you_can_also_also_export()
 from seneca.test_contracts.good import one_you_cannot_export
             """)
 
+    def test_globals(self):
+        self.si.execute_code_str("""
+from seneca.test_contracts.reasonable import reasonable_call
+print(reasonable_call())
+        """, {'__sender__': '123'})
 
 if __name__ == '__main__':
     unittest.main()

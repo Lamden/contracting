@@ -1,11 +1,10 @@
-import redis, ast, marshal, array, copy, inspect, types, uuid
+import redis, ast, marshal, array, copy, inspect, types, uuid, copy
 from seneca.constants.whitelists import allowed_ast_types, allowed_import_paths, safe_builtins
 
 class SenecaInterpreter:
 
     r = redis.StrictRedis(host='localhost', port=6379, db=0)
-    imports = {}
-
+    protected_imports = {} # Only used during compilation
 
     @classmethod
     def get_code_obj(cls, fullname):
@@ -49,21 +48,26 @@ class SenecaInterpreter:
 
         for idx, item in enumerate(ast.walk(tree)):
 
-            # Restrict imports to ones in allowed_import_paths
+            # Restrict protected_imports to ones in allowed_import_paths
             if isinstance(item, ast.Import):
                 module_name = item.names[0].name
                 cls.assert_import_path(module_name)
-                if cls.imports.get(module_name) == 'protected':
+                if cls.protected_imports.get(module_name) == 'protected':
                     raise ImportError('"{}" is protected and cannot be imported'.format(module_name))
-                cls.imports[module_name] = 'imported'
 
             elif isinstance(item, ast.ImportFrom):
                 module_name = item.names[0].name
                 cls.assert_import_path(item.module, module_name=module_name)
                 imported = '.'.join([item.module, module_name])
-                if cls.imports.get(imported) == 'protected':
+                if cls.protected_imports.get(imported) == 'protected':
                     raise ImportError('"{}" is protected and cannot be imported'.format(imported))
-                cls.imports[imported] = 'imported'
+
+            # Restrict variable assignment
+            elif isinstance(item, ast.Assign):
+                pass
+
+            elif isinstance(item, ast.AugAssign):
+                pass
 
             # Add the __protected__ decorator if not export
             elif isinstance(item, ast.FunctionDef):
@@ -108,7 +112,7 @@ class Export:
 class Protected(ScopeParser):
     def __call__(self, fn, *args, **kwargs):
         module = '.'.join([fn.__module__ or '', fn.__name__])
-        SenecaInterpreter.imports[module] = 'protected'
+        SenecaInterpreter.protected_imports[module] = 'protected'
         def _fn():
             if self.namespace in fn.__module__.split('.')[-1]:
                 return fn(*args, **kwargs)
