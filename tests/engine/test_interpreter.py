@@ -19,7 +19,7 @@ class TestInterpreter(TestCase):
     def setUpClass(cls):
         cls.old_meta_path = sys.meta_path
         sys.meta_path = [SenecaFinder(), RedisFinder()]
-        cls._remove_contracts_from_db()
+        SenecaInterpreter.r.flushdb()
 
         # Store all smart contracts in CONTRACTS_TO_STORE
         import seneca
@@ -31,13 +31,8 @@ class TestInterpreter(TestCase):
                 SenecaInterpreter.set_code(fullname=contract_name, code_str=code, keep_original=True)
 
     @classmethod
-    def _remove_contracts_from_db(cls):
-        for contract_name in cls.CONTRACTS_TO_STORE:
-            SenecaInterpreter.remove_code(contract_name)
-
-    @classmethod
     def tearDownClass(cls):
-        cls._remove_contracts_from_db()
+        SenecaInterpreter.r.flushdb()
         sys.meta_path = cls.old_meta_path
 
     def test_execute_with_bookkeeping_info(self):
@@ -45,9 +40,10 @@ class TestInterpreter(TestCase):
         rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
         all_info = {**bk_info, **rt_info}
 
-        tree = SenecaInterpreter.parse_ast(CODE_STR)
+        tree = SenecaInterpreter.parse_ast(CODE_STR, protected_variables=list(all_info.keys()))
         code_obj = compile(tree, filename='__main__', mode="exec")
         print("ALL INFO: {}".format(all_info))
         SenecaInterpreter.execute(code_obj, scope=all_info)
 
-
+if __name__ == '__main__':
+    unittest.main()

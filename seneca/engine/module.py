@@ -37,8 +37,19 @@ class SenecaFinder(MetaPathFinder):
 
         return None # we don't know how to import this
 
+class ScopeInjector:
+    def scope_from_module(self, module):
+        scope = vars(module)
+        for item in inspect.stack():
+            if item.filename == '__main__':
+                scope.update(item[0].f_globals)
+                break
+        scope.update({
+            '__contract__': self.module_name
+        })
+        return scope
 
-class SenecaLoader(Loader):
+class SenecaLoader(Loader, ScopeInjector):
 
     def __init__(self, filename):
         self.filename = filename
@@ -53,14 +64,7 @@ class SenecaLoader(Loader):
             self.module_name = basename(filename).split('.')[0]
 
     def exec_module(self, module):
-        scope = vars(module)
-        for item in inspect.stack():
-            if item.filename == '__main__':
-                scope.update(item[0].f_globals)
-                break
-        scope.update({
-            '__contract__': self.module_name
-        })
+        scope = self.scope_from_module(module)
         SenecaInterpreter.execute(
             self.code_obj, scope
         )
@@ -75,7 +79,7 @@ class RedisFinder:
         return None
 
 
-class RedisLoader:
+class RedisLoader(ScopeInjector):
 
     def load_module(self, fullname):
         self.module_name = module_name = fullname.split('.')[-1]
@@ -85,6 +89,9 @@ class RedisLoader:
         mod.__loader__ = self
         mod.__path__ = []
         mod.__package__ = fullname
+
+        scope = self.scope_from_module(mod)
+
         SenecaInterpreter.execute(
             code, mod.__dict__
         )
