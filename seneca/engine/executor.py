@@ -110,7 +110,7 @@ class SenecaExecutor:
         # if SenecaInterpreter.code_obj_exists(contract.get_full_name()):
         #     code_obj = SenecaInterpreter.get_code_obj(contract.get_full_name())
         # else:
-        #     tree = SenecaInterpreter._parse_ast(contract.get_code_str())
+        #     tree = SenecaInterpreter.parse_ast(contract.get_code_str())
         #     code_obj = compile(tree, filename='__main__', mode="exec")
         #     SenecaInterpreter.set_code_obj(contract.get_full_name(), code_obj)
         # self._pre_execution(contract)

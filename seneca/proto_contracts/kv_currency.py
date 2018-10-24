@@ -1,5 +1,4 @@
-from seneca.engine.datatypes import *
-from seneca.libs.constrain import constrain
+from seneca.libs.datatypes import *
 
 
 class Context:

@@ -23,12 +23,19 @@ class SenecaInterpreter:
     @classmethod
     def set_code(cls, fullname, code_str, keep_original=False):
         assert not cls.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
-        tree = cls._parse_ast(code_str)
+        tree = cls.parse_ast(code_str)
         code_obj = compile(tree, filename='module_name', mode="exec")
         pipe = cls.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
         if keep_original:
             pipe.hset('contracts_str', fullname, code_str)
+        pipe.execute()
+
+    @classmethod
+    def remove_code(cls, fullname):
+        pipe = cls.r.pipeline()
+        pipe.hdel('contracts', fullname)
+        pipe.hdel('contracts_str', fullname)
         pipe.execute()
 
     @classmethod
@@ -48,7 +55,7 @@ class SenecaInterpreter:
         raise ImportError('"{}" is protected and cannot be imported'.format(import_path))
 
     @classmethod
-    def _parse_ast(cls, code_str, filename=''):
+    def parse_ast(cls, code_str, filename=''):
 
         tree = ast.parse(code_str)
 
@@ -90,12 +97,14 @@ class SenecaInterpreter:
 
     @classmethod
     def execute(cls, code, scope={}):
+        print("Scope before execute: {}".format(scope))
         scope.update({
             '__builtins__': SAFE_BUILTINS,
             '__protected__': Protected(),
-            'export': Export()
+            'export': Export(),
+            'butt_munching': True
         })
-        exec(code, scope)
+        exec(code, {}, scope)
 
 
 class ScopeParser:

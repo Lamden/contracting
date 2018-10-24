@@ -268,6 +268,7 @@ class TablePlaceholder(Placeholder):
         d += '})'
         return CTP + 'table' + d
 
+
 class RankedPlaceholder(Placeholder):
     def __init__(self, key_type=str, value_type=int):
         self.key_type = str
@@ -299,6 +300,7 @@ vivified_primitives = {
     str: '',
     bool: False
 }
+
 
 # table to be done later
 def vivify(potential_prefix, t):

@@ -28,7 +28,7 @@ class SenecaFinder(MetaPathFinder):
                 continue
 
             return spec_from_file_location(fullname, filename, loader=SenecaLoader(filename),
-                submodule_search_locations=submodule_locations)
+                                           submodule_search_locations=submodule_locations)
 
         return None # we don't know how to import this
 
@@ -37,13 +37,15 @@ class SenecaLoader(Loader):
 
     def __init__(self, filename):
         self.filename = filename
-
-    def exec_module(self, module):
         with open(self.filename) as f:
             code_str = f.read()
-            tree = SenecaInterpreter._parse_ast(code_str)
-            code_obj = compile(tree, filename=self.filename, mode="exec")
-            SenecaInterpreter.execute(code_obj, vars(module))
+            self.tree = SenecaInterpreter.parse_ast(code_str)
+            self.code_obj = compile(self.tree, filename=self.filename, mode="exec")
+
+    def exec_module(self, module):
+        SenecaInterpreter.execute(
+            self.code_obj, vars(module)
+        )
         return module
 
 

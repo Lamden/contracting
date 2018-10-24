@@ -106,7 +106,10 @@ _SAFE_NAMES = [
     'slice',
     'str',
     'tuple',
-    'zip'
+    'zip',
+
+    # JUST FOR TESTING! TODO remove this irl
+    'globals'
 ]
 
 _SAFE_EXCEPTIONS = [
