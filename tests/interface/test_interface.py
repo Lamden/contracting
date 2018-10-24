@@ -204,5 +204,12 @@ from seneca.libs.datatypes import *
 hmap('balance', str, int)
         """)
 
+    def test_import_datatypes_reassign(self):
+        with self.assertRaises(ReadOnlyException) as context:
+            self.si.execute_code_str("""
+from seneca.libs.datatypes import *
+hmap = 'hacked'
+            """)
+
 if __name__ == '__main__':
     unittest.main()
