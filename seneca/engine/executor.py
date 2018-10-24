@@ -22,7 +22,7 @@ class SenecaExecutor:
     DB_OFFSET = 1
     PORT = 6379
 
-    def __init__(self, sb_idx, loop=None, name=None, get_log_fn=None, concurrent_mode=True):
+    def __init__(self, sbb_idx, loop=None, name=None, get_log_fn=None, concurrent_mode=True):
         self.loop = loop or asyncio.get_event_loop()
         asyncio.set_event_loop(self.loop)
 
@@ -30,10 +30,9 @@ class SenecaExecutor:
         get_log_fn = get_log_fn or SenecaLogger
         self.log = get_log_fn(name)
 
-        self.sb_index = sb_idx
+        self.sbb_index = sbb_idx
         self.concurrent_mode = concurrent_mode
         # use dbs for copies  # todo - explore for namespaces also
-        # change / pass port number
         self.master_db = redis.StrictRedis(host='localhost', port=self.PORT, db=0)
         self.worker_dbs = []
         self.pending_dbs = []
@@ -61,28 +60,39 @@ class SenecaExecutor:
         # pop the right one (should be first one mostly) from active_dbs
         # save the state to master_db and purge it completely and return it to worker_dbs
         f_db = self.pending_dbs.pop(0)    # actually it has to match result_hash
-        sb_data = None
-        if update_state:
-            sb_data = self.update_master_db(f_db)
-        f_db.flushdb()
+        if self.sbb_index == 0:   # only one will do merging db work for now (but it could be the one that is not reponsible for sb)
+            # check input hashes match?  it probably have to be list of all input hashes?
+            if update_state:
+                self.update_master_db(f_db)
+        # update synchronization variable
+        # the last one will do the following
+        if is_last_one:
+            # f_db.flushdb()
+            # add special synchronization variables with initialization here
         self.worker_dbs.append(f_db)
-        return sb_data
 
     def _start_next_sb(self):
         if len(self.worker_dbs) == 0:
             return False
         self.active_db = self.worker_dbs.pop(0)
-        # initialize it - add couple of special k-vs
+        # initialize it - add couple of special k-vs - this is done as part of clean up. if so, then we need to worry about first time (constructor)
         # input-bag hash ? or result-hash at the end so save can check the right one
-        # sync counter ??
         # return true / false so higher level can throttle it the way it want
         # phases: 1 - execute contracts, 2 - assertion check / status
-        # if sb_index == 0: then initialize two phase variables (see above) to zeros
+        # if sbb_index == 0: then initialize two phase variables (see above) to zeros
         return True
 
     def _end_sb(self):
         # update the phase info in self.active_db
-        pass
+        self.pending_dbs.append(self.active_db)
+        self.active_db = None      # we really don't care, but might be useful initially for error checking 
+
+    def _make_next_sb(self):
+        f_db = self.pending_dbs.get(0)    # get the first one, but still leave it in the pending_dbs too
+        # resolve conflicts - requires synchronization
+        # also make a list txns with output state and status
+        # return list of txns
+
 
     def db_read(self, key):
         pass

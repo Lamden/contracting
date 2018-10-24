@@ -22,15 +22,15 @@ class ContractStruct:
 
 class SenecaClient:
 
-    def __init__(self, sb_idx:int, loop=None, name=None, get_log_fn=None):
+    def __init__(self, sbb_idx:int, loop=None, name=None, get_log_fn=None):
         name = name or self.__class__.__name__
         get_log_fn = get_log_fn or SenecaLogger
         self.log = get_log_fn(name)
-        # self.sb_idx = sb_idx
-        self.executor = SenecaExecutor(sb_idx)
-        self.queue = deque()
+        # self.sbb_idx = sbb_idx
+        self.executor = SenecaExecutor(sbb_idx)
 
     def finalize(self):
+        # do we need this method? what's finalizing transactions? Davis?
         self.log.notice("Finalizing transactions...")
         pass
 
@@ -44,8 +44,7 @@ class SenecaClient:
         Flushes internal queue of transactions. If update_state is True, this will also commit the changes
         to the database. Otherwise, this method will discard any changes
         """
-        sb_data = self.executor.flush(update_state=update_state)
-        return sb_data     # this mimics original queue in interpreter with contract_str and status info
+        self.executor.flush(update_state=update_state)
 
     def run_contract(self, contract):
         # raghu todo need to update this to ContractStruct or something
@@ -54,15 +53,15 @@ class SenecaClient:
 
         self.executor.run_contract(contract)
 
+    # calling function has to check status and if it is false, it has to wait or come back to execute it again
     def start_sub_block(self):
-        pass
+        return self.executor._start_next_sb()
 
     def end_sub_block(self):
-        pass
+        self.executor._end_sb()
 
-    def get_sub_block(self):
-        pass
-        # resolve conflicts
+    def get_next_sub_block(self):
+        return self.executor._make_next_sb()
 
     def start(self):
         assert self.check_contract_future is None, "Start should not be called twice without a .stop() in between!"
