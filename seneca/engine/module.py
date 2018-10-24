@@ -38,6 +38,7 @@ class SenecaFinder(MetaPathFinder):
         return None # we don't know how to import this
 
 class ScopeInjector:
+
     def scope_from_module(self, module):
         scope = vars(module)
         for item in inspect.stack():

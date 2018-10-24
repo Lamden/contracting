@@ -45,7 +45,17 @@ from seneca.test_contracts.bad import innocent_function
         """
         with self.assertRaises(ImportError) as context:
             self.si.execute_code_str("""
-import pynacl
+import json
+            """)
+
+    def test_import_global_variable_invalid(self):
+        """
+            This is a valid way to import, but you cannot import "importlib"
+            and other such libraries. Only ones from the whitelist
+        """
+        with self.assertRaises(ImportError) as context:
+            self.si.execute_code_str("""
+from seneca.test_contracts.good import one_you_cannot_export
             """)
 
     def test_import_star(self):
@@ -168,12 +178,12 @@ print(reasonable_call())
             self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: reasonable')
 
     def test_globals_redis(self):
+        bk_info = {'sbb_idx': 2, 'contract_idx': 12}
+        rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
+        all_info = {**bk_info, **rt_info}
+        with open(join(test_contracts_path, 'sample.sen.py')) as f:
+            self.si.submit_code_str('sample', f.read(), keep_original=True)
         with captured_output() as (out, err):
-            bk_info = {'sbb_idx': 2, 'contract_idx': 12}
-            rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
-            all_info = {**bk_info, **rt_info}
-            with open(join(test_contracts_path, 'sample.sen.py')) as f:
-                self.si.submit_code_str('sample', f.read(), keep_original=True)
             self.si.execute_code_str("""
 from seneca.contracts.sample import do_that_thing
 print(do_that_thing())

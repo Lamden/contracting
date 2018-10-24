@@ -50,10 +50,11 @@ class SenecaInterpreter:
         for path in ALLOWED_IMPORT_PATHS:
             if import_path.startswith(path):
                 if len(import_path.split('.')) - len(path.split('.')) == 2:
+                    if cls.protected_imports.get(import_path) == 'protected':
+                        raise ImportError('"{}" is protected and cannot be imported'.format(import_path))
                     return True
                 else:
                     raise ImportError('Instead of importing the entire "{}" module, you must import each functions directly.'.format(import_path))
-
         raise ImportError('Cannot find module "{}" in allowed imports'.format(import_path))
 
     @classmethod
@@ -61,6 +62,7 @@ class SenecaInterpreter:
 
         tree = ast.parse(code_str)
         protected_variables += ['export']
+        current_ast_types = set()
 
         for idx, item in enumerate(ast.walk(tree)):
 
@@ -68,15 +70,10 @@ class SenecaInterpreter:
             if isinstance(item, ast.Import):
                 module_name = item.names[0].name
                 cls.assert_import_path(module_name)
-                if cls.protected_imports.get(module_name) == 'protected':
-                    raise ImportError('"{}" is protected and cannot be imported'.format(module_name))
 
             elif isinstance(item, ast.ImportFrom):
                 module_name = item.names[0].name
                 cls.assert_import_path(item.module, module_name=module_name)
-                imported = '.'.join([item.module, module_name])
-                if cls.protected_imports.get(imported) == 'protected':
-                    raise ImportError('"{}" is protected and cannot be imported'.format(imported))
 
             # Restrict variable assignment
             elif isinstance(item, ast.Assign):
@@ -99,7 +96,8 @@ class SenecaInterpreter:
                     node.col_offset = 0
                     item.decorator_list.append(node)
 
-        current_ast_types = {type(x) for x in ast.walk(tree)}
+            current_ast_types.add(type(item))
+
         illegal_ast_nodes = current_ast_types - ALLOWED_AST_TYPES
         assert not illegal_ast_nodes, 'Illegal AST node(s) in module: {}'.format(
             ', '.join(map(str, illegal_ast_nodes)))
@@ -108,6 +106,8 @@ class SenecaInterpreter:
 
     @staticmethod
     def check_protected(target, protected_variables):
+        if isinstance(target, ast.Subscript):
+            return
         if target.id.startswith('__') and target.id.endswith('__') \
             or target.id in protected_variables:
             raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
@@ -126,19 +126,17 @@ class ScopeParser:
     def namespace(self):
         return inspect.stack()[2].filename.replace('.sen.py', '').split('/')[-1]
 
-
 class Export:
-    def __call__(self, fn, *args, **kwargs):
-        def _fn():
+    def __call__(self, fn):
+        def _fn(*args, **kwargs):
             return fn(*args, **kwargs)
         return _fn
 
-
 class Protected(ScopeParser):
-    def __call__(self, fn, *args, **kwargs):
+    def __call__(self, fn):
         module = '.'.join([fn.__module__ or '', fn.__name__])
         SenecaInterpreter.protected_imports[module] = 'protected'
-        def _fn():
+        def _fn(*args, **kwargs):
             if self.namespace in fn.__module__.split('.')[-1]:
                 return fn(*args, **kwargs)
             raise ImportError('"{}" is __protected__ and cannot be imported'.format(module))
