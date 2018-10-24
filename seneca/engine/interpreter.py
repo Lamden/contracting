@@ -121,7 +121,6 @@ class SenecaInterpreter:
         })
         exec(code, scope)
 
-
 class ScopeParser:
     @property
     def namespace(self):

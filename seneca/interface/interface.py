@@ -4,8 +4,8 @@ from seneca.engine.interpreter import SenecaInterpreter
 
 class SenecaInterface:
 
-    def __init__(self):
-        sys.meta_path = [SenecaFinder(), RedisFinder(), sys.meta_path[2]]
+    # Only do this once in each process!
+    sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
 
     def execute_code_str(self, code_str, scope={}):
         tree = SenecaInterpreter.parse_ast(code_str, protected_variables=list(scope.keys()))
