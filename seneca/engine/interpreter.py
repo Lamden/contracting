@@ -53,7 +53,8 @@ class SenecaInterpreter:
                     return True
                 else:
                     raise ImportError('Instead of importing the entire "{}" module, you must import each functions directly.'.format(import_path))
-        raise ImportError('"{}" is protected and cannot be imported'.format(import_path))
+
+        raise ImportError('Cannot find module "{}" in allowed imports'.format(import_path))
 
     @classmethod
     def parse_ast(cls, code_str, filename='', protected_variables=[]):
