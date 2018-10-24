@@ -33,6 +33,17 @@ class SenecaInterpreter:
         pipe.execute()
 
     @classmethod
+    def remove_code(cls, fullname):
+        pipe = cls.r.pipeline()
+        pipe.hdel('contracts', fullname)
+        pipe.hdel('contracts_str', fullname)
+        pipe.execute()
+
+    @classmethod
+    def code_obj_exists(cls, fullname) -> bool:
+        return bool(cls.r.hget('contracts', fullname))
+
+    @classmethod
     def assert_import_path(cls, import_path, module_name=None):
         if module_name:
             import_path = '.'.join([import_path, module_name])
