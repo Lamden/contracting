@@ -6,8 +6,8 @@ import redis, unittest, sys
 
 CODE_STR = """ \
 
-from seneca.contracts.sample import do_that_thing
-do_that_thing()
+from seneca.contracts.runtime_test import test_global_namespace
+test_global_namespace()
 """
 
 

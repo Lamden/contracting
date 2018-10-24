@@ -1,13 +1,13 @@
+from seneca.libs.datatypes import *
+
+
+balances = hmap('balances', str, int)
 
 
 @export
-def good_call():
-    good()
-    okay()
+def test_global_namespace():
+    print('sender: {}, author: {}'.format(rt.sender, rt.author))
+    print("sbb_idx: {}".format(sbb_idx))
+    print("ALL GLOBALS: {}".format(globals()))
 
-@export
-def reasonable_call():
-    good()
 
-def secret_call():
-    okay()
