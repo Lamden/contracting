@@ -109,16 +109,19 @@ class SenecaInterpreter:
         })
         exec(code, scope)
 
+
 class ScopeParser:
     @property
     def namespace(self):
         return inspect.stack()[2].filename.replace('.sen.py', '').split('/')[-1]
+
 
 class Export:
     def __call__(self, fn, *args, **kwargs):
         def _fn():
             return fn(*args, **kwargs)
         return _fn
+
 
 class Protected(ScopeParser):
     def __call__(self, fn, *args, **kwargs):
