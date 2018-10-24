@@ -331,6 +331,12 @@ class RObject:
                                           port=6379,
                                           db=0)
                  ):
+        # HERE we need to get local information from Seneca runtime. If this is imported inside a contract, it should
+        # undergo the special import procedure which will 'inject' the appropriate runtime context
+        # We assume that this injection process will also put book keeping data on the context, which will
+        # be sent to the caching layer upon calling DB commands
+
+
         assert driver is not None, 'Provide a Redis driver.'
         self.driver = driver
 

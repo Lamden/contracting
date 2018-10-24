@@ -1,8 +1,8 @@
 from unittest import TestCase
-from seneca.interface import SenecaInterface
-from seneca.engine.interpreter import SenecaInterpreter
+from seneca.interface.interface import SenecaInterface
 import redis, unittest
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
+
 
 class TestInterface(TestCase):
 
