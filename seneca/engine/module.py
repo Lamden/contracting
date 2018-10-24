@@ -22,10 +22,15 @@ class SenecaFinder(MetaPathFinder):
                 if not exists(filename): open(filename, "w+")
                 submodule_locations = [join(entry, name)]
             else:
-                filename = join(entry, name + ".sen.py")
-                submodule_locations = None
-            if not exists(filename):
-                continue
+                filename = join(entry, name)
+                if exists(filename+'.py'):
+                    submodule_locations = [filename]
+                    filename += '.py'
+                elif exists(filename+'.sen.py'):
+                    filename += '.sen.py'
+                    submodule_locations = None
+                else:
+                    continue
 
             return spec_from_file_location(fullname, filename, loader=SenecaLoader(filename),
                                            submodule_search_locations=submodule_locations)
@@ -48,10 +53,14 @@ class SenecaLoader(Loader, ScopeInjector):
 
     def __init__(self, filename):
         self.filename = filename
+        self.tree = None
         with open(self.filename) as f:
             code_str = f.read()
-            self.tree = SenecaInterpreter.parse_ast(code_str)
-            self.code_obj = compile(self.tree, filename=self.filename, mode="exec")
+            if 'seneca/libs' in self.filename:
+                self.code_obj = compile(code_str, filename=self.filename, mode="exec")
+            else:
+                self.tree = SenecaInterpreter.parse_ast(code_str)
+                self.code_obj = compile(self.tree, filename=self.filename, mode="exec")
             self.module_name = basename(filename).split('.')[0]
 
     def exec_module(self, module):

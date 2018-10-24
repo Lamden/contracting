@@ -38,6 +38,16 @@ from seneca.test_contracts.sample import good_call, reasonable_call
 from seneca.test_contracts.bad import innocent_function
             """)
 
+    def test_import_direct_invalid(self):
+        """
+            This is a valid way to import, but you cannot import "importlib"
+            and other such libraries. Only ones from the whitelist
+        """
+        with self.assertRaises(ImportError) as context:
+            self.si.execute_code_str("""
+import pynacl
+            """)
+
     def test_import_star(self):
         """
             Import * is currently allowed but calling on protected functions
@@ -188,12 +198,18 @@ bird = 'hacks'
 bird += 1
             """, {'bird': 123})
 
-#     def test_import_datatypes(self):
-#         self.si.execute_code_str("""
-# from seneca.libs.datatypes import *
-# hmap('balance', str, int)
-#         """)
-#         pass
+    def test_import_datatypes(self):
+        self.si.execute_code_str("""
+from seneca.libs.datatypes import *
+hmap('balance', str, int)
+        """)
+
+    def test_import_datatypes_reassign(self):
+        with self.assertRaises(ReadOnlyException) as context:
+            self.si.execute_code_str("""
+from seneca.libs.datatypes import *
+hmap = 'hacked'
+            """)
 
 if __name__ == '__main__':
     unittest.main()
