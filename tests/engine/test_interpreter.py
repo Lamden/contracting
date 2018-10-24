@@ -40,9 +40,10 @@ class TestInterpreter(TestCase):
         rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
         all_info = {**bk_info, **rt_info}
 
-        tree = SenecaInterpreter.parse_ast(CODE_STR)
+        tree = SenecaInterpreter.parse_ast(CODE_STR, protected_variables=list(all_info.keys()))
         code_obj = compile(tree, filename='__main__', mode="exec")
         print("ALL INFO: {}".format(all_info))
         SenecaInterpreter.execute(code_obj, scope=all_info)
 
-
+if __name__ == '__main__':
+    unittest.main()

@@ -1,10 +1,13 @@
 from unittest import TestCase
+from seneca.engine.util import make_n_tup
 from seneca.interface.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
+from os.path import join
 from tests.utils import captured_output
-import redis, unittest
+import redis, unittest, seneca
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
+test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
 class TestInterface(TestCase):
 
@@ -154,6 +157,19 @@ print(reasonable_call())
             """, {'__sender__': '123'})
             self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: reasonable')
 
+    def test_globals_redis(self):
+        with captured_output() as (out, err):
+            bk_info = {'sbb_idx': 2, 'contract_idx': 12}
+            rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
+            all_info = {**bk_info, **rt_info}
+            with open(join(test_contracts_path, 'sample.sen.py')) as f:
+                self.si.submit_code_str('sample', f.read(), keep_original=True)
+            self.si.execute_code_str("""
+from seneca.contracts.sample import do_that_thing
+print(do_that_thing())
+            """, all_info)
+            self.assertEqual(out.getvalue().strip(), 'sender: davis, author: davis')
+
     def test_read_only_variables(self):
         with self.assertRaises(ReadOnlyException) as context:
             self.si.execute_code_str("""
@@ -172,12 +188,12 @@ bird = 'hacks'
 bird += 1
             """, {'bird': 123})
 
-    def test_import_datatypes(self):
-        self.si.execute_code_str("""
-from seneca.libs.datatypes import *
-hmap('balance', str, int)
-        """)
-        pass
+#     def test_import_datatypes(self):
+#         self.si.execute_code_str("""
+# from seneca.libs.datatypes import *
+# hmap('balance', str, int)
+#         """)
+#         pass
 
 if __name__ == '__main__':
     unittest.main()

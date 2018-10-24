@@ -13,11 +13,7 @@ def reasonable_call():
 
 @export
 def do_that_thing():
-    print("do_that_thing called")
-    print("all globals: {}".format(globals()))
-    print("sender: {}".format(rt.sender))
-    print("author: {}".format(rt.author))
-    print("do_that_thing over")
+    return 'sender: {}, author: {}'.format(rt.sender, rt.author)
 
 def secret_call():
     okay()
