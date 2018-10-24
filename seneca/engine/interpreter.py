@@ -1,12 +1,13 @@
-import redis, ast, marshal, array, copy, inspect, types, uuid
+import redis, ast, marshal, array, copy, inspect, types, uuid, copy
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS
 
+class ReadOnlyException(Exception):
+    pass
+
 class SenecaInterpreter:
-    # TODO this class is very likely not thread safe. We would need locks around things to make sure any reads/write
-    # are atomic
 
     r = redis.StrictRedis(host='localhost', port=6379, db=0)
-    imports = {}
+    protected_imports = {} # Only used during compilation
 
     @classmethod
     def get_code_obj(cls, fullname):
@@ -32,18 +33,7 @@ class SenecaInterpreter:
         pipe.execute()
 
     @classmethod
-    def remove_code(cls, fullname):
-        pipe = cls.r.pipeline()
-        pipe.hdel('contracts', fullname)
-        pipe.hdel('contracts_str', fullname)
-        pipe.execute()
-
-    @classmethod
-    def code_obj_exists(cls, fullname) -> bool:
-        return bool(cls.r.hget('contracts', fullname))
-
-    @classmethod
-    def _assert_import_path(cls, import_path, module_name=None):
+    def assert_import_path(cls, import_path, module_name=None):
         if module_name:
             import_path = '.'.join([import_path, module_name])
         for path in ALLOWED_IMPORT_PATHS:
@@ -55,25 +45,34 @@ class SenecaInterpreter:
         raise ImportError('"{}" is protected and cannot be imported'.format(import_path))
 
     @classmethod
-    def parse_ast(cls, code_str, filename=''):
+    def parse_ast(cls, code_str, filename='', protected_variables=[]):
 
         tree = ast.parse(code_str)
+        protected_variables += ['export']
 
         for idx, item in enumerate(ast.walk(tree)):
 
-            # Restrict imports to ones in allowed_import_paths
+            # Restrict protected_imports to ones in ALLOWED_IMPORT_PATHS
             if isinstance(item, ast.Import):
                 module_name = item.names[0].name
-                cls._assert_import_path(module_name)
-                if cls.imports.get(module_name) == 'protected':
+                cls.assert_import_path(module_name)
+                if cls.protected_imports.get(module_name) == 'protected':
                     raise ImportError('"{}" is protected and cannot be imported'.format(module_name))
 
             elif isinstance(item, ast.ImportFrom):
                 module_name = item.names[0].name
-                cls._assert_import_path(item.module, module_name=module_name)
+                cls.assert_import_path(item.module, module_name=module_name)
                 imported = '.'.join([item.module, module_name])
-                if cls.imports.get(imported) == 'protected':
+                if cls.protected_imports.get(imported) == 'protected':
                     raise ImportError('"{}" is protected and cannot be imported'.format(imported))
+
+            # Restrict variable assignment
+            elif isinstance(item, ast.Assign):
+                for target in item.targets:
+                    cls.check_protected(target, protected_variables)
+
+            elif isinstance(item, ast.AugAssign):
+                cls.check_protected(item.target, protected_variables)
 
             # Add the __protected__ decorator if not export
             elif isinstance(item, ast.FunctionDef):
@@ -95,23 +94,25 @@ class SenecaInterpreter:
 
         return tree
 
+    @staticmethod
+    def check_protected(target, protected_variables):
+        if target.id.startswith('__') and target.id.endswith('__') \
+            or target.id in protected_variables:
+            raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
+
     @classmethod
     def execute(cls, code, scope={}):
-        print("Scope before execute: {}".format(scope))
         scope.update({
             '__builtins__': SAFE_BUILTINS,
             '__protected__': Protected(),
-            'export': Export(),
-            'butt_munching': True
+            'export': Export()
         })
-        exec(code, {}, scope)
-
+        exec(code, scope)
 
 class ScopeParser:
     @property
     def namespace(self):
         return inspect.stack()[2].filename.replace('.sen.py', '').split('/')[-1]
-
 
 class Export:
     def __call__(self, fn, *args, **kwargs):
@@ -119,11 +120,10 @@ class Export:
             return fn(*args, **kwargs)
         return _fn
 
-
 class Protected(ScopeParser):
     def __call__(self, fn, *args, **kwargs):
         module = '.'.join([fn.__module__ or '', fn.__name__])
-        SenecaInterpreter.imports[module] = 'protected'
+        SenecaInterpreter.protected_imports[module] = 'protected'
         def _fn():
             if self.namespace in fn.__module__.split('.')[-1]:
                 return fn(*args, **kwargs)

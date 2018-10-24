@@ -1,6 +1,6 @@
 import sys, os, inspect, imp
 import encodings.idna
-from os.path import join, exists, isdir
+from os.path import join, exists, isdir, basename
 from importlib.abc import Loader, MetaPathFinder
 from importlib.util import spec_from_file_location
 from seneca.engine.interpreter import SenecaInterpreter
@@ -41,10 +41,19 @@ class SenecaLoader(Loader):
             code_str = f.read()
             self.tree = SenecaInterpreter.parse_ast(code_str)
             self.code_obj = compile(self.tree, filename=self.filename, mode="exec")
+            self.module_name = basename(filename).split('.')[0]
 
     def exec_module(self, module):
+        scope = vars(module)
+        for item in inspect.stack():
+            if item.filename == '__main__':
+                scope.update(item[0].f_globals)
+                break
+        scope.update({
+            '__contract__': self.module_name
+        })
         SenecaInterpreter.execute(
-            self.code_obj, vars(module)
+            self.code_obj, scope
         )
         return module
 
@@ -60,7 +69,7 @@ class RedisFinder:
 class RedisLoader:
 
     def load_module(self, fullname):
-        module_name = fullname.split('.')[-1]
+        self.module_name = module_name = fullname.split('.')[-1]
         code = SenecaInterpreter.get_code_obj(module_name)
         mod = sys.modules.setdefault(fullname, imp.new_module(fullname))
         mod.__file__ = "<%s>" % self.__class__.__name__
