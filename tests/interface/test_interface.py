@@ -172,5 +172,12 @@ bird = 'hacks'
 bird += 1
             """, {'bird': 123})
 
+    def test_import_datatypes(self):
+        self.si.execute_code_str("""
+from seneca.libs.datatypes import *
+hmap('balance', str, int)
+        """)
+        pass
+
 if __name__ == '__main__':
     unittest.main()
