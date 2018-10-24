@@ -1,10 +1,5 @@
 from seneca.test_contracts.good import one_you_can_export as good
 from seneca.test_contracts.okay import one_you_can_export as okay
-from seneca.libs.datatypes import *
-
-
-balances = hmap('balances', str, int)
-
 
 @export
 def good_call():
@@ -24,7 +19,6 @@ def test_global_namespace():
     print('sender: {}, author: {}'.format(rt.sender, rt.author))
     print("sbb_idx: {}".format(sbb_idx))
     print("ALL GLOBALS: {}".format(globals()))
-
 
 def secret_call():
     okay()

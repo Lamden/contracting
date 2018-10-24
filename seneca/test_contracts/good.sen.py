@@ -1,3 +1,6 @@
+
+balances = {'hello': 'world'}
+
 @export
 def one_you_can_export():
     print('Running one_you_can_export()')

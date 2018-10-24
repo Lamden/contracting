@@ -26,6 +26,7 @@ ALLOWED_AST_TYPES = {
     ast.Store,
     ast.Assert,
     ast.Assign,
+    ast.AugAssign,
     ast.Subscript,
     ast.Compare,
     ast.Return,
@@ -69,7 +70,8 @@ ALLOWED_AST_TYPES = {
 ALLOWED_IMPORT_PATHS = [
     'seneca.contracts',
     'seneca.libs',
-    'seneca.test_contracts'
+    'seneca.test_contracts',
+    'seneca.proto_contracts'
 ]
 
 _SAFE_NAMES = [
