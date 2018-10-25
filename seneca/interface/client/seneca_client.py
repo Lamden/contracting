@@ -63,6 +63,7 @@ class SenecaClient:
     def get_next_sub_block(self):
         return self.executor._make_next_sb()
 
+    # do we need these methods in our new flow? Davis?
     def start(self):
         assert self.check_contract_future is None, "Start should not be called twice without a .stop() in between!"
 
