@@ -1,4 +1,4 @@
-from seneca.libs.datatypes import *
+from seneca.libs.datatypes import hmap
 
 
 balances = hmap('balances', str, int)

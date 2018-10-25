@@ -9,9 +9,12 @@ class CompilationException(Exception):
 
 class SenecaInterpreter:
 
-    r = redis.StrictRedis(host='localhost', port=6379, db=0)
     invalid_exports = {}
     loaded = {}
+
+    @classmethod
+    def setup(cls):
+        cls.r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
     @classmethod
     def get_code_obj(cls, fullname):
@@ -58,9 +61,11 @@ class SenecaInterpreter:
 
         for path in ALLOWED_IMPORT_PATHS:
             if import_path.startswith(path):
+
                 if len(import_path.split('.')) - len(path.split('.')) == 2:
                     if not cls.invalid_exports.get(import_path):
                         cls.invalid_exports[import_path] = 'invalid'
+                        print(import_path)
                     return True
                 else:
                     raise ImportError('Instead of importing the entire "{}" module, you must import each functions directly.'.format(import_path))
@@ -70,7 +75,7 @@ class SenecaInterpreter:
     def validate(cls):
         invalid_exports = [k for k, v in cls.invalid_exports.items() if v != 'exported']
         cls.invalid_exports = {}
-        if len(cls.invalid_exports) > 0:
+        if len(invalid_exports) > 0:
             raise CompilationException('Forbidden to import the following: {}'.format(
                 invalid_exports))
 
