@@ -1,13 +1,45 @@
-import redis, ast, marshal, array, copy, inspect, types, uuid, copy
+import redis, ast, marshal, inspect, sys
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS
+from seneca.engine.book_keeper import BookKeeper
+from seneca.engine.util import make_n_tup
+
 
 class ReadOnlyException(Exception):
     pass
+
 
 class SenecaInterpreter:
 
     r = redis.StrictRedis(host='localhost', port=6379, db=0)
     protected_imports = {} # Only used during compilation
+    _is_setup = False
+
+    @classmethod
+    def setup(cls):
+        from seneca.engine.module import SenecaFinder, RedisFinder
+        cls.old_meta_path = sys.meta_path
+        sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
+        cls._is_setup = True
+
+    @classmethod
+    def teardown(cls):
+        sys.meta_path = cls.old_meta_path
+        cls._is_setup = False
+
+    @classmethod
+    def execute_contract(cls, code_str: str, sender: str, sbb_idx: int, contract_idx: int, author=''):
+        assert cls._is_setup, "SenecaInterpreter.setup() must be called before you can execute_contract"
+
+        author = author or 'claude shannon'  # For now, we mock the author
+        rt_info = {'rt': make_n_tup({'sender': sender, 'author': author})}
+
+        BookKeeper.set_info(sbb_idx=sbb_idx, contract_idx=contract_idx)
+
+        tree = SenecaInterpreter.parse_ast(code_str, protected_variables=list(rt_info.keys()))
+        code_obj = compile(tree, filename='__main__', mode="exec")
+        SenecaInterpreter.execute(code_obj, scope=rt_info)
+
+        BookKeeper.del_info()
 
     @classmethod
     def get_code_obj(cls, fullname):

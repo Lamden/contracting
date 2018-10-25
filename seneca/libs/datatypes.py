@@ -1,5 +1,6 @@
 import redis
 import json
+from seneca.engine.book_keeper import BookKeeper
 
 '''
 
@@ -337,9 +338,8 @@ class RObject:
         # We assume that this injection process will also put book keeping data on the context, which will
         # be sent to the caching layer upon calling DB commands
         # print("RObject base __init__ called... globals: {}".format(globals()))
-        import inspect
-        print("RObject base __init__ called ... inspect.stack:\n{}".format(inspect.stack()))
-
+        info = BookKeeper.get_info()
+        print("RObject __init__ called with BookKeeper info: {}".format(info))
 
         assert driver is not None, 'Provide a Redis driver.'
         self.driver = driver
