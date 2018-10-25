@@ -1,6 +1,7 @@
 from seneca.libs.datatypes import *
 
 
+print('in kv_currency global scope...globals: {}'.format(globals()))
 balances = hmap('balances', str, int)
 allowed = hmap('allowed', str, hmap(value_type=int))
 
@@ -13,6 +14,7 @@ def balance_of(wallet_id):
 @export
 def transfer(to, amount):
     print("transfering from {} to {} with amount {}".format(rt.sender, to, amount))
+    print("[inside transfer] globals: {}".format(globals()))
     sender_balance = balances[rt.sender]
 
     balances[rt.sender] -= amount

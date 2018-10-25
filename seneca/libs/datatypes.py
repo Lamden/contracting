@@ -336,6 +336,9 @@ class RObject:
         # undergo the special import procedure which will 'inject' the appropriate runtime context
         # We assume that this injection process will also put book keeping data on the context, which will
         # be sent to the caching layer upon calling DB commands
+        # print("RObject base __init__ called... globals: {}".format(globals()))
+        import inspect
+        print("RObject base __init__ called ... inspect.stack:\n{}".format(inspect.stack()))
 
 
         assert driver is not None, 'Provide a Redis driver.'
