@@ -22,7 +22,7 @@ class SenecaExecutor:
     DB_OFFSET = 1
     PORT = 6379
 
-    def __init__(self, sbb_idx, loop=None, name=None, get_log_fn=None, concurrent_mode=True):
+    def __init__(self, sbb_idx, num_sbb, loop=None, name=None, get_log_fn=None, concurrent_mode=True):
         self.loop = loop or asyncio.get_event_loop()
         asyncio.set_event_loop(self.loop)
 
@@ -31,6 +31,7 @@ class SenecaExecutor:
         self.log = get_log_fn(name)
 
         self.sbb_index = sbb_idx
+        self.num_sb_builders = num_sbb
         self.concurrent_mode = concurrent_mode
         # use dbs for copies  # todo - explore for namespaces also
         self.master_db = redis.StrictRedis(host='localhost', port=self.PORT, db=0)
@@ -39,13 +40,70 @@ class SenecaExecutor:
         self.active_db = None  # pull the first one from worker_dbs when ready
         # add couple of worker dbs - can be done in a loop for max_number_workers
         self.max_number_workers = 2    # 2 sufficient for now
+        # phases: 1 - execute contracts, 2 - assertion check / status
+        self.phase1 = "sbb_phase1"
+        self.phase2 = "sbb_phase2"
+        self.transaction_keys = []
         # different clients have to be opened up front (as redis-py doesn't support select)
         for db_num in range(self.max_number_workers):
             db_client = redis.StrictRedis(host='localhost', port=self.PORT, db=db_num+self.DB_OFFSET)
+            if sbb_index == 0:
+                self.reset_db(db_client)
             self.worker_dbs.append(db_client)
 
+    # Redis data structure
+    # using pseudo do operations - need to translate to Redis commands later
+    # Organized as 3 major data structures:
+    # data structure 1 - common - all sub-block-builders can write into this one.
+    #      "Common":  {
+    #                    db-key1 : value1,   (value here is same as the one in current master-db
+    #                    ...
+    #                 }
+    # data structure2 - individual ones for each sub-block - only that sub-block will read/write to it
+    #       "sbb_i": {
+    #                    "executed": {
+    #                                    db-key1: orig-value mod-value
+    #                                    ...
+    #                                }
+    #                    "order_key_list": [ [keya keyb .. ] [keyp keyb ..]  ]  - each sub-list will correspond to one txn
+    #                    "status": [ [output, status] ... ]
+    #                }
+    # data structure3 - synchronization variables - all can increment the counters
+    #       "sbb_phase1": 0
+    #       "sbb_phase2": 0
+ 
+    def set_phase_variables(self, db):
+        # TODO
+        # db.set(self.phase1, 0)
+        # db.set(self.phase2, 0)
+
+    def incr_phase_variable(self, db, key):
+        # TODO
+        # db.incr(key)
+
+    def get_phase_variable(self, db, key):
+        # TODO
+        # return db.get(key)
+ 
+    def synchronize_phase(self, db, key):
+        while self.get_phase_variable(from_db, key) < self.num_sb_builders:
+            time.sleep(1)                    # right now, just wait
+ 
+    def wait_my_turn(self, db, key):
+        while self.get_phase_variable(from_db, key) < self.sbb_index:
+            time.sleep(1)                    # right now, just wait
+        assert self.get_phase_variable(from_db, key) == self.sbb_index
+        
+
+    def reset_db(self, db):
+        db.flushdb()
+        self.set_phase_variables(db)
+
+
     def update_master_db(self, from_db):
-        # from from_db, get each k,v and update the corresponding entries in master_db
+        # assert self.get_phase_variable(from_db, self.phase2) == self.num_sb_builders
+        self.synchronize_phase(from_db, self.phase2)
+        # TODO from from_db, get each k,v and update the corresponding entries in master_db
         pass
 
     # will be called upon the receipt of new-block-notification
@@ -55,61 +113,87 @@ class SenecaExecutor:
         If update_state is True, this will also commit the changes
         to the database. Otherwise, this method will discard any changes
         """
-        # need to iterate cur_db items and push them to master_db  - same as commit
-        # make sure f_db is the one
-        # pop the right one (should be first one mostly) from active_dbs
-        # save the state to master_db and purge it completely and return it to worker_dbs
-        f_db = self.pending_dbs.pop(0)    # actually it has to match result_hash
+        f_db = self.pending_dbs.pop(0)
         if self.sbb_index == 0:   # only one will do merging db work for now (but it could be the one that is not reponsible for sb)
-            # check input hashes match?  it probably have to be list of all input hashes?
             if update_state:
+                # TODO make sure f_db is the one by matching input_hash(es) ?
                 self.update_master_db(f_db)
-        # update synchronization variable
+            self.reset_db(f_db)
+        # do this way only when there is a chance of reusing this db right away. right now, we have two spares and we don't go beyond one block
+        # update synchronization variable  - not needed these commented ones anymore
         # the last one will do the following
-        if is_last_one:
-            # f_db.flushdb()
-            # add special synchronization variables with initialization here
+        # if is_last_one:
+            # self.reset_db(f_db)
         self.worker_dbs.append(f_db)
 
     def _start_next_sb(self):
         if len(self.worker_dbs) == 0:
+            # TODO log error as this shouldn't happen in current flow
             return False
         self.active_db = self.worker_dbs.pop(0)
-        # initialize it - add couple of special k-vs - this is done as part of clean up. if so, then we need to worry about first time (constructor)
-        # input-bag hash ? or result-hash at the end so save can check the right one
-        # return true / false so higher level can throttle it the way it want
-        # phases: 1 - execute contracts, 2 - assertion check / status
-        # if sbb_index == 0: then initialize two phase variables (see above) to zeros
+        # TODO add input-bag hash 
         return True
 
     def _end_sb(self):
-        # update the phase info in self.active_db
+        self.incr_phase_variable(self.active_db, self.phase1)
         self.pending_dbs.append(self.active_db)
         self.active_db = None      # we really don't care, but might be useful initially for error checking 
 
+    def merge_sub_block(self, db):
+        pass
+        # order_key_list = db.get_order_key_list
+        # for ord_no, key_list in enumerate(order_key_list):
+        #     modified = False
+        #     for key in key_list:
+        #         orig_value = db."common".get(key)
+        #         my_orig_value = db."sbb_{}".format(sbb_index).get_orig_value(key)
+        #         if my_orig_value != orig_value:
+        #             modified = True
+        #             db."sbb_{}".format(sbb_index).set(key, orig_value)
+        #     if modified:
+        #         re-execute-contract
+        #     for key in key_list:
+        #         mod_value = db."sbb_{}".format(sbb_index).get_mod_value(key)
+        #         db."common".set(key, mod_value)
+     
+
+
     def _make_next_sb(self):
         f_db = self.pending_dbs.get(0)    # get the first one, but still leave it in the pending_dbs too
-        # resolve conflicts - requires synchronization
-        # also make a list txns with output state and status
-        # return list of txns
+        # assert self.get_phase_variable(f_db, self.phase1) == self.num_sb_builders
+        self.synchronize_phase(f_db, self.phase1)
+        self.wait_my_turn(f_db, self.phase2)
+        txns = self.merge_sub_block(f_db)
+        self.incr_phase_variable(self.f_db, self.phase2)
+        return txns
 
-
-    def db_read(self, key):
+    # assuming _execute will use these db_read and db_write for db_operations
+    def db_read(self, db, key):
         pass
-        # fetch from master_db
+        # if db."common".key.exists:
+              return db."common".key.value
+        # value = fetch key from self.master_db and add to db."common"
+        # return value
 
-    def db_write(self, key, value):
+    def db_write(self, db, key, value):
         pass
-        # need to maintain two / three layers of data in cache (worker_db) layer
-        # common -> meaning everyone will update the data here. consists of conflict info:
-        #           "conflicts":key - <sorted set>  -> (sb_index:order_idx, sb_index * 1000 + order_idx (for score))
-        # cache(i):
-        #      1.  "value":key - new_set  new_incr  constraint
-        #      2.  hash [i] [ txn #] -> [ keys affected ]
+        # orig_val = db_read(db, key)
+        # db."sbb_{}".format(self.sbb_index) -> key: orig_value: orig_val, mod_value: value
+        # self.transaction_keys.append(key)
 
-    # same as above
+    def _pre_execution(self):
+        self.transaction_keys = []
+
     def _post_execution(self):
         pass
+        # self.active_db."sbb_{}".format(self.sbb_index) -> "order_key_list".append(self.transaction_keys)
+        # self.active_db."sbb_{}".format(self.sbb_index) -> incr(num_txns)
+
+    def _execute(self, code_obj):
+        pass
+        # diverts all db_read and db_writes to above
+        # output, state = __execute(code_obj)
+        # return output, state
 
     def run_contract(self, contract):
         pass
@@ -124,7 +208,8 @@ class SenecaExecutor:
         #     code_obj = compile(tree, filename='__main__', mode="exec")
         #     SenecaInterpreter.set_code_obj(contract.get_full_name(), code_obj)
         # self._pre_execution(contract)
-        # self._execute(code_obj)
+        # output, state = self._execute(code_obj)
+        # self.active_db."sbb_{}".format(self.sbb_index)."transactions"."{}".format(contract.order_idx) -> [contract.get_code_str(), output, state]
         # self._post_execution()
 
 
