@@ -55,6 +55,7 @@ class SenecaLoader(Loader, ScopeInjector):
     def __init__(self, filename):
         self.filename = filename
         self.tree = None
+        self.module_name = basename(filename).split('.')[0]
         with open(self.filename) as f:
             code_str = f.read()
             if 'seneca/libs' in self.filename:
@@ -62,7 +63,6 @@ class SenecaLoader(Loader, ScopeInjector):
             else:
                 self.tree = SenecaInterpreter.parse_ast(code_str)
                 self.code_obj = compile(self.tree, filename=self.filename, mode="exec")
-            self.module_name = basename(filename).split('.')[0]
 
     def exec_module(self, module):
         scope = self.scope_from_module(module)

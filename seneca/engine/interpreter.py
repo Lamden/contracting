@@ -66,7 +66,7 @@ class SenecaInterpreter:
         raise ImportError('Cannot find module "{}" in allowed protected_imports'.format(import_path))
 
     @classmethod
-    def parse_ast(cls, code_str, filename='', protected_variables=[]):
+    def parse_ast(cls, code_str, protected_variables=[]):
 
         tree = ast.parse(code_str)
         protected_variables += ['export']
@@ -74,11 +74,14 @@ class SenecaInterpreter:
 
         for idx, item in enumerate(ast.walk(tree)):
 
-            # # Restrict top level code to function definitions and imports
-            # if isinstance(item, ast.Module):
-            #     for module_item in item.body:
-            #         if not isinstance(item, (ast.FunctionDef, ast.Import, ast.ImportFrom)):
-            #             raise CompilationException('Only imports and function definitions allowed in the top level of a module')
+            # Restrict top level code to function definitions and imports
+            if isinstance(item, ast.Module):
+                # print(vars(item))
+                for module_item in item.body:
+                    if isinstance(module_item, ast.Assign):
+                        for target in module_item.targets:
+                            pass
+                            # print(cls.protected_imports)
 
             # Restrict protected_imports to ones in ALLOWED_IMPORT_PATHS
             if isinstance(item, ast.Import):
