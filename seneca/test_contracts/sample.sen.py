@@ -10,5 +10,15 @@ def good_call():
 def reasonable_call():
     good()
 
+@export
+def do_that_thing():
+    return 'sender: {}, author: {}'.format(rt.sender, rt.author)
+
+@export
+def test_global_namespace():
+    print('sender: {}, author: {}'.format(rt.sender, rt.author))
+    print("sbb_idx: {}".format(sbb_idx))
+    print("ALL GLOBALS: {}".format(globals()))
+
 def secret_call():
     okay()

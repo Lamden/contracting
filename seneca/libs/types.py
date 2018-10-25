@@ -7,7 +7,7 @@ from datetime import timedelta
 supported_db_types = [int, str, bool, float, list, set]
 import hashlib
 
-from seneca.engine.datatypes import table, hlist, hmap
+from seneca.libs.datatypes import table, hlist, hmap
 
 #TODO replace with crypto
 def sha256(secret):

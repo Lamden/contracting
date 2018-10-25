@@ -1,15 +1,24 @@
 from unittest import TestCase
+from seneca.engine.util import make_n_tup
 from seneca.interface.interface import SenecaInterface
-import redis, unittest
+from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
+from os.path import join
+from tests.utils import captured_output
+import redis, unittest, seneca
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
+test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
 class TestInterface(TestCase):
 
     def setUp(self):
         r.flushdb()
         self.si = SenecaInterface()
-        print('\n\n\n{}:::'.format(self.id))
+        print('''
+################################################################################
+{}
+################################################################################
+        '''.format(self.id))
 
     def test_import_valid(self):
         """
@@ -27,6 +36,26 @@ from seneca.test_contracts.sample import good_call, reasonable_call
         with self.assertRaises(ImportError) as context:
             self.si.execute_code_str("""
 from seneca.test_contracts.bad import innocent_function
+            """)
+
+    def test_import_direct_invalid(self):
+        """
+            This is a valid way to import, but you cannot import "importlib"
+            and other such libraries. Only ones from the whitelist
+        """
+        with self.assertRaises(ImportError) as context:
+            self.si.execute_code_str("""
+import json
+            """)
+
+    def test_import_global_variable_invalid(self):
+        """
+            This is a valid way to import, but you cannot import "importlib"
+            and other such libraries. Only ones from the whitelist
+        """
+        with self.assertRaises(ImportError) as context:
+            self.si.execute_code_str("""
+from seneca.test_contracts.good import one_you_cannot_export
             """)
 
     def test_import_star(self):
@@ -140,6 +169,57 @@ one_you_can_also_also_export()
 from seneca.test_contracts.good import one_you_cannot_export
             """)
 
+    def test_globals(self):
+        with captured_output() as (out, err):
+            self.si.execute_code_str("""
+from seneca.test_contracts.reasonable import reasonable_call
+print(reasonable_call())
+            """, {'__sender__': '123'})
+            self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: reasonable')
+
+    def test_globals_redis(self):
+        bk_info = {'sbb_idx': 2, 'contract_idx': 12}
+        rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
+        all_info = {**bk_info, **rt_info}
+        with open(join(test_contracts_path, 'sample.sen.py')) as f:
+            self.si.submit_code_str('sample', f.read(), keep_original=True)
+        with captured_output() as (out, err):
+            self.si.execute_code_str("""
+from seneca.contracts.sample import do_that_thing
+print(do_that_thing())
+            """, all_info)
+            self.assertEqual(out.getvalue().strip(), 'sender: davis, author: davis')
+
+    def test_read_only_variables(self):
+        with self.assertRaises(ReadOnlyException) as context:
+            self.si.execute_code_str("""
+__contract__ = 'hacks'
+            """)
+
+    def test_read_only_variables_custom(self):
+        with self.assertRaises(ReadOnlyException) as context:
+            self.si.execute_code_str("""
+bird = 'hacks'
+            """, {'bird': '123'})
+
+    def test_read_only_variables_aug_assign(self):
+        with self.assertRaises(ReadOnlyException) as context:
+            self.si.execute_code_str("""
+bird += 1
+            """, {'bird': 123})
+
+    def test_import_datatypes(self):
+        self.si.execute_code_str("""
+from seneca.libs.datatypes import *
+hmap('balance', str, int)
+        """)
+
+    def test_import_datatypes_reassign(self):
+        with self.assertRaises(ReadOnlyException) as context:
+            self.si.execute_code_str("""
+from seneca.libs.datatypes import *
+hmap = 'hacked'
+            """)
 
 if __name__ == '__main__':
     unittest.main()

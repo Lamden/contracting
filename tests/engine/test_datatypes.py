@@ -1,5 +1,5 @@
 from unittest import TestCase
-from seneca.engine.datatypes import *
+from seneca.libs.datatypes import *
 
 '''
 test complex key types and value types

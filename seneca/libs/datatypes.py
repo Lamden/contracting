@@ -1,7 +1,6 @@
 import redis
 import json
 
-
 '''
 
 Datatype serialization format:
@@ -268,6 +267,7 @@ class TablePlaceholder(Placeholder):
         d += '})'
         return CTP + 'table' + d
 
+
 class RankedPlaceholder(Placeholder):
     def __init__(self, key_type=str, value_type=int):
         self.key_type = str
@@ -299,6 +299,7 @@ vivified_primitives = {
     str: '',
     bool: False
 }
+
 
 # table to be done later
 def vivify(potential_prefix, t):
@@ -444,7 +445,6 @@ def hmap(prefix=None, key_type=str, value_type=int):
     if prefix is None:
         return Placeholder(key_type=key_type, value_type=value_type, placeholder_type=HMap)
     return HMap(prefix=prefix, key_type=key_type, value_type=value_type)
-
 
 ####################
 # HList Datatype
@@ -666,7 +666,6 @@ class Ranked(RObject):
                                             self.prefix,
                                             encode_type(self.key_type),
                                             encode_type(self.value_type))
-
 
 def ranked(prefix=None, key_type=str, value_type=int):
     if prefix is None:

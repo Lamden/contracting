@@ -1,4 +1,4 @@
-from seneca.engine.datatypes import hmap, ranked, table, hlist
+from seneca.libs.datatypes import hmap, ranked, hlist
 
 now = 12345 # unix timestamp
 
