@@ -4,10 +4,15 @@ from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS,
 class ReadOnlyException(Exception):
     pass
 
+class CompilationException(Exception):
+    pass
+
 class SenecaInterpreter:
 
     r = redis.StrictRedis(host='localhost', port=6379, db=0)
     protected_imports = {} # Only used during compilation
+    exports = {}
+    protected_imports = {}
 
     @classmethod
     def get_code_obj(cls, fullname):
@@ -26,6 +31,7 @@ class SenecaInterpreter:
         assert not cls.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
         tree = cls.parse_ast(code_str)
         code_obj = compile(tree, filename='module_name', mode="exec")
+        SenecaInterpreter.execute(code_obj, {})
         pipe = cls.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
         if keep_original:
@@ -52,10 +58,12 @@ class SenecaInterpreter:
                 if len(import_path.split('.')) - len(path.split('.')) == 2:
                     if cls.protected_imports.get(import_path) == 'protected':
                         raise ImportError('"{}" is protected and cannot be imported'.format(import_path))
+                    else:
+                        cls.protected_imports[import_path] = 'imported'
                     return True
                 else:
                     raise ImportError('Instead of importing the entire "{}" module, you must import each functions directly.'.format(import_path))
-        raise ImportError('Cannot find module "{}" in allowed imports'.format(import_path))
+        raise ImportError('Cannot find module "{}" in allowed protected_imports'.format(import_path))
 
     @classmethod
     def parse_ast(cls, code_str, filename='', protected_variables=[]):
@@ -65,6 +73,12 @@ class SenecaInterpreter:
         current_ast_types = set()
 
         for idx, item in enumerate(ast.walk(tree)):
+
+            # # Restrict top level code to function definitions and imports
+            # if isinstance(item, ast.Module):
+            #     for module_item in item.body:
+            #         if not isinstance(item, (ast.FunctionDef, ast.Import, ast.ImportFrom)):
+            #             raise CompilationException('Only imports and function definitions allowed in the top level of a module')
 
             # Restrict protected_imports to ones in ALLOWED_IMPORT_PATHS
             if isinstance(item, ast.Import):
@@ -85,6 +99,9 @@ class SenecaInterpreter:
 
             # Add the __protected__ decorator if not export
             elif isinstance(item, ast.FunctionDef):
+                for fn_item in item.body:
+                    if isinstance(fn_item, (ast.Import, ast.ImportFrom)):
+                        raise ImportError('Cannot import modules inside a function!')
                 decorators = [d.id for d in item.decorator_list]
                 if '__protected__' in decorators:
                     raise ImportError('"{}" is protected and cannot be imported'.format(item.name))
@@ -128,6 +145,8 @@ class ScopeParser:
 
 class Export:
     def __call__(self, fn):
+        module = '.'.join([fn.__module__ or '', fn.__name__])
+        SenecaInterpreter.exports[module] = True
         def _fn(*args, **kwargs):
             return fn(*args, **kwargs)
         return _fn
@@ -135,6 +154,8 @@ class Export:
 class Protected(ScopeParser):
     def __call__(self, fn):
         module = '.'.join([fn.__module__ or '', fn.__name__])
+        if SenecaInterpreter.protected_imports.get(module) == 'imported':
+            raise ImportError('"{}" is __protected__ and cannot be imported'.format(module))
         SenecaInterpreter.protected_imports[module] = 'protected'
         def _fn(*args, **kwargs):
             if self.namespace in fn.__module__.split('.')[-1]:
