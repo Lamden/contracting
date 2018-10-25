@@ -286,7 +286,6 @@ class RankedPlaceholder(Placeholder):
         return CTP + 'ranked' + '(' + encode_type(self.key_type) + ',' + encode_type(self.value_type) + ')'
 
 
-
 def is_complex_type(v):
     for t in complex_types:
         if (issubclass(type(v), Placeholder) and issubclass(v.placeholder_type, t)) \
@@ -333,12 +332,11 @@ class RObject:
                                           port=6379,
                                           db=0)
                  ):
-        # HERE we need to get local information from Seneca runtime. If this is imported inside a contract, it should
-        # undergo the special import procedure which will 'inject' the appropriate runtime context
-        # We assume that this injection process will also put book keeping data on the context, which will
-        # be sent to the caching layer upon calling DB commands
-        # print("RObject base __init__ called... globals: {}".format(globals()))
         info = BookKeeper.get_info()
+        self.working_db = info['working_db']
+        self.master_db = info['master_db']
+        self.sbb_idx = info['sbb_idx']
+        self.contract_idx = info['contract_idx']
         print("RObject __init__ called with BookKeeper info: {}".format(info))
 
         assert driver is not None, 'Provide a Redis driver.'

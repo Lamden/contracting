@@ -11,7 +11,7 @@ class ReadOnlyException(Exception):
 class SenecaInterpreter:
 
     r = redis.StrictRedis(host='localhost', port=6379, db=0)
-    protected_imports = {} # Only used during compilation
+    protected_imports = {}  # Only used during compilation
     _is_setup = False
 
     @classmethod
@@ -27,13 +27,14 @@ class SenecaInterpreter:
         cls._is_setup = False
 
     @classmethod
-    def execute_contract(cls, code_str: str, sender: str, sbb_idx: int, contract_idx: int, author=''):
+    def execute_contract(cls, code_str: str, sender: str, sbb_idx: int, contract_idx: int, master_db: redis.StrictRedis,
+                         working_db: redis.StrictRedis, author=''):
         assert cls._is_setup, "SenecaInterpreter.setup() must be called before you can execute_contract"
 
         author = author or 'claude shannon'  # For now, we mock the author
         rt_info = {'rt': make_n_tup({'sender': sender, 'author': author})}
 
-        BookKeeper.set_info(sbb_idx=sbb_idx, contract_idx=contract_idx)
+        BookKeeper.set_info(sbb_idx=sbb_idx, contract_idx=contract_idx, master_db=master_db, working_db=working_db)
 
         tree = SenecaInterpreter.parse_ast(code_str, protected_variables=list(rt_info.keys()))
         code_obj = compile(tree, filename='__main__', mode="exec")
@@ -153,16 +154,19 @@ class SenecaInterpreter:
         })
         exec(code, scope)
 
+
 class ScopeParser:
     @property
     def namespace(self):
         return inspect.stack()[2].filename.replace('.sen.py', '').split('/')[-1]
+
 
 class Export:
     def __call__(self, fn):
         def _fn(*args, **kwargs):
             return fn(*args, **kwargs)
         return _fn
+
 
 class Protected(ScopeParser):
     def __call__(self, fn):

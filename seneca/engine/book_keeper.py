@@ -16,7 +16,7 @@ class BookKeeper:
         return key
 
     @classmethod
-    def set_info(cls, sbb_idx: int, contract_idx: int) -> None:
+    def set_info(cls, sbb_idx: int, contract_idx: int, master_db, working_db) -> None:
         """
         Sets the info (subblock builder index and contract index) for the current thread.
         """
@@ -24,7 +24,8 @@ class BookKeeper:
         print("Setting key {} with info sbb_idx: {} \ contract_idx: {}".format(key, sbb_idx, contract_idx))  # TODO remove
 
         with cls._lock:
-            cls._shared_state[key] = {'sbb_idx': sbb_idx, 'contract_idx': contract_idx}
+            cls._shared_state[key] = {'sbb_idx': sbb_idx, 'contract_idx': contract_idx, 'working_db': working_db,
+                                      'master_db': master_db}
 
     @classmethod
     def get_info(cls) -> dict:
