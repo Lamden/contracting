@@ -6,7 +6,7 @@ from os.path import join
 from tests.utils import captured_output, TestInterface
 import redis, unittest, seneca
 
-test_contracts_path = seneca.__path__[0] + '/test_contracts/'
+test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
 
 class TestScope(TestInterface):
 
@@ -36,7 +36,7 @@ from test_contracts.good import one_you_cannot_export
 from test_contracts.reasonable import reasonable_call
 print(reasonable_call())
             """, {'__sender__': '123'})
-            self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: reasonable')
+            self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: test_contracts.reasonable')
 
     def test_globals_redis(self):
         bk_info = {'sbb_idx': 2, 'contract_idx': 12}
