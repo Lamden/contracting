@@ -1,6 +1,0 @@
-#import _03_using_rbac_1
-
-import seneca.runtime as rt
-
-
-#print(4, rt.call_stack)

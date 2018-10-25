@@ -31,7 +31,7 @@ ok()
             Trying to import protected functions will fail
         """
         code_str = """
-from seneca.test_contracts.good import one_you_cannot_export
+from test_contracts.good import one_you_cannot_export
         """
         with self.assertRaises(ImportError) as context:
             self.si.submit_code_str('incorrect', code_str, keep_original=True)
@@ -42,7 +42,7 @@ from seneca.test_contracts.good import one_you_cannot_export
         """
         code_str = """
 def bad_code():
-    from seneca.test_contracts.good import one_you_cannot_export
+    from test_contracts.good import one_you_cannot_export
         """
         with self.assertRaises(ImportError) as context:
             self.si.submit_code_str('incorrect', code_str, keep_original=True)

@@ -15,7 +15,7 @@ class TestImports(TestInterface):
             This is a valid way to import
         """
         self.si.execute_code_str("""
-from seneca.test_contracts.sample import good_call, reasonable_call
+from test_contracts.sample import good_call, reasonable_call
         """)
 
     def test_import_invalid(self):
@@ -25,7 +25,7 @@ from seneca.test_contracts.sample import good_call, reasonable_call
         """
         with self.assertRaises(ImportError) as context:
             self.si.execute_code_str("""
-from seneca.test_contracts.bad import innocent_function
+from test_contracts.bad import innocent_function
             """)
 
     def test_import_direct_invalid(self):
@@ -45,7 +45,7 @@ import json
         """
         with self.assertRaises(ImportError) as context:
             self.si.execute_code_str("""
-from seneca.test_contracts.good import balances
+from test_contracts.good import balances
             """)
 
     def test_import_star(self):
@@ -55,7 +55,7 @@ from seneca.test_contracts.good import balances
         """
         with self.assertRaises(ImportError) as context:
             self.si.execute_code_str("""
-from seneca.test_contracts.sample import *
+from test_contracts.sample import *
 secret_call()
             """)
 
@@ -66,7 +66,7 @@ secret_call()
         """
         with self.assertRaises(ImportError) as context:
             self.si.execute_code_str("""
-import seneca.test_contracts.sample
+import test_contracts.sample
             """)
 
     def test_import_indirect_invalid_from_import(self):
@@ -76,7 +76,7 @@ import seneca.test_contracts.sample
         """
         with self.assertRaises(ImportError) as context:
             self.si.execute_code_str("""
-from seneca.test_contracts import sample
+from test_contracts import sample
             """)
 
     def test_execute_valid(self):
@@ -84,7 +84,7 @@ from seneca.test_contracts import sample
             Testing to see if the function can be called.
         """
         self.si.execute_code_str("""
-from seneca.test_contracts.sample import good_call
+from test_contracts.sample import good_call
 good_call()
         """)
 

@@ -15,7 +15,7 @@ class TestScope(TestInterface):
             Importing exported functions should pass
         """
         self.si.execute_code_str("""
-from seneca.test_contracts.good import one_you_can_export, one_you_can_also_export, one_you_can_also_also_export
+from test_contracts.good import one_you_can_export, one_you_can_also_export, one_you_can_also_also_export
 one_you_can_export()
 one_you_can_also_export()
 one_you_can_also_also_export()
@@ -27,13 +27,13 @@ one_you_can_also_also_export()
         """
         with self.assertRaises(ImportError) as context:
             self.si.execute_code_str("""
-from seneca.test_contracts.good import one_you_cannot_export
+from test_contracts.good import one_you_cannot_export
             """)
 
     def test_globals(self):
         with captured_output() as (out, err):
             self.si.execute_code_str("""
-from seneca.test_contracts.reasonable import reasonable_call
+from test_contracts.reasonable import reasonable_call
 print(reasonable_call())
             """, {'__sender__': '123'})
             self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: reasonable')

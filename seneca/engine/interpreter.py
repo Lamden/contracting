@@ -12,7 +12,7 @@ class SenecaInterpreter:
     r = redis.StrictRedis(host='localhost', port=6379, db=0)
     protected_imports = {} # Only used during compilation
     exports = {}
-    protected_imports = {}
+    loaded = {}
 
     @classmethod
     def get_code_obj(cls, fullname):
@@ -74,14 +74,14 @@ class SenecaInterpreter:
 
         for idx, item in enumerate(ast.walk(tree)):
 
-            # Restrict top level code to function definitions and imports
-            if isinstance(item, ast.Module):
-                # print(vars(item))
-                for module_item in item.body:
-                    if isinstance(module_item, ast.Assign):
-                        for target in module_item.targets:
-                            pass
-                            # print(cls.protected_imports)
+            # # Restrict top level code to function definitions and imports
+            # if isinstance(item, ast.Module):
+            #     # print(vars(item))
+            #     for module_item in item.body:
+            #         if isinstance(module_item, ast.Assign):
+            #             for target in module_item.targets:
+            #                 pass
+            #                 # print(cls.protected_imports)
 
             # Restrict protected_imports to ones in ALLOWED_IMPORT_PATHS
             if isinstance(item, ast.Import):
@@ -133,24 +133,31 @@ class SenecaInterpreter:
             raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
 
     @classmethod
-    def execute(cls, code, scope={}):
+    def execute(cls, code, scope={}, is_main=True):
         scope.update({
             '__builtins__': SAFE_BUILTINS,
             '__protected__': Protected(),
             'export': Export()
         })
+        if is_main:
+            cls.loaded['__main__'] = scope
         exec(code, scope)
 
 class ScopeParser:
+
     @property
     def namespace(self):
         return inspect.stack()[2].filename.replace('.sen.py', '').split('/')[-1]
 
-class Export:
+    def set_scope(self, fn):
+        fn.__globals__.update(SenecaInterpreter.loaded['__main__'])
+
+class Export(ScopeParser):
     def __call__(self, fn):
         module = '.'.join([fn.__module__ or '', fn.__name__])
         SenecaInterpreter.exports[module] = True
         def _fn(*args, **kwargs):
+            self.set_scope(fn)
             return fn(*args, **kwargs)
         return _fn
 

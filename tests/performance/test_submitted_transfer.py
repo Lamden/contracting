@@ -7,7 +7,7 @@ from tests.utils import captured_output
 import redis, unittest, seneca, time
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
-test_contracts_path = seneca.__path__[0] + '/proto_contracts/'
+test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
 CONTRACT_COUNT = 10000
 
 class TestSubmittedTransfer(TestCase):
@@ -28,7 +28,7 @@ from seneca.contracts.kv_currency import transfer
 transfer('ass', 1)
         '''
         self.print_balance()
-        self.code_obj = self.si.get_code_obj(self.code_str)
+        self.code_obj = self.si.compile_code(self.code_str)
         self.start = time.time()
 
     def tearDown(self):
@@ -60,7 +60,7 @@ print('ass has a balance of: ' + str(balance_of('ass')))
 
     def test_transfer_precompiled(self):
         for i in range(CONTRACT_COUNT):
-            self.si.run_code(self.code_obj)
+            self.si.run_code(self.code_obj, self.rt)
 
 if __name__ == '__main__':
     unittest.main()

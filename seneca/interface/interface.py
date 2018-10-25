@@ -8,6 +8,7 @@ class SenecaInterface:
     sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
 
     def execute_code_str(self, code_str, scope={}):
+        scope.update({'__toplvl__': True})
         code_obj = self.compile_code(code_str, scope)
         return SenecaInterpreter.execute(code_obj, scope)
 
@@ -21,5 +22,5 @@ class SenecaInterface:
         tree = SenecaInterpreter.parse_ast(code_str, protected_variables=list(scope.keys()))
         return compile(tree, filename='__main__', mode="exec")
 
-    def run_code(self, code_obj, *args, **kwargs):
-        return SenecaInterpreter.execute(code_obj, kwargs)
+    def run_code(self, code_obj, scope):
+        return SenecaInterpreter.execute(code_obj, scope)
