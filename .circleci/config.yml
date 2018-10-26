@@ -7,7 +7,7 @@ jobs:
   build:
     docker:
       - image: circleci/python:3.6.5
-      - image: circleci/redis:4.0.9
+      - image: redis:4.0.6
 
     working_directory: ~/seneca
 
@@ -19,6 +19,14 @@ jobs:
           - v1-dependencies-{{ checksum "requirements.txt" }}
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
+
+      - run:
+          name: Dockerize v0.6.0
+          command: |
+            wget https://github.com/jwilder/dockerize/releases/download/v0.6.0/dockerize-linux-amd64-v0.6.0.tar.gz
+            sudo rm -rf /usr/local/bin/dockerize
+            sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-v0.6.0.tar.gz
+            rm dockerize-linux-amd64-v0.6.0.tar.gz
 
       - run:
           name: install dependencies
@@ -34,6 +42,11 @@ jobs:
       - run:
           name: Start Redis
           command: sudo service redis-server start
+
+      - run:
+          name: Wait for Redis
+          command: |
+            dockerize -wait tcp://localhost:6379 -timeout 1m
 
       - run:
           name: run tests

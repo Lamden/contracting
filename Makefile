@@ -7,7 +7,7 @@ help:
 clean:
 	bash ./scripts/clean.sh
 
-build:
+build-cython:
 	cythonize -i --exclude="test_contracts/" ./seneca
 
 test:
