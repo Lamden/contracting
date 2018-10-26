@@ -1,0 +1,49 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.6.5
+      - image: circleci/redis:4.0.9
+
+    working_directory: ~/seneca
+
+    steps:
+      - checkout
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "requirements.txt" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+
+      - run:
+          name: install dependencies
+          command: |
+            sudo apt install -y mysql-client
+            sudo apt install -y python-mysqldb
+            sudo pip install -r requirements.txt
+            sudo pip install -r dev-requirements.txt
+
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-{{ checksum "requirements.txt" }}
+
+      - run:
+          name: Start Redis
+          command: sudo service redis-server start
+
+      - run:
+          name: run tests
+          command: |
+            make test
+
+workflows:
+  version: 2
+  seneca_tests:
+    jobs:
+      - build
