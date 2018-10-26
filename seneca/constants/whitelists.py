@@ -67,9 +67,10 @@ ALLOWED_AST_TYPES = {
     ast.Or
 }
 
+SENECA_LIBRARY_PATH = 'seneca.libs'
+
 ALLOWED_IMPORT_PATHS = [
     'seneca.contracts',
-    'seneca.libs',
     'test_contracts'
 ]
 

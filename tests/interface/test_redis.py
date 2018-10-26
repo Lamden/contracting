@@ -30,14 +30,14 @@ bird += 1
 
     def test_import_datatypes(self):
         self.si.execute_code_str("""
-from seneca.libs.datatypes import *
+from seneca.libs.datatypes import hmap
 hmap('balance', str, int)
         """)
 
     def test_import_datatypes_reassign(self):
         with self.assertRaises(ReadOnlyException) as context:
             self.si.execute_code_str("""
-from seneca.libs.datatypes import *
+from seneca.libs.datatypes import hmap
 hmap = 'hacked'
             """)
 

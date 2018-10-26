@@ -1,5 +1,5 @@
 import redis, ast, marshal, array, copy, inspect, types, uuid, copy
-from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS
+from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
 
 class ReadOnlyException(Exception):
     pass
@@ -9,7 +9,7 @@ class CompilationException(Exception):
 
 class SenecaInterpreter:
 
-    invalid_exports = {}
+    exports = {}
     loaded = {}
 
     @classmethod
@@ -33,8 +33,8 @@ class SenecaInterpreter:
         assert not cls.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
         tree = cls.parse_ast(code_str)
         code_obj = compile(tree, filename='module_name', mode="exec")
+        cls.execute(code_obj, {})
         cls.validate()
-        SenecaInterpreter.execute(code_obj, {})
         pipe = cls.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
         if keep_original:
@@ -58,23 +58,34 @@ class SenecaInterpreter:
             raise ImportError('Not allowed to import *')
         elif module_name:
             import_path = '.'.join([import_path, module_name])
-
+        if import_path.startswith(SENECA_LIBRARY_PATH):
+            cls.exports[import_path] = 'exported'
+            return True
         for path in ALLOWED_IMPORT_PATHS:
             if import_path.startswith(path):
-
                 if len(import_path.split('.')) - len(path.split('.')) == 2:
-                    if not cls.invalid_exports.get(import_path):
-                        cls.invalid_exports[import_path] = 'invalid'
-                        print(import_path)
+                    if not cls.exports.get(import_path):
+                        cls.exports[import_path] = 'imported'
                     return True
                 else:
                     raise ImportError('Instead of importing the entire "{}" module, you must import each functions directly.'.format(import_path))
         raise ImportError('Cannot find module "{}" in allowed protected_imports'.format(import_path))
 
     @classmethod
+    def clean_exports(cls):
+        invalid_exports = []
+        new_exports = {}
+        for k, v in cls.exports.items():
+            if v == 'exported':
+                new_exports[k] = v
+            else:
+                invalid_exports.append(k)
+        cls.exports = new_exports
+        return invalid_exports
+
+    @classmethod
     def validate(cls):
-        invalid_exports = [k for k, v in cls.invalid_exports.items() if v != 'exported']
-        cls.invalid_exports = {}
+        invalid_exports = cls.clean_exports()
         if len(invalid_exports) > 0:
             raise CompilationException('Forbidden to import the following: {}'.format(
                 invalid_exports))
@@ -87,15 +98,6 @@ class SenecaInterpreter:
         current_ast_types = set()
 
         for idx, item in enumerate(ast.walk(tree)):
-
-            # # Restrict top level code to function definitions and imports
-            # if isinstance(item, ast.Module):
-            #     # print(vars(item))
-            #     for module_item in item.body:
-            #         if isinstance(module_item, ast.Assign):
-            #             for target in module_item.targets:
-            #                 pass
-            #                 # print(cls.protected_imports)
 
             # Restrict protected_imports to ones in ALLOWED_IMPORT_PATHS
             if isinstance(item, ast.Import):
@@ -114,8 +116,8 @@ class SenecaInterpreter:
             elif isinstance(item, ast.AugAssign):
                 cls.check_protected(item.target, protected_variables)
 
-            # Add the __protected__ decorator if not export
             elif isinstance(item, ast.FunctionDef):
+
                 for fn_item in item.body:
                     if isinstance(fn_item, (ast.Import, ast.ImportFrom)):
                         raise ImportError('Cannot import modules inside a function!')
@@ -145,6 +147,8 @@ class SenecaInterpreter:
         if is_main:
             cls.loaded['__main__'] = scope
         exec(code, scope)
+        if is_main:
+            cls.validate()
 
 class ScopeParser:
 
@@ -163,10 +167,7 @@ class Export(ScopeParser):
 
     def __call__(self, fn):
         self.set_scope_during_compilation(fn)
-        if SenecaInterpreter.invalid_exports.get(self.module) == 'imported':
-            del SenecaInterpreter.invalid_exports[self.module]
-        else:
-            SenecaInterpreter.invalid_exports[self.module] = 'exported'
+        SenecaInterpreter.exports[self.module] = 'exported'
         def _fn(*args, **kwargs):
             self.set_scope(fn)
             return fn(*args, **kwargs)

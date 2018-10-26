@@ -23,7 +23,7 @@ from test_contracts.sample import good_call, reasonable_call
             This is a valid way to import, but you cannot import "importlib"
             and other such libraries. Only ones from the whitelist
         """
-        with self.assertRaises(CompilationException) as context:
+        with self.assertRaises(ImportError) as context:
             self.si.execute_code_str("""
 from test_contracts.bad import innocent_function
             """)

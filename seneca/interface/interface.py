@@ -9,7 +9,11 @@ class SenecaInterface:
 
     def execute_code_str(self, code_str, scope={}):
         code_obj = self.compile_code(code_str, scope)
-        return SenecaInterpreter.execute(code_obj, scope)
+        try:
+            return SenecaInterpreter.execute(code_obj, scope)
+        except:
+            SenecaInterpreter.clean_exports()
+            raise
 
     def submit_code_str(self, fullname, code_str, keep_original=False):
         SenecaInterpreter.set_code(fullname, code_str, keep_original)
@@ -19,8 +23,11 @@ class SenecaInterface:
 
     def compile_code(self, code_str, scope={}):
         tree = SenecaInterpreter.parse_ast(code_str, protected_variables=list(scope.keys()))
-        SenecaInterpreter.validate()
         return compile(tree, filename='__main__', mode="exec")
 
     def run_code(self, code_obj, scope):
-        return SenecaInterpreter.execute(code_obj, scope)
+        try:
+            return SenecaInterpreter.execute(code_obj, scope)
+        except:
+            SenecaInterpreter.clean_exports()
+            raise

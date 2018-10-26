@@ -1,7 +1,7 @@
 from unittest import TestCase
 from seneca.engine.util import make_n_tup
 from seneca.interface.interface import SenecaInterface
-from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
+from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException, CompilationException
 from os.path import join
 from tests.utils import captured_output, TestInterface
 import redis, unittest, seneca
@@ -25,7 +25,7 @@ one_you_can_also_also_export()
         """
             Importing protected functions should fail
         """
-        with self.assertRaises(ImportError) as context:
+        with self.assertRaises(CompilationException) as context:
             self.si.execute_code_str("""
 from test_contracts.good import one_you_cannot_export
             """)

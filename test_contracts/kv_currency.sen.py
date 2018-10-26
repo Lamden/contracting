@@ -4,7 +4,6 @@ from seneca.libs.datatypes import hmap
 balances = hmap('balances', str, int)
 allowed = hmap('allowed', str, hmap(value_type=int))
 
-
 @export
 def balance_of(wallet_id):
     return balances[wallet_id]
