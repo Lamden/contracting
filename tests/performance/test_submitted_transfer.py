@@ -14,6 +14,7 @@ class TestSubmittedTransfer(TestCase):
 
     def setUp(self):
         r.flushdb()
+        SenecaInterpreter.setup()
         self.si = SenecaInterface()
         self.rt = {'rt': make_n_tup({'sender': 'stu', 'author': 'stu'})}
         print('''
