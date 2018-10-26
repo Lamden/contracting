@@ -23,8 +23,6 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            sudo apt install -y mysql-client
-            sudo apt install -y python-mysqldb
             sudo pip install -r requirements.txt
             sudo pip install -r dev-requirements.txt
 

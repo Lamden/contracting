@@ -12,3 +12,10 @@ build:
 
 test:
 	python3 tests/run.py
+
+venv:
+	virtualenv -p python3 venv
+
+install:
+	pip3 install -r requirements.txt
+	pip3 install -r dev-requirements.txt
