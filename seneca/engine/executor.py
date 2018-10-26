@@ -1,9 +1,11 @@
 import redis, ast, marshal, array, copy, inspect, types, uuid, asyncio
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS
+from seneca.constants.redis import MASTER_DB, DB_OFFSET, NUM_CACHES
 from seneca.logger import SenecaLogger
 from seneca.interface.client.seneca_client import ContractStruct
 from seneca.engine.interpreter import SenecaInterpreter
 
+NUM_CACHES = 2
 
 #0. will imports wrap into class methods or these wrappers with a default client (db=0) which redis-client can pass in active_db
 #1. how do we wrap these redis commands in a such a way that they will execute against active_db
@@ -12,6 +14,10 @@ from seneca.engine.interpreter import SenecaInterpreter
 #2. Directory structure / code organization
 #3. do we need redis_client or can be merged into seneca_client itself
 
+# Davis, looks like SenecaExecutor and SenecaClient seems to be redundant. 
+#        We can combine them into one? If so, we could make it as SenecaInterpreter (to be backward compatible ?)
+#         and make new SenecaInterpreter as SenecaExecutor. Just a thought
+
 
 class ImportsSingleton:
     protected_imports = {}
@@ -19,8 +25,8 @@ class ImportsSingleton:
 
 class SenecaExecutor:
 
-    DB_OFFSET = 1
     PORT = 6379
+    // password
 
     def __init__(self, sbb_idx, num_sbb, loop=None, name=None, get_log_fn=None, concurrent_mode=True):
         self.loop = loop or asyncio.get_event_loop()
@@ -34,12 +40,12 @@ class SenecaExecutor:
         self.num_sb_builders = num_sbb
         self.concurrent_mode = concurrent_mode
         # use dbs for copies  # todo - explore for namespaces also
-        self.master_db = redis.StrictRedis(host='localhost', port=self.PORT, db=0)
+        self.master_db = redis.StrictRedis(host='localhost', port=self.PORT, db=MASTER_DB)
         self.worker_dbs = []
         self.pending_dbs = []
         self.active_db = None  # pull the first one from worker_dbs when ready
         # add couple of worker dbs - can be done in a loop for max_number_workers
-        self.max_number_workers = 2    # 2 sufficient for now
+        self.max_number_workers = NUM_CACHES    # 2 sufficient for now
         # phases: 1 - execute contracts, 2 - assertion check / status
         self.phase1 = "sbb_phase1"
         self.phase2 = "sbb_phase2"
