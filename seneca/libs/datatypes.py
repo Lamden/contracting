@@ -1,9 +1,8 @@
 import redis
 import json
-# from seneca.libs.datatype_utils import *
-# from seneca.libs.datatype_base import *
 from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.interpreter import SenecaInterpreter
+from seneca.engine.datatypes_base import *
 
 '''
 
@@ -214,7 +213,9 @@ def build_ranked_from_repr(s):
 
 class Placeholder:
     def __init__(self, key_type=str, value_type=int, placeholder_type=None):
-        assert placeholder_type is not None and type(placeholder_type) == type, 'Provide a type to represent.'
+        assert placeholder_type is not None and type(placeholder_type) == RObjectMeta, \
+            'Provide a type to represent. (placeholder type = {})'.format(type(placeholder_type))
+
         self.key_type = key_type
         self.value_type = value_type
         self.placeholder_type = placeholder_type
@@ -325,33 +326,9 @@ def vivify(potential_prefix, t):
     return None
 
 
-class RObjectMeta(type):
-    all_reads = set()
-    all_writes = set()
-
-    def __new__(cls, clsname, bases, clsdict):
-        clsobj = super().__new__(cls, clsname, bases, clsdict)
-        # print("[MetaClass] creating new class named {}, which has reads: {}".format(clsname, clsobj._READ_METHODS))
-        cls._combine_sets_if_exists(clsobj, '_READ_METHODS', 'all_reads')
-        cls._combine_sets_if_exists(clsobj, '_WRITE_METHODS', 'all_writes')
-        return clsobj
-
-    @classmethod
-    def _combine_sets_if_exists(cls, clsobj, set_to_add: str, set_to_add_to: str):
-        """
-        Adds all of the elements in set_to_add to set_to_add_to.
-        """
-        if hasattr(clsobj, set_to_add):
-            assert hasattr(clsobj, set_to_add_to), "Class {} has no attribute {}".format(clsobj, set_to_add_to)
-            set_to_add_to = getattr(clsobj, set_to_add_to)
-
-            for element in getattr(clsobj, set_to_add):
-                set_to_add_to.add(element)
-
-
-class RObject:
-    all_reads = set()
-    all_writes = set()
+class RObject(metaclass=RObjectMeta):
+    _READ_METHODS = set()
+    _WRITE_METHODS = set()
 
     def __init__(self, prefix=None,
                  key_type=str,
@@ -365,11 +342,15 @@ class RObject:
         self.concurrent_mode = SenecaInterpreter.concurrent_mode
 
         if self.concurrent_mode:
+            assert BookKeeper.has_info(), "No BookKeeping info found for this thread/process with key {}. Was set_info " \
+                                          "called on this thread first?".format(BookKeeper._get_key())
             info = BookKeeper.get_info()
+
             self.working_db = info['working_db']
             self.master_db = info['master_db']
             self.sbb_idx = info['sbb_idx']
             self.contract_idx = info['contract_idx']
+
             print("RObject __init__ called with BookKeeper info: {}".format(info))
 
         assert driver is not None, 'Provide a Redis driver.'
@@ -701,10 +682,12 @@ class Ranked(RObject):
                                             encode_type(self.key_type),
                                             encode_type(self.value_type))
 
+
 def ranked(prefix=None, key_type=str, value_type=int):
     if prefix is None:
         return RankedPlaceholder(key_type=key_type, value_type=value_type)
     else:
         return Ranked(prefix=prefix, key_type=key_type, value_type=value_type)
+
 
 complex_types = [HMap, HList, Table, Ranked]

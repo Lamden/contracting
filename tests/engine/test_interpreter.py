@@ -30,7 +30,7 @@ class TestInterpreter(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        SenecaInterpreter.setup()
+        SenecaInterpreter.setup(concurrent_mode=True)
         SenecaInterpreter.r.flushdb()
 
         # Store all smart contracts in CONTRACTS_TO_STORE
@@ -45,9 +45,18 @@ class TestInterpreter(TestCase):
         cls._mint()
 
     @classmethod
+    def _exec_code(cls, code_str: str, sender='davis', sbb_idx=0, contract_idx=0, author='davis', master_db_idx=0,
+                   working_db_idx=1):
+        master_db = redis.StrictRedis(host='localhost', port=6379, db=master_db_idx)
+        working_db = redis.StrictRedis(host='localhost', port=6379, db=working_db_idx)
+        SenecaInterpreter.execute_contract(code_str=code_str, sender=sender, sbb_idx=sbb_idx, contract_idx=contract_idx,
+                                           master_db=master_db, working_db=working_db, author=author)
+
+    @classmethod
     def _mint(cls):
-        SenecaInterpreter.execute_contract(code_str=MINT_CODE_STR, sender='davis', sbb_idx=0, contract_idx=0,
-                                           author='davis')
+        # SenecaInterpreter.execute_contract(code_str=MINT_CODE_STR, sender='davis', sbb_idx=0, contract_idx=0,
+        #                                    author='davis')
+        cls._exec_code(MINT_CODE_STR)
 
     @classmethod
     def tearDownClass(cls):
@@ -55,7 +64,8 @@ class TestInterpreter(TestCase):
         SenecaInterpreter.teardown()
 
     def test_transfer_with_bookkeeping(self):
-        SenecaInterpreter.execute_contract(code_str=XFER_CODE_STR, sender='davis', sbb_idx=2, contract_idx=4)
+        # SenecaInterpreter.execute_contract(code_str=XFER_CODE_STR, sender='davis', sbb_idx=2, contract_idx=4)
+        self._exec_code(XFER_CODE_STR)
 
 
 if __name__ == '__main__':
