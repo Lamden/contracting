@@ -40,13 +40,9 @@ jobs:
           key: v1-dependencies-{{ checksum "requirements.txt" }}
 
       - run:
-          name: Start Redis
-          command: sudo service redis-server start
-
-      - run:
           name: Wait for Redis
           command: |
-            dockerize -wait tcp://localhost:6379 -timeout 1m
+            dockerize -wait tcp://localhost:6379 -timeout 2m
 
       - run:
           name: run tests
