@@ -13,17 +13,20 @@ class SenecaInterpreter:
     r = redis.StrictRedis(host='localhost', port=6379, db=0)
     protected_imports = {}  # Only used during compilation
     _is_setup = False
+    concurrent_mode = False
 
     @classmethod
-    def setup(cls):
+    def setup(cls, concurrent_mode=True):
         from seneca.engine.module import SenecaFinder, RedisFinder
         cls.old_meta_path = sys.meta_path
         sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
+        cls.concurrent_mode = concurrent_mode
         cls._is_setup = True
 
     @classmethod
     def teardown(cls):
         sys.meta_path = cls.old_meta_path
+        cls.concurrent_mode = False
         cls._is_setup = False
 
     @classmethod
