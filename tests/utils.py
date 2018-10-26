@@ -15,8 +15,6 @@ def captured_output():
     finally:
         sys.stdout, sys.stderr = old_out, old_err
 
-
-
 class TestInterface(TestCase):
     r = redis.StrictRedis(host='localhost', port=6379, db=0)
     def setUp(self):

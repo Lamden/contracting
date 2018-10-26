@@ -10,6 +10,7 @@ class CompilationException(Exception):
 class SenecaInterpreter:
 
     exports = {}
+    imports = {}
     loaded = {}
 
     @classmethod
@@ -59,36 +60,24 @@ class SenecaInterpreter:
         elif module_name:
             import_path = '.'.join([import_path, module_name])
         if import_path.startswith(SENECA_LIBRARY_PATH):
-            cls.exports[import_path] = 'exported'
+            cls.exports[import_path] = True
             return True
         for path in ALLOWED_IMPORT_PATHS:
             if import_path.startswith(path):
                 if len(import_path.split('.')) - len(path.split('.')) == 2:
                     if not cls.exports.get(import_path):
-                        cls.exports[import_path] = 'imported'
+                        cls.imports[import_path] = True
                     return True
                 else:
                     raise ImportError('Instead of importing the entire "{}" module, you must import each functions directly.'.format(import_path))
         raise ImportError('Cannot find module "{}" in allowed protected_imports'.format(import_path))
 
     @classmethod
-    def clean_exports(cls):
-        invalid_exports = []
-        new_exports = {}
-        for k, v in cls.exports.items():
-            if v == 'exported':
-                new_exports[k] = v
-            else:
-                invalid_exports.append(k)
-        cls.exports = new_exports
-        return invalid_exports
-
-    @classmethod
     def validate(cls):
-        invalid_exports = cls.clean_exports()
-        if len(invalid_exports) > 0:
-            raise CompilationException('Forbidden to import the following: {}'.format(
-                invalid_exports))
+        for import_path in cls.imports:
+            if not cls.exports.get(import_path):
+                raise CompilationException('Forbidden to import the following: {}'.format(
+                    cls.imports))
 
     @classmethod
     def parse_ast(cls, code_str, protected_variables=[]):
@@ -167,7 +156,7 @@ class Export(ScopeParser):
 
     def __call__(self, fn):
         self.set_scope_during_compilation(fn)
-        SenecaInterpreter.exports[self.module] = 'exported'
+        SenecaInterpreter.exports[self.module] = True
         def _fn(*args, **kwargs):
             self.set_scope(fn)
             return fn(*args, **kwargs)

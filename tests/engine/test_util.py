@@ -1,6 +1,6 @@
 from unittest import TestCase
 from seneca.engine.util import *
-
+import unittest
 
 class TestUtil(TestCase):
     def test_fst(self):
@@ -56,3 +56,8 @@ class TestUtil(TestCase):
         m = manual_import(__file__, 'tester')
         self.assertEqual(type(m), dict)
         self.assertTrue('manual_import' in m.keys())
+
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -9,3 +9,6 @@ clean:
 
 build:
 	cythonize -i --exclude="test_contracts/" ./seneca
+
+test:
+	python3 tests/run.py

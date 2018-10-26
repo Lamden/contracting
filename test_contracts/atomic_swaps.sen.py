@@ -1,4 +1,4 @@
-from seneca.redis_importer import *
+from seneca.redis_importer import hmap, table
 import hashlib
 
 swaps = hmap('swaps', str, hmap(None, str, table(None, {

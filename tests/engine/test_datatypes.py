@@ -1,3 +1,5 @@
+import unittest
+
 from unittest import TestCase
 from seneca.libs.datatypes import *
 
@@ -500,3 +502,7 @@ class TestDatatypes(TestCase):
         l.drop()
 
         self.assertEqual(l.pop(), None)
+
+
+if __name__ == '__main__':
+    unittest.main()

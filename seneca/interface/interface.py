@@ -12,11 +12,15 @@ class SenecaInterface:
         try:
             return SenecaInterpreter.execute(code_obj, scope)
         except:
-            SenecaInterpreter.clean_exports()
+            SenecaInterpreter.imports = {}
             raise
 
     def submit_code_str(self, fullname, code_str, keep_original=False):
-        SenecaInterpreter.set_code(fullname, code_str, keep_original)
+        try:
+            SenecaInterpreter.set_code(fullname, code_str, keep_original)
+        except:
+            SenecaInterpreter.imports = {}
+            raise
 
     def get_code(self, fullname):
         return SenecaInterpreter.get_code_str(fullname).decode()
@@ -29,5 +33,5 @@ class SenecaInterface:
         try:
             return SenecaInterpreter.execute(code_obj, scope)
         except:
-            SenecaInterpreter.clean_exports()
+            SenecaInterpreter.imports = {}
             raise
