@@ -3,6 +3,7 @@ import json
 from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.engine.datatypes_base import *
+from seneca.engine.conflict_resolution import RedisProxy
 
 '''
 
@@ -327,36 +328,18 @@ def vivify(potential_prefix, t):
 
 
 class RObject(metaclass=RObjectMeta):
-    _READ_METHODS = set()
-    _WRITE_METHODS = set()
+    _READ_METHODS = {'get'}
+    _WRITE_METHODS = {'delete', 'set'}
 
-    def __init__(self, prefix=None,
-                 key_type=str,
-                 value_type=int,
-                 delimiter=':',
-                 rep_str='obj',
-                 driver=redis.StrictRedis(host='localhost',
-                                          port=6379,
-                                          db=0)
+    def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj',
+                 driver=redis.StrictRedis(host='localhost', port=6379, db=0),
+                 concurrent_mode=SenecaInterpreter.concurrent_mode
                  ):
-        self.concurrent_mode = SenecaInterpreter.concurrent_mode
-
-        if self.concurrent_mode:
-            assert BookKeeper.has_info(), "No BookKeeping info found for this thread/process with key {}. Was set_info " \
-                                          "called on this thread first?".format(BookKeeper._get_key())
-            info = BookKeeper.get_info()
-
-            self.working_db = info['working_db']
-            self.master_db = info['master_db']
-            self.sbb_idx = info['sbb_idx']
-            self.contract_idx = info['contract_idx']
-
-            print("RObject __init__ called with BookKeeper info: {}".format(info))
-
         assert driver is not None, 'Provide a Redis driver.'
         self.driver = driver
 
         self.prefix = prefix
+        self.concurrent_mode = concurrent_mode
         assert key_type is not None, 'Key type cannot be None'
         assert key_type in primitive_types or is_complex_type(key_type)
         self.key_type = key_type
@@ -366,9 +349,25 @@ class RObject(metaclass=RObjectMeta):
             'You must pass a Placeholder object that does not contain a prefix as a value type. {}'.format(value_type)
 
         self.value_type = value_type
-
         self.delimiter = delimiter
         self.rep_str = rep_str
+
+        if self.concurrent_mode:
+            assert BookKeeper.has_info(), "No BookKeeping info found for this thread/process with key {}. Was set_info " \
+                                          "called on this thread first?".format(BookKeeper._get_key())
+            info = BookKeeper.get_info()
+
+            # TODO do we really need these to be properties on RObject? I think only RedisProxy will need them
+            self.working_db = info['working_db']
+            self.master_db = info['master_db']
+            self.sbb_idx = info['sbb_idx']
+            self.contract_idx = info['contract_idx']
+
+            # TODO also, do we need to extract the information here? Can't
+            self.driver = RedisProxy(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
+                                     contract_idx=self.contract_idx)
+
+            print("RObject __init__ called with BookKeeper info: {}".format(info))  # TODO remove
 
     def encode_value(self, value):
         v = None
@@ -465,6 +464,9 @@ def hmap(prefix=None, key_type=str, value_type=int):
 # HList Datatype
 ####################
 class HList(RObject):
+    _WRITE_METHODS = {'lpush', 'lpop', 'rpop', 'lset', 'rpush', 'lpush'}
+    _READ_METHODS = {'lindex', 'exists'}
+
     def __init__(self, prefix=None,
                  value_type=int
                  ):
@@ -531,6 +533,9 @@ def hlist(prefix=None, value_type=int):
 # Table Datatype
 ####################
 class Table(RObject):
+    _WRITE_METHODS = {'hmset'}
+    _READ_METHODS = {'hmget'}
+
     def __init__(self, prefix=None, key_type=str, schema=None):
         super().__init__(prefix=prefix,
                          key_type=key_type,
@@ -630,6 +635,9 @@ def table(prefix=None, key_type=str, schema=None):
 
 
 class Ranked(RObject):
+    _WRITE_METHODS = {'zadd', 'zincrby', 'zrem'}
+    _READ_METHODS = {'zrevrangebyscore', 'zscore', 'zrangebyscore'}
+
     def __init__(self, prefix=None, key_type=str, value_type=None):
         super().__init__(prefix=prefix,
                          key_type=key_type,

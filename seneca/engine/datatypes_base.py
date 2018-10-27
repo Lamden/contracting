@@ -8,6 +8,10 @@ class RObjectMeta(type):
         clsobj = super().__new__(cls, clsname, bases, clsdict)
         cls._combine_sets_if_exists(clsobj, '_READ_METHODS', 'all_reads')
         cls._combine_sets_if_exists(clsobj, '_WRITE_METHODS', 'all_writes')
+
+        reads_and_writes = clsobj.all_reads.intersection(clsobj.all_writes)
+        assert len(reads_and_writes) == 0, "The following operations are defined as both reads AND writes: {}"\
+                                           .format(reads_and_writes)
         return clsobj
 
     @classmethod
