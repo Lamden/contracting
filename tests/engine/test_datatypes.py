@@ -2,6 +2,7 @@ import unittest
 
 from unittest import TestCase
 from seneca.libs.datatypes import *
+from seneca.constants.redis_config import REDIS_PORT, MASTER_DB, DB_OFFSET, REDIS_PASSWORD
 
 '''
 test complex key types and value types
@@ -11,9 +12,7 @@ test more failure cases
 
 class TestDatatypes(TestCase):
     def setUp(self):
-        self.r = redis.StrictRedis(host='localhost',
-                                   port=6379,
-                                   db=0)
+        self.r = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB, password=REDIS_PASSWORD)
 
         self.l = HList(prefix='yo')
 

@@ -2,13 +2,14 @@ from unittest import TestCase
 from seneca.engine.util import make_n_tup
 from seneca.interface.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
+from seneca.constants.redis_config import REDIS_PORT, MASTER_DB, DB_OFFSET, REDIS_PASSWORD
 from os.path import join
 from tests.utils import captured_output
 from multiprocessing import Pool, Process
 import redis, unittest, seneca, time
 import multiprocessing
 
-r = redis.StrictRedis(host='localhost', port=6379, db=0)
+r = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB, password=REDIS_PASSWORD)
 test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 CONTRACT_COUNT = 10000
 users = ['stu', 'dav', 'fal', 'rag']

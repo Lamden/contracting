@@ -6,6 +6,9 @@ setup(
     name='seneca',
     version=__version__,
     description='Python-based smart contract language and interpreter.',
+    entry_points={
+        'console_scripts': ['seneca=seneca.cli:main'],
+    },
     packages=find_packages(),
     install_requires=open('requirements.txt').readlines(),
     url='https://github.com/Lamden/vmnet',

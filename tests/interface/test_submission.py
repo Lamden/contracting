@@ -10,7 +10,7 @@ test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
 class TestSubmission(TestInterface):
 
-    def test_submit_code_str(self):
+    def test_publish_code_str(self):
         """
             Testing to see if the submission to Redis works.
         """
@@ -19,14 +19,14 @@ class TestSubmission(TestInterface):
 def ok():
     print('i am fine')
         """
-        self.si.submit_code_str('crazy', code_str, keep_original=True)
+        self.si.publish_code_str('crazy', code_str, keep_original=True)
         self.si.execute_code_str("""
 from seneca.contracts.crazy import ok
 ok()
         """)
         self.assertEqual(code_str, self.si.get_code('crazy'))
 
-    def test_submit_bad_code(self):
+    def test_publish_bad_code(self):
         """
             Trying to import protected functions will fail
         """
@@ -34,9 +34,9 @@ ok()
 from test_contracts.good import one_you_cannot_export
         """
         with self.assertRaises(CompilationException) as context:
-            self.si.submit_code_str('incorrect', code_str, keep_original=True)
+            self.si.publish_code_str('incorrect', code_str, keep_original=True)
 
-    def test_submit_bad_code_inside_function(self):
+    def test_publish_bad_code_inside_function(self):
         """
             Cannot import protected code inside a function neither.
         """
@@ -45,18 +45,18 @@ def bad_code():
     from test_contracts.good import one_you_cannot_export
         """
         with self.assertRaises(ImportError) as context:
-            self.si.submit_code_str('incorrect', code_str, keep_original=True)
+            self.si.publish_code_str('incorrect', code_str, keep_original=True)
 
-    def test_resubmit_code_str_fail(self):
+    def test_republish_code_str_fail(self):
         """
-            Resubmitting code to the same smart contract name will fail
+            Republishting code to the same smart contract name will fail
         """
-        self.si.submit_code_str('crazy', """
+        self.si.publish_code_str('crazy', """
 def ok():
     print('i am fine')
         """, keep_original=True)
         with self.assertRaises(Exception) as context:
-            self.si.submit_code_str('crazy', """
+            self.si.publish_code_str('crazy', """
 def fail():
     print('i am not fine')
             """, keep_original=True)

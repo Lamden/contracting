@@ -1,5 +1,6 @@
 import redis
 import json
+from seneca.constants.redis_config import REDIS_PORT, MASTER_DB, DB_OFFSET, REDIS_PASSWORD
 
 '''
 
@@ -329,8 +330,9 @@ class RObject:
                  delimiter=':',
                  rep_str='obj',
                  driver=redis.StrictRedis(host='localhost',
-                                          port=6379,
-                                          db=0)
+                                          port=REDIS_PORT,
+                                          db=MASTER_DB,
+                                          password=REDIS_PASSWORD)
                  ):
         # HERE we need to get local information from Seneca runtime. If this is imported inside a contract, it should
         # undergo the special import procedure which will 'inject' the appropriate runtime context

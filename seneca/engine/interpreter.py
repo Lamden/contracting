@@ -1,5 +1,6 @@
 import redis, ast, marshal, array, copy, inspect, types, uuid, copy
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
+from seneca.constants.redis_config import REDIS_PORT, MASTER_DB, DB_OFFSET, REDIS_PASSWORD
 
 class ReadOnlyException(Exception):
     pass
@@ -15,7 +16,7 @@ class SenecaInterpreter:
 
     @classmethod
     def setup(cls):
-        cls.r = redis.StrictRedis(host='localhost', port=6379, db=0)
+        cls.r = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB, password=REDIS_PASSWORD)
 
     @classmethod
     def get_code_obj(cls, fullname):
@@ -30,11 +31,11 @@ class SenecaInterpreter:
         return code_str
 
     @classmethod
-    def set_code(cls, fullname, code_str, keep_original=False):
+    def set_code(cls, fullname, code_str, keep_original=False, scope={}):
         assert not cls.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
         tree = cls.parse_ast(code_str)
         code_obj = compile(tree, filename='module_name', mode="exec")
-        cls.execute(code_obj, {})
+        cls.execute(code_obj, scope)
         cls.validate()
         pipe = cls.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
