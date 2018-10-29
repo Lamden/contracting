@@ -23,6 +23,9 @@ class SenecaInterface:
             SenecaInterpreter.imports = {}
             raise
 
+    def remove_code(self, fullname):
+        SenecaInterpreter.remove_code(fullname)
+
     def get_code(self, fullname):
         return SenecaInterpreter.get_code_str(fullname).decode()
 

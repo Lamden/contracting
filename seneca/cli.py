@@ -2,16 +2,28 @@ import os, seneca
 from os import getenv as env
 from seneca.interface.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
+from seneca.engine.util import make_n_tup
 
 def cli(fn):
-    def _fn(si, fname, *args, **kwargs):
+    def _fn(fname, *args, **kwargs):
+        si = start_interface()
         print('''
 ################################################################################
-    Running "{}"
+    Operating on "{}"
 ################################################################################
         '''.format(fname))
-        with open(fname) as f:
-            fn(si, f.read(), *args, **kwargs)
+        kwargs['scope'] = {
+            'rt': make_n_tup({
+                'author': kwargs.get('author'),
+                'sender': kwargs.get('sender')
+            })
+        }
+        try:
+            with open(fname) as f:
+                kwargs['fname'] = fname
+                fn(si, f.read(), *args, **kwargs)
+        except:
+            fn(si, fname, *args, **kwargs)
         print('''
 ################################################################################
     Done.
@@ -24,28 +36,50 @@ def start_interface():
     return SenecaInterface()
 
 @cli
-def run(si, code_str):
-    si.execute_code_str(code_str, scope={})
+def run_by_file(si, code_str, *args, **kwargs):
+    fname = kwargs.get('fname')
+    scope = kwargs.get('scope', {})
+    si.execute_code_str(code_str, scope=scope)
+    print('"{}" is RUN'.format(fname))
 
 @cli
-def publish(si, code_str, fullname):
-    si.publish_code_str(fullname, code_str, keep_original=True, scope={})
+def run_by_name(si, fullname, *args, **kwargs):
+    scope = kwargs.get('scope', {})
+    code_obj = si.get_code(fullname)
+    si.run_code(code_obj, scope=scope)
+    print('"{}" is RUN'.format(fullname))
+
+@cli
+def publish(si, code_str, fullname, *args, **kwargs):
+    scope = kwargs.get('scope', {})
+    si.publish_code_str(fullname, code_str, keep_original=True, scope=scope)
+    print('"{}" is PUBLISHED'.format(fullname))
+
+@cli
+def remove_code(si, fullname, *args, **kwargs):
+    si.remove_code(fullname)
+    print('"{}" is REMOVED'.format(fullname))
 
 def main():
     import argparse, sys
     parser = argparse.ArgumentParser(description='Run your project on a docker bridge network')
-    parser.add_argument('--run', '-r', type=str, help='Run the smart contract file', default=True)
+    parser.add_argument('--run', '-r', type=str, help='Run the smart contract file', default=False)
     parser.add_argument('--publish', '-p', type=str, help='Publish the smart contract file')
     parser.add_argument('--name', '-n', type=str, help='Run Name of contract to publish or run')
     parser.add_argument('--author', '-a', type=str, help='Your name as the author of the contract', default="anonnymous_author")
     parser.add_argument('--sender', '-s', type=str, help='Your name as the sender of the contract', default="anonnymous_sender")
+    parser.add_argument('--delete', '-d', type=str, help='Smart contract name to delete')
     args = parser.parse_args()
 
-    if args.publish and args.name:
-        publish(start_interface(), args.publish, args.name)
-    elif args.run and args.name:
-        run_by_name(start_interface(), args.name)
-    elif args.run != True:
-        run(start_interface(), args.run)
+    if args.publish:
+        assert args.name, 'Supply the --name option to name the contract you want to publish.'
+        publish(args.publish, args.name, author=args.author, sender=args.sender)
+    elif args.run:
+        if args.run.endswith('.sen.py'):
+            run_by_file(args.run, author=args.author, sender=args.sender)
+        else:
+            run_by_name(args.run, author=args.author, sender=args.sender)
+    elif args.delete:
+        remove_code(args.delete, author=args.author, sender=args.sender)
     else:
         parser.print_help(sys.stderr)
