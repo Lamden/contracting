@@ -2,10 +2,16 @@ import random, seneca
 from os import getenv as env
 from dotenv import load_dotenv
 
-path = seneca.__path__[0]
-load_dotenv(dotenv_path='{}/../docker/redis.env'.format(path))
+def load_env():
+    load_dotenv(dotenv_path='{}/../docker/redis.env'.format(path), override=True)
 
-REDIS_PORT = env('REDIS_PORT', 6379)
-REDIS_PASSWORD = env('REDIS_PASSWORD', '')
+def get_redis_port():
+    return env('REDIS_PORT', 6379)
+
+def get_redis_password():
+    return env('REDIS_PASSWORD', '')
+
+path = seneca.__path__[0]
+load_env()
 MASTER_DB = 0
 DB_OFFSET = 1

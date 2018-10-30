@@ -1,6 +1,6 @@
 import redis, ast, marshal, array, copy, inspect, types, uuid, copy
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
-from seneca.constants.redis_config import REDIS_PORT, MASTER_DB, DB_OFFSET, REDIS_PASSWORD
+from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET
 
 class ReadOnlyException(Exception):
     pass
@@ -16,7 +16,7 @@ class SenecaInterpreter:
 
     @classmethod
     def setup(cls):
-        cls.r = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB, password=REDIS_PASSWORD)
+        cls.r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
 
     @classmethod
     def get_code_obj(cls, fullname):

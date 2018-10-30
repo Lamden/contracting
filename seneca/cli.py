@@ -1,8 +1,9 @@
-import os, seneca
+import os, seneca, time, redis, subprocess
 from os import getenv as env
 from seneca.interface.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.engine.util import make_n_tup
+from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, load_env
 
 def cli(fn):
     def _fn(fname, *args, **kwargs):
@@ -32,8 +33,18 @@ def cli(fn):
     return _fn
 
 def start_interface():
+    start_server()
     SenecaInterpreter.setup()
     return SenecaInterface()
+
+def start_server():
+    try:
+        conn = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
+        conn.ping()
+    except Exception as ex:
+        subprocess.run(['bash', './scripts/start.sh'])
+        load_env()
+
 
 @cli
 def run_by_file(si, code_str, *args, **kwargs):

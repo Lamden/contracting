@@ -24,8 +24,7 @@ build-image:
 	docker build -t seneca_base -f ./docker/seneca_base .
 
 start-server:
-	bash ./scripts/start.sh &
-	sleep 1
+	bash ./scripts/start.sh
 
 start-docker:
 	docker rm -f seneca || true
