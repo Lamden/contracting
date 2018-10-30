@@ -12,7 +12,7 @@ print(do_that_thing())
 
 XFER_CODE_STR = """ \
 
-from seneca.contracts.currency import mint
+from seneca.contracts.currency import mint, transfer
 transfer('stu', 3)
 """
 
@@ -33,11 +33,12 @@ class TestInterpreter(TestCase):
     def setUpClass(cls):
         cls.old_meta_path = sys.meta_path
         sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
+        SenecaInterpreter.setup()
         SenecaInterpreter.r.flushdb()
 
         # Store all smart contracts in CONTRACTS_TO_STORE
         import seneca
-        test_contracts_path = seneca.__path__[0] + '/test_contracts/'
+        test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
 
         for contract_name, file_name in cls.CONTRACTS_TO_STORE.items():
             with open(test_contracts_path + file_name) as f:
