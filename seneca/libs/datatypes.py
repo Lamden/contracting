@@ -1,6 +1,6 @@
 import redis
 import json
-from seneca.constants.redis_config import get_redis_port(), MASTER_DB, DB_OFFSET, get_redis_password()
+from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 
 '''
 
