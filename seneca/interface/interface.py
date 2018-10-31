@@ -7,10 +7,16 @@ class SenecaInterface:
     # Only do this once in each process!
     sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
 
-    def execute_code_str(self, code_str, scope={}):
-        tree = SenecaInterpreter.parse_ast(code_str, protected_variables=list(scope.keys()))
+    def compile_code(self, code_str, scope={}):
+        tree, prevalidated = SenecaInterpreter.parse_ast(code_str, protected_variables=list(scope.keys()))
+        prevalidated_obj = compile(prevalidated, filename='__main__', mode="exec")
+        SenecaInterpreter.execute(prevalidated_obj, scope)
         code_obj = compile(tree, filename='__main__', mode="exec")
+        return code_obj
+
+    def execute_code_str(self, code_str, scope={}):
         try:
+            code_obj = self.compile_code(code_str, scope)
             return SenecaInterpreter.execute(code_obj, scope)
         except:
             SenecaInterpreter.imports = {}

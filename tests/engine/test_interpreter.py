@@ -53,7 +53,7 @@ class TestInterpreter(TestCase):
         rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
         all_info = {**bk_info, **rt_info}
 
-        tree = SenecaInterpreter.parse_ast(MINT_CODE_STR, protected_variables=list(all_info.keys()))
+        tree, prevalidated = SenecaInterpreter.parse_ast(MINT_CODE_STR, protected_variables=list(all_info.keys()))
         code_obj = compile(tree, filename='__main__', mode="exec")
         SenecaInterpreter.execute(code_obj, scope=all_info)
 
@@ -77,7 +77,7 @@ class TestInterpreter(TestCase):
         rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
         all_info = {**bk_info, **rt_info}
 
-        tree = SenecaInterpreter.parse_ast(XFER_CODE_STR, protected_variables=list(all_info.keys()))
+        tree, prevalidated = SenecaInterpreter.parse_ast(XFER_CODE_STR, protected_variables=list(all_info.keys()))
         code_obj = compile(tree, filename='__main__', mode="exec")
         SenecaInterpreter.execute(code_obj, scope=all_info)
 

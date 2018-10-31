@@ -43,10 +43,14 @@ import json
             This is a valid way to import, but you cannot import "importlib"
             and other such libraries. Only ones from the whitelist
         """
-        with self.assertRaises(CompilationException) as context:
-            self.si.execute_code_str("""
+
+        with captured_output() as (out, err):
+            with self.assertRaises(CompilationException) as context:
+                self.si.execute_code_str("""
 from test_contracts.good import balances
-            """)
+print('Hacked', balances) # Should not print this!
+                """)
+            self.assertEqual(out.getvalue().strip(), '')
 
     def test_import_star(self):
         """
