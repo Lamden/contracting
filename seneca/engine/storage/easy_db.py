@@ -15,14 +15,14 @@
   * Type annotations
 '''
 
+from itertools import zip_longest
+import warnings
 import datetime
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from seneca.engine.util import auto_set_fields, add_methods, add_method_as, filter_split, assert_len
 import seneca.engine.storage.mysql_intermediate as isql
-from seneca.engine.storage.mysql_base import FixedStr
-
-
+from seneca.engine.storage.mysql_base import FixedStr, cast_py_to_sql
 #from inflection import  underscore, camelize
 
 # Convenience functions for dealing with lists, dicts, and objects

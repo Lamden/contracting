@@ -1,34 +1,36 @@
-test-db-container:
-	cd docker/myrocks && docker build -t seneca-myrocks-test .
-
-test_db_conf.ini:
-	./scripts/make_test_config.py
-
-run-test-db-container: test-db-container test_db_conf.ini
-	./scripts/start_test_db.sh
-
-console-test-db-container: test-db-container
-	docker run -it --entrypoint=/bin/bash seneca-myrocks-test
-
-connect-db:
-	./scripts/connect_mysql_client.sh
-
-kill-test-db-container:
-	docker kill `docker ps --format "table {{.Names}}" --filter "ancestor=seneca-myrocks-test"| tail -n +2` || true; sleep 2
-
-kill: kill-test-db-container
-
-coverage:
-	coverage run --source seneca seneca/test.py && coverage report -m --fail-under=10 --omit=seneca/test.py,seneca/smart_contract_tester.py
-
 lint:
 	find seneca -iname "*.py" | xargs pylint
 
-static-analysis:
-	false
-
-test:
-	./seneca/test.py
-
 help:
 	echo '\n\n'; cat Makefile; echo '\n\n'
+
+clean:
+	bash ./scripts/clean.sh
+
+build-cython: clean
+	cythonize -i --exclude="test_contracts/" ./seneca
+
+test: start-server
+	python3 tests/run.py
+
+venv:
+	virtualenv -p python3 venv
+
+install:
+	pip3 install -r requirements.txt
+	pip3 install -r dev-requirements.txt
+
+build-image:
+	docker build -t seneca_base -f ./docker/seneca_base .
+
+start-server:
+	bash ./scripts/start.sh
+
+start-docker:
+	docker rm -f seneca || true
+	docker run --rm -v $$(pwd):/app --name seneca --security-opt apparmor=docker-default seneca_base &
+	sleep 1
+	docker exec -ti seneca /bin/bash
+
+kill-docker:
+	docker kill `docker ps -q` || true; sleep 2

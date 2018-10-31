@@ -1,5 +1,6 @@
 import redis
 import json
+from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.engine.datatypes_base import *
@@ -549,7 +550,7 @@ class Table(RObject):
         for k, v in d.items():
             if not isinstance(k, str):
                 return False
-            if not isinstance(v, type) and not isinstance(v, Placeholder)and:
+            if not isinstance(v, type) and not isinstance(v, Placeholder):
                 return False
         return True
 

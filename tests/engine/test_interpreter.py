@@ -1,6 +1,5 @@
 from unittest import TestCase
 from seneca.engine.interpreter import SenecaInterpreter
-from seneca.engine.util import make_n_tup
 import redis, unittest, sys
 
 DO_THING_CODE_STR = """ \
@@ -11,7 +10,7 @@ print(do_that_thing())
 
 XFER_CODE_STR = """ \
 
-from seneca.contracts.currency import transfer
+from seneca.contracts.currency import mint, transfer
 transfer('stu', 3)
 """
 
@@ -35,7 +34,7 @@ class TestInterpreter(TestCase):
 
         # Store all smart contracts in CONTRACTS_TO_STORE
         import seneca
-        test_contracts_path = seneca.__path__[0] + '/test_contracts/'
+        test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
 
         for contract_name, file_name in cls.CONTRACTS_TO_STORE.items():
             with open(test_contracts_path + file_name) as f:
@@ -54,8 +53,6 @@ class TestInterpreter(TestCase):
 
     @classmethod
     def _mint(cls):
-        # SenecaInterpreter.execute_contract(code_str=MINT_CODE_STR, sender='davis', sbb_idx=0, contract_idx=0,
-        #                                    author='davis')
         cls._exec_code(MINT_CODE_STR)
 
     @classmethod
@@ -64,7 +61,6 @@ class TestInterpreter(TestCase):
         SenecaInterpreter.teardown()
 
     def test_transfer_with_bookkeeping(self):
-        # SenecaInterpreter.execute_contract(code_str=XFER_CODE_STR, sender='davis', sbb_idx=2, contract_idx=4)
         self._exec_code(XFER_CODE_STR)
 
 

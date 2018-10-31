@@ -1,3 +1,4 @@
+from seneca.engine.util import *
 from seneca.engine.storage.mysql_intermediate import *
 
 dissallowed_queries = [ AddTableColumn,
@@ -36,7 +37,7 @@ def run_tests(deps_provider):
     >>> _ = bex.cur.execute('CREATE DATABASE seneca_test;')
     >>> _ = bex.cur.execute('use seneca_test;')
 
-    >>> ro_ex = Executer(bex)
+    >>> ro_ex = ExecuterBase(bex)
 
     >>> try_ex_catch(ro_ex, DeleteRows('test_users', QueryCriterion('eq', 'username', 'test')))
     Queries that modify data are not allowed in mysql_ro_executer read only context.

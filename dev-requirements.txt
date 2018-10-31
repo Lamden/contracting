@@ -1,1 +1,4 @@
 coverage==4.5.1
+pynacl
+# WARNING replace dateutil!
+python-dateutil==2.7.3
