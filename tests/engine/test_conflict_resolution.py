@@ -38,9 +38,10 @@ class TestConflictResolution(TestCase):
 
         KEY = 'ass'
         VALUE = b'fast'
-        common_key = self.rp.ds._common_prefix_for_key(KEY)
+        # common_key = self.rp.ds._common_prefix_for_key(KEY)
 
-        self.working.set(common_key, VALUE)
+        # self.working.set(common_key, VALUE)
+        # self.master.set(KEY, VALUE)
         val = self.rp.get(KEY)
 
         self.assertEqual(VALUE, val)

@@ -30,7 +30,7 @@ class TestInterpreter(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        SenecaInterpreter.setup(concurrent_mode=True)
+        SenecaInterpreter.setup(concurrent_mode=False)
         SenecaInterpreter.r.flushdb()
 
         # Store all smart contracts in CONTRACTS_TO_STORE

@@ -357,7 +357,7 @@ class RObject(metaclass=RObjectMeta):
                                           "called on this thread first?".format(BookKeeper._get_key())
             info = BookKeeper.get_info()
 
-            # TODO do we really need these to be properties on RObject? I think only RedisProxy will need them
+            # TODO do we really need these to be properties on RObject? I think only RedisProxy will need them --davis
             self.working_db = info['working_db']
             self.master_db = info['master_db']
             self.sbb_idx = info['sbb_idx']
@@ -549,7 +549,7 @@ class Table(RObject):
         for k, v in d.items():
             if not isinstance(k, str):
                 return False
-            if not isinstance(v, type) and not isinstance(v, Placeholder):
+            if not isinstance(v, type) and not isinstance(v, Placeholder)and:
                 return False
         return True
 
