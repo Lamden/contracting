@@ -9,3 +9,5 @@ test_db_conf.ini
 .idea/
 docker/redis.env
 dump.rdb
+*.log
+*.log_color
