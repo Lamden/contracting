@@ -1,11 +1,9 @@
 import redis, ast, marshal, array, copy, inspect, types, uuid, asyncio
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS
-from seneca.constants.redis import MASTER_DB, DB_OFFSET, NUM_CACHES
 from seneca.logger import SenecaLogger
 from seneca.interface.client.seneca_client import ContractStruct
 from seneca.engine.interpreter import SenecaInterpreter
-
-NUM_CACHES = 2
+from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET, NUM_CACHES
 
 #0. will imports wrap into class methods or these wrappers with a default client (db=0) which redis-client can pass in active_db
 #1. how do we wrap these redis commands in a such a way that they will execute against active_db
@@ -14,7 +12,7 @@ NUM_CACHES = 2
 #2. Directory structure / code organization
 #3. do we need redis_client or can be merged into seneca_client itself
 
-# Davis, looks like SenecaExecutor and SenecaClient seems to be redundant. 
+# Davis, looks like SenecaExecutor and SenecaClient seems to be redundant.
 #        We can combine them into one? If so, we could make it as SenecaInterpreter (to be backward compatible ?)
 #         and make new SenecaInterpreter as SenecaExecutor. Just a thought
 
@@ -22,11 +20,10 @@ NUM_CACHES = 2
 class ImportsSingleton:
     protected_imports = {}
 
-
 class SenecaExecutor:
 
-    PORT = 6379
-    // password
+    PORT = get_redis_port()
+    password = get_redis_password()
 
     def __init__(self, sbb_idx, num_sbb, loop=None, name=None, get_log_fn=None, concurrent_mode=True):
         self.loop = loop or asyncio.get_event_loop()
@@ -47,12 +44,14 @@ class SenecaExecutor:
         # add couple of worker dbs - can be done in a loop for max_number_workers
         self.max_number_workers = NUM_CACHES    # 2 sufficient for now
         # phases: 1 - execute contracts, 2 - assertion check / status
-        self.phase1 = "sbb_phase1"
-        self.phase2 = "sbb_phase2"
+        self.phase1 = "sbb_phase1" # execution
+        self.phase2 = "sbb_phase2" # conflict resolution
         self.transaction_keys = []
         # different clients have to be opened up front (as redis-py doesn't support select)
         for db_num in range(self.max_number_workers):
-            db_client = redis.StrictRedis(host='localhost', port=self.PORT, db=db_num+self.DB_OFFSET)
+            db_client = redis.StrictRedis(
+                host='localhost', port=self.PORT, db=db_num+DB_OFFSET
+                password=self.password)
             if sbb_index == 0:
                 self.reset_db(db_client)
             self.worker_dbs.append(db_client)
@@ -77,7 +76,7 @@ class SenecaExecutor:
     # data structure3 - synchronization variables - all can increment the counters
     #       "sbb_phase1": 0
     #       "sbb_phase2": 0
- 
+
     def set_phase_variables(self, db):
         # TODO
         # db.set(self.phase1, 0)
@@ -90,21 +89,19 @@ class SenecaExecutor:
     def get_phase_variable(self, db, key):
         # TODO
         # return db.get(key)
- 
+
     def synchronize_phase(self, db, key):
         while self.get_phase_variable(from_db, key) < self.num_sb_builders:
             time.sleep(1)                    # right now, just wait
- 
+
     def wait_my_turn(self, db, key):
         while self.get_phase_variable(from_db, key) < self.sbb_index:
             time.sleep(1)                    # right now, just wait
         assert self.get_phase_variable(from_db, key) == self.sbb_index
-        
 
     def reset_db(self, db):
         db.flushdb()
         self.set_phase_variables(db)
-
 
     def update_master_db(self, from_db):
         # assert self.get_phase_variable(from_db, self.phase2) == self.num_sb_builders
@@ -137,13 +134,13 @@ class SenecaExecutor:
             # TODO log error as this shouldn't happen in current flow
             return False
         self.active_db = self.worker_dbs.pop(0)
-        # TODO add input-bag hash 
+        # TODO add input-bag hash
         return True
 
     def _end_sb(self):
         self.incr_phase_variable(self.active_db, self.phase1)
         self.pending_dbs.append(self.active_db)
-        self.active_db = None      # we really don't care, but might be useful initially for error checking 
+        self.active_db = None      # we really don't care, but might be useful initially for error checking
 
     def merge_sub_block(self, db):
         pass
@@ -161,8 +158,6 @@ class SenecaExecutor:
         #     for key in key_list:
         #         mod_value = db."sbb_{}".format(sbb_index).get_mod_value(key)
         #         db."common".set(key, mod_value)
-     
-
 
     def _make_next_sb(self):
         f_db = self.pending_dbs.get(0)    # get the first one, but still leave it in the pending_dbs too

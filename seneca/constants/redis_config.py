@@ -13,5 +13,7 @@ def get_redis_password():
 
 path = seneca.__path__[0]
 load_env()
+
 MASTER_DB = 0
 DB_OFFSET = 1
+NUM_CACHES = 2

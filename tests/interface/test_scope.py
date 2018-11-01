@@ -51,5 +51,16 @@ print(do_that_thing())
             """, all_info)
             self.assertEqual(out.getvalue().strip(), 'sender: davis, author: davis')
 
+    def test_execute_function(self):
+        result = self.si.execute_function('test_contracts.reasonable.call_with_args',
+            'me', 'also_me', 'it is required', not_required='it is not requried')
+        self.assertEqual(result, ('it is required', 'it is not requried'))
+
+    def test_execute_function_invalid(self):
+        with self.assertRaises(ImportError) as context:
+            result = self.si.execute_function('seneca.engine.util.make_n_tup',
+                'me', 'also_me', {'x': 'y'})
+            print('Should not print this: ', result)
+
 if __name__ == '__main__':
     unittest.main()
