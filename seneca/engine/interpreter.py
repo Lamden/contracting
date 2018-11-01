@@ -1,4 +1,4 @@
-import redis, ast, marshal, inspect, sys
+import redis, ast, marshal, inspect, sys, copy
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
 from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET
 from seneca.engine.book_keeper import BookKeeper
