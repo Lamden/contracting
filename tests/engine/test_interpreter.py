@@ -1,7 +1,5 @@
 from unittest import TestCase
 from seneca.engine.interpreter import SenecaInterpreter
-from seneca.engine.module import SenecaFinder, RedisFinder
-from seneca.engine.util import make_n_tup
 import redis, unittest, sys
 
 DO_THING_CODE_STR = """ \
@@ -31,9 +29,7 @@ class TestInterpreter(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.old_meta_path = sys.meta_path
-        sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
-        SenecaInterpreter.setup()
+        SenecaInterpreter.setup(concurrent_mode=False)
         SenecaInterpreter.r.flushdb()
 
         # Store all smart contracts in CONTRACTS_TO_STORE
@@ -43,7 +39,7 @@ class TestInterpreter(TestCase):
         for contract_name, file_name in cls.CONTRACTS_TO_STORE.items():
             with open(test_contracts_path + file_name) as f:
                 code_str = f.read()
-                assert not SenecaInterpreter.r.hexists('contracts', contract_name), 'Contract "{}" already exists!'.format(fullname)
+                assert not SenecaInterpreter.r.hexists('contracts', contract_name), 'Contract "{}" already exists!'.format(contract_name)
                 tree, prevalidated = SenecaInterpreter.parse_ast(code_str)
                 prevalidated_obj = compile(prevalidated, filename='__main__', mode="exec")
                 SenecaInterpreter.execute(prevalidated_obj)
@@ -53,38 +49,24 @@ class TestInterpreter(TestCase):
         cls._mint()
 
     @classmethod
-    def _mint(cls):
-        bk_info = {'sbb_idx': 0, 'contract_idx': 0}
-        rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
-        all_info = {**bk_info, **rt_info}
+    def _exec_code(cls, code_str: str, sender='davis', sbb_idx=0, contract_idx=0, author='davis', master_db_idx=0,
+                   working_db_idx=1):
+        master_db = redis.StrictRedis(host='localhost', port=6379, db=master_db_idx)
+        working_db = redis.StrictRedis(host='localhost', port=6379, db=working_db_idx)
+        SenecaInterpreter.execute_contract(code_str=code_str, sender=sender, sbb_idx=sbb_idx, contract_idx=contract_idx,
+                                           master_db=master_db, working_db=working_db, author=author)
 
-        tree, prevalidated = SenecaInterpreter.parse_ast(MINT_CODE_STR, protected_variables=list(all_info.keys()))
-        code_obj = compile(tree, filename='__main__', mode="exec")
-        SenecaInterpreter.execute(code_obj, scope=all_info)
+    @classmethod
+    def _mint(cls):
+        cls._exec_code(MINT_CODE_STR)
 
     @classmethod
     def tearDownClass(cls):
         SenecaInterpreter.r.flushdb()
-        sys.meta_path = cls.old_meta_path
-
-    # def test_execute_with_bookkeeping_info(self):
-    #     bk_info = {'sbb_idx': 2, 'contract_idx': 12}
-    #     rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
-    #     all_info = {**bk_info, **rt_info}
-    #
-    #     tree = SenecaInterpreter.parse_ast(CODE_STR, protected_variables=list(all_info.keys()))
-    #     code_obj = compile(tree, filename='__main__', mode="exec")
-    #     print("ALL INFO: {}".format(all_info))
-    #     SenecaInterpreter.execute(code_obj, scope=all_info)
+        SenecaInterpreter.teardown()
 
     def test_transfer_with_bookkeeping(self):
-        bk_info = {'sbb_idx': 2, 'contract_idx': 12}
-        rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
-        all_info = {**bk_info, **rt_info}
-
-        tree, prevalidated = SenecaInterpreter.parse_ast(XFER_CODE_STR, protected_variables=list(all_info.keys()))
-        code_obj = compile(tree, filename='__main__', mode="exec")
-        SenecaInterpreter.execute(code_obj, scope=all_info)
+        self._exec_code(XFER_CODE_STR)
 
 
 if __name__ == '__main__':

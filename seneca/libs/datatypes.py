@@ -2,6 +2,10 @@ import redis
 import json
 from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 from seneca.libs.logger import get_logger
+from seneca.engine.book_keeper import BookKeeper
+from seneca.engine.interpreter import SenecaInterpreter
+from seneca.engine.conflict_resolution import RedisProxy
+
 '''
 
 Datatype serialization format:
@@ -286,7 +290,6 @@ class RankedPlaceholder(Placeholder):
         return CTP + 'ranked' + '(' + encode_type(self.key_type) + ',' + encode_type(self.value_type) + ')'
 
 
-
 def is_complex_type(v):
     for t in complex_types:
         if (issubclass(type(v), Placeholder) and issubclass(v.placeholder_type, t)) \
@@ -324,32 +327,19 @@ def vivify(potential_prefix, t):
 
 
 class RObject:
-    def __init__(self, prefix=None,
-                 key_type=str,
-                 value_type=int,
-                 delimiter=':',
-                 rep_str='obj',
-                 driver=None
+    def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj',
+                 driver=redis.StrictRedis(host='localhost', port=6379, db=0),
+                 concurrent_mode=SenecaInterpreter.concurrent_mode
                  ):
-        # HERE we need to get local information from Seneca runtime. If this is imported inside a contract, it should
-        # undergo the special import procedure which will 'inject' the appropriate runtime context
-        # We assume that this injection process will also put book keeping data on the context, which will
-        # be sent to the caching layer upon calling DB commands
-        self.log = get_logger(type(self).__name__)
-        driver = driver or redis.StrictRedis(host='localhost',
-                                 port=get_redis_port(),
-                                 db=MASTER_DB,
-                                 password=get_redis_password())
-
-        # self.log.important("RObject created with ID: {}".format(id(driver)))
-
         assert driver is not None, 'Provide a Redis driver.'
         self.driver = driver
-
+        self.log = get_logger(type(self).__name__)
         self.prefix = prefix
+        self.concurrent_mode = concurrent_mode
+        self.key_type = key_type
+
         assert key_type is not None, 'Key type cannot be None'
         assert key_type in primitive_types or is_complex_type(key_type)
-        self.key_type = key_type
 
         # prevents you from requiring an RObject instance that has a prefix as a value type
         assert value_type in primitive_types or isinstance(value_type, Placeholder), \
@@ -359,6 +349,23 @@ class RObject:
 
         self.delimiter = delimiter
         self.rep_str = rep_str
+
+        if self.concurrent_mode:
+            assert BookKeeper.has_info(), "No BookKeeping info found for this thread/process with key {}. Was set_info " \
+                                          "called on this thread first?".format(BookKeeper._get_key())
+            info = BookKeeper.get_info()
+
+            # TODO do we really need these to be properties on RObject? I think only RedisProxy will need them --davis
+            self.working_db = info['working_db']
+            self.master_db = info['master_db']
+            self.sbb_idx = info['sbb_idx']
+            self.contract_idx = info['contract_idx']
+
+            # TODO also, do we need to extract the information here? Can't
+            self.driver = RedisProxy(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
+                                     contract_idx=self.contract_idx)
+
+            print("RObject __init__ called with BookKeeper info: {}".format(info))  # TODO remove
 
     def encode_value(self, value):
         v = None
@@ -672,10 +679,12 @@ class Ranked(RObject):
                                             encode_type(self.key_type),
                                             encode_type(self.value_type))
 
+
 def ranked(prefix=None, key_type=str, value_type=int):
     if prefix is None:
         return RankedPlaceholder(key_type=key_type, value_type=value_type)
     else:
         return Ranked(prefix=prefix, key_type=key_type, value_type=value_type)
+
 
 complex_types = [HMap, HList, Table, Ranked]
