@@ -1,7 +1,7 @@
 import redis
 import json
 from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
-
+from seneca.libs.logger import get_logger
 '''
 
 Datatype serialization format:
@@ -329,16 +329,19 @@ class RObject:
                  value_type=int,
                  delimiter=':',
                  rep_str='obj',
-                 driver=redis.StrictRedis(host='localhost',
-                                          port=get_redis_port(),
-                                          db=MASTER_DB,
-                                          password=get_redis_password())
+                 driver=None
                  ):
         # HERE we need to get local information from Seneca runtime. If this is imported inside a contract, it should
         # undergo the special import procedure which will 'inject' the appropriate runtime context
         # We assume that this injection process will also put book keeping data on the context, which will
         # be sent to the caching layer upon calling DB commands
+        self.log = get_logger(type(self).__name__)
+        driver = driver or redis.StrictRedis(host='localhost',
+                                 port=get_redis_port(),
+                                 db=MASTER_DB,
+                                 password=get_redis_password())
 
+        # self.log.important("RObject created with ID: {}".format(id(driver)))
 
         assert driver is not None, 'Provide a Redis driver.'
         self.driver = driver
