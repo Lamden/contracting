@@ -1,5 +1,5 @@
 import redis
-import json
+import ujson as json
 from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 from seneca.libs.logger import get_logger
 from seneca.engine.book_keeper import BookKeeper

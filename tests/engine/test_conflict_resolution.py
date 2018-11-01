@@ -104,6 +104,3 @@ class TestConflictResolution(TestCase):
 
     def test_write_adds_mods(self):
         pass
-
-
-
