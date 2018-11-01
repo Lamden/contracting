@@ -42,8 +42,13 @@ class TestInterpreter(TestCase):
 
         for contract_name, file_name in cls.CONTRACTS_TO_STORE.items():
             with open(test_contracts_path + file_name) as f:
-                code = f.read()
-                SenecaInterpreter.set_code(fullname=contract_name, code_str=code, keep_original=True)
+                code_str = f.read()
+                assert not SenecaInterpreter.r.hexists('contracts', contract_name), 'Contract "{}" already exists!'.format(fullname)
+                tree, prevalidated = SenecaInterpreter.parse_ast(code_str)
+                prevalidated_obj = compile(prevalidated, filename='__main__', mode="exec")
+                SenecaInterpreter.execute(prevalidated_obj)
+                code_obj = compile(tree, filename='__main__', mode="exec")
+                SenecaInterpreter.set_code(fullname=contract_name, code_obj=code_obj, code_str=code_str, keep_original=True)
 
         cls._mint()
 

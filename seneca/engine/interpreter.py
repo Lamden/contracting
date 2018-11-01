@@ -31,12 +31,7 @@ class SenecaInterpreter:
         return code_str
 
     @classmethod
-    def set_code(cls, fullname, code_str, keep_original=False, scope={}):
-        assert not cls.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
-        tree, prevalidated = cls.parse_ast(code_str)
-        code_obj = compile(tree, filename='module_name', mode="exec")
-        prevalidated_obj = compile(prevalidated, filename='module_name', mode="exec")
-        cls.execute(prevalidated_obj, scope)
+    def set_code(cls, fullname, code_obj, code_str, keep_original=False):
         pipe = cls.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
         if keep_original:
