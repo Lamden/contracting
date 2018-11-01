@@ -1,9 +1,6 @@
 import redis
 import functools
-from seneca.engine.datatypes_base import RObjectMeta
 # TODO -- clean this file up
-
-ALL_OPERATIONS = RObjectMeta.all_reads.union(RObjectMeta.all_writes)
 
 
 class RedisProxy:
@@ -19,24 +16,25 @@ class RedisProxy:
                               contract_idx=self.contract_idx)
 
     def __getattr__(self, item):
+        pass
         # If item is a read, read from master layer if we are not finalizing. Otherwise, read from common layer
-        if item in RObjectMeta.all_reads:
-            if not self.finalize:
-                return functools.partial(self.ds.get_master, operation=item)
-            else:
-                return functools.partial(self.ds.get_common, operation=item)
-
-        # Otherwise, the item is a write operation. If we are not in 'finalize' mode, we should write to our own
-        # sub-block-specific namespace. Otherwise, if we are in 'finalize' mode, we write to the common layer
-        elif item in RObjectMeta.all_writes:
-            if not self.finalize:
-                return functools.partial(self.ds.set_working, operation=item)
-            else:
-                return functools.partial(self.ds.set_common, operation=item)
-
-        else:
-            raise Exception("Redis operation '{}' not specified as either a read or write op! Did you "\
-                            "define it in an RObject subclasses' _READ_METHODS or _WRITE_METHODS?".format(item))
+        # if item in RObjectMeta.all_reads:
+        #     if not self.finalize:
+        #         return functools.partial(self.ds.get_master, operation=item)
+        #     else:
+        #         return functools.partial(self.ds.get_common, operation=item)
+        #
+        # # Otherwise, the item is a write operation. If we are not in 'finalize' mode, we should write to our own
+        # # sub-block-specific namespace. Otherwise, if we are in 'finalize' mode, we write to the common layer
+        # elif item in RObjectMeta.all_writes:
+        #     if not self.finalize:
+        #         return functools.partial(self.ds.set_working, operation=item)
+        #     else:
+        #         return functools.partial(self.ds.set_common, operation=item)
+        #
+        # else:
+        #     raise Exception("Redis operation '{}' not specified as either a read or write op! Did you "\
+        #                     "define it in an RObject subclasses' _READ_METHODS or _WRITE_METHODS?".format(item))
 
 
 class CRDataStore:
