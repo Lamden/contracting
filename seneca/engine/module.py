@@ -48,7 +48,7 @@ class SenecaLoader(Loader):
             if 'seneca/libs' in self.filename:
                 self.code_obj = compile(code_str, filename=self.filename, mode="exec")
             else:
-                self.tree = SenecaInterpreter.parse_ast(code_str)
+                self.tree, self.prevalidated = SenecaInterpreter.parse_ast(code_str)
                 self.code_obj = compile(self.tree, filename=self.filename, mode="exec")
 
     def exec_module(self, module):

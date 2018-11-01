@@ -1,6 +1,6 @@
 from unittest import TestCase
 from seneca.engine.util import make_n_tup
-from seneca.interface.interface import SenecaInterface
+from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
 from os.path import join
 from tests.utils import captured_output, TestInterface

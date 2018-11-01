@@ -3,6 +3,7 @@ from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS,
 from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET
 from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.util import make_n_tup
+from seneca.libs.logger import get_logger
 
 
 class ReadOnlyException(Exception):
@@ -66,12 +67,7 @@ class SenecaInterpreter:
         return code_str
 
     @classmethod
-    def set_code(cls, fullname, code_str, keep_original=False, scope={}):
-        assert not cls.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
-        tree = cls.parse_ast(code_str)
-        code_obj = compile(tree, filename='module_name', mode="exec")
-        cls.execute(code_obj, scope)
-        cls.validate()
+    def set_code(cls, fullname, code_obj, code_str, keep_original=False):
         pipe = cls.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
         if keep_original:
@@ -112,8 +108,8 @@ class SenecaInterpreter:
     def validate(cls):
         for import_path in cls.imports:
             if not cls.exports.get(import_path):
-                raise CompilationException('Forbidden to import the following: {}'.format(
-                    cls.imports))
+                raise CompilationException('Forbidden to import "{}"'.format(
+                    import_path))
 
     @classmethod
     def parse_ast(cls, code_str, protected_variables=[]):
@@ -121,6 +117,8 @@ class SenecaInterpreter:
         tree = ast.parse(code_str)
         protected_variables += ['export']
         current_ast_types = set()
+        prevalidated = copy.deepcopy(tree)
+        prevalidated.body = []
 
         for idx, item in enumerate(ast.walk(tree)):
 
@@ -128,10 +126,12 @@ class SenecaInterpreter:
             if isinstance(item, ast.Import):
                 module_name = item.names[0].name
                 cls.assert_import_path(module_name)
+                prevalidated.body.append(item)
 
             elif isinstance(item, ast.ImportFrom):
                 module_name = item.names[0].name
                 cls.assert_import_path(item.module, module_name=module_name)
+                prevalidated.body.append(item)
 
             # Restrict variable assignment
             elif isinstance(item, ast.Assign):
@@ -142,10 +142,11 @@ class SenecaInterpreter:
                 cls.check_protected(item.target, protected_variables)
 
             elif isinstance(item, ast.FunctionDef):
-
                 for fn_item in item.body:
                     if isinstance(fn_item, (ast.Import, ast.ImportFrom)):
                         raise ImportError('Cannot import modules inside a function!')
+
+                prevalidated.body.append(item)
 
             current_ast_types.add(type(item))
 
@@ -153,7 +154,7 @@ class SenecaInterpreter:
         assert not illegal_ast_nodes, 'Illegal AST node(s) in module: {}'.format(
             ', '.join(map(str, illegal_ast_nodes)))
 
-        return tree
+        return tree, prevalidated
 
     @staticmethod
     def check_protected(target, protected_variables):
@@ -197,4 +198,3 @@ class Export(ScopeParser):
             self.set_scope(fn)
             return fn(*args, **kwargs)
         return _fn
-

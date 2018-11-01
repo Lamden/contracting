@@ -82,4 +82,4 @@ class CRSet(CRGetSetBase):
     def execute(self, key, *args, **kwargs):
         assert args is None, "CRSet not expected to be called with anything other than key! Args={}".format(args)
         assert kwargs is None, "CRSet not expected to be called with anything other than key! Args={}".format(kwargs)
-        self._copy_og_key_if_not_exists(key)           
+        self._copy_og_key_if_not_exists(key)

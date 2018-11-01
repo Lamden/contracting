@@ -1,6 +1,7 @@
 import redis
 import json
 from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
+from seneca.libs.logger import get_logger
 from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.engine.conflict_resolution import RedisProxy
@@ -214,9 +215,7 @@ def build_ranked_from_repr(s):
 
 class Placeholder:
     def __init__(self, key_type=str, value_type=int, placeholder_type=None):
-        assert placeholder_type is not None and type(placeholder_type) == type, \
-            'Provide a type to represent. (placeholder type = {})'.format(type(placeholder_type))
-
+        assert placeholder_type is not None and type(placeholder_type) == type, 'Provide a type to represent.'
         self.key_type = key_type
         self.value_type = value_type
         self.placeholder_type = placeholder_type
@@ -334,18 +333,20 @@ class RObject:
                  ):
         assert driver is not None, 'Provide a Redis driver.'
         self.driver = driver
-
+        self.log = get_logger(type(self).__name__)
         self.prefix = prefix
         self.concurrent_mode = concurrent_mode
+        self.key_type = key_type
+
         assert key_type is not None, 'Key type cannot be None'
         assert key_type in primitive_types or is_complex_type(key_type)
-        self.key_type = key_type
 
         # prevents you from requiring an RObject instance that has a prefix as a value type
         assert value_type in primitive_types or isinstance(value_type, Placeholder), \
             'You must pass a Placeholder object that does not contain a prefix as a value type. {}'.format(value_type)
 
         self.value_type = value_type
+
         self.delimiter = delimiter
         self.rep_str = rep_str
 

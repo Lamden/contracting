@@ -2,7 +2,7 @@ import sys, redis
 from contextlib import contextmanager
 from io import StringIO
 from unittest import TestCase
-from seneca.interface.interface import SenecaInterface
+from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 

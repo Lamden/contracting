@@ -11,15 +11,6 @@ from seneca.engine.executor import SenecaExecutor
 #    - will execute the txns locally and maintains a list of txns, with status, state, etc. see interpreter.py
 #    - it will also have a higher level apis to orchestrate sub-block contenders
 
-class ContractStruct:
-    """
-    This class acts as a simple data structure for holding all information necessary to execute smart contracts using
-    the SenecaClient. ContractStructs should be created inside Cilantro, and passed into the SenecaClient for execution
-    """
-    def __init__(self, contract_str: str, sender_id: str, order_idx: int):
-        self.contract_str, self.sender_id, self.order_number = contract_str, sender_id, order_idx
-
-
 class SenecaClient:
 
     def __init__(self, sbb_idx:int, loop=None, name=None, get_log_fn=None):
@@ -29,15 +20,30 @@ class SenecaClient:
         # self.sbb_idx = sbb_idx
         self.executor = SenecaExecutor(sbb_idx)
 
+    @property
+    def queue_size(self):
+        return len(self.queue)
+
     def finalize(self):
         # do we need this method? what's finalizing transactions? Davis?
         self.log.notice("Finalizing transactions...")
         pass
 
-
     def catchup(self):
         pass
 
+    def interpret(self, contract, async=False):
+        assert isinstance(contract, OrderingContainer), \
+            "Seneca Interpreter can only interpret OrderingContainer instances"
+        assert isinstance(contract.transaction, ContractTransaction), "OrderingContainer {} has a non " \
+                                                                      "ContractTransaction payload".format(contract)
+
+        if async:
+            time_hash = '%11x' % (contract.utc_time)
+            contract_hash = '{}{}'.format(time_hash, contract.masternode_vk)
+            heappush(self.heap, (contract_hash, contract))
+        else:
+            self._run_contract(contract.transaction)
 
     def flush(self, update_state=True):
         """
