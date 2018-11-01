@@ -8,7 +8,8 @@ class SenecaInterface:
     """
 
     def __init__(self):
-        sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
+        if sys.meta_path[2].__class__.__name__ == 'type':
+            sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
 
     def compile_code(self, code_str, scope={}):
         tree, prevalidated = SenecaInterpreter.parse_ast(code_str, protected_variables=list(scope.keys()))

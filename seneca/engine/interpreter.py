@@ -1,4 +1,4 @@
-import redis, ast, marshal, inspect, sys
+import redis, ast, marshal, inspect, sys, copy
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
 from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET
 from seneca.engine.book_keeper import BookKeeper
@@ -25,10 +25,10 @@ class SenecaInterpreter:
     @classmethod
     def setup(cls, concurrent_mode=True):
         cls.r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
-        from seneca.engine.module import SenecaFinder, RedisFinder
-        cls.old_meta_path = sys.meta_path
-        sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
-        cls.concurrent_mode = concurrent_mode
+        # from seneca.engine.module import SenecaFinder, RedisFinder
+        # cls.old_meta_path = sys.meta_path
+        # sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
+        # cls.concurrent_mode = concurrent_mode
         cls._is_setup = True
 
     @classmethod
