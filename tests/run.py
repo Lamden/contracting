@@ -9,7 +9,7 @@ testmodules = [
 loader = unittest.TestLoader()
 
 if env('CIRCLECI'):
-    os.environ['REDIS_PORT'] = 6379
+    os.environ['REDIS_PORT'] = '6379'
     os.environ['REDIS_PASSWORD'] = ''
 
 for t in testmodules:
