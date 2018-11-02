@@ -1,3 +1,4 @@
+coloredlogs==10.0
 coverage==4.5.1
 pynacl
 # WARNING replace dateutil!
