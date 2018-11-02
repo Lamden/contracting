@@ -1,11 +1,12 @@
 from collections import deque
 from heapq import heappush, heappop
 from typing import List
-import time, asyncio, ujson as json
+import time, asyncio, ujson as json, redis
 from seneca.libs.logger import get_logger
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.engine.util import make_n_tup
+from seneca.constants.redis_config import *
 
 class Macros:
     COMMON = '_common'
@@ -32,7 +33,7 @@ class SenecaDatabaseOperations:
         self.master_db = redis.StrictRedis(host='localhost', port=self.port, db=MASTER_DB, password=self.password)
         for db_num in range(self.max_number_workers):
             db_client = redis.StrictRedis(host='localhost', port=self.port, db=db_num+DB_OFFSET, password=self.password)
-            if sbb_index == 0:
+            if self.sbb_index == 0:
                 self.reset_db(db_client)
             self.worker_dbs.append(db_client)
 
@@ -92,22 +93,22 @@ class SenecaDatabaseOperations:
 
 class SenecaContractExecutor:
 
-    def submit_contract(self, contract_name, contract):
-        self.publish_code_str(contract_name, contract.payload.code, keep_original=True, scope={
+    def submit_contract(self, contract):
+        self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
             'rt': make_n_tup({
-                'author': contract.payload.sender,
-                'sender': contract.payload.sender
+                'author': contract.sender,
+                'sender': contract.sender
             })
         })
 
     def run_contract(self, contract):
-        contract_name = contract.metadata.contract_name
+        contract_name = contract.contract_name
         metadata = self.get_contract_meta(contract_name)
         self._pre_execution()
-        output, state = self.execute_code_str(contract.payload.code, scope={
+        output, state = self.execute_code_str(contract.code, scope={
             'rt': make_n_tup({
                 'author': metadata['author'],
-                'sender': contract.payload.sender
+                'sender': contract.sender
             })
         })
         self.active_db.lpush(self.transaction_key, json.dumps(
@@ -119,6 +120,8 @@ class SenecaClient(SenecaInterface, SenecaDatabaseOperations, SenecaContractExec
 
     def __init__(self, sbb_idx, num_sbb, concurrent_mode=True,
                  loop=None, name=None):
+
+        super().__init__()
 
         name = name or self.__class__.__name__
         self.log = get_logger(name)

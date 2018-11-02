@@ -8,6 +8,7 @@ class SenecaInterface(SenecaInterpreter):
     """
 
     def __init__(self):
+        super().__init__()
         if not isinstance(sys.meta_path[2], RedisFinder):
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
         self.setup()
