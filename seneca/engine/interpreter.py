@@ -2,6 +2,7 @@ import redis, ast, marshal, array, copy, inspect, types, uuid, copy, ujson as js
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
 from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET
 from seneca.libs.logger import get_logger
+from seneca.engine.util import make_n_tup
 
 
 class ReadOnlyException(Exception):
@@ -174,10 +175,10 @@ result = {}({}, {})
             ','.join([json.dumps(arg) for arg in args]),
             ','.join(['{}={}'.format(k,json.dumps(v)) for k,v in kwargs.items()])
         )
-        scope = {
+        scope = {'rt': make_n_tup({
             'author': author,
             'sender': sender
-        }
+        })}
         cls.loaded['__main__'] = scope
         exec(code_str, scope)
         return scope.get('result')

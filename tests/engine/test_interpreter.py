@@ -1,6 +1,8 @@
 from unittest import TestCase
 from seneca.engine.interpreter import SenecaInterpreter
+from seneca.engine.module import SenecaFinder, RedisFinder
 import redis, unittest, sys
+from seneca.engine.util import make_n_tup
 
 DO_THING_CODE_STR = """ \
 
@@ -29,6 +31,7 @@ class TestInterpreter(TestCase):
 
     @classmethod
     def setUpClass(cls):
+        sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
         SenecaInterpreter.setup(concurrent_mode=False)
         SenecaInterpreter.r.flushdb()
 
@@ -53,8 +56,16 @@ class TestInterpreter(TestCase):
                    working_db_idx=1):
         master_db = redis.StrictRedis(host='localhost', port=6379, db=master_db_idx)
         working_db = redis.StrictRedis(host='localhost', port=6379, db=working_db_idx)
-        SenecaInterpreter.execute_contract(code_str=code_str, sender=sender, sbb_idx=sbb_idx, contract_idx=contract_idx,
-                                           master_db=master_db, working_db=working_db, author=author)
+        SenecaInterpreter.execute(code_str, {
+            'rt': make_n_tup({
+                'author': author,
+                'sender': sender
+            }),
+            'sbb_idx': sbb_idx,
+            'contract_idx': contract_idx,
+            'master_db': master_db,
+            'working_db': working_db,
+        })
 
     @classmethod
     def _mint(cls):
