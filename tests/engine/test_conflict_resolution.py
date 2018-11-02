@@ -1,5 +1,6 @@
 from seneca.libs.datatypes import *   # This code most be interpretted for the metaclass stuff to get run
 from seneca.engine.conflict_resolution import *
+from seneca.engine.cr_commands import *
 import redis
 from unittest import TestCase
 
@@ -24,86 +25,95 @@ class TestConflictResolution(TestCase):
         self.rp = RedisProxy(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
                              finalize=finalize)
 
-    def test_basic_read_from_master(self):
-        KEY = 'ass'
-        VALUE = b'fast'
+    def test_add_one_key_to_mod_list(self):
+        cr_cmd = CRCommandBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
 
-        self.master.set(KEY, VALUE)
-        val = self.rp.get(KEY)
+        mods_key = cr_cmd._mods_list_key
+        print("val of mods key: {}".format(mods_key))
 
-        self.assertEqual(VALUE, val)
-
-    def test_basic_read_finalize(self):
-        self._set_rp(finalize=True)
-
-        KEY = 'ass'
-        VALUE = b'fast'
-        # common_key = self.rp.ds._common_prefix_for_key(KEY)
-
-        # self.working.set(common_key, VALUE)
-        # self.master.set(KEY, VALUE)
-        val = self.rp.get(KEY)
-
-        self.assertEqual(VALUE, val)
-
-    def test_complex_read_from_master(self):
-        KEY = 'ass'
-        VAL1 = b'im the min'
-        VAL2 = b'im the max'
-
-        self.master.zadd(KEY, 1, VAL1)
-        self.master.zadd(KEY, 100, VAL2)
-
-        min_ = self.rp.zrangebyscore(KEY, min='-inf', max='+inf', start=0, num=1)
-        max_ = self.rp.zrevrangebyscore(KEY, min='-inf', max='+inf', start=0, num=1)
-
-        self.assertEqual(min_[0], VAL1)
-        self.assertEqual(max_[0], VAL2)
-
-    def test_complex_read_finalize(self):
-        self._set_rp(finalize=True)
-
-        KEY = 'ass'
-        VAL1 = b'im the min'
-        VAL2 = b'im the max'
-        common_key = self.rp.ds._common_prefix_for_key(KEY)
-
-        self.working.zadd(common_key, 1, VAL1)
-        self.working.zadd(common_key, 100, VAL2)
-
-        min_ = self.rp.zrangebyscore(KEY, min='-inf', max='+inf', start=0, num=1)
-        max_ = self.rp.zrevrangebyscore(KEY, min='-inf', max='+inf', start=0, num=1)
-
-        self.assertEqual(min_[0], VAL1)
-        self.assertEqual(max_[0], VAL2)
-
-    def test_basic_write_non_finalize(self):
-        KEY = 'ass'
-        VAL = b'fast'
-        sbb_key = self.rp.ds._sbb_prefix_for_key(KEY)
-
-        self.rp.set(KEY, VAL)
-        result = self.working.get(sbb_key)
-
-        self.assertEqual(VAL, result)
-
-    def test_complex_write_non_finalize(self):
-        KEY = 'ass'
-        sbb_key = self.rp.ds._sbb_prefix_for_key(KEY)
-        VAL1 = b'im the min'
-        VAL2 = b'im the max'
-
-        self.rp.zadd(KEY, 1, VAL1)
-        self.rp.zadd(KEY, 100, VAL2)
-
-        min_ = self.working.zrangebyscore(sbb_key, min='-inf', max='+inf', start=0, num=1)
-        max_ = self.working.zrevrangebyscore(sbb_key, min='-inf', max='+inf', start=0, num=1)
-
-        self.assertEqual(min_[0], VAL1)
-        self.assertEqual(max_[0], VAL2)
-
-    def test_write_adds_mods(self):
-        pass
+        cr_cmd._add_key_to_mod_list('DAT-GOOD-KEY')
+        print("val of mods key: {}".format(mods_key))
+    #
+    # def test_basic_read_from_master(self):
+    #     KEY = 'ass'
+    #     VALUE = b'fast'
+    #
+    #     self.master.set(KEY, VALUE)
+    #     val = self.rp.get(KEY)
+    #
+    #     self.assertEqual(VALUE, val)
+    #
+    # def test_basic_read_finalize(self):
+    #     self._set_rp(finalize=True)
+    #
+    #     KEY = 'ass'
+    #     VALUE = b'fast'
+    #     # common_key = self.rp.ds._common_prefix_for_key(KEY)
+    #
+    #     # self.working.set(common_key, VALUE)
+    #     # self.master.set(KEY, VALUE)
+    #     val = self.rp.get(KEY)
+    #
+    #     self.assertEqual(VALUE, val)
+    #
+    # def test_complex_read_from_master(self):
+    #     KEY = 'ass'
+    #     VAL1 = b'im the min'
+    #     VAL2 = b'im the max'
+    #
+    #     self.master.zadd(KEY, 1, VAL1)
+    #     self.master.zadd(KEY, 100, VAL2)
+    #
+    #     min_ = self.rp.zrangebyscore(KEY, min='-inf', max='+inf', start=0, num=1)
+    #     max_ = self.rp.zrevrangebyscore(KEY, min='-inf', max='+inf', start=0, num=1)
+    #
+    #     self.assertEqual(min_[0], VAL1)
+    #     self.assertEqual(max_[0], VAL2)
+    #
+    # def test_complex_read_finalize(self):
+    #     self._set_rp(finalize=True)
+    #
+    #     KEY = 'ass'
+    #     VAL1 = b'im the min'
+    #     VAL2 = b'im the max'
+    #     common_key = self.rp.ds._common_prefix_for_key(KEY)
+    #
+    #     self.working.zadd(common_key, 1, VAL1)
+    #     self.working.zadd(common_key, 100, VAL2)
+    #
+    #     min_ = self.rp.zrangebyscore(KEY, min='-inf', max='+inf', start=0, num=1)
+    #     max_ = self.rp.zrevrangebyscore(KEY, min='-inf', max='+inf', start=0, num=1)
+    #
+    #     self.assertEqual(min_[0], VAL1)
+    #     self.assertEqual(max_[0], VAL2)
+    #
+    # def test_basic_write_non_finalize(self):
+    #     KEY = 'ass'
+    #     VAL = b'fast'
+    #     sbb_key = self.rp.ds._sbb_prefix_for_key(KEY)
+    #
+    #     self.rp.set(KEY, VAL)
+    #     result = self.working.get(sbb_key)
+    #
+    #     self.assertEqual(VAL, result)
+    #
+    # def test_complex_write_non_finalize(self):
+    #     KEY = 'ass'
+    #     sbb_key = self.rp.ds._sbb_prefix_for_key(KEY)
+    #     VAL1 = b'im the min'
+    #     VAL2 = b'im the max'
+    #
+    #     self.rp.zadd(KEY, 1, VAL1)
+    #     self.rp.zadd(KEY, 100, VAL2)
+    #
+    #     min_ = self.working.zrangebyscore(sbb_key, min='-inf', max='+inf', start=0, num=1)
+    #     max_ = self.working.zrevrangebyscore(sbb_key, min='-inf', max='+inf', start=0, num=1)
+    #
+    #     self.assertEqual(min_[0], VAL1)
+    #     self.assertEqual(max_[0], VAL2)
+    #
+    # def test_write_adds_mods(self):
+    #     pass
 
 
 

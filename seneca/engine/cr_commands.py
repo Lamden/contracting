@@ -1,5 +1,5 @@
 import redis
-from seneca.logger.base import get_logger
+from seneca.libs.logger import get_logger
 
 
 class CRCommandMeta(type):
@@ -19,15 +19,60 @@ class CRCommandMeta(type):
 
 
 class CRCommandBase(metaclass=CRCommandMeta):
+    MODS_LIST_DELIM = '***'
+
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
                  finalize=False):
-        self.log = get_logger("CRCmd-{}[sbb:{}][{}]".format(self.__name__, sbb_idx, contract_idx))
+        self.log = get_logger("CRCmd-{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
         self.finalize = finalize
-        self.working_db, self.master_db = working_db, master_db
+        self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
 
         self._sbb_prefix = "sbb_{}:".format(sbb_idx)
         self._common_prefix = "common:"
+        self._mods_list_key = self._mods_list_key(sbb_idx)
+
+    @classmethod
+    def get_mods_for_sbb_idx(cls, sbb_idx: int, db: redis.StrictRedis) -> list:
+        """
+        Gets a list of all modifications for a particular sub block. Returns a list of lists, where each nested list
+        i represents a list of keys modified by contract i.
+        For example:
+        [[key1, key2], [key3], [key2], ...]
+        can be interpreter as contract 0 modifying (key1, key2), contract 1 modifying (key3), ect ect
+        """
+        # TODO -- optimize modification list storage
+        # this is O(n + m). where n is total contracts in this block, and m is avg # of mod keys per contract.
+        # Feels very inefficient. Is there a more optimal approach? --davis
+        mod_list_key = cls._mods_list_key(sbb_idx)
+        all_mods = []
+        for i in range(db.llen(mod_list_key)):
+            mods_str = db.lindex(mod_list_key, i).decode()
+            all_mods.append(mods_str.split(cls.MODS_LIST_DELIM))
+
+        return all_mods
+
+    def _add_key_to_mod_list(self, key: str):
+        # Push a new element onto the list of a string of modifications does not exists yet for this contract
+        if self.working.llen(self._mods_list_key) <= self.sbb_idx:
+            self.log.debugv("Pushing a new element onto modification list for key {}".format(key))
+            self.working.rpush(self._mods_list_key, key)
+
+            # Development sanity check. This should never happen.
+            assert self.working.llen(self._mods_list_key) == self.contract_idx + 1, \
+                "Contract idx {} does not match modifications list of length {}"\
+                .format(self.contract_idx, self.working.llen(self._mods_list_key))
+
+        # Otherwise, we need to append it to current list of modifications for this contract
+        else:
+            mods = self.working.lindex(self._mods_list_key, self.contract_idx).decode()
+            self.log.debugv("Adding mod key {} to existing mods {}".format(key, mods))
+            mods += self.MODS_LIST_DELIM + key
+            self.working.lset(self._mods_list_key, self.contract_idx, mods)
+
+    @classmethod
+    def _mods_list_key(cls, sbb_idx):
+        return "sbb_{}_modifications".format(sbb_idx)
 
     def _sbb_modified_key(self, key: str):
         return self._sbb_prefix + 'modified:' + key
@@ -38,31 +83,31 @@ class CRCommandBase(metaclass=CRCommandMeta):
     def _common_key(self, key: str):
         return self._common_prefix + key
 
-    def execute(self, key, *args, **kwargs):
-        raise NotImplementedError("execute must be implemented")
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError("__call__ must be implemented")
 
 
 class CRGetSetBase(CRCommandBase):
     def _copy_og_key_if_not_exists(self, key):
         og_key = self._sbb_original_key(key)
 
-        if not self.working_db.exists(og_key):
+        if not self.working.exists(og_key):
             # First check the common layer for the key
             common_key = self._common_key(key)
-            if self.working_db.exists(common_key):
-                val = self.working_db.get(common_key)
+            if self.working.exists(common_key):
+                val = self.working.get(common_key)
                 self.log.debugv("Copying common key {} to sb specific original key {} with value {}"
                                 .format(common_key, og_key, val))
-                self.working_db.set(og_key, val)
+                self.working.set(og_key, val)
 
             # Next, check the Master layer for the key
-            if self.master_db.exists(key):
-                val = self.master_db.get(key)
+            if self.master.exists(key):
+                val = self.master.get(key)
                 self.log.debugv("Copying master key {} to sb specific original key {} with value {}"
                                 .format(key, og_key, val))
-                self.working_db.set(og_key, val)
+                self.working.set(og_key, val)
 
-            # If key not found in common or master layer, complain
+            # Otherwise, if key not found in common or master layer, complain
             else:
                 raise Exception("Key {} not found in Master or common layer!".format(key))
 
@@ -70,16 +115,40 @@ class CRGetSetBase(CRCommandBase):
 class CRGet(CRGetSetBase):
     COMMAND_NAME = 'get'
 
-    def execute(self, key, *args, **kwargs):
+    def __call__(self, key, *args, **kwargs):
         assert args is None, "CRGet not expected to be called with anything other than key! Args={}".format(args)
         assert kwargs is None, "CRGet not expected to be called with anything other than key! Args={}".format(kwargs)
         self._copy_og_key_if_not_exists(key)
+
+        # First, try and return the local modified (sbb specific) key
+        mod_key = self._sbb_modified_key(key)
+        if self.working.exists(mod_key):
+            self.log.debugv("SBB specific MODIFIED key {} found for key named {}".format(mod_key, key))
+            return self.working.get(mod_key)
+
+        # Otherwise, default to the local original key
+        og_key = self._sbb_original_key(key)
+        if self.working.exists(og_key):
+            self.log.debugv("SBB specific ORIGINAL key {} found for key named {}".format(og_key, key))
+            return self.working.get(og_key)
+
+        # TODO does phase 2 require special logic?
 
 
 class CRSet(CRGetSetBase):
     COMMAND_NAME = 'set'
 
-    def execute(self, key, *args, **kwargs):
+    def __call__(self, key, value, *args, **kwargs):
         assert args is None, "CRSet not expected to be called with anything other than key! Args={}".format(args)
         assert kwargs is None, "CRSet not expected to be called with anything other than key! Args={}".format(kwargs)
         self._copy_og_key_if_not_exists(key)
+
+        # TODO does phase 2 require special logic?
+
+        # Set modified key
+        mod_key = self._sbb_modified_key(key)
+        self.working.set(mod_key, value)
+
+        # TODO write to this specific sbb idx and contract idx's mod list
+
+
