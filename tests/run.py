@@ -8,10 +8,6 @@ testmodules = [
 
 loader = unittest.TestLoader()
 
-if env('CIRCLECI'):
-    os.environ['REDIS_PORT'] = '6379'
-    os.environ['REDIS_PASSWORD'] = ''
-
 for t in testmodules:
     try:
         # If the module defines a suite() function, call it to get the suite.
