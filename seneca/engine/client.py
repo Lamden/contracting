@@ -2,11 +2,10 @@ from collections import deque
 from heapq import heappush, heappop
 from typing import List
 import time, asyncio, ujson as json
-from cilantro.logger.base import get_logger
+from seneca.libs.logger import get_logger
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
-from cilantro.messages.transaction.contract import ContractTransaction
-from cilantro.utils.utils import make_n_tup
+from seneca.engine.util import make_n_tup
 
 class Macros:
     COMMON = '_common'
