@@ -23,7 +23,7 @@ class CRCommandBase(metaclass=CRCommandMeta):
 
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
                  finalize=False):
-        self.log = get_logger("CRCmd-{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
+        self.log = get_logger("{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
         self.finalize = finalize
         self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
@@ -53,22 +53,25 @@ class CRCommandBase(metaclass=CRCommandMeta):
         return all_mods
 
     def _add_key_to_mod_list(self, key: str):
-        # Push a new element onto the list of a string of modifications does not exists yet for this contract
-        if self.working.llen(self._mods_list_key) <= self.sbb_idx:
-            self.log.debugv("Pushing a new element onto modification list for key {}".format(key))
-            self.working.rpush(self._mods_list_key, key)
+        self.log.spam("Adding key <{}> to modification list".format(key))
 
-            # Development sanity check. This should never happen.
-            assert self.working.llen(self._mods_list_key) == self.contract_idx + 1, \
-                "Contract idx {} does not match modifications list of length {}"\
-                .format(self.contract_idx, self.working.llen(self._mods_list_key))
+        # Push a new element onto the list of a string of modifications does not exists yet for this contract
+        if self.working.llen(self._mods_list_key) <= self.contract_idx:
+            self.log.debugv("Pushing a new element onto modification list for key <{}>".format(key))
+            self.working.rpush(self._mods_list_key, key)
 
         # Otherwise, we need to append it to current list of modifications for this contract
         else:
             mods = self.working.lindex(self._mods_list_key, self.contract_idx).decode()
-            self.log.debugv("Adding mod key {} to existing mods {}".format(key, mods))
+            self.log.debugv("Adding mod key <{}> to existing mods <{}>".format(key, mods))
             mods += self.MODS_LIST_DELIM + key
             self.working.lset(self._mods_list_key, self.contract_idx, mods)
+
+        # Development sanity check. This should never happen (we should be executing contracts sequentially per sbb).
+        # In other words, we should always be adding to the mod list of the latest contract, not a prior one
+        assert self.working.llen(self._mods_list_key) == self.contract_idx + 1, \
+            "DEVELOPER LOGIC ERROR!!! Contract idx {} does not match modifications list of length {}"\
+            .format(self.contract_idx, self.working.llen(self._mods_list_key))
 
     @classmethod
     def _mods_list_key(cls, sbb_idx):
@@ -96,20 +99,20 @@ class CRGetSetBase(CRCommandBase):
             common_key = self._common_key(key)
             if self.working.exists(common_key):
                 val = self.working.get(common_key)
-                self.log.debugv("Copying common key {} to sb specific original key {} with value {}"
+                self.log.debugv("Copying common key <{}> to sb specific original key <{}> with value <{}>"
                                 .format(common_key, og_key, val))
                 self.working.set(og_key, val)
 
             # Next, check the Master layer for the key
             if self.master.exists(key):
                 val = self.master.get(key)
-                self.log.debugv("Copying master key {} to sb specific original key {} with value {}"
+                self.log.debugv("Copying master key <{}> to sb specific original key <{}> with value <{}>"
                                 .format(key, og_key, val))
                 self.working.set(og_key, val)
 
             # Otherwise, if key not found in common or master layer, complain
             else:
-                raise Exception("Key {} not found in Master or common layer!".format(key))
+                raise Exception("Key <{}> not found in Master or common layer!".format(key))
 
 
 class CRGet(CRGetSetBase):
@@ -123,13 +126,13 @@ class CRGet(CRGetSetBase):
         # First, try and return the local modified (sbb specific) key
         mod_key = self._sbb_modified_key(key)
         if self.working.exists(mod_key):
-            self.log.debugv("SBB specific MODIFIED key {} found for key named {}".format(mod_key, key))
+            self.log.debugv("SBB specific MODIFIED key <{}> found for key named <{}>".format(mod_key, key))
             return self.working.get(mod_key)
 
         # Otherwise, default to the local original key
         og_key = self._sbb_original_key(key)
         if self.working.exists(og_key):
-            self.log.debugv("SBB specific ORIGINAL key {} found for key named {}".format(og_key, key))
+            self.log.debugv("SBB specific ORIGINAL key <{}> found for key named <{}>".format(og_key, key))
             return self.working.get(og_key)
 
         # TODO does phase 2 require special logic?

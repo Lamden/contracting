@@ -3,6 +3,7 @@ from seneca.engine.conflict_resolution import *
 from seneca.engine.cr_commands import *
 import redis
 from unittest import TestCase
+import unittest
 
 
 # DEBUG -- TODO DELETE
@@ -26,6 +27,7 @@ class TestConflictResolution(TestCase):
                              finalize=finalize)
 
     def test_add_one_key_to_mod_list(self):
+        KEY = 'key_that_was_modified'
         cr_cmd = CRCommandBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
 
         mods_key = cr_cmd._mods_list_key
@@ -115,5 +117,6 @@ class TestConflictResolution(TestCase):
     # def test_write_adds_mods(self):
     #     pass
 
-
+if __name__ == "__main__":
+    unittest.main()
 
