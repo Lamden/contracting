@@ -328,14 +328,13 @@ def vivify(potential_prefix, t):
 
 class RObject:
     def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj',
-                 driver=redis.StrictRedis(host='localhost', port=6379, db=0),
-                 concurrent_mode=SenecaInterpreter.concurrent_mode
+                 driver=redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
                  ):
         assert driver is not None, 'Provide a Redis driver.'
         self.driver = driver
         self.log = get_logger(type(self).__name__)
         self.prefix = prefix
-        self.concurrent_mode = concurrent_mode
+        self.concurrent_mode = SenecaInterpreter.concurrent_mode
         self.key_type = key_type
 
         assert key_type is not None, 'Key type cannot be None'
@@ -575,8 +574,13 @@ class Table(RObject):
     def set(self, k, v):
         assert self.dict_matches_schema(v)
         self.check_key_type(k)
+
+        # modify dictionary in place with encoded values
         for _k, _v in v.items():
             v[_k] = self.encode_value(_v, self.schema[_k])
+
+        if type(k) in complex_types:
+            k = k.rep()
 
         self.driver.hmset('{}{}'.format(self.p, k), v)
 
@@ -588,6 +592,9 @@ class Table(RObject):
         else:
             keys = s
 
+        if type(k) in complex_types:
+            k = k.rep()
+            
         result = self.driver.hmget('{}{}'.format(self.p, k), keys)
         result = [self.decode_value(r) for r in result]
 

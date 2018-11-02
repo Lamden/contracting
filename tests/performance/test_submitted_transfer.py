@@ -16,6 +16,7 @@ class TestPublishTransfer(TestCase):
     def setUp(self):
         r.flushdb()
         SenecaInterpreter.setup()
+        SenecaInterpreter.concurrent_mode = False
         self.si = SenecaInterface()
         self.rt = {'rt': make_n_tup({'sender': 'stu', 'author': 'stu'})}
         print('''

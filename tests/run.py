@@ -1,7 +1,7 @@
 import unittest
 
 testmodules = [
-    # 'tests.engine',
+    'tests.engine',
     'tests.interface'
 ]
 

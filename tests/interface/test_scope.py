@@ -43,7 +43,7 @@ print(reasonable_call())
         rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
         all_info = {**bk_info, **rt_info}
         with open(join(test_contracts_path, 'sample.sen.py')) as f:
-            self.si.publish_code_str('sample', f.read(), keep_original=True)
+            self.si.publish_code_str('sample', 'davis', f.read(), keep_original=True)
         with captured_output() as (out, err):
             self.si.execute_code_str("""
 from seneca.contracts.sample import do_that_thing
