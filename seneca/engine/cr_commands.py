@@ -63,6 +63,12 @@ class CRCommandBase(metaclass=CRCommandMeta):
         # Otherwise, we need to append it to current list of modifications for this contract
         else:
             mods = self.working.lindex(self._mods_list_key, self.contract_idx).decode()
+
+            # Do not record this key if it is already in the list of modifications
+            if key in mods:
+                self.log.debugv("Key <{}> already in existing mods <{}>. Skipping.".format(key, mods))
+                return
+
             self.log.debugv("Adding mod key <{}> to existing mods <{}>".format(key, mods))
             mods += self.MODS_LIST_DELIM + key
             self.working.lset(self._mods_list_key, self.contract_idx, mods)
@@ -152,6 +158,6 @@ class CRSet(CRGetSetBase):
         mod_key = self._sbb_modified_key(key)
         self.working.set(mod_key, value)
 
-        # TODO write to this specific sbb idx and contract idx's mod list
+        self._add_key_to_mod_list(key)
 
 

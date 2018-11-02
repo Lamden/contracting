@@ -47,6 +47,20 @@ class TestCRCommandsBase(TestCase):
         self.assertEqual(self.working.llen(mods_key), 1)
         self.assertEqual(actual_mods, expected_mods)
 
+    def test_same_keys_to_mod_list(self):
+        KEY1 = 'key1_that_was_modified'
+        KEY2 = 'key1_that_was_modified'
+        cr_cmd = CRCommandBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
+        cr_cmd._add_key_to_mod_list(KEY1)
+        cr_cmd._add_key_to_mod_list(KEY2)
+
+        mods_key = cr_cmd._mods_list_key
+        actual_mods = self.working.lindex(mods_key, 0).decode()
+        expected_mods = KEY1
+
+        self.assertEqual(self.working.llen(mods_key), 1)
+        self.assertEqual(actual_mods, expected_mods)
+
     def test_add_keys_from_different_contract(self):
         KEY1 = 'key1_that_was_modified'
         KEY2 = 'key2_that_was_modified'
