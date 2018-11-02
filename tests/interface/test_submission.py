@@ -19,7 +19,7 @@ class TestSubmission(TestInterface):
 def ok():
     print('i am fine')
         """
-        self.si.publish_code_str('crazy', code_str, keep_original=True)
+        self.si.publish_code_str('crazy', 'anonymoose', code_str, keep_original=True)
         self.si.execute_code_str("""
 from seneca.contracts.crazy import ok
 ok()
@@ -34,7 +34,7 @@ ok()
 from test_contracts.good import one_you_cannot_export
         """
         with self.assertRaises(CompilationException) as context:
-            self.si.publish_code_str('incorrect', code_str, keep_original=True)
+            self.si.publish_code_str('incorrect', 'anonymoose', code_str, keep_original=True)
 
     def test_publish_bad_code_inside_function(self):
         """
@@ -45,18 +45,18 @@ def bad_code():
     from test_contracts.good import one_you_cannot_export
         """
         with self.assertRaises(ImportError) as context:
-            self.si.publish_code_str('incorrect', code_str, keep_original=True)
+            self.si.publish_code_str('incorrect', 'anonymoose', code_str, keep_original=True)
 
     def test_republish_code_str_fail(self):
         """
             Republishting code to the same smart contract name will fail
         """
-        self.si.publish_code_str('crazy', """
+        self.si.publish_code_str('crazy', 'anonymoose', """
 def ok():
     print('i am fine')
         """, keep_original=True)
         with self.assertRaises(Exception) as context:
-            self.si.publish_code_str('crazy', """
+            self.si.publish_code_str('crazy', 'anonymoose', """
 def fail():
     print('i am not fine')
             """, keep_original=True)

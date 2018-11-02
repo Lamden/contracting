@@ -1,6 +1,7 @@
 import unittest
 
 from unittest import TestCase
+from seneca.engine.interpreter import SenecaInterpreter
 from seneca.libs.datatypes import *
 from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 
@@ -11,14 +12,16 @@ test more failure cases
 
 
 class TestDatatypes(TestCase):
-    def setUp(self):
-        self.r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
 
+    def setUp(self):
+        SenecaInterpreter.concurrent_mode = False
+        self.r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
         self.l = HList(prefix='yo')
+        self.r.flushdb()
 
         # clears the list so it's easier to push and pop to / test
-        while self.l.pop() is not None:
-            pass
+        # while self.l.pop() is not None:
+            # pass
 
     def test_type_mappings(self):
         self.assertTrue(type_to_string[str] == 'str')
@@ -395,6 +398,7 @@ class TestDatatypes(TestCase):
 
     def test_complex_key_typing_table(self):
         s = table(prefix='hello123', key_type=hlist(), schema={'test1': int, 'test2': str})
+
         s.set(hlist(prefix='uhoh'), {'test1': 123, 'test2': 'hello'})
 
         _s = s.get(hlist(prefix='uhoh'))
@@ -468,8 +472,6 @@ class TestDatatypes(TestCase):
         r.add('davis', 100)
 
         r.delete('stu')
-
-        print(r.get_max())
 
         self.assertEqual(r.get_max(), 'davis')
 

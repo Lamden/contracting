@@ -43,13 +43,24 @@ print(reasonable_call())
         rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
         all_info = {**bk_info, **rt_info}
         with open(join(test_contracts_path, 'sample.sen.py')) as f:
-            self.si.publish_code_str('sample', f.read(), keep_original=True)
+            self.si.publish_code_str('sample', 'davis', f.read(), keep_original=True)
         with captured_output() as (out, err):
             self.si.execute_code_str("""
 from seneca.contracts.sample import do_that_thing
 print(do_that_thing())
             """, all_info)
             self.assertEqual(out.getvalue().strip(), 'sender: davis, author: davis')
+
+    def test_execute_function(self):
+        result = self.si.execute_function('test_contracts.reasonable.call_with_args',
+            'me', 'also_me', 'it is required', not_required='it is not requried')
+        self.assertEqual(result, ('it is required', 'it is not requried'))
+
+    def test_execute_function_invalid(self):
+        with self.assertRaises(ImportError) as context:
+            result = self.si.execute_function('seneca.engine.util.make_n_tup',
+                'me', 'also_me', {'x': 'y'})
+            print('Should not print this: ', result)
 
 if __name__ == '__main__':
     unittest.main()
