@@ -36,6 +36,7 @@ class SenecaDatabaseOperations:
             if self.sbb_index == 0:
                 self.reset_db(db_client)
             self.worker_dbs.append(db_client)
+        self.active_db = self.master_db
 
     def reset_db(self, db):
         db.flushdb()
@@ -105,14 +106,18 @@ class SenecaContractExecutor:
         contract_name = contract.contract_name
         metadata = self.get_contract_meta(contract_name)
         self._pre_execution()
-        output, state = self.execute_code_str(contract.code, scope={
+
+        self.execute_code_str(contract.code, scope={
             'rt': make_n_tup({
                 'author': metadata['author'],
                 'sender': contract.sender
             })
         })
+        # WARNING TODO implement return output and state
+        output = 'fix this'
+        state = 'fix this'
         self.active_db.lpush(self.transaction_key, json.dumps(
-            [contract.payload.code, output, state]
+            [contract.code, output, state]
         ))
         self._post_execution()
 
