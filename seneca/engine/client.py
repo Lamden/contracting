@@ -94,8 +94,6 @@ class SenecaDatabaseOperations:
 class SenecaContractExecutor:
 
     def submit_contract(self, contract_name, contract):
-        assert isinstance(contract, ContractTransaction), \
-            "Seneca Interpreter can only interpret OrderingContainer instances"
         self.publish_code_str(contract_name, contract.payload.code, keep_original=True, scope={
             'rt': make_n_tup({
                 'author': contract.payload.sender,
@@ -104,8 +102,6 @@ class SenecaContractExecutor:
         })
 
     def run_contract(self, contract):
-        assert isinstance(contract, ContractTransaction), \
-            "Seneca Interpreter can only interpret OrderingContainer instances
         contract_name = contract.metadata.contract_name
         metadata = self.get_contract_meta(contract_name)
         self._pre_execution()
