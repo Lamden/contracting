@@ -1,9 +1,8 @@
-import redis, ast, marshal, inspect, sys, copy
+import redis, ast, marshal, array, copy, inspect, types, uuid, copy, ujson as json, sys, time
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
 from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET
-from seneca.engine.book_keeper import BookKeeper
-from seneca.engine.util import make_n_tup
 from seneca.libs.logger import get_logger
+from seneca.engine.util import make_n_tup
 
 
 class ReadOnlyException(Exception):
@@ -20,39 +19,17 @@ class SenecaInterpreter:
     imports = {}
     loaded = {}
     _is_setup = False
-    concurrent_mode = False
+    concurrent_mode = True
 
     @classmethod
     def setup(cls, concurrent_mode=True):
-        cls.r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
-        from seneca.engine.module import SenecaFinder, RedisFinder
-        cls.old_meta_path = sys.meta_path
-        sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
         cls.concurrent_mode = concurrent_mode
+        cls.r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
         cls._is_setup = True
 
     @classmethod
     def teardown(cls):
-        sys.meta_path = cls.old_meta_path
-        cls.concurrent_mode = False
         cls._is_setup = False
-
-    @classmethod
-    def execute_contract(cls, code_str: str, sender: str, sbb_idx: int, contract_idx: int, master_db: redis.StrictRedis,
-                         working_db: redis.StrictRedis, author=''):
-        assert cls._is_setup, "SenecaInterpreter.setup() must be called before you can execute_contract"
-
-        author = author or 'claude shannon'  # For now, we mock the author
-        rt_info = {'rt': make_n_tup({'sender': sender, 'author': author})}
-
-        BookKeeper.set_info(sbb_idx=sbb_idx, contract_idx=contract_idx, master_db=master_db, working_db=working_db)
-
-        tree = SenecaInterpreter.parse_ast(code_str, protected_variables=list(rt_info.keys()))
-        code_obj = compile(tree, filename='__main__', mode="exec")
-        SenecaInterpreter.execute(code_obj, scope=rt_info)
-
-        BookKeeper.del_info()  # TODO is this necessary? It will just get overriden on next set_info(). --davis
-
 
     @classmethod
     def get_code_obj(cls, fullname):
@@ -62,23 +39,34 @@ class SenecaInterpreter:
 
     @classmethod
     def get_code_str(cls, fullname):
-        code_str = cls.r.hget('contracts_str', fullname)
-        assert code_str, 'Cannot find original code string for module "{}" not found!'.format(fullname)
-        return code_str
+        meta = cls.get_contract_meta(fullname)
+        assert meta.get('code_str'), 'Cannot find original code string for module "{}" not found!'.format(fullname)
+        return meta['code_str']
 
     @classmethod
-    def set_code(cls, fullname, code_obj, code_str, keep_original=False):
+    def get_contract_meta(cls, fullname):
+        byte_str = cls.r.hget('contracts_meta', fullname)
+        assert byte_str, 'Contract "{}" does not exist.'.format(fullname)
+        meta = json.loads(byte_str)
+        return meta
+
+    @classmethod
+    def set_code(cls, fullname, code_obj, code_str, author, keep_original=False):
         pipe = cls.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
         if keep_original:
-            pipe.hset('contracts_str', fullname, code_str)
+            pipe.hset('contracts_meta', fullname, json.dumps({
+                'code_str': code_str,
+                'author': author,
+                'timestamp': time.time()
+            }))
         pipe.execute()
 
     @classmethod
     def remove_code(cls, fullname):
         pipe = cls.r.pipeline()
         pipe.hdel('contracts', fullname)
-        pipe.hdel('contracts_str', fullname)
+        pipe.hdel('contracts_meta', fullname)
         pipe.execute()
 
     @classmethod
@@ -176,6 +164,24 @@ class SenecaInterpreter:
         if is_main:
             cls.validate()
 
+    @classmethod
+    def execute_function(cls, module_path, author, sender, *args, **kwargs):
+        cls.assert_import_path(module_path)
+        module = module_path.rsplit('.', 1)
+        code_str = '''
+from {} import {}
+result = {}({}, {})
+        '''.format(module[0], module[1], module[1],
+            ','.join([json.dumps(arg) for arg in args]),
+            ','.join(['{}={}'.format(k,json.dumps(v)) for k,v in kwargs.items()])
+        )
+        scope = {'rt': make_n_tup({
+            'author': author,
+            'sender': sender
+        })}
+        cls.loaded['__main__'] = scope
+        exec(code_str, scope)
+        return scope.get('result')
 
 class ScopeParser:
     @property

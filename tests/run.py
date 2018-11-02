@@ -1,4 +1,5 @@
-import unittest
+import unittest, os
+from os import getenv as env
 
 testmodules = [
     'tests.engine',
@@ -17,5 +18,5 @@ for t in testmodules:
     except (ImportError, AttributeError):
         # else, just load all the test cases from the module.
         suite.addTest(unittest.defaultTestLoader.loadTestsFromName(t))
-        
+
     unittest.TextTestRunner().run(suite)

@@ -48,7 +48,7 @@ jobs:
           name: run tests
           command: |
             export PYTHONPATH=$PYTHONPATH:~/seneca
-            make test
+            python3 tests/run.py
 
 workflows:
   version: 2

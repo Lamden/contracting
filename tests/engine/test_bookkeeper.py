@@ -2,7 +2,7 @@ from unittest import TestCase
 from seneca.engine.book_keeper import BookKeeper
 from unittest.mock import patch
 from multiprocessing import Process
-import threading
+import threading, unittest
 
 
 class TestBookKeeper(TestCase):
@@ -36,3 +36,7 @@ class TestBookKeeper(TestCase):
         #
         #         print("Got key: {}".format(BookKeeper._get_key()))
 
+
+
+if __name__ == '__main__':
+    unittest.main()
