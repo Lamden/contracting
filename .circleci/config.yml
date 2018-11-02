@@ -48,9 +48,7 @@ jobs:
           name: run tests
           command: |
             export PYTHONPATH=$PYTHONPATH:~/seneca
-            export REDIS_PORT=6379
-            export REDIS_PASSWORD=
-            make test
+            python3 tests/run.py
 
 workflows:
   version: 2
