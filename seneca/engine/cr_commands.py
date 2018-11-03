@@ -79,24 +79,24 @@ class CRCommandBase(metaclass=CRCommandMeta):
             "DEVELOPER LOGIC ERROR!!! Contract idx {} does not match modifications list of length {}"\
             .format(self.contract_idx, self.working.llen(self._mods_list_key))
 
-    def _copy_og_key_if_not_exists(self, key):
+    def _copy_og_key_if_not_exists(self, key, *args, **kwargs):
         og_key = self._sbb_original_key(key)
 
         if not self.working.exists(og_key):
             # First check the common layer for the key
             common_key = self._common_key(key)
             if self.working.exists(common_key):
-                val = self.working.get(common_key)
+                val = type(self)._read(self.working, common_key, *args, **kwargs)
                 self.log.debugv("Copying common key <{}> to sb specific original key <{}> with value <{}>"
                                 .format(common_key, og_key, val))
-                self.working.set(og_key, val)
+                type(self)._write(self.working, og_key, val, *args, **kwargs)
 
             # Next, check the Master layer for the key
-            if self.master.exists(key):
-                val = self.master.get(key)
+            elif self.master.exists(key):
+                val = type(self)._read(self.master, key, *args, **kwargs)
                 self.log.debugv("Copying master key <{}> to sb specific original key <{}> with value <{}>"
                                 .format(key, og_key, val))
-                self.working.set(og_key, val)
+                type(self)._write(self.working, og_key, val)
 
             # Otherwise, if key not found in common or master layer, complain
             else:
@@ -118,35 +118,23 @@ class CRCommandBase(metaclass=CRCommandMeta):
     def __call__(self, *args, **kwargs):
         raise NotImplementedError("__call__ must be implemented")
 
-    def read(self, key, *args, **kwargs):
+    @classmethod
+    def _read(cls, db: redis.StrictRedis, key: str, *args, **kwargs):
         raise NotImplementedError()
 
-    def write(self, key, value, *args, **kwargs):
+    @classmethod
+    def _write(cls, db: redis.StrictRedis, key: str, value, *args, **kwargs):
         raise NotImplementedError()
+
 
 class CRGetSetBase(CRCommandBase):
-    def _copy_og_key_if_not_exists(self, key):
-        og_key = self._sbb_original_key(key)
+    @classmethod
+    def _read(cls, db: redis.StrictRedis, key: str, *args, **kwargs):
+        return db.get(key)
 
-        if not self.working.exists(og_key):
-            # First check the common layer for the key
-            common_key = self._common_key(key)
-            if self.working.exists(common_key):
-                val = self.working.get(common_key)
-                self.log.debugv("Copying common key <{}> to sb specific original key <{}> with value <{}>"
-                                .format(common_key, og_key, val))
-                self.working.set(og_key, val)
-
-            # Next, check the Master layer for the key
-            elif self.master.exists(key):
-                val = self.master.get(key)
-                self.log.debugv("Copying master key <{}> to sb specific original key <{}> with value <{}>"
-                                .format(key, og_key, val))
-                self.working.set(og_key, val)
-
-            # Otherwise, if key not found in common or master layer, complain
-            else:
-                raise Exception("Key <{}> not found in Master or common layer!".format(key))
+    @classmethod
+    def _write(cls, db: redis.StrictRedis, key: str, value, *args, **kwargs):
+        db.set(key, value)
 
 
 class CRGet(CRGetSetBase):
