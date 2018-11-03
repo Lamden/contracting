@@ -140,9 +140,7 @@ class CRGetSetBase(CRCommandBase):
 class CRGet(CRGetSetBase):
     COMMAND_NAME = 'get'
 
-    def __call__(self, key, *args, **kwargs):
-        assert len(args) == 0, "CRGet not expected to be called with anything other than key! Args={}".format(args)
-        assert len(kwargs) == 0, "CRGet not expected to be called with anything other than key! Args={}".format(kwargs)
+    def __call__(self, key):
         self._copy_og_key_if_not_exists(key)
 
         # First, try and return the local modified (sbb specific) key
@@ -163,9 +161,7 @@ class CRGet(CRGetSetBase):
 class CRSet(CRGetSetBase):
     COMMAND_NAME = 'set'
 
-    def __call__(self, key, value, *args, **kwargs):
-        assert len(args) == 0, "CRSet not expected to be called with anything other than key! Args={}".format(args)
-        assert len(kwargs) == 0, "CRSet not expected to be called with anything other than key! Args={}".format(kwargs)
+    def __call__(self, key, value):
         self._copy_og_key_if_not_exists(key)
 
         # TODO does phase 2 require special logic?

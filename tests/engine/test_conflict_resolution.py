@@ -47,6 +47,7 @@ class TestConflictResolution(TestCase):
 
     def test_all_keys_and_values_for_basic_set_get(self):
         # TODO this test is fragile af. make him more robust?
+
         KEY1, VAL1 = 'k1', 'v1'
         KEY2, VAL2 = 'k2', 'v2'
         NEW_VAL1 = 'v1_NEW'
