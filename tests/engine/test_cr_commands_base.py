@@ -5,7 +5,6 @@ from unittest import TestCase
 import unittest
 
 
-
 class TestCRCommandsBase(TestCase):
 
     def setUp(self):

@@ -73,30 +73,12 @@ class CRCommandBase(metaclass=CRCommandMeta):
             mods += self.MODS_LIST_DELIM + key
             self.working.lset(self._mods_list_key, self.contract_idx, mods)
 
-        # Development sanity check. This should never happen (we should be executing contracts sequentially per sbb).
+        # Development sanity check. This should NEVER happen (we should be executing contracts sequentially per sbb).
         # In other words, we should always be adding to the mod list of the latest contract, not a prior one
         assert self.working.llen(self._mods_list_key) == self.contract_idx + 1, \
             "DEVELOPER LOGIC ERROR!!! Contract idx {} does not match modifications list of length {}"\
             .format(self.contract_idx, self.working.llen(self._mods_list_key))
 
-    @classmethod
-    def _mods_list_key(cls, sbb_idx):
-        return "sbb_{}_modifications".format(sbb_idx)
-
-    def _sbb_modified_key(self, key: str):
-        return self._sbb_prefix + 'modified:' + key
-
-    def _sbb_original_key(self, key: str):
-        return self._sbb_prefix + 'original:' + key
-
-    def _common_key(self, key: str):
-        return self._common_prefix + key
-
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError("__call__ must be implemented")
-
-
-class CRGetSetBase(CRCommandBase):
     def _copy_og_key_if_not_exists(self, key):
         og_key = self._sbb_original_key(key)
 
@@ -120,13 +102,59 @@ class CRGetSetBase(CRCommandBase):
             else:
                 raise Exception("Key <{}> not found in Master or common layer!".format(key))
 
+    @classmethod
+    def _mods_list_key(cls, sbb_idx):
+        return "sbb_{}_modifications".format(sbb_idx)
+
+    def _sbb_modified_key(self, key: str):
+        return self._sbb_prefix + 'modified:' + key
+
+    def _sbb_original_key(self, key: str):
+        return self._sbb_prefix + 'original:' + key
+
+    def _common_key(self, key: str):
+        return self._common_prefix + key
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError("__call__ must be implemented")
+
+    def read(self, key, *args, **kwargs):
+        raise NotImplementedError()
+
+    def write(self, key, value, *args, **kwargs):
+        raise NotImplementedError()
+
+class CRGetSetBase(CRCommandBase):
+    def _copy_og_key_if_not_exists(self, key):
+        og_key = self._sbb_original_key(key)
+
+        if not self.working.exists(og_key):
+            # First check the common layer for the key
+            common_key = self._common_key(key)
+            if self.working.exists(common_key):
+                val = self.working.get(common_key)
+                self.log.debugv("Copying common key <{}> to sb specific original key <{}> with value <{}>"
+                                .format(common_key, og_key, val))
+                self.working.set(og_key, val)
+
+            # Next, check the Master layer for the key
+            elif self.master.exists(key):
+                val = self.master.get(key)
+                self.log.debugv("Copying master key <{}> to sb specific original key <{}> with value <{}>"
+                                .format(key, og_key, val))
+                self.working.set(og_key, val)
+
+            # Otherwise, if key not found in common or master layer, complain
+            else:
+                raise Exception("Key <{}> not found in Master or common layer!".format(key))
+
 
 class CRGet(CRGetSetBase):
     COMMAND_NAME = 'get'
 
     def __call__(self, key, *args, **kwargs):
-        assert args is None, "CRGet not expected to be called with anything other than key! Args={}".format(args)
-        assert kwargs is None, "CRGet not expected to be called with anything other than key! Args={}".format(kwargs)
+        assert len(args) == 0, "CRGet not expected to be called with anything other than key! Args={}".format(args)
+        assert len(kwargs) == 0, "CRGet not expected to be called with anything other than key! Args={}".format(kwargs)
         self._copy_og_key_if_not_exists(key)
 
         # First, try and return the local modified (sbb specific) key
@@ -148,8 +176,8 @@ class CRSet(CRGetSetBase):
     COMMAND_NAME = 'set'
 
     def __call__(self, key, value, *args, **kwargs):
-        assert args is None, "CRSet not expected to be called with anything other than key! Args={}".format(args)
-        assert kwargs is None, "CRSet not expected to be called with anything other than key! Args={}".format(kwargs)
+        assert len(args) == 0, "CRSet not expected to be called with anything other than key! Args={}".format(args)
+        assert len(kwargs) == 0, "CRSet not expected to be called with anything other than key! Args={}".format(kwargs)
         self._copy_og_key_if_not_exists(key)
 
         # TODO does phase 2 require special logic?
