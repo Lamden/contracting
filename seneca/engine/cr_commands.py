@@ -116,7 +116,7 @@ class CRCommandBase(metaclass=CRCommandMeta):
         return self._common_prefix + key
 
     def __call__(self, *args, **kwargs):
-        raise NotImplementedError("__call__ must be implemented")
+        raise NotImplementedError()
 
     @classmethod
     def _read(cls, db: redis.StrictRedis, key: str, *args, **kwargs):
