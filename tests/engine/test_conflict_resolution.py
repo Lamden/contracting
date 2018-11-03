@@ -26,96 +26,63 @@ class TestConflictResolution(TestCase):
         self.rp = RedisProxy(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
                              finalize=finalize)
 
-    def test_add_one_key_to_mod_list(self):
-        KEY = 'key_that_was_modified'
-        cr_cmd = CRCommandBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
+    def test_basic_set_get(self):
+        KEY1, VAL1 = 'k1', 'v1'
+        KEY2, VAL2 = 'k2', 'v2'
+        NEW_VAL1 = 'v1_NEW'
 
-        mods_key = cr_cmd._mods_list_key
-        print("val of mods key: {}".format(mods_key))
+        # Seed keys on master
+        self.master.set(KEY1, VAL1)
+        self.master.set(KEY2, VAL2)
 
-        cr_cmd._add_key_to_mod_list('DAT-GOOD-KEY')
-        print("val of mods key: {}".format(mods_key))
-    #
-    # def test_basic_read_from_master(self):
-    #     KEY = 'ass'
-    #     VALUE = b'fast'
-    #
-    #     self.master.set(KEY, VALUE)
-    #     val = self.rp.get(KEY)
-    #
-    #     self.assertEqual(VALUE, val)
-    #
-    # def test_basic_read_finalize(self):
-    #     self._set_rp(finalize=True)
-    #
-    #     KEY = 'ass'
-    #     VALUE = b'fast'
-    #     # common_key = self.rp.ds._common_prefix_for_key(KEY)
-    #
-    #     # self.working.set(common_key, VALUE)
-    #     # self.master.set(KEY, VALUE)
-    #     val = self.rp.get(KEY)
-    #
-    #     self.assertEqual(VALUE, val)
-    #
-    # def test_complex_read_from_master(self):
-    #     KEY = 'ass'
-    #     VAL1 = b'im the min'
-    #     VAL2 = b'im the max'
-    #
-    #     self.master.zadd(KEY, 1, VAL1)
-    #     self.master.zadd(KEY, 100, VAL2)
-    #
-    #     min_ = self.rp.zrangebyscore(KEY, min='-inf', max='+inf', start=0, num=1)
-    #     max_ = self.rp.zrevrangebyscore(KEY, min='-inf', max='+inf', start=0, num=1)
-    #
-    #     self.assertEqual(min_[0], VAL1)
-    #     self.assertEqual(max_[0], VAL2)
-    #
-    # def test_complex_read_finalize(self):
-    #     self._set_rp(finalize=True)
-    #
-    #     KEY = 'ass'
-    #     VAL1 = b'im the min'
-    #     VAL2 = b'im the max'
-    #     common_key = self.rp.ds._common_prefix_for_key(KEY)
-    #
-    #     self.working.zadd(common_key, 1, VAL1)
-    #     self.working.zadd(common_key, 100, VAL2)
-    #
-    #     min_ = self.rp.zrangebyscore(KEY, min='-inf', max='+inf', start=0, num=1)
-    #     max_ = self.rp.zrevrangebyscore(KEY, min='-inf', max='+inf', start=0, num=1)
-    #
-    #     self.assertEqual(min_[0], VAL1)
-    #     self.assertEqual(max_[0], VAL2)
-    #
-    # def test_basic_write_non_finalize(self):
-    #     KEY = 'ass'
-    #     VAL = b'fast'
-    #     sbb_key = self.rp.ds._sbb_prefix_for_key(KEY)
-    #
-    #     self.rp.set(KEY, VAL)
-    #     result = self.working.get(sbb_key)
-    #
-    #     self.assertEqual(VAL, result)
-    #
-    # def test_complex_write_non_finalize(self):
-    #     KEY = 'ass'
-    #     sbb_key = self.rp.ds._sbb_prefix_for_key(KEY)
-    #     VAL1 = b'im the min'
-    #     VAL2 = b'im the max'
-    #
-    #     self.rp.zadd(KEY, 1, VAL1)
-    #     self.rp.zadd(KEY, 100, VAL2)
-    #
-    #     min_ = self.working.zrangebyscore(sbb_key, min='-inf', max='+inf', start=0, num=1)
-    #     max_ = self.working.zrevrangebyscore(sbb_key, min='-inf', max='+inf', start=0, num=1)
-    #
-    #     self.assertEqual(min_[0], VAL1)
-    #     self.assertEqual(max_[0], VAL2)
-    #
-    # def test_write_adds_mods(self):
-    #     pass
+        self.rp.set(KEY1, NEW_VAL1)
+
+        actual = self.rp.get(KEY1).decode()
+
+        self.assertEqual(actual, NEW_VAL1)
+        self.assertEqual(self.rp.get(KEY2).decode(), VAL2)
+
+        print("All master keys: {}".format(self.master.keys()))
+        print("All working keys: {}".format(self.working.keys()))
+
+    def test_all_keys_and_values_for_basic_set_get(self):
+        # TODO this test is fragile af. make him more robust?
+        KEY1, VAL1 = 'k1', 'v1'
+        KEY2, VAL2 = 'k2', 'v2'
+        NEW_VAL1 = 'v1_NEW'
+
+        # Seed keys on master
+        self.master.set(KEY1, VAL1)
+        self.master.set(KEY2, VAL2)
+
+        self.rp.set(KEY1, NEW_VAL1)
+        self.rp.get(KEY2)
+
+        expected_master = {'k1': VAL1, 'k2': VAL2}
+        expected_working_keys = {'sbb_0_modifications': KEY1, 'sbb_0:modified:k1': NEW_VAL1, 'sbb_0:original:k2': VAL2,
+                                 'sbb_0:original:k1': VAL1}
+
+        print("All master keys: {}".format(self.master.keys()))
+        print("All working keys: {}".format(self.working.keys()))
+
+        for key, value in expected_master.items():
+            actual_value = self.master.get(key).decode()
+            self.assertEqual(value, actual_value)
+
+        for key, value in expected_working_keys.items():
+            # We must deal with the modification list separately
+            if key == 'sbb_0_modifications':
+                self.assertEqual(self.working.llen(key), 1)
+                self.assertEqual(self.working.lindex(key, 0).decode(), value)
+                continue
+
+            actual_value = self.working.get(key).decode()
+            self.assertEqual(value, actual_value)
+
+    def test_unimplemented_method_raises_assert(self):
+        with self.assertRaises(AssertionError):
+            self.rp.this_is_not_implemented('some_key')
+
 
 if __name__ == "__main__":
     unittest.main()
