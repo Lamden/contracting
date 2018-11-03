@@ -147,13 +147,13 @@ class CRGet(CRGetSetBase):
         mod_key = self._sbb_modified_key(key)
         if self.working.exists(mod_key):
             self.log.debugv("SBB specific MODIFIED key <{}> found for key named <{}>".format(mod_key, key))
-            return self.working.get(mod_key)
+            return type(self)._read(self.working, mod_key)
 
         # Otherwise, default to the local original key
         og_key = self._sbb_original_key(key)
         if self.working.exists(og_key):
             self.log.debugv("SBB specific ORIGINAL key <{}> found for key named <{}>".format(og_key, key))
-            return self.working.get(og_key)
+            return type(self)._read(self.working, og_key)
 
         # TODO does phase 2 require special logic?
 
@@ -168,7 +168,7 @@ class CRSet(CRGetSetBase):
 
         # Set modified key
         mod_key = self._sbb_modified_key(key)
-        self.working.set(mod_key, value)
+        type(self)._write(self.working, mod_key, value)
 
         self._add_key_to_mod_list(key)
 
