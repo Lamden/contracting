@@ -47,8 +47,50 @@ class TestConflictResolution(TestCase):
         self.assertEqual(actual, NEW_VAL1)
         self.assertEqual(self.r.get(KEY2).decode(), VAL2)
 
-        self.assertTrue(self.sbb_data[0]['getset'].should_rerun(0))
-        self.assertFalse(self.sbb_data[0]['getset'].should_rerun(1))
+        self.assertFalse(self.sbb_data[0].should_rerun(0))
+        self.assertFalse(self.sbb_data[0].should_rerun(1))
+
+    def test_basic_set_get_rerun_when_change_common(self):
+        KEY1, VAL1 = 'k1', 'v1'
+        KEY2, VAL2 = 'k2', 'v2'
+        NEW_VAL1 = 'v1_NEW'
+        NEWER_VAL1 = 'v1_NEWEST_FROM_ANOTHER_SB'
+
+        # Seed keys on master
+        self.master.set(KEY1, VAL1)
+        self.master.set(KEY2, VAL2)
+
+        self.r.set(KEY1, NEW_VAL1)
+
+        actual = self.r.get(KEY1).decode()
+
+        self.assertEqual(actual, NEW_VAL1)
+        self.assertEqual(self.r.get(KEY2).decode(), VAL2)
+
+        # Change common data so that contract 1 should be rerun
+        self.working.set(KEY1, NEWER_VAL1)
+        self.assertTrue(self.sbb_data[0].should_rerun(0))
+
+    def test_basic_set_get_rerun_when_change_master(self):
+        KEY1, VAL1 = 'k1', 'v1'
+        KEY2, VAL2 = 'k2', 'v2'
+        NEW_VAL1 = 'v1_NEW'
+        NEWER_VAL1 = 'v1_NEWEST_FROM_ANOTHER_SB'
+
+        # Seed keys on master
+        self.master.set(KEY1, VAL1)
+        self.master.set(KEY2, VAL2)
+
+        self.r.set(KEY1, NEW_VAL1)
+
+        actual = self.r.get(KEY1).decode()
+
+        self.assertEqual(actual, NEW_VAL1)
+        self.assertEqual(self.r.get(KEY2).decode(), VAL2)
+
+        # Change common data so that contract 1 should be rerun
+        self.master.set(KEY1, NEWER_VAL1)
+        self.assertTrue(self.sbb_data[0].should_rerun(0))
 
     def test_all_keys_and_values_for_basic_set_get(self):
         # TODO this test is fragile af. make him more robust?

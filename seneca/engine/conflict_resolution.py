@@ -83,7 +83,6 @@ class CRDataGetSet(CRDataBase, dict):
         mods = self.mods[contract_idx]
         return ''.join('SET {} {};'.format(k, self[k]['mod']) for k in sorted(mods))
 
-
     def should_rerun(self, contract_idx: int) -> bool:
         if contract_idx >= len(self.mods):  # Check array out of bounds
             return False
@@ -91,7 +90,13 @@ class CRDataGetSet(CRDataBase, dict):
         # Return True if the common layer key exists and is different than the original
         mod_set = self.mods[contract_idx]
         for mod in self.mods[contract_idx]:
-            if self.working.exists(mod) and self.working.get(mod) != self[mod]['og']:
+            # Get 'latest' value for key mod, pulling first from common layer, than master
+            if self.working.exists(mod):
+                latest_val = self.working.get(mod)
+            else:
+                latest_val = self.master.get(mod)
+
+            if latest_val != self[mod]['og']:
                 return True
 
         return False
@@ -101,10 +106,6 @@ class CRDataGetSet(CRDataBase, dict):
         assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
         val = working_db.get(key)
         master_db.set(key, val)
-
-    # def get_contract_state(self, ):
-
-        # return len(self.mods[contract_idx]) > 0
 
 
 class CRDataHMap(CRDataBase, defaultdict):
@@ -200,24 +201,6 @@ class CRDataOutputs(CRDataBase, list):
 
     def should_rerun(self, contract_idx: int) -> bool:
         return False
-
-
-# class CRDataModifications(CRDataBase, list):
-#     """
-#     Modifications are stored as a list of sets. The index of each the list corresponds to the index of the contract
-#     that invokes modication, and the element itself is a set of modifications (a set of modified keys to be exact)
-#     """
-#     NAME = 'mods'
-#
-#     def merge_to_common(self):
-#         raise NotImplementedError()
-#
-#     def get_state_rep(self):
-#         # There is no need to update state list for this data structure
-#         pass
-#
-#     def get_rerun_set(self) -> set:
-#         pass
 
 
 class CRDataContainer:
