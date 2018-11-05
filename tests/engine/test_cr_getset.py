@@ -17,12 +17,18 @@ class TestCRGetSet(TestCase):
         self.working.flushdb()
 
     def _new_getset(self, should_set=True, sbb_idx=0, contract_idx=0, finalize=False):
+        if contract_idx in self.sbb_data:
+            data = self.sbb_data[contract_idx]
+        else:
+            data = self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize)
+            self.sbb_data[contract_idx] = data
+
         if should_set:
             return CRCmdSet(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
-                            data=self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize))
+                            data=data)
         else:
             return CRCmdGet(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
-                            data=self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize))
+                            data=data)
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
         return CRDataContainer(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
@@ -131,8 +137,6 @@ class TestCRGetSet(TestCase):
 
         expected = {'og': None, 'mod': VALUE}
         self.assertEqual(expected, cr_set.data['getset'][KEY])
-
-
 
 
 if __name__ == "__main__":

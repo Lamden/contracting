@@ -80,29 +80,35 @@ class CRDataDelete(CRDataBase, set):
     NAME = 'del'
 
     def merge_to_common(self):
+        pass  # TODO implement
         raise NotImplementedError()
 
     def update_state_list(self):
+        pass  # TODO implement
         raise NotImplementedError()
 
     def should_rerun(self, contract_idx: int) -> bool:
+        pass  # TODO implement
         raise NotImplementedError()
 
 
 class CRDataOperations(CRDataBase, list):
     """
-    CRDataOperations is basically a list of RedisOperation instances.
+    CRDataOperations is a list of RedisOperation instances.
     """
     NAME = 'ops'
 
     def merge_to_common(self):
-        raise NotImplementedError()
+        pass  # TODO implement
+        # raise NotImplementedError()
 
     def update_state_list(self):
-        raise NotImplementedError()
+        pass  # TODO implement
+        # raise NotImplementedError()
 
     def should_rerun(self, contract_idx: int) -> bool:
-        raise NotImplementedError()
+        pass  # TODO implement
+        # raise NotImplementedError()
 
 
 class CRDataOutputs(CRDataBase, list):
