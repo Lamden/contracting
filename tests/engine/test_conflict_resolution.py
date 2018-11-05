@@ -91,10 +91,6 @@ class TestConflictResolution(TestCase):
         self.assertFalse(self.sbb_data[0].should_rerun(1))
         self.assertFalse(self.sbb_data[0].should_rerun(2))
 
-        # Check state
-        expected_state = "SET {k1};b'{v1};SET {k2};b'{v2}SET;{k3};b'{v3}"\
-                         .format(k1=KEY1, v1=NEW_VAL1, k2=KEY2, v2=VAL2, k3=KEY3, v3=VAL3)
-
     def test_merge_to_common(self):
         KEY1, VAL1 = 'k1', b'v1'
         KEY2, VAL2 = 'k2', b'v2'
@@ -174,16 +170,28 @@ class TestConflictResolution(TestCase):
         self.working.set(KEY3, VAL3)
 
         self.r.set(KEY1, NEW_VAL1)
-        self.r.contract_idx = 2
+        self.r.contract_idx = 1
         self.r.get(KEY2)  # To trigger a copy to sbb specific layer
         self.r.contract_idx = 2
         self.r.set(KEY3, NEW_VAL3)
         self.r.set(KEY4, NEW_VAL4)
 
-        # Check state
-        expected_state = "SET {k1} {v1};SET {k3} {v3};SET {k4} {v4}"\
+        # Check entire subblock state
+        expected_state = "SET {k1} {v1};SET {k3} {v3};SET {k4} {v4};"\
                          .format(k1=KEY1, v1=NEW_VAL1, k2=KEY2, v2=VAL2, k3=KEY3, v3=NEW_VAL3, k4=KEY4, v4=NEW_VAL4)
         self.assertEqual(self.sbb_data[0]['getset'].get_state_rep(), expected_state)
+
+        # Check individual contract states
+        cr_data = self.r.data
+        state_0 = "SET {} {};".format(KEY1, NEW_VAL1)
+        state_1 = ""
+        state_2 = "SET {} {};SET {} {};".format(KEY3, NEW_VAL3, KEY4, NEW_VAL4)
+        self.assertEqual(state_0, cr_data['getset'].get_state_for_idx(0))
+        self.assertEqual(state_0, cr_data.get_state_for_idx(0))
+        self.assertEqual(state_1, cr_data['getset'].get_state_for_idx(1))
+        self.assertEqual(state_1, cr_data.get_state_for_idx(1))
+        self.assertEqual(state_2, cr_data['getset'].get_state_for_idx(2))
+        self.assertEqual(state_2, cr_data.get_state_for_idx(2))
 
     def test_all_keys_and_values_for_basic_hset_hget(self):
         KEY1, KEY2 = 'KEY1', 'KEY2'

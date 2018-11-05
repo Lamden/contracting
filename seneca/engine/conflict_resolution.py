@@ -33,12 +33,19 @@ class CRDataBase(metaclass=CRDataMeta):
         """
         raise NotImplementedError()
 
-    def get_state_rep(self):
+    def get_state_rep(self) -> str:
         """
         Updates the 'state' list for the changes represented in this data structure. The state list is a list of outputs
         or modifications from every contract.
         """
         raise NotImplementedError()
+
+    def get_state_for_idx(self, contract_idx: int) -> str:
+        """
+        Gets a state representation string for a particular contract index. This should be overwritten by all subclasses
+        that track any sort of state modifications
+        """
+        return ''
 
     def should_rerun(self, contract_idx: int) -> bool:
         """
@@ -67,7 +74,15 @@ class CRDataGetSet(CRDataBase, dict):
         """
         modified_keys = self._get_modified_keys()
         # Need to sort the modified_keys so state output is deterministic
-        return ';'.join('SET {} {}'.format(k, self[k]['mod']) for k in sorted(modified_keys))
+        return ''.join('SET {} {};'.format(k, self[k]['mod']) for k in sorted(modified_keys))
+
+    def get_state_for_idx(self, contract_idx: int) -> str:
+        if contract_idx >= len(self.mods):  # Edge condition, must check array bounds
+            return ''
+
+        mods = self.mods[contract_idx]
+        return ''.join('SET {} {};'.format(k, self[k]['mod']) for k in sorted(mods))
+
 
     def should_rerun(self, contract_idx: int) -> bool:
         if contract_idx >= len(self.mods):  # Check array out of bounds
@@ -228,6 +243,13 @@ class CRDataContainer:
                 container.clear()
             else:
                 raise NotImplementedError("No reset logic implemented for container of type {}".format(type(container)))
+
+    def get_state_for_idx(self, contract_idx: int) -> str:
+        # I assume the values will be iterated over deterministically on all different processes. Is this sane? --davis
+        state_str = ''
+        for obj in self.cr_data.values():
+            state_str += obj.get_state_for_idx(contract_idx)
+        return state_str
 
     def should_rerun(self, contract_idx: int):
         """

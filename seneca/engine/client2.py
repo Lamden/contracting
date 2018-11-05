@@ -31,7 +31,6 @@ class Phase:
 class SenecaClient(SenecaInterface):
 
     def __init__(self, sbb_idx, num_sbb, concurrent_mode=True, loop=None, name=None):
-
         super().__init__()
 
         name = name or self.__class__.__name__
@@ -138,6 +137,7 @@ class SenecaClient(SenecaInterface):
         assert Phase.get_phase_variable(db, key) == self.sbb_index
 
     def submit_contract(self, contract):
+        # TODO -- we may have to disable concurrency code for submission to work (and then turn it back on afterwords)
         self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
             'rt': make_n_tup({
                 'author': contract.sender,
