@@ -95,7 +95,6 @@ class TestCRCommandsBase(TestCase):
         KEY2 = 'key2_that_was_modified'
         cr_cmd1 = self._new_cmd()
         cr_cmd2 = self._new_cmd(contract_idx=1, cr_data=cr_cmd1.data)
-        # cr_cmd1._add_key_to_mod_list(KEY1)
         cr_cmd2._add_key_to_mod_list(KEY2)
 
         # These guys should share the same modification list (since they are from the same sbb idx)
@@ -111,4 +110,3 @@ class TestCRCommandsBase(TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

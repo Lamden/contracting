@@ -22,6 +22,7 @@ class CRDataMeta(type):
 
 class CRDataBase(metaclass=CRDataMeta):
     def __init__(self, master_db: redis.StrictRedis, working_db: redis.StrictRedis):
+        super().__init__()
         self.master, self.working = master_db, working_db
 
     def merge_to_common(self):
@@ -40,6 +41,20 @@ class CRDataBase(metaclass=CRDataMeta):
 
 class CRDataGetSet(CRDataBase, dict):
     NAME = 'getset'
+
+    def merge_to_common(self):
+        raise NotImplementedError()
+
+    def update_state_list(self):
+        raise NotImplementedError()
+
+
+class CRDataHMap(CRDataBase, defaultdict):
+    NAME = 'hm'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.default_factory = dict
 
     def merge_to_common(self):
         raise NotImplementedError()

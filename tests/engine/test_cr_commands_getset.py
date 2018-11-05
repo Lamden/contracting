@@ -103,6 +103,30 @@ class TestCRGetSet(TestCase):
         actual = cr_get(KEY)
         self.assertEqual(VALUE_C, actual)
 
+    def test_basic_set(self):
+        KEY = 'im_a_key'
+        VALUE = b'value_on_master'
+        NEW_VALUE = b'new_value'
+        cr_set = self._new_set()
+        self.master.set(KEY, VALUE)
+
+        cr_set(KEY, NEW_VALUE)
+
+        expected = {'og': VALUE, 'mod': NEW_VALUE}
+        self.assertEqual(expected, cr_set.data['getset'][KEY])
+
+    def test_adds_key_that_does_not_yet_exist(self):
+        KEY = 'im_a_key'
+        VALUE = b'g00d_val'
+        cr_set = self._new_set()
+
+        cr_set(KEY, VALUE)
+
+        expected = {'og': None, 'mod': VALUE}
+        self.assertEqual(expected, cr_set.data['getset'][KEY])
+
+
+
 
 if __name__ == "__main__":
     unittest.main()

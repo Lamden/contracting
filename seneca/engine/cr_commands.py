@@ -37,21 +37,10 @@ class CRCmdBase(metaclass=CRCmdMeta):
         # Append a new set onto the list if a set of modifications does until one exists for this contract index
         while len(all_mods) <= self.contract_idx:
             all_mods.append(set())
-        # if len(all_mods) <= self.contract_idx:
-        #     self.log.debugv("Pushing a new element onto modification list for key <{}>".format(key))
-        #     all_mods.append({key})  # We use a set here for dat good O(1) lookup, and also so we dont have to worry about duplicate keys
 
-        # Otherwise, we need to append it to current list of modifications for this contract
-        # else:
         mods = all_mods[self.contract_idx]
         self.log.debugv("Adding mod key <{}> to mod set <{}>".format(key, mods))
         mods.add(key)
-
-        # Development sanity check. This should NEVER happen (we should be executing contracts sequentially per sbb).
-        # In other words, we should always be adding to the mod list of the latest contract, not a prior one
-        # assert len(self.data['mods']) == self.contract_idx + 1, \
-        #     "DEVELOPER LOGIC ERROR!!! Contract idx {} does not match modifications list of length {}"\
-        #     .format(self.contract_idx, len(self.data['mods']))
 
     def _copy_og_key_if_not_exists(self, key, *args, **kwargs):
         """
@@ -74,9 +63,9 @@ class CRCmdBase(metaclass=CRCmdMeta):
             # type(self)._write(self.working, og_key, val)
             self.copy_key_to_sbb_data(self.master, key)
 
-        # Otherwise, if key not found in common or master layer, complain
+        # Otherwise, if key not found in common or master layer, mark the original as None
         else:
-            raise Exception("Key <{}> not found in Master or common layer!".format(key))
+            self.copy_key_to_sbb_data(None, key)
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError()
@@ -87,10 +76,11 @@ class CRCmdBase(metaclass=CRCmdMeta):
         """
         raise NotImplementedError()
 
-    def copy_key_to_sbb_data(self, db: redis.StrictRedis, key: str):
+    def copy_key_to_sbb_data(self, db: redis.StrictRedis or None, key: str):
         """
         Copies 'key' from the specified to the sub-block specific data
-        :param db: The DB to copy the key from
+        :param db: The DB to copy the key from. If None, it is implied that the key does not exist in common/master, and
+        thus the original value will be set as None
         :param key: The name of the key to copy
         """
         raise NotImplementedError()
@@ -102,7 +92,8 @@ class CRCmdGetSetBase(CRCmdBase):
         return key in self.data['getset']
 
     def copy_key_to_sbb_data(self, db: redis.StrictRedis, key: str):
-        self.data['getset'][key] = {'og': db.get(key), 'mod': None}
+        val = db.get(key) if db else None
+        self.data['getset'][key] = {'og': val, 'mod': None}
 
 
 class CRCmdGet(CRCmdGetSetBase):
