@@ -91,20 +91,11 @@ class TestConflictResolution(TestCase):
         self.assertFalse(self.sbb_data[0].should_rerun(1))
         self.assertFalse(self.sbb_data[0].should_rerun(2))
 
-        # Check merge_to_master
-        cr_data = self.sbb_data[0]
-        cr_data.merge_to_master()
-        self.assertEqual(self.master.get(KEY1), NEW_VAL1)
-        self.assertEqual(self.master.get(KEY2), VAL2)
-        self.assertEqual(self.master.get(KEY3), NEW_VAL3)
-
         # Check state
         expected_state = "SET {k1};b'{v1};SET {k2};b'{v2}SET;{k3};b'{v3}"\
                          .format(k1=KEY1, v1=NEW_VAL1, k2=KEY2, v2=VAL2, k3=KEY3, v3=VAL3)
 
-    def test_merge_to_master(self):
-        # TODO this test is fragile af. make him more robust?
-
+    def test_merge_to_common(self):
         KEY1, VAL1 = 'k1', b'v1'
         KEY2, VAL2 = 'k2', b'v2'
         KEY3, VAL3 = 'k3', b'v3'
@@ -126,8 +117,41 @@ class TestConflictResolution(TestCase):
         self.r.set(KEY3, NEW_VAL3)
         self.r.set(KEY4, NEW_VAL4)
 
-        # Check merge_to_master
+        # Check merge_to_common
         cr_data = self.sbb_data[0]
+        cr_data.merge_to_common()
+        self.assertEqual(self.working.get(KEY1), NEW_VAL1)
+        self.assertEqual(self.working.get(KEY2), None)  # None b/c we never SET KEY2
+        self.assertEqual(self.working.get(KEY3), NEW_VAL3)
+        self.assertEqual(self.working.get(KEY4), NEW_VAL4)
+
+    def test_merge_to_master(self):
+        KEY1, VAL1 = 'k1', b'v1'
+        KEY2, VAL2 = 'k2', b'v2'
+        KEY3, VAL3 = 'k3', b'v3'
+        KEY4, VAL4 = 'k4', b'v4'
+        NEW_VAL1 = b'v1_NEW'
+        NEW_VAL3 = b'v3_NEW'
+        NEW_VAL4 = b'v4_NEW'
+
+        # Seed keys on master
+        self.master.set(KEY1, VAL1)
+        self.master.set(KEY2, VAL2)
+        self.master.set(KEY3, b'val 3 on master that should be ignored in presence of KEY3 on common layer')
+        self.working.set(KEY3, VAL3)
+
+        self.r.set(KEY1, NEW_VAL1)
+        self.r.contract_idx = 2
+        self.r.get(KEY2)  # To trigger a copy to sbb specific layer
+        self.r.contract_idx = 2
+        self.r.set(KEY3, NEW_VAL3)
+        self.r.set(KEY4, NEW_VAL4)
+
+        # First merge_to_common
+        cr_data = self.sbb_data[0]
+        cr_data.merge_to_common()
+
+        # Now check merge_to_master
         cr_data.merge_to_master()
         self.assertEqual(self.master.get(KEY1), NEW_VAL1)
         self.assertEqual(self.master.get(KEY2), VAL2)
@@ -135,8 +159,6 @@ class TestConflictResolution(TestCase):
         self.assertEqual(self.master.get(KEY4), NEW_VAL4)
 
     def test_state_rep(self):
-        # TODO this test is fragile af. make him more robust?
-
         KEY1, VAL1 = 'k1', b'v1'
         KEY2, VAL2 = 'k2', b'v2'
         KEY3, VAL3 = 'k3', b'v3'
@@ -162,6 +184,59 @@ class TestConflictResolution(TestCase):
         expected_state = "SET {k1} {v1};SET {k3} {v3};SET {k4} {v4}"\
                          .format(k1=KEY1, v1=NEW_VAL1, k2=KEY2, v2=VAL2, k3=KEY3, v3=NEW_VAL3, k4=KEY4, v4=NEW_VAL4)
         self.assertEqual(self.sbb_data[0]['getset'].get_state_rep(), expected_state)
+
+    def test_all_keys_and_values_for_basic_hset_hget(self):
+        KEY1, KEY2 = 'KEY1', 'KEY2'
+        FIELD1, VAL1 = 'k1', b'v1'
+        FIELD2, VAL2 = 'k2', b'v2'
+        FIELD3, VAL3 = 'k3', b'v3'
+        NEW_VAL1 = b'v1_NEW'
+        NEW_VAL3 = b'v3_NEW'
+
+        # Seed keys on master
+        self.master.hset(KEY1, FIELD1, VAL1)
+        self.master.hset(KEY1, FIELD2, VAL2)
+        self.master.hset(KEY2, FIELD3, b'val 3 on master that should be ignored in presence of KEY3 on common layer')
+        self.working.hset(KEY2, FIELD3, VAL3)
+
+        self.r.hset(KEY1, FIELD1, NEW_VAL1)
+        self.r.contract_idx = 2
+        self.r.hget(KEY1, FIELD2)  # To trigger a copy to sbb specific layer
+        self.r.contract_idx = 2
+        self.r.hset(KEY2, FIELD3, NEW_VAL3)  # To trigger a copy to sbb specific layer
+
+        # Check the modified and original values
+        hm = self.r.data['hm']
+        k1_expected = {'og': VAL1, 'mod': NEW_VAL1}
+        k2_expected = {'og': VAL2, 'mod': None}
+        k3_expected = {'og': VAL3, 'mod': NEW_VAL3}
+        self.assertEqual(hm[KEY1][FIELD1], k1_expected)
+        self.assertEqual(hm[KEY1][FIELD2], k2_expected)
+        self.assertEqual(hm[KEY2][FIELD3], k3_expected)
+
+        print("Type of key k1: {}".format(self.master.type(KEY1)))
+
+        # Check modifications list
+        expected_mods = {KEY1: {FIELD1}, KEY2: {FIELD3}}
+        self.assertEqual(self.r.data['hm'].mods, expected_mods)
+
+        # Check should_rerun (tinker with common first)
+        # self.working.hset(FIELD1, b'A NEW VALUE HAS ARRIVED')
+        # self.working.hset(FIELD2, b'A NEW VALUE HAS ARRIVED AGAIN')
+        # self.assertTrue(self.sbb_data[0].should_rerun(0))
+        # self.assertFalse(self.sbb_data[0].should_rerun(1))
+        # self.assertFalse(self.sbb_data[0].should_rerun(2))
+
+        # Check merge_to_common
+        # cr_data = self.sbb_data[0]
+        # cr_data.merge_to_common()
+        # self.assertEqual(self.master.get(FIELD1), NEW_VAL1)
+        # self.assertEqual(self.master.get(FIELD2), VAL2)
+        # self.assertEqual(self.master.get(FIELD3), NEW_VAL3)
+
+        # Check state
+        # expected_state = "HNSET {k1} {f1};b'{v1};SET {k2};b'{v2}SET;{k3};b'{v3}"\
+        #                  .format(k1=FIELD1, v1=NEW_VAL1, k2=KEY2, v2=VAL2, k3=KEY3, v3=VAL3)
 
     def test_unimplemented_method_raises_assert(self):
         with self.assertRaises(AssertionError):

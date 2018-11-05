@@ -175,7 +175,7 @@ class CRCmdHGet(CRCmdHMapBase):
     def __call__(self, key, field):
         self._copy_og_key_if_not_exists(key, field)
 
-        # TODO make all this DRYer so you can abstract it like a pro
+        # TODO make all this DRYer so you can abstract like a pro
 
         # First, try and return the local modified key
         mod_val = self.data['hm'][key][field]['mod']

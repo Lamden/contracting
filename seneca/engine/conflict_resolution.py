@@ -27,9 +27,9 @@ class CRDataBase(metaclass=CRDataMeta):
         self.master, self.working = master_db, working_db
         self.mods = []
 
-    def merge_to_master(self):
+    def merge_to_common(self):
         """
-        Merges the subblock specific data to the master layer, rerunning contracts as needed.
+        Merges the subblock specific data to the common layer
         """
         raise NotImplementedError()
 
@@ -55,13 +55,10 @@ class CRDataGetSet(CRDataBase, dict):
     def _get_modified_keys(self):
         return set().union((key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
 
-    def merge_to_master(self):
-        pass
-        # loop over all keys that were modified, copy them over to master
+    def merge_to_common(self):
         modified_keys = self._get_modified_keys()
-        # loop over all keys. for each key, if it exists in the common layer, assume a modification.
         for key in modified_keys:
-            self.master.set(key, self[key]['mod'])
+            self.working.set(key, self[key]['mod'])
 
     def get_state_rep(self) -> str:
         """
@@ -84,6 +81,11 @@ class CRDataGetSet(CRDataBase, dict):
 
         return False
 
+    @classmethod
+    def merge_to_master(cls, working_db: redis.StrictRedis, master_db: redis.StrictRedis, key: str):
+        assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
+        val = working_db.get(key)
+        master_db.set(key, val)
 
     # def get_contract_state(self, ):
 
@@ -97,7 +99,19 @@ class CRDataHMap(CRDataBase, defaultdict):
         super().__init__(*args, **kwargs)
         self.default_factory = dict
 
-    def merge_to_master(self):
+    def _get_modified_keys(self) -> dict:
+        """
+        Returns a dict of sets. Key is key in the hmap, and set is a list of modified fields for that key
+        """
+        mods_dict = defaultdict(set)
+        for key in self:
+            for field in self[key]:
+               if self[key][field]['og'] != self[key][field]['mod']:
+                   mods_dict[key].add(field)
+
+        return mods_dict
+
+    def merge_to_common(self):
         return False  # TODO implement
         raise NotImplementedError()
 
@@ -109,11 +123,20 @@ class CRDataHMap(CRDataBase, defaultdict):
         return False  # TODO implement
         raise NotImplementedError()
 
+    @classmethod
+    def merge_to_master(cls, working_db: redis.StrictRedis, master_db: redis.StrictRedis, key: str):
+        assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
+
+        all_fields = working_db.hkeys(key)
+        for field in all_fields:
+            val = working_db.hget(key, field)
+            master_db.hset(key, field, val)
+
 
 class CRDataDelete(CRDataBase, set):
     NAME = 'del'
 
-    def merge_to_master(self):
+    def merge_to_common(self):
         return False  # TODO implement
         raise NotImplementedError()
 
@@ -132,7 +155,7 @@ class CRDataOperations(CRDataBase, list):
     """
     NAME = 'ops'
 
-    def merge_to_master(self):
+    def merge_to_common(self):
         pass  # TODO implement
         # raise NotImplementedError()
 
@@ -152,7 +175,7 @@ class CRDataOutputs(CRDataBase, list):
     """
     NAME = 'out'
 
-    def merge_to_master(self):
+    def merge_to_common(self):
         return False  # TODO implement
         raise NotImplementedError()
 
@@ -171,7 +194,7 @@ class CRDataOutputs(CRDataBase, list):
 #     """
 #     NAME = 'mods'
 #
-#     def merge_to_master(self):
+#     def merge_to_common(self):
 #         raise NotImplementedError()
 #
 #     def get_state_rep(self):
@@ -210,18 +233,25 @@ class CRDataContainer:
         """
         Returns true if the contract at index 'contract_idx' needs to be rerun. A contract needs to be rerun if any of
         its write operations represent values that have been changed.
-        NOTE: This assumes smart contracts assert on values they have written to
+        NOTE: This assumes smart contracts ALWAYS assert on values they have written to. Under this logic, asserts on
+        read values will not be honored.
         """
         return True in (obj.should_rerun(contract_idx) for obj in self.cr_data.values())
-        # for obj in self.cr_data.values():
-        #     if obj.should_rerun(contract_idx):
-        #         return True
-        #
-        # return False
 
-    def merge_to_master(self):  # TODO should i just call this merge?
+    def merge_to_common(self):  # TODO should i just call this merge?
         for obj in self.cr_data.values():
-            obj.merge_to_master()
+            obj.merge_to_common()
+
+    def merge_to_master(self):
+        for key in self.working_db.keys():
+            t = self.working_db.type(key)
+
+            if t == b'string':
+                CRDataGetSet.merge_to_master(self.working_db, self.master_db, key)
+            elif t == b'hash':
+                CRDataHMap.merge_to_master(self.working_db, self.master_db, key)
+            else:
+                raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, t))
 
     def __getitem__(self, item):
         assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}"\
