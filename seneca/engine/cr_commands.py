@@ -18,6 +18,8 @@ class CRCmdMeta(type):
 
 
 class CRCmdBase(metaclass=CRCmdMeta):
+    DATA_NAME = None
+
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
                  data: CRDataContainer, finalize=False):
         self.log = get_logger("{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
@@ -26,8 +28,9 @@ class CRCmdBase(metaclass=CRCmdMeta):
         self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
 
-    def _add_key_to_mod_list(self, key, *args, cr_data_name=None, **kwargs):
-        assert cr_data_name is not None, "cr_data_name arg required (the name of the CRDataBase subclass)"
+    def _add_key_to_mod_list(self, key, *args, **kwargs):
+        assert self.DATA_NAME is not None, 'DATA_NAME class attribute must be set to a CRDataContainer subclass'
+        cr_data_name = self.DATA_NAME
         self.log.spam("Adding key <{}> to modification list if it does not exist".format(key))
         all_mods = self.data[cr_data_name].mods
 
@@ -94,6 +97,7 @@ class CRCmdBase(metaclass=CRCmdMeta):
 
 
 class CRCmdGetSetBase(CRCmdBase):
+    DATA_NAME = 'getset'
 
     def _db_original_exists(self, db: redis.StrictRedis, key: str) -> bool:
         return db.exists(key)
@@ -105,8 +109,8 @@ class CRCmdGetSetBase(CRCmdBase):
         val = db.get(key) if db else None
         self.data['getset'][key] = {'og': val, 'mod': None}
 
-    def _add_key_to_mod_list(self, key, *args, cr_data_name=None, **kwargs):
-        return super()._add_key_to_mod_list(key, cr_data_name='getset')
+    # def _add_key_to_mod_list(self, key, *args, cr_data_name=None, **kwargs):
+    #     return super()._add_key_to_mod_list(key, cr_data_name='getset')
 
 
 class CRCmdGet(CRCmdGetSetBase):
@@ -145,10 +149,11 @@ class CRCmdSet(CRCmdGetSetBase):
 
 
 class CRCmdHMapBase(CRCmdBase):
-    # Used to delimeter the 'key' and 'field' for storing key-fields in the modifications list
+    # MOD_DELIM is used to delimeter the 'key' and 'field' for storing key-fields in the modifications list
     # (key is the name of the hash table, and field is the field on that hash table)
     # TODO this sketches me out. Can people name their keys in such a way that they can do 'sql injection like' attacks?  -- davis
     MOD_DELIM = '*-*'
+    DATA_NAME = 'hm'
 
     def _sbb_original_exists(self, key: str, field: str) -> bool:
         return key in self.data['hm'][key][field]
