@@ -3,24 +3,6 @@ import functools
 # TODO -- clean this file up
 
 
-class RedisProxy:
-
-    def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
-                 finalize=False):
-        # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
-        self.finalize = finalize
-        self.working_db, self.master_db = working_db, master_db
-        self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
-
-    def __getattr__(self, item):
-        from seneca.engine.cr_commands import CRCmdBase  # To avoid cyclic imports
-        assert item in CRCmdBase.registry, "redis operation {} not implemented for conflict resolution".format(item)
-
-        return CRCmdBase.registry[item](working_db=self.working_db, master_db=self.master_db,
-                                        sbb_idx=self.sbb_idx, contract_idx=self.contract_idx,
-                                        finalize=self.finalize)
-
-
 class RedisOperation:
     def __init__(self, op_name: str, key: str, *args, **kwargs):
         self.op_name, self.key, self.args, self.kwargs = op_name, key, args, kwargs
@@ -49,38 +31,41 @@ class CRDataBase(metaclass=CRDataMeta):
         raise NotImplementedError()
 
 
-class CRDataGetSet(CRDataBase):
+class CRDataGetSet(CRDataBase, dict):
     NAME = 'getset'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.data = {}
 
     def merge_to_common(self):
         pass
 
 
-class CRDataDelete(CRDataBase):
+class CRDataDelete(CRDataBase, set):
     NAME = 'del'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.deleted_keys = set()
 
     def merge_to_common(self):
-        pass
+        raise NotImplementedError()
 
 
-class CRDataOperations(CRDataBase):
+class CRDataOperations(CRDataBase, list):
     NAME = 'ops'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ops = []  # A list of RedisOperation instances
-        self.mods = []  # A list of list of modifications
 
     def merge_to_common(self):
-        pass
+        raise NotImplementedError()
+
+
+class CRDataModifications(CRDataBase, list):
+    NAME = 'mods'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def merge_to_common(self):
+        raise NotImplementedError()
 
 
 class CRDataContainer:
@@ -100,7 +85,34 @@ class CRDataContainer:
     def merge_to_master(self):  # TODO should i just call this merge?
         pass
 
+    def merge_to_common(self):
+        pass
 
-print("CRDataMetaRegistery")
-for k, v in CRDataBase.registry.items():
-    print("{}: {}".format(k, v))
+    def __getitem__(self, item):
+        assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}"\
+                                     .format(item, list(self.cr_data.keys()))
+        return self.cr_data[item]
+
+
+class RedisProxy:
+
+    def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
+                 data: CRDataContainer, finalize=False):
+        # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
+        self.finalize = finalize
+        self.data = data
+        self.working_db, self.master_db = working_db, master_db
+        self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
+
+    def __getattr__(self, item):
+        from seneca.engine.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
+        assert item in CRCmdBase.registry, "redis operation {} not implemented for conflict resolution".format(item)
+
+        return CRCmdBase.registry[item](working_db=self.working_db, master_db=self.master_db,
+                                        sbb_idx=self.sbb_idx, contract_idx=self.contract_idx, data=self.data,
+                                        finalize=self.finalize)
+
+
+# print("CRDataMetaRegistery")
+# for k, v in CRDataBase.registry.items():
+#     print("{}: {}".format(k, v))

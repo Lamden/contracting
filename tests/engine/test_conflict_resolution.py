@@ -24,7 +24,10 @@ class TestConflictResolution(TestCase):
 
     def _set_rp(self, sbb_idx=0, contract_idx=0, finalize=False):
         self.rp = RedisProxy(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
-                             finalize=finalize)
+                             data=self._new_cr_data(sbb_idx, finalize), finalize=finalize)
+
+    def _new_cr_data(self, sbb_idx=0, finalize=False):
+        return CRDataContainer(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
 
     def test_basic_set_get(self):
         KEY1, VAL1 = 'k1', 'v1'

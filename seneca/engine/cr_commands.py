@@ -1,6 +1,6 @@
 import redis
 from seneca.libs.logger import get_logger
-from seneca.engine.conflict_resolution import CRDataGetSet
+from seneca.engine.conflict_resolution import CRDataGetSet, CRDataContainer, CRDataBase
 
 
 class CRCommandMeta(type):
@@ -23,15 +23,12 @@ class CRCmdBase(metaclass=CRCommandMeta):
     MODS_LIST_DELIM = '***'
 
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
-                 finalize=False):
+                 data: CRDataContainer, finalize=False):
         self.log = get_logger("{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
         self.finalize = finalize
+        self.data = data
         self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
-
-        self._sbb_prefix = "sbb_{}:".format(sbb_idx)
-        self._common_prefix = "common:"
-        self._mods_list_key = self._mods_list_key(sbb_idx)
 
     @classmethod
     def get_mods_for_sbb_idx(cls, sbb_idx: int, db: redis.StrictRedis) -> list:
@@ -81,63 +78,55 @@ class CRCmdBase(metaclass=CRCommandMeta):
             .format(self.contract_idx, self.working.llen(self._mods_list_key))
 
     def _copy_og_key_if_not_exists(self, key, *args, **kwargs):
-        og_key = self._sbb_original_key(key)
+        """
+        Copies the key from either master db or common layer (working db) to the sub-block specific layer, if it does
+        not exist already
+        """
+        # If the key already exists, bounce out of this method immediately
+        if self.sbb_original_exists(key):
+            self.log.debugv("Key <{}> already exists in sub-block specific data, thus not recopying".format(key))
+            return
 
-        if not self.working.exists(og_key):
-            # First check the common layer for the key
-            common_key = self._common_key(key)
-            if self.working.exists(common_key):
-                val = type(self)._read(self.working, common_key, *args, **kwargs)
-                self.log.debugv("Copying common key <{}> to sb specific original key <{}> with value <{}>"
-                                .format(common_key, og_key, val))
-                type(self)._write(self.working, og_key, val, *args, **kwargs)
+        # First check the common layer for the key
+        if self.working.exists(key):
+            self.log.debugv("Copying common key <{}> to sb specific data" .format(key))
+            self.copy_key_to_sbb_data(self.working, key)
 
-            # Next, check the Master layer for the key
-            elif self.master.exists(key):
-                val = type(self)._read(self.master, key, *args, **kwargs)
-                self.log.debugv("Copying master key <{}> to sb specific original key <{}> with value <{}>"
-                                .format(key, og_key, val))
-                type(self)._write(self.working, og_key, val)
+        # Next, check the Master layer for the key
+        elif self.master.exists(key):
+            self.log.debugv("Copying master key <{}> to sb specific data" .format(key))
+            # type(self)._write(self.working, og_key, val)
+            self.copy_key_to_sbb_data(self.master, key)
 
-            # Otherwise, if key not found in common or master layer, complain
-            else:
-                raise Exception("Key <{}> not found in Master or common layer!".format(key))
-
-    @classmethod
-    def _mods_list_key(cls, sbb_idx):
-        return "sbb_{}_modifications".format(sbb_idx)
-
-    def _sbb_modified_key(self, key: str):
-        return self._sbb_prefix + 'modified:' + key
-
-    def _sbb_original_key(self, key: str):
-        return self._sbb_prefix + 'original:' + key
-
-    def _common_key(self, key: str):
-        return self._common_prefix + key
+        # Otherwise, if key not found in common or master layer, complain
+        else:
+            raise Exception("Key <{}> not found in Master or common layer!".format(key))
 
     def __call__(self, *args, **kwargs):
         raise NotImplementedError()
 
-    @classmethod
-    def _read(cls, db: redis.StrictRedis, key: str, *args, **kwargs):
+    def sbb_original_exists(self, key) -> bool:
+        """
+        Return True if key exists in the sub-block specific data, and False otherwise.
+        """
         raise NotImplementedError()
 
-    @classmethod
-    def _write(cls, db: redis.StrictRedis, key: str, value, *args, **kwargs):
+    def copy_key_to_sbb_data(self, db: redis.StrictRedis, key: str):
+        """
+        Copies 'key' from the specified to the sub-block specific data
+        :param db: The DB to copy the key from
+        :param key: The name of the key to copy
+        """
         raise NotImplementedError()
 
 
 class CRCmdGetSetBase(CRCmdBase):
-    # DATA_TYPE = CRDataGetSet
 
-    @classmethod
-    def _read(cls, db: redis.StrictRedis, key: str, *args, **kwargs):
-        return db.get(key)
+    def sbb_original_exists(self, key) -> bool:
+        return key in self.data['getset']
 
-    @classmethod
-    def _write(cls, db: redis.StrictRedis, key: str, value, *args, **kwargs):
-        db.set(key, value)
+    def copy_key_to_sbb_data(self, db: redis.StrictRedis, key: str):
+        self.data['getset'][key] = {'og': db.get(key), 'mod': None}
 
 
 class CRCmdGet(CRCmdGetSetBase):
@@ -146,17 +135,15 @@ class CRCmdGet(CRCmdGetSetBase):
     def __call__(self, key):
         self._copy_og_key_if_not_exists(key)
 
-        # First, try and return the local modified (sbb specific) key
-        mod_key = self._sbb_modified_key(key)
-        if self.working.exists(mod_key):
-            self.log.debugv("SBB specific MODIFIED key <{}> found for key named <{}>".format(mod_key, key))
-            return type(self)._read(self.working, mod_key)
+        # First, try and return the local modified key
+        mod_val = self.data['getset'][key]['mod']
+        if mod_val is not None:
+            self.log.debugv("SBB specific MODIFIED key found for key named <{}>".format(key))
+            return mod_val
 
         # Otherwise, default to the local original key
-        og_key = self._sbb_original_key(key)
-        if self.working.exists(og_key):
-            self.log.debugv("SBB specific ORIGINAL key <{}> found for key named <{}>".format(og_key, key))
-            return type(self)._read(self.working, og_key)
+        self.log.debugv("SBB specific ORIGINAL key found for key named <{}>".format(key))
+        return self.data['getset'][key]['og']
 
         # TODO does phase 2 require special logic?
 
@@ -165,14 +152,18 @@ class CRCmdSet(CRCmdGetSetBase):
     COMMAND_NAME = 'set'
 
     def __call__(self, key, value):
+        assert type(value) in (str, bytes), "Attempted to use 'set' with a value that is not str or bytes (val={}). " \
+                                            "This is not supported currently.".format(value)
         self._copy_og_key_if_not_exists(key)
+        if type(value) is str:
+            value = value.encode()
 
         # TODO does phase 2 require special logic?
 
-        # Set modified key
-        mod_key = self._sbb_modified_key(key)
-        type(self)._write(self.working, mod_key, value)
+        self.log.debugv("Setting SBB specific key <{}> to value {}".format(key, value))
+        self.data['getset'][key]['mod'] = value
 
-        self._add_key_to_mod_list(key)
+        # TODO fix mod list and add this line back in
+        # self._add_key_to_mod_list(key)
 
 
