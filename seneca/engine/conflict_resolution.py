@@ -233,14 +233,14 @@ class CRDataContainer:
         self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
                         CRDataBase.registry.items()}
 
-    def reset(self, flush_db=True):
+    def reset(self, reset_db=True):
         """
         Resets all state held by this container.
         """
-        self.log.info("Flushing CRData with flush_db={}".format(flush_db))
-        if flush_db:
+        self.log.debug("Reseting CRData with reset_db={}".format(reset_db))
+        if reset_db:
             self.working_db.flushdb()
-
+            
         for container in self.cr_data.values():
             container.mods.clear()
             if type(container) in (list, set, dict, defaultdict):
