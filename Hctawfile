@@ -1,6 +1,0 @@
-# This file is yaml
-'**/*.py':
-    - './seneca/test.py --path ${FILE}'
-
-'**/*.seneca':
-    - './seneca/test.py --path ${FILE}'
