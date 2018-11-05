@@ -26,11 +26,13 @@ class CRCmdBase(metaclass=CRCmdMeta):
         self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
 
-    def _add_key_to_mod_list(self, key: str):
+    def _add_key_to_mod_list(self, key, *args, cr_data_name=None, **kwargs):
+        assert cr_data_name is not None, "cr_data_name arg required (the name of the CRDataBase subclass)"
         self.log.spam("Adding key <{}> to modification list if it does not exist".format(key))
-        all_mods = self.data['mods']
+        all_mods = self.data[cr_data_name].mods
 
         # Append a new set onto the list if a set of modifications does until one exists for this contract index
+        # TODO we can probly make this more efficient using a hash table where key is contract idx and val is mod set
         while len(all_mods) <= self.contract_idx:
             all_mods.append(set())
 
@@ -102,6 +104,9 @@ class CRCmdGetSetBase(CRCmdBase):
     def _copy_key_to_sbb_data(self, db: redis.StrictRedis, key: str):
         val = db.get(key) if db else None
         self.data['getset'][key] = {'og': val, 'mod': None}
+
+    def _add_key_to_mod_list(self, key, *args, cr_data_name=None, **kwargs):
+        return super()._add_key_to_mod_list(key, cr_data_name='getset')
 
 
 class CRCmdGet(CRCmdGetSetBase):

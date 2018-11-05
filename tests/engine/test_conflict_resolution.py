@@ -70,7 +70,7 @@ class TestConflictResolution(TestCase):
 
         # Check modifications list
         expected_mods = [{KEY1, KEY3}]
-        self.assertEqual(self.rp.data['mods'], expected_mods)
+        self.assertEqual(self.rp.data['getset'].mods, expected_mods)
 
     def test_unimplemented_method_raises_assert(self):
         with self.assertRaises(AssertionError):

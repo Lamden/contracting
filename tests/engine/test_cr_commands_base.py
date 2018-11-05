@@ -19,15 +19,15 @@ class TestCRCommandsBase(TestCase):
         return CRDataContainer(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
 
     def _new_cmd(self, sbb_idx=0, contract_idx=0, cr_data=None, finalize=False):
-        return CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
-                         data=cr_data or self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize))
+        return CRCmdGetSetBase(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
+                               data=cr_data or self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize))
 
     def test_add_one_key_to_mod_list(self):
         KEY = 'key_that_was_modified'
         cr_cmd = self._new_cmd()
         cr_cmd._add_key_to_mod_list(KEY)
 
-        actual_mods = cr_cmd.data['mods']
+        actual_mods = cr_cmd.data['getset'].mods
 
         self.assertEqual(len(actual_mods), 1)
         self.assertEqual({KEY}, actual_mods[0])
@@ -39,7 +39,7 @@ class TestCRCommandsBase(TestCase):
         cr_cmd._add_key_to_mod_list(KEY1)
         cr_cmd._add_key_to_mod_list(KEY2)
 
-        actual_mods = cr_cmd.data['mods']
+        actual_mods = cr_cmd.data['getset'].mods
         expected_mods = [{KEY1, KEY2}]
 
         self.assertEqual(len(actual_mods), 1)
@@ -53,7 +53,7 @@ class TestCRCommandsBase(TestCase):
         cr_cmd._add_key_to_mod_list(KEY1)
         cr_cmd._add_key_to_mod_list(KEY2)
 
-        actual_mods = cr_cmd.data['mods']
+        actual_mods = cr_cmd.data['getset'].mods
         expected_mods = [{KEY1}]
 
         self.assertEqual(len(actual_mods), 1)
@@ -69,8 +69,8 @@ class TestCRCommandsBase(TestCase):
         cr_cmd2._add_key_to_mod_list(KEY2)
 
         # These guys should share the same modification list (since they are from the same sbb idx)
-        self.assertEqual(cr_cmd1.data['mods'], cr_cmd2.data['mods'])
-        actual_mods = cr_cmd1.data['mods']
+        self.assertEqual(cr_cmd1.data['getset'].mods, cr_cmd2.data['getset'].mods)
+        actual_mods = cr_cmd1.data['getset'].mods
 
         self.assertEqual(len(actual_mods), 2)
         self.assertEqual(len(actual_mods[0]), 1)
@@ -85,21 +85,20 @@ class TestCRCommandsBase(TestCase):
         cr_cmd._add_key_to_mod_list(KEY1)
         cr_cmd._add_key_to_mod_list(KEY2)
 
-        actual_mods = cr_cmd.data['mods']
+        actual_mods = cr_cmd.data['getset'].mods
         expected_mods = [{KEY1, KEY2}]
 
         self.assertEqual(actual_mods, expected_mods)
 
     def test_adds_empty_set_for_contract_with_no_mods(self):
-        KEY1 = 'key1_that_was_modified'
         KEY2 = 'key2_that_was_modified'
         cr_cmd1 = self._new_cmd()
         cr_cmd2 = self._new_cmd(contract_idx=1, cr_data=cr_cmd1.data)
         cr_cmd2._add_key_to_mod_list(KEY2)
 
         # These guys should share the same modification list (since they are from the same sbb idx)
-        self.assertEqual(cr_cmd1.data['mods'], cr_cmd2.data['mods'])
-        actual_mods = cr_cmd1.data['mods']
+        self.assertEqual(cr_cmd1.data['getset'].mods, cr_cmd2.data['getset'].mods)
+        actual_mods = cr_cmd1.data['getset'].mods
 
         self.assertEqual(len(actual_mods), 2)
         self.assertEqual(len(actual_mods[0]), 0)

@@ -25,6 +25,7 @@ class CRDataBase(metaclass=CRDataMeta):
     def __init__(self, master_db: redis.StrictRedis, working_db: redis.StrictRedis):
         super().__init__()
         self.master, self.working = master_db, working_db
+        self.mods = []
 
     def get_rerun_set(self) -> set:
         """
@@ -124,22 +125,22 @@ class CRDataOutputs(CRDataBase, list):
         pass
 
 
-class CRDataModifications(CRDataBase, list):
-    """
-    Modifications are stored as a list of sets. The index of each the list corresponds to the index of the contract
-    that invokes modication, and the element itself is a set of modifications (a set of modified keys to be exact)
-    """
-    NAME = 'mods'
-
-    def merge_to_common(self):
-        raise NotImplementedError()
-
-    def update_state_list(self):
-        # There is no need to update state list for this data structure
-        pass
-
-    def get_rerun_set(self) -> set:
-        pass
+# class CRDataModifications(CRDataBase, list):
+#     """
+#     Modifications are stored as a list of sets. The index of each the list corresponds to the index of the contract
+#     that invokes modication, and the element itself is a set of modifications (a set of modified keys to be exact)
+#     """
+#     NAME = 'mods'
+#
+#     def merge_to_common(self):
+#         raise NotImplementedError()
+#
+#     def update_state_list(self):
+#         # There is no need to update state list for this data structure
+#         pass
+#
+#     def get_rerun_set(self) -> set:
+#         pass
 
 
 class CRDataContainer:
@@ -160,6 +161,7 @@ class CRDataContainer:
         Resets all state held by this container.
         """
         for container in self.cr_data.values():
+            container.mods.clear()
             if type(container) in (list, set, dict, defaultdict):
                 container.clear()
             else:
