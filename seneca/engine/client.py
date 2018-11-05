@@ -7,6 +7,7 @@ from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.engine.util import make_n_tup
 from seneca.constants.redis_config import *
+from seneca.engine.conflict_resolution import CRDataStore
 
 class Macros:
     COMMON = '_common'
@@ -33,13 +34,12 @@ class SenecaDatabaseOperations:
         self.master_db = redis.StrictRedis(host='localhost', port=self.port, db=MASTER_DB, password=self.password)
         for db_num in range(self.max_number_workers):
             db_client = redis.StrictRedis(host='localhost', port=self.port, db=db_num+DB_OFFSET, password=self.password)
-            if self.sbb_index == 0:
-                self.reset_db(db_client)
-            self.worker_dbs.append(db_client)
+            cr_data = CRDataStore(working_db=db_client, master_db=self.master_db, sbb_idx=self.sbb_idx)
+            self.worker_dbs.append(cr_data)
         self.active_db = self.master_db
 
-    def reset_db(self, db):
-        db.flushdb()
+    def reset_cr_data(self, data: CRDataStore):
+        data.working_db.flushdb()
         Phase.reset_phase_variables(db)
 
     def update_master_db(self, from_db):
@@ -62,34 +62,34 @@ class SenecaDatabaseOperations:
         self.worker_dbs.append(f_db)
 
     # assuming _execute will use these db_read and db_write for db_operations
-    def db_read(self, db, key):
-        value = db.hget(Macros.COMMON, key)
-        if not value:
-            value = self.master_db.hget(Macros.COMMON, key)
-        return value
-
-    def db_write(self, db, key, value):
-        orig_val = self.db_read(db, key)
-        db.hset(self.executed_key, key, json.dumps({
-            'ori': orig_val,
-            'mod': value
-        }))
-        self.transaction_keys.append(key)
-
-    def get_order_key_lists(self, db, maxlen=100):
-        return [json.loads(l) for l in db.lrange(self.write_list_key, 0, maxlen)]
-
-    def get_state_lists(self, db, maxlen=100):
-        return [json.loads(l) for l in db.lrange(self.state_key, 0, maxlen)]
-
-    def _pre_execution(self):
-        self.transaction_keys = []
-
-    def _post_execution(self):
-        self.active_db.lpush(self.write_list_key, json.dumps({
-            'idx': self.sbb_index,
-            'keys': self.transaction_keys
-        }))
+    # def db_read(self, db, key):
+    #     value = db.hget(Macros.COMMON, key)
+    #     if not value:
+    #         value = self.master_db.hget(Macros.COMMON, key)
+    #     return value
+    #
+    # def db_write(self, db, key, value):
+    #     orig_val = self.db_read(db, key)
+    #     db.hset(self.executed_key, key, json.dumps({
+    #         'ori': orig_val,
+    #         'mod': value
+    #     }))
+    #     self.transaction_keys.append(key)
+    #
+    # def get_order_key_lists(self, db, maxlen=100):
+    #     return [json.loads(l) for l in db.lrange(self.write_list_key, 0, maxlen)]
+    #
+    # def get_state_lists(self, db, maxlen=100):
+    #     return [json.loads(l) for l in db.lrange(self.state_key, 0, maxlen)]
+    #
+    # def _pre_execution(self):
+    #     self.transaction_keys = []
+    #
+    # def _post_execution(self):
+    #     self.active_db.lpush(self.write_list_key, json.dumps({
+    #         'idx': self.sbb_index,
+    #         'keys': self.transaction_keys
+    #     }))
         # self.active_db."sbb_{}".format(self.sbb_index) -> incr(num_txns)
 
 class SenecaContractExecutor:
@@ -123,24 +123,22 @@ class SenecaContractExecutor:
 
 class SenecaClient(SenecaInterface, SenecaDatabaseOperations, SenecaContractExecutor):
 
-    def __init__(self, sbb_idx, num_sbb, concurrent_mode=True,
-                 loop=None, name=None):
+    def __init__(self, sbb_idx, num_sbb, concurrent_mode=True, loop=None):
 
         super().__init__()
 
-        name = name or self.__class__.__name__
+        name = self.__class__.__name__ + "[{}]".format(sbb_idx)
         self.log = get_logger(name)
 
         self.port = get_redis_port()
         self.password = get_redis_password()
 
         self.sbb_index = sbb_idx
-        self.executed_key = '_sbb_{}_executed'.format(sbb_idx)
-        self.write_list_key = '_sbb_{}_write_list'.format(sbb_idx)
-        self.state_key = '_sbb_{}_state'.format(sbb_idx)
-        self.transaction_key = '_sbb_{}_transaction'.format(sbb_idx)
         self.num_sb_builders = num_sbb
         self.concurrent_mode = concurrent_mode
+
+        self.curr_contract_idx = 0
+        self.contract_queue = deque()
 
         self.master_db = None
         self.worker_dbs = []
@@ -183,21 +181,22 @@ class SenecaClient(SenecaInterface, SenecaDatabaseOperations, SenecaContractExec
         return txns
 
     def merge_sub_block(self, db):
-        for ord_no, list_obj in enumerate(self.get_order_key_lists(db)):
-            key_list, sbb_index = list_obj['keys'], list_obj['idx']
-            modified = False
-            for key in key_list:
-                orig_value = db.hget(Macros.COMMON, key)['ori']
-                sbb_orig_value = db.hget(self.executed_key, key)['ori']
-                if sbb_orig_value != orig_value:
-                    modified = True
-                    db.hset(self.executed_key, key, orig_value)
-            if modified:
-                pass
-                # self.run_contract(contract)
-            for key in key_list:
-                mod_value = db.hget(self.executed_key, key)['mod']
-                db.hset(Macros.COMMON, key, mod_value)
+        pass
+        # for ord_no, list_obj in enumerate(self.get_order_key_lists(db)):
+        #     key_list, sbb_index = list_obj['keys'], list_obj['idx']
+        #     modified = False
+        #     for key in key_list:
+        #         orig_value = db.hget(Macros.COMMON, key)['ori']
+        #         sbb_orig_value = db.hget(self.executed_key, key)['ori']
+        #         if sbb_orig_value != orig_value:
+        #             modified = True
+        #             db.hset(self.executed_key, key, orig_value)
+        #     if modified:
+        #         pass
+        #         # self.run_contract(contract)
+        #     for key in key_list:
+        #         mod_value = db.hget(self.executed_key, key)['mod']
+        #         db.hset(Macros.COMMON, key, mod_value)
 
     def synchronize_phase(self, db, key):
         while Phase.get_phase_variable(db, key) < self.num_sb_builders:
