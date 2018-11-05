@@ -1,5 +1,6 @@
 import redis
 from seneca.libs.logger import get_logger
+from seneca.engine.conflict_resolution import CRDataGetSet
 
 
 class CRCommandMeta(type):
@@ -18,7 +19,7 @@ class CRCommandMeta(type):
         return clsobj
 
 
-class CRCommandBase(metaclass=CRCommandMeta):
+class CRCmdBase(metaclass=CRCommandMeta):
     MODS_LIST_DELIM = '***'
 
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
@@ -127,7 +128,9 @@ class CRCommandBase(metaclass=CRCommandMeta):
         raise NotImplementedError()
 
 
-class CRGetSetBase(CRCommandBase):
+class CRCmdGetSetBase(CRCmdBase):
+    # DATA_TYPE = CRDataGetSet
+
     @classmethod
     def _read(cls, db: redis.StrictRedis, key: str, *args, **kwargs):
         return db.get(key)
@@ -137,7 +140,7 @@ class CRGetSetBase(CRCommandBase):
         db.set(key, value)
 
 
-class CRGet(CRGetSetBase):
+class CRCmdGet(CRCmdGetSetBase):
     COMMAND_NAME = 'get'
 
     def __call__(self, key):
@@ -158,7 +161,7 @@ class CRGet(CRGetSetBase):
         # TODO does phase 2 require special logic?
 
 
-class CRSet(CRGetSetBase):
+class CRCmdSet(CRCmdGetSetBase):
     COMMAND_NAME = 'set'
 
     def __call__(self, key, value):

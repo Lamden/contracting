@@ -18,7 +18,7 @@ class TestCRCommandsBase(TestCase):
     def test_get_from_master(self):
         KEY = 'im_a_key'
         VALUE = 'value_on_master'
-        cr_get = CRGet(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
+        cr_get = CRCmdGet(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
         self.master.set(KEY, VALUE)
 
         actual = cr_get(KEY).decode()
@@ -29,7 +29,7 @@ class TestCRCommandsBase(TestCase):
         KEY = 'im_a_key'
         VALUE_M = 'value_on_master'
         VALUE_C = 'value_on_common'
-        cr_get = CRGet(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
+        cr_get = CRCmdGet(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
         self.master.set(KEY, VALUE_M)
         self.working.set(cr_get._common_key(KEY), VALUE_C)
 
@@ -42,7 +42,7 @@ class TestCRCommandsBase(TestCase):
         VALUE_M = 'value_on_master'
         VALUE_C = 'value_on_common'
         VALUE_SBB = 'value_on_sbb'
-        cr_get = CRGet(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
+        cr_get = CRCmdGet(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
         self.master.set(KEY, VALUE_M)
         self.working.set(cr_get._common_key(KEY), VALUE_C)
         self.working.set(cr_get._sbb_modified_key(KEY), VALUE_SBB)
@@ -54,7 +54,7 @@ class TestCRCommandsBase(TestCase):
     def test_get_copies_original_from_master(self):
         KEY = 'im_a_key'
         VALUE_M = 'value_on_master'
-        cr_get = CRGet(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
+        cr_get = CRCmdGet(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
         self.master.set(KEY, VALUE_M)
 
         cr_get(KEY).decode()
@@ -69,7 +69,7 @@ class TestCRCommandsBase(TestCase):
         KEY = 'im_a_key'
         VALUE_M = 'value_on_master'
         VALUE_C = 'value_on_common'
-        cr_get = CRGet(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
+        cr_get = CRCmdGet(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
         self.master.set(KEY, VALUE_M)
         self.working.set(cr_get._common_key(KEY), VALUE_C)
 
