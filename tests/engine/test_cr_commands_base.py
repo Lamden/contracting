@@ -90,6 +90,24 @@ class TestCRCommandsBase(TestCase):
 
         self.assertEqual(actual_mods, expected_mods)
 
+    def test_adds_empty_set_for_contract_with_no_mods(self):
+        KEY1 = 'key1_that_was_modified'
+        KEY2 = 'key2_that_was_modified'
+        cr_cmd1 = self._new_cmd()
+        cr_cmd2 = self._new_cmd(contract_idx=1, cr_data=cr_cmd1.data)
+        # cr_cmd1._add_key_to_mod_list(KEY1)
+        cr_cmd2._add_key_to_mod_list(KEY2)
+
+        # These guys should share the same modification list (since they are from the same sbb idx)
+        self.assertEqual(cr_cmd1.data['mods'], cr_cmd2.data['mods'])
+        actual_mods = cr_cmd1.data['mods']
+
+        self.assertEqual(len(actual_mods), 2)
+        self.assertEqual(len(actual_mods[0]), 0)
+        self.assertEqual(len(actual_mods[1]), 1)
+        self.assertEqual(actual_mods[0], set())
+        self.assertEqual(actual_mods[1], {KEY2})
+
 
 if __name__ == "__main__":
     unittest.main()

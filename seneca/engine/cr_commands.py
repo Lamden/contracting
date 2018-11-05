@@ -34,16 +34,18 @@ class CRCmdBase(metaclass=CRCmdMeta):
         self.log.spam("Adding key <{}> to modification list if it does not exist".format(key))
         all_mods = self.data['mods']
 
-        # Append a new set onto the list if a set of modifications does not exist yet for this contract index
-        if len(all_mods) <= self.contract_idx:
-            self.log.debugv("Pushing a new element onto modification list for key <{}>".format(key))
-            all_mods.append({key})  # We use a set here for dat good O(1) lookup, and also so we dont have to worry about duplicate keys
+        # Append a new set onto the list if a set of modifications does until one exists for this contract index
+        while len(all_mods) <= self.contract_idx:
+            all_mods.append(set())
+        # if len(all_mods) <= self.contract_idx:
+        #     self.log.debugv("Pushing a new element onto modification list for key <{}>".format(key))
+        #     all_mods.append({key})  # We use a set here for dat good O(1) lookup, and also so we dont have to worry about duplicate keys
 
         # Otherwise, we need to append it to current list of modifications for this contract
-        else:
-            mods = all_mods[self.contract_idx]
-            self.log.debugv("Adding mod key <{}> to existing mod set <{}>".format(key, mods))
-            mods.add(key)
+        # else:
+        mods = all_mods[self.contract_idx]
+        self.log.debugv("Adding mod key <{}> to mod set <{}>".format(key, mods))
+        mods.add(key)
 
         # Development sanity check. This should NEVER happen (we should be executing contracts sequentially per sbb).
         # In other words, we should always be adding to the mod list of the latest contract, not a prior one

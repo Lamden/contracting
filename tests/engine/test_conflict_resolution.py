@@ -6,11 +6,6 @@ from unittest import TestCase
 import unittest
 
 
-# DEBUG -- TODO DELETE
-# from seneca.engine.datatypes_base import RObjectMeta
-# print("reads: {}".format(RObjectMeta.))
-# END DEBUG
-
 class TestConflictResolution(TestCase):
 
     def setUp(self):
