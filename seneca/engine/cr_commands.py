@@ -155,8 +155,11 @@ class CRCmdHMapBase(CRCmdBase):
     MOD_DELIM = '*-*'
     DATA_NAME = 'hm'
 
+    def _db_original_exists(self, db: redis.StrictRedis, key: str, field: str) -> bool:
+        return db.hexists(key, field)
+
     def _sbb_original_exists(self, key: str, field: str) -> bool:
-        return key in self.data['hm'][key][field]
+        return key in self.data['hm'] and field in self.data['hm'][key]
 
     def _copy_key_to_sbb_data(self, db: redis.StrictRedis, key: str, field: str):
         val = db.hget(key, field) if db else None
@@ -182,7 +185,7 @@ class CRCmdHGet(CRCmdHMapBase):
 
         # Otherwise, default to the local original key
         self.log.debugv("SBB specific ORIGINAL key found for key named <{}>".format(key))
-        return self.data['getset'][key][field]['og']
+        return self.data['hm'][key][field]['og']
 
 
 class CRCmdHSet(CRCmdHMapBase):
@@ -196,7 +199,7 @@ class CRCmdHSet(CRCmdHMapBase):
             value = value.encode()
 
         self.log.debugv("Setting SBB specific key <{}> to value {}".format(key, value))
-        self.data['getset'][key][field]['mod'] = value
+        self.data['hm'][key][field]['mod'] = value
 
         self._add_key_to_mod_list(self._get_key_field_name(key, field))
 

@@ -27,14 +27,6 @@ class CRDataBase(metaclass=CRDataMeta):
         self.master, self.working = master_db, working_db
         self.mods = []
 
-    def get_rerun_set(self) -> set:
-        """
-        Returns a set of ints, represeting all contracts that need to be rerun as a result of their original reads being
-        modified.
-        :return: A set of integers
-        """
-        raise NotImplementedError()
-
     def merge_to_common(self):
         """
         Merges the subblock specific data to the common layer, rerunning contracts as needed.
@@ -48,14 +40,19 @@ class CRDataBase(metaclass=CRDataMeta):
         """
         raise NotImplementedError()
 
+    def should_rerun(self, contract_idx: int) -> bool:
+        """
+        Returns true if the contract at index 'contract_idx' needs to be rerun. A contract needs to be rerun if any of
+        its write operations represent values that have been changed.
+        NOTE: This assumes smart contracts assert on values they have written to
+        """
+        raise NotImplementedError()
+
 
 class CRDataGetSet(CRDataBase, dict):
     NAME = 'getset'
 
     def merge_to_common(self):
-        raise NotImplementedError()
-
-    def update_state_list(self):
         raise NotImplementedError()
 
     def get_rerun_set(self) -> set:
@@ -75,7 +72,7 @@ class CRDataHMap(CRDataBase, defaultdict):
     def update_state_list(self):
         raise NotImplementedError()
 
-    def get_rerun_set(self) -> set:
+    def should_rerun(self, contract_idx: int) -> bool:
         raise NotImplementedError()
 
 
@@ -88,7 +85,7 @@ class CRDataDelete(CRDataBase, set):
     def update_state_list(self):
         raise NotImplementedError()
 
-    def get_rerun_set(self) -> set:
+    def should_rerun(self, contract_idx: int) -> bool:
         raise NotImplementedError()
 
 
@@ -104,7 +101,7 @@ class CRDataOperations(CRDataBase, list):
     def update_state_list(self):
         raise NotImplementedError()
 
-    def get_rerun_set(self) -> set:
+    def should_rerun(self, contract_idx: int) -> bool:
         raise NotImplementedError()
 
 
@@ -121,8 +118,8 @@ class CRDataOutputs(CRDataBase, list):
     def update_state_list(self):
         raise NotImplementedError()
 
-    def get_rerun_set(self) -> set:
-        pass
+    def should_rerun(self, contract_idx: int) -> bool:
+        return False
 
 
 # class CRDataModifications(CRDataBase, list):
@@ -167,16 +164,18 @@ class CRDataContainer:
             else:
                 raise NotImplementedError("No reset logic implemented for container of type {}".format(type(container)))
 
-    def get_rerun_list(self) -> list:
+    def should_return_contract(self, contract_idx: int):
         """
-        Returns a list of ints, representing all contracts that need to be rerun as a result of their original reads
-        being modified by another sub-block
-        :return: A list of sorted integers
+        Returns true if the contract at index 'contract_idx' needs to be rerun. A contract needs to be rerun if any of
+        its write operations represent values that have been changed.
+        NOTE: This assumes smart contracts assert on values they have written to
         """
-        all_reruns = set()
-        for obj in self.cr_data.values():
-            all_reruns = all_reruns.union(obj.get_rerun_set())
-        return sorted(all_reruns)
+        return True in (obj.should_return() for obj in self.cr_data.values())
+        # for obj in self.cr_data.values():
+        #     if obj.should_rerun(contract_idx):
+        #         return True
+        #
+        # return False
 
     def merge_to_master(self):  # TODO should i just call this merge?
         pass
