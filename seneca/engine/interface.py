@@ -10,8 +10,12 @@ class SenecaInterface(SenecaInterpreter):
     def __init__(self):
         super().__init__()
         if not isinstance(sys.meta_path[2], RedisFinder):
+            self.old_sys_path = sys.meta_path
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
         self.setup()
+
+    def teardown(self):
+        sys.meta_path = self.old_sys_path
 
     def compile_code(self, code_str, scope={}):
         tree, prevalidated = self.parse_ast(code_str, protected_variables=list(scope.keys()))
@@ -33,6 +37,10 @@ class SenecaInterface(SenecaInterpreter):
             assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
             code_obj = self.compile_code(code_str, scope)
             self.set_code(fullname, code_obj, code_str, author, keep_original)
+            concurrent_mode = SenecaInterpreter.concurrent_mode
+            SenecaInterpreter.concurrent_mode = False
+            self.execute(code_obj, scope)
+            SenecaInterpreter.concurrent_mode = concurrent_mode
         except:
             SenecaInterpreter.imports = {}
             raise

@@ -1,95 +1,309 @@
 import redis
-import functools
+from collections import defaultdict
+from typing import List
 # TODO -- clean this file up
+
+
+class RedisOperation:
+    def __init__(self, op_name: str, key: str, *args, **kwargs):
+        self.op_name, self.key, self.args, self.kwargs = op_name, key, args, kwargs
+
+
+class CRDataMeta(type):
+    def __new__(cls, clsname, bases, clsdict):
+        clsobj = super().__new__(cls, clsname, bases, clsdict)
+        if not hasattr(clsobj, 'registry'):
+            clsobj.registry = {}
+
+        # Only add classes that have the 'NAME' field set
+        if 'NAME' in clsdict:
+            clsobj.registry[clsdict['NAME']] = clsobj
+        return clsobj
+
+
+class CRDataBase(metaclass=CRDataMeta):
+    def __init__(self, master_db: redis.StrictRedis, working_db: redis.StrictRedis):
+        super().__init__()
+        self.master, self.working = master_db, working_db
+        self.mods = []
+
+    def merge_to_common(self):
+        """
+        Merges the subblock specific data to the common layer
+        """
+        raise NotImplementedError()
+
+    def get_state_rep(self) -> str:
+        """
+        Updates the 'state' list for the changes represented in this data structure. The state list is a list of outputs
+        or modifications from every contract.
+        """
+        raise NotImplementedError()
+
+    def get_state_for_idx(self, contract_idx: int) -> str:
+        """
+        Gets a state representation string for a particular contract index. This should be overwritten by all subclasses
+        that track any sort of state modifications
+        """
+        return ''
+
+    def should_rerun(self, contract_idx: int) -> bool:
+        """
+        Returns true if the contract at index 'contract_idx' needs to be rerun. A contract needs to be rerun if any of
+        its write operations represent values that have been changed.
+        NOTE: This assumes smart contracts assert on values they have written to
+        """
+        raise NotImplementedError()
+
+
+class CRDataGetSet(CRDataBase, dict):
+    NAME = 'getset'
+
+    def _get_modified_keys(self):
+        return set().union((key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
+
+    def merge_to_common(self):
+        modified_keys = self._get_modified_keys()
+        for key in modified_keys:
+            self.working.set(key, self[key]['mod'])
+
+    def get_state_rep(self) -> str:
+        """
+        Return a representation of all redis DB commands to update to the absolute state in minimum operations
+        :return: A string with all redis command in raw executable form, delimited by semicolons
+        """
+        modified_keys = self._get_modified_keys()
+        # Need to sort the modified_keys so state output is deterministic
+        return ''.join('SET {} {};'.format(k, self[k]['mod']) for k in sorted(modified_keys))
+
+    def get_state_for_idx(self, contract_idx: int) -> str:
+        if contract_idx >= len(self.mods):  # Edge condition, must check array bounds
+            return ''
+
+        mods = self.mods[contract_idx]
+        return ''.join('SET {} {};'.format(k, self[k]['mod']) for k in sorted(mods))
+
+
+    def should_rerun(self, contract_idx: int) -> bool:
+        if contract_idx >= len(self.mods):  # Check array out of bounds
+            return False
+
+        # Return True if the common layer key exists and is different than the original
+        mod_set = self.mods[contract_idx]
+        for mod in self.mods[contract_idx]:
+            if self.working.exists(mod) and self.working.get(mod) != self[mod]['og']:
+                return True
+
+        return False
+
+    @classmethod
+    def merge_to_master(cls, working_db: redis.StrictRedis, master_db: redis.StrictRedis, key: str):
+        assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
+        val = working_db.get(key)
+        master_db.set(key, val)
+
+    # def get_contract_state(self, ):
+
+        # return len(self.mods[contract_idx]) > 0
+
+
+class CRDataHMap(CRDataBase, defaultdict):
+    NAME = 'hm'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.default_factory = dict
+
+    def _get_modified_keys(self) -> dict:
+        """
+        Returns a dict of sets. Key is key in the hmap, and set is a list of modified fields for that key
+        """
+        mods_dict = defaultdict(set)
+        for key in self:
+            for field in self[key]:
+               if self[key][field]['og'] != self[key][field]['mod']:
+                   mods_dict[key].add(field)
+
+        return mods_dict
+
+    def merge_to_common(self):
+        return False  # TODO implement
+        raise NotImplementedError()
+
+    def get_state_rep(self):
+        return False  # TODO implement
+        raise NotImplementedError()
+
+    def should_rerun(self, contract_idx: int) -> bool:
+        return False  # TODO implement
+        raise NotImplementedError()
+
+    @classmethod
+    def merge_to_master(cls, working_db: redis.StrictRedis, master_db: redis.StrictRedis, key: str):
+        assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
+
+        all_fields = working_db.hkeys(key)
+        for field in all_fields:
+            val = working_db.hget(key, field)
+            master_db.hset(key, field, val)
+
+
+class CRDataDelete(CRDataBase, set):
+    NAME = 'del'
+
+    def merge_to_common(self):
+        return False  # TODO implement
+        raise NotImplementedError()
+
+    def get_state_rep(self):
+        return False  # TODO implement
+        raise NotImplementedError()
+
+    def should_rerun(self, contract_idx: int) -> bool:
+        return False  # TODO implement
+        raise NotImplementedError()
+
+
+class CRDataOperations(CRDataBase, list):
+    """
+    CRDataOperations is a list of RedisOperation instances.
+    """
+    NAME = 'ops'
+
+    def merge_to_common(self):
+        pass  # TODO implement
+        # raise NotImplementedError()
+
+    def get_state_rep(self):
+        pass  # TODO implement
+        # raise NotImplementedError()
+
+    def should_rerun(self, contract_idx: int) -> bool:
+        pass  # TODO implement
+        # raise NotImplementedError()
+
+
+class CRDataOutputs(CRDataBase, list):
+    """
+    This structure is a list of tuples. The index of the outer list correspons to the output of the contract with that
+    same index. The tuple itself always has 2 elements, and is of the form [RESULT, OUTPUT], where
+    """
+    NAME = 'out'
+
+    def merge_to_common(self):
+        return False  # TODO implement
+        raise NotImplementedError()
+
+    def get_state_rep(self):
+        return False  # TODO implement
+        raise NotImplementedError()
+
+    def should_rerun(self, contract_idx: int) -> bool:
+        return False
+
+
+# class CRDataModifications(CRDataBase, list):
+#     """
+#     Modifications are stored as a list of sets. The index of each the list corresponds to the index of the contract
+#     that invokes modication, and the element itself is a set of modifications (a set of modified keys to be exact)
+#     """
+#     NAME = 'mods'
+#
+#     def merge_to_common(self):
+#         raise NotImplementedError()
+#
+#     def get_state_rep(self):
+#         # There is no need to update state list for this data structure
+#         pass
+#
+#     def get_rerun_set(self) -> set:
+#         pass
+
+
+class CRDataContainer:
+
+    def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, finalize=False):
+        # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
+        self.finalize = finalize
+        self.working_db, self.master_db = working_db, master_db
+        self.sbb_idx = sbb_idx
+
+        # cr_data holds instances of CRDataBase. The key is the 'NAME' field specified in the CRDataBase subclass
+        # For convenience, all these keys are directly accessible from this CRDataContainer instance (see __getitem__)
+        self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
+                        CRDataBase.registry.items()}
+
+    def reset(self, reset_db=True):
+        """
+        Resets all state held by this container.
+        """
+        self.log.debug("Reseting CRData with reset_db={}".format(reset_db))
+        if reset_db:
+            self.working_db.flushdb()
+            
+        for container in self.cr_data.values():
+            container.mods.clear()
+            if type(container) in (list, set, dict, defaultdict):
+                container.clear()
+            else:
+                raise NotImplementedError("No reset logic implemented for container of type {}".format(type(container)))
+
+    def get_state_for_idx(self, contract_idx: int) -> str:
+        # I assume the values will be iterated over deterministically on all different processes. Is this sane? --davis
+        state_str = ''
+        for obj in self.cr_data.values():
+            state_str += obj.get_state_for_idx(contract_idx)
+        return state_str
+
+    def should_rerun(self, contract_idx: int):
+        """
+        Returns true if the contract at index 'contract_idx' needs to be rerun. A contract needs to be rerun if any of
+        its write operations represent values that have been changed.
+        NOTE: This assumes smart contracts ALWAYS assert on values they have written to. Under this logic, asserts on
+        read values will not be honored.
+        """
+        return True in (obj.should_rerun(contract_idx) for obj in self.cr_data.values())
+
+    def merge_to_common(self):  # TODO should i just call this merge?
+        for obj in self.cr_data.values():
+            obj.merge_to_common()
+
+    def merge_to_master(self):
+        for key in self.working_db.keys():
+            t = self.working_db.type(key)
+
+            if t == b'string':
+                CRDataGetSet.merge_to_master(self.working_db, self.master_db, key)
+            elif t == b'hash':
+                CRDataHMap.merge_to_master(self.working_db, self.master_db, key)
+            else:
+                raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, t))
+
+    def __getitem__(self, item):
+        assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}"\
+                                     .format(item, list(self.cr_data.keys()))
+        return self.cr_data[item]
 
 
 class RedisProxy:
 
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
-                 finalize=False):
+                 data: CRDataContainer, finalize=False):
+        # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
         self.finalize = finalize
-        # TODO: Again, do we need to bind these? Looks like only CRDataStore might need them
+        self.data = data
         self.working_db, self.master_db = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
-
-        self.ds = CRDataStore(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
-                              contract_idx=self.contract_idx)
 
     def __getattr__(self, item):
-        pass
-        # If item is a read, read from master layer if we are not finalizing. Otherwise, read from common layer
-        # if item in RObjectMeta.all_reads:
-        #     if not self.finalize:
-        #         return functools.partial(self.ds.get_master, operation=item)
-        #     else:
-        #         return functools.partial(self.ds.get_common, operation=item)
-        #
-        # # Otherwise, the item is a write operation. If we are not in 'finalize' mode, we should write to our own
-        # # sub-block-specific namespace. Otherwise, if we are in 'finalize' mode, we write to the common layer
-        # elif item in RObjectMeta.all_writes:
-        #     if not self.finalize:
-        #         return functools.partial(self.ds.set_working, operation=item)
-        #     else:
-        #         return functools.partial(self.ds.set_common, operation=item)
-        #
-        # else:
-        #     raise Exception("Redis operation '{}' not specified as either a read or write op! Did you "\
-        #                     "define it in an RObject subclasses' _READ_METHODS or _WRITE_METHODS?".format(item))
+        from seneca.engine.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
+        assert item in CRCmdBase.registry, "redis operation {} not implemented for conflict resolution".format(item)
+
+        return CRCmdBase.registry[item](working_db=self.working_db, master_db=self.master_db,
+                                        sbb_idx=self.sbb_idx, contract_idx=self.contract_idx, data=self.data,
+                                        finalize=self.finalize)
 
 
-class CRDataStore:
-    """
-    ConflictResolutionDataStore
-
-    This class is responsible for interacting with Redis to read and write conflict resolution data
-    """
-
-    def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int=0, contract_idx: int=0):
-        self.working_db, self.master_db = working_db, master_db
-        self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
-
-        self._sbb_prefix = "sbb_{}:".format(sbb_idx)
-        self._common_prefix = "common:"
-        self._mods_key = self._sbb_prefix + 'ordered_mods'  # Key for a list of ordered modifications
-        self._status_key = self._sbb_prefix + 'status'  # Key for a list of tx statuses
-
-        # Create
-
-    def _sbb_prefix_for_key(self, key: str):
-        return self._sbb_prefix + key
-
-    def _common_prefix_for_key(self, key: str):
-        return self._common_prefix + key
-
-    def get_common(self, key, *args, operation=None, **kwargs):
-        common_key = self._common_prefix_for_key(key)
-
-        # First check if the key exists in the common layer on working_db, and return it if so
-        if self.working_db.exists(common_key):
-            return getattr(self.working_db, operation)(common_key, *args, **kwargs)
-
-        # Otherwise, get the key from the master layer
-        else:
-            assert self.master_db.exists(key), "Key {} not found in common layer or Master DB!".format(key)
-            return getattr(self.master_db, operation)(key, *args, **kwargs)
-
-    def set_common(self, key, *args, operation=None, **kwargs):
-        common_key = self._common_prefix_for_key(key)
-        return getattr(self.working_db, operation)(common_key, *args, **kwargs)
-
-    def get_master(self, key, *args, operation=None, **kwargs):
-        return getattr(self.master_db, operation)(key, *args, **kwargs)
-
-    def set_master(self, key, *args, operation=None, **kwargs):
-        return getattr(self.master_db, operation)(key, *args, **kwargs)
-
-    def set_working(self, key, *args, operation=None, **kwargs):
-        working_key = self._sbb_prefix_for_key(key)
-        return getattr(self.working_db, operation)(working_key, *args, **kwargs)
-        # TODO add this to list of modifications
-
-    def get_working(self, key, *args, operation=None, **kwargs):
-        working_key = self._sbb_prefix_for_key(key)
-        return getattr(self.working_db, operation)(working_key, *args, **kwargs)
-
-
+# print("CRDataMetaRegistery")
+# for k, v in CRDataBase.registry.items():
+#     print("{}: {}".format(k, v))

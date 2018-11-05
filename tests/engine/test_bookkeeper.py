@@ -3,6 +3,7 @@ from seneca.engine.book_keeper import BookKeeper
 from unittest.mock import patch
 from multiprocessing import Process
 import threading, unittest
+from seneca.engine.conflict_resolution import CRDataContainer
 
 
 class TestBookKeeper(TestCase):
@@ -10,9 +11,10 @@ class TestBookKeeper(TestCase):
     def _build_info_dict(self, sbb_idx=0, contract_idx=0, master_db='', working_db=''):
         master_db = master_db or 'some placeholder that irl would be a redis client cursor'
         working_db = working_db or 'another placeholder that irl would be a redis client cursor'
+        data = CRDataContainer(working_db=working_db, master_db=master_db, sbb_idx=sbb_idx, finalize=False)
 
         info = {'sbb_idx': sbb_idx, 'contract_idx': contract_idx, 'master_db': master_db,
-                'working_db': working_db}
+                'working_db': working_db, 'data': data}
         return info
 
     def test_set_and_get_info(self):
