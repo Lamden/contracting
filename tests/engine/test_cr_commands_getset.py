@@ -85,7 +85,7 @@ class TestCRGetSet(TestCase):
 
         cr_get(KEY)  # calling get should trigger the key to be copied to the SBB specific layer
 
-        self.assertTrue(cr_get.sbb_original_exists(KEY))
+        self.assertTrue(cr_get._sbb_original_exists(KEY))
         self.assertEqual(cr_get.data['getset'][KEY], {'og': VALUE_M, 'mod': None})
 
     def test_get_copies_original_from_common(self):
@@ -98,7 +98,7 @@ class TestCRGetSet(TestCase):
 
         cr_get(KEY)  # calling get should trigger the key to be copied to the SBB specific layer
 
-        self.assertTrue(cr_get.sbb_original_exists(KEY))
+        self.assertTrue(cr_get._sbb_original_exists(KEY))
 
         actual = cr_get(KEY)
         self.assertEqual(VALUE_C, actual)

@@ -1,5 +1,6 @@
 import redis
 from collections import defaultdict
+from typing import List
 # TODO -- clean this file up
 
 
@@ -25,6 +26,14 @@ class CRDataBase(metaclass=CRDataMeta):
         super().__init__()
         self.master, self.working = master_db, working_db
 
+    def get_rerun_set(self) -> set:
+        """
+        Returns a set of ints, represeting all contracts that need to be rerun as a result of their original reads being
+        modified.
+        :return: A set of integers
+        """
+        raise NotImplementedError()
+
     def merge_to_common(self):
         """
         Merges the subblock specific data to the common layer, rerunning contracts as needed.
@@ -48,6 +57,9 @@ class CRDataGetSet(CRDataBase, dict):
     def update_state_list(self):
         raise NotImplementedError()
 
+    def get_rerun_set(self) -> set:
+        raise NotImplementedError()
+
 
 class CRDataHMap(CRDataBase, defaultdict):
     NAME = 'hm'
@@ -62,6 +74,9 @@ class CRDataHMap(CRDataBase, defaultdict):
     def update_state_list(self):
         raise NotImplementedError()
 
+    def get_rerun_set(self) -> set:
+        raise NotImplementedError()
+
 
 class CRDataDelete(CRDataBase, set):
     NAME = 'del'
@@ -70,6 +85,9 @@ class CRDataDelete(CRDataBase, set):
         raise NotImplementedError()
 
     def update_state_list(self):
+        raise NotImplementedError()
+
+    def get_rerun_set(self) -> set:
         raise NotImplementedError()
 
 
@@ -83,6 +101,9 @@ class CRDataOperations(CRDataBase, list):
         raise NotImplementedError()
 
     def update_state_list(self):
+        raise NotImplementedError()
+
+    def get_rerun_set(self) -> set:
         raise NotImplementedError()
 
 
@@ -99,6 +120,9 @@ class CRDataOutputs(CRDataBase, list):
     def update_state_list(self):
         raise NotImplementedError()
 
+    def get_rerun_set(self) -> set:
+        pass
+
 
 class CRDataModifications(CRDataBase, list):
     """
@@ -112,6 +136,9 @@ class CRDataModifications(CRDataBase, list):
 
     def update_state_list(self):
         # There is no need to update state list for this data structure
+        pass
+
+    def get_rerun_set(self) -> set:
         pass
 
 
@@ -137,6 +164,17 @@ class CRDataContainer:
                 container.clear()
             else:
                 raise NotImplementedError("No reset logic implemented for container of type {}".format(type(container)))
+
+    def get_rerun_list(self) -> list:
+        """
+        Returns a list of ints, representing all contracts that need to be rerun as a result of their original reads
+        being modified by another sub-block
+        :return: A list of sorted integers
+        """
+        all_reruns = set()
+        for obj in self.cr_data.values():
+            all_reruns = all_reruns.union(obj.get_rerun_set())
+        return sorted(all_reruns)
 
     def merge_to_master(self):  # TODO should i just call this merge?
         pass
