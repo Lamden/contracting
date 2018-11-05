@@ -123,7 +123,7 @@ class SenecaContractExecutor:
         self._post_execution()
 
     def _pre_execution(self):
-        BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=self.contract_idx, master_db=self.master_db, )
+        BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=self.contract_idx, master_db=self.master_db)
 
     def _post_execution(self):
         self.active_db.lpush(self.write_list_key, json.dumps({
