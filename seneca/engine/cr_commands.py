@@ -47,9 +47,9 @@ class CRCmdBase(metaclass=CRCmdMeta):
 
         # Development sanity check. This should NEVER happen (we should be executing contracts sequentially per sbb).
         # In other words, we should always be adding to the mod list of the latest contract, not a prior one
-        assert len(self.data['mods']) == self.contract_idx + 1, \
-            "DEVELOPER LOGIC ERROR!!! Contract idx {} does not match modifications list of length {}"\
-            .format(self.contract_idx, len(self.data['mods']))
+        # assert len(self.data['mods']) == self.contract_idx + 1, \
+        #     "DEVELOPER LOGIC ERROR!!! Contract idx {} does not match modifications list of length {}"\
+        #     .format(self.contract_idx, len(self.data['mods']))
 
     def _copy_og_key_if_not_exists(self, key, *args, **kwargs):
         """

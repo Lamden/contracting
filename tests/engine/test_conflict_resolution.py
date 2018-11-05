@@ -45,43 +45,33 @@ class TestConflictResolution(TestCase):
         self.assertEqual(actual, NEW_VAL1)
         self.assertEqual(self.rp.get(KEY2).decode(), VAL2)
 
-        print("All master keys: {}".format(self.master.keys()))
-        print("All working keys: {}".format(self.working.keys()))
-
     def test_all_keys_and_values_for_basic_set_get(self):
         # TODO this test is fragile af. make him more robust?
 
-        KEY1, VAL1 = 'k1', 'v1'
-        KEY2, VAL2 = 'k2', 'v2'
-        NEW_VAL1 = 'v1_NEW'
+        KEY1, VAL1 = 'k1', b'v1'
+        KEY2, VAL2 = 'k2', b'v2'
+        KEY3, VAL3 = 'k3', b'v3'
+        NEW_VAL1 = b'v1_NEW'
+        NEW_VAL3 = b'v3_NEW'
 
         # Seed keys on master
         self.master.set(KEY1, VAL1)
         self.master.set(KEY2, VAL2)
+        self.master.set(KEY3, b'val 3 on master that should be ignored in presence of KEY3 on common layer')
+        self.working.set(KEY3, VAL3)
 
         self.rp.set(KEY1, NEW_VAL1)
-        self.rp.get(KEY2)
+        self.rp.get(KEY2)  # To trigger a copy to sbb specific layer
+        self.rp.set(KEY3, NEW_VAL3)  # To trigger a copy to sbb specific layer
 
-        expected_master = {'k1': VAL1, 'k2': VAL2}
-        expected_working_keys = {'sbb_0_modifications': KEY1, 'sbb_0:modified:k1': NEW_VAL1, 'sbb_0:original:k2': VAL2,
-                                 'sbb_0:original:k1': VAL1}
-
-        print("All master keys: {}".format(self.master.keys()))
-        print("All working keys: {}".format(self.working.keys()))
-
-        for key, value in expected_master.items():
-            actual_value = self.master.get(key).decode()
-            self.assertEqual(value, actual_value)
-
-        for key, value in expected_working_keys.items():
-            # We must deal with the modification list separately
-            if key == 'sbb_0_modifications':
-                self.assertEqual(self.working.llen(key), 1)
-                self.assertEqual(self.working.lindex(key, 0).decode(), value)
-                continue
-
-            actual_value = self.working.get(key).decode()
-            self.assertEqual(value, actual_value)
+        # Check the modified and original values
+        getset = self.rp.data['getset']
+        k1_expected = {'og': VAL1, 'mod': NEW_VAL1}
+        k2_expected = {'og': VAL2, 'mod': None}
+        k3_expected = {'og': VAL3, 'mod': NEW_VAL3}
+        self.assertEqual(getset[KEY1], k1_expected)
+        self.assertEqual(getset[KEY2], k2_expected)
+        self.assertEqual(getset[KEY3], k3_expected)
 
     def test_unimplemented_method_raises_assert(self):
         with self.assertRaises(AssertionError):
