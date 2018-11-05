@@ -41,28 +41,37 @@ class CRDataGetSet(CRDataBase, dict):
 class CRDataDelete(CRDataBase, set):
     NAME = 'del'
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def merge_to_common(self):
         raise NotImplementedError()
 
 
 class CRDataOperations(CRDataBase, list):
+    """
+    CRDataOperations is basically a list of RedisOperation instances.
+    """
     NAME = 'ops'
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def merge_to_common(self):
+        raise NotImplementedError()
+
+
+class CRDataOutputs(CRDataBase, list):
+    """
+    This structure is a list of tuples. The index of the outer list correspons to the output of the contract with that
+    same index. The tuple itself always has 2 elements, and is of the form [RESULT, OUTPUT], where
+    """
+    NAME = 'out'
 
     def merge_to_common(self):
         raise NotImplementedError()
 
 
 class CRDataModifications(CRDataBase, list):
+    """
+    Modifications are stored as a list of sets. The index of each the list corresponds to the index of the contract
+    that invokes modication, and the element itself is a set of modifications (a set of modified keys to be exact)
+    """
     NAME = 'mods'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
     def merge_to_common(self):
         raise NotImplementedError()

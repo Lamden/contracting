@@ -15,108 +15,78 @@ class TestCRCommandsBase(TestCase):
         self.master.flushdb()
         self.working.flushdb()
 
+    def _new_cr_data(self, sbb_idx=0, finalize=False):
+        return CRDataContainer(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
+
+    def _new_cmd(self, sbb_idx=0, contract_idx=0, cr_data=None, finalize=False):
+        return CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
+                         data=cr_data or self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize))
+
     def test_add_one_key_to_mod_list(self):
         KEY = 'key_that_was_modified'
-        cr_cmd = CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
+        cr_cmd = self._new_cmd()
         cr_cmd._add_key_to_mod_list(KEY)
 
-        mods_key = cr_cmd._mods_list_key
-        actual_mods = self.working.lindex(mods_key, 0).decode()
+        actual_mods = cr_cmd.data['mods']
 
-        self.assertEqual(self.working.llen(mods_key), 1)
-        self.assertEqual(KEY, actual_mods)
-
-    def test_diff_sublocks_diff_mod_keys(self):
-        cr_cmd1 = CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
-        cr_cmd2 = CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=1, contract_idx=0)
-
-        self.assertNotEqual(cr_cmd1._mods_list_key, cr_cmd2._mods_list_key)
+        self.assertEqual(len(actual_mods), 1)
+        self.assertEqual({KEY}, actual_mods[0])
 
     def test_add_many_key_to_mod_list(self):
         KEY1 = 'key1_that_was_modified'
         KEY2 = 'key2_that_was_modified'
-        cr_cmd = CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
+        cr_cmd = self._new_cmd()
         cr_cmd._add_key_to_mod_list(KEY1)
         cr_cmd._add_key_to_mod_list(KEY2)
 
-        mods_key = cr_cmd._mods_list_key
-        actual_mods = self.working.lindex(mods_key, 0).decode()
-        expected_mods = KEY1 + CRCmdBase.MODS_LIST_DELIM + KEY2
+        actual_mods = cr_cmd.data['mods']
+        expected_mods = [{KEY1, KEY2}]
 
-        self.assertEqual(self.working.llen(mods_key), 1)
+        self.assertEqual(len(actual_mods), 1)
+        self.assertEqual(len(actual_mods[0]), 2)
         self.assertEqual(actual_mods, expected_mods)
 
     def test_same_keys_to_mod_list(self):
         KEY1 = 'key1_that_was_modified'
         KEY2 = 'key1_that_was_modified'
-        cr_cmd = CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
+        cr_cmd = self._new_cmd()
         cr_cmd._add_key_to_mod_list(KEY1)
         cr_cmd._add_key_to_mod_list(KEY2)
 
-        mods_key = cr_cmd._mods_list_key
-        actual_mods = self.working.lindex(mods_key, 0).decode()
-        expected_mods = KEY1
+        actual_mods = cr_cmd.data['mods']
+        expected_mods = [{KEY1}]
 
-        self.assertEqual(self.working.llen(mods_key), 1)
+        self.assertEqual(len(actual_mods), 1)
+        self.assertEqual(len(actual_mods[0]), 1)
         self.assertEqual(actual_mods, expected_mods)
 
     def test_add_keys_from_different_contract(self):
         KEY1 = 'key1_that_was_modified'
         KEY2 = 'key2_that_was_modified'
-        cr_cmd1 = CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
-        cr_cmd2 = CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=1)
+        cr_cmd1 = self._new_cmd()
+        cr_cmd2 = self._new_cmd(contract_idx=1, cr_data=cr_cmd1.data)
         cr_cmd1._add_key_to_mod_list(KEY1)
         cr_cmd2._add_key_to_mod_list(KEY2)
 
-        mods_key1 = cr_cmd1._mods_list_key
-        mods_key2 = cr_cmd2._mods_list_key
+        # These guys should share the same modification list (since they are from the same sbb idx)
+        self.assertEqual(cr_cmd1.data['mods'], cr_cmd2.data['mods'])
+        actual_mods = cr_cmd1.data['mods']
 
-        # They should have the same key for mods list (since they are in the same sb they are writing to same list)
-        self.assertEqual(mods_key1, mods_key2)
-
-        actual_mods1 = self.working.lindex(mods_key1, 0).decode()
-        actual_mods2 = self.working.lindex(mods_key2, 1).decode()
-
-        self.assertEqual(self.working.llen(mods_key1), 2)
-        self.assertEqual(actual_mods1, KEY1)
-        self.assertEqual(actual_mods2, KEY2)
-
-    def test_get_mods_for_sbb_idx_one_key(self):
-        KEY = 'key_that_was_modified'
-        cr_cmd = CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
-        cr_cmd._add_key_to_mod_list(KEY)
-
-        actual_mods = CRCmdBase.get_mods_for_sbb_idx(0, self.working)
-        expected_mods = [[KEY]]
-
-        self.assertEqual(actual_mods, expected_mods)
+        self.assertEqual(len(actual_mods), 2)
+        self.assertEqual(len(actual_mods[0]), 1)
+        self.assertEqual(len(actual_mods[1]), 1)
+        self.assertEqual(actual_mods[0], {KEY1})
+        self.assertEqual(actual_mods[1], {KEY2})
 
     def test_get_mods_for_sbb_idx_many_keys(self):
         KEY1 = 'key1_that_was_modified'
         KEY2 = 'key2_that_was_modified'
-        cr_cmd = CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
+        cr_cmd = self._new_cmd()
         cr_cmd._add_key_to_mod_list(KEY1)
         cr_cmd._add_key_to_mod_list(KEY2)
 
-        actual_mods = CRCmdBase.get_mods_for_sbb_idx(0, self.working)
-        expected_mods = [[KEY1, KEY2]]
-
-        self.assertEqual(actual_mods, expected_mods)
-
-    def test_get_mods_for_sbb_idx_differnt_contracts_many_keys(self):
-        KEY1 = 'key1_that_was_modified'
-        KEY2 = 'key2_that_was_modified'
-        KEY3 = 'key3_that_was_modified'
-        KEY4 = 'key4_that_was_modified'
-        cr_cmd1 = CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=0)
-        cr_cmd2 = CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=0, contract_idx=1)
-        cr_cmd1._add_key_to_mod_list(KEY1)
-        cr_cmd1._add_key_to_mod_list(KEY2)
-        cr_cmd2._add_key_to_mod_list(KEY3)
-        cr_cmd2._add_key_to_mod_list(KEY4)
-
-        actual_mods = CRCmdBase.get_mods_for_sbb_idx(0, self.working)
-        expected_mods = [[KEY1, KEY2], [KEY3, KEY4]]
+        actual_mods = cr_cmd.data['mods']
+        expected_mods = [{KEY1, KEY2}]
 
         self.assertEqual(actual_mods, expected_mods)
 

@@ -5,7 +5,7 @@ from unittest import TestCase
 import unittest
 
 
-class TestCRCommandsBase(TestCase):
+class TestCRGetSet(TestCase):
 
     def setUp(self):
         self.master = redis.StrictRedis(host='localhost', port=6379, db=0)

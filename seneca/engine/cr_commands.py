@@ -3,7 +3,7 @@ from seneca.libs.logger import get_logger
 from seneca.engine.conflict_resolution import CRDataGetSet, CRDataContainer, CRDataBase
 
 
-class CRCommandMeta(type):
+class CRCmdMeta(type):
     def __new__(cls, clsname, bases, clsdict):
         clsobj = super().__new__(cls, clsname, bases, clsdict)
         if not hasattr(clsobj, 'registry'):
@@ -19,7 +19,7 @@ class CRCommandMeta(type):
         return clsobj
 
 
-class CRCmdBase(metaclass=CRCommandMeta):
+class CRCmdBase(metaclass=CRCmdMeta):
     MODS_LIST_DELIM = '***'
 
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
@@ -30,52 +30,26 @@ class CRCmdBase(metaclass=CRCommandMeta):
         self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
 
-    @classmethod
-    def get_mods_for_sbb_idx(cls, sbb_idx: int, db: redis.StrictRedis) -> list:
-        """
-        Gets a list of all modifications for a particular sub block. Returns a list of lists, where each nested list
-        i represents a list of keys modified by contract i.
-        For example:
-        [[key1, key2], [key3], [key2], ...]
-        can be interpreter as contract 0 modifying (key1, key2), contract 1 modifying (key3), ect ect
-        """
-        # TODO -- optimize modification list storage
-        # this is O(n + m). where n is total contracts in this block, and m is avg # of mod keys per contract.
-        # Feels very inefficient. Is there a more optimal approach? --davis
-        mod_list_key = cls._mods_list_key(sbb_idx)
-        all_mods = []
-        for i in range(db.llen(mod_list_key)):
-            mods_str = db.lindex(mod_list_key, i).decode()
-            all_mods.append(mods_str.split(cls.MODS_LIST_DELIM))
-
-        return all_mods
-
     def _add_key_to_mod_list(self, key: str):
-        self.log.spam("Adding key <{}> to modification list".format(key))
+        self.log.spam("Adding key <{}> to modification list if it does not exist".format(key))
+        all_mods = self.data['mods']
 
-        # Push a new element onto the list of a string of modifications does not exists yet for this contract
-        if self.working.llen(self._mods_list_key) <= self.contract_idx:
+        # Append a new set onto the list if a set of modifications does not exist yet for this contract index
+        if len(all_mods) <= self.contract_idx:
             self.log.debugv("Pushing a new element onto modification list for key <{}>".format(key))
-            self.working.rpush(self._mods_list_key, key)
+            all_mods.append({key})  # We use a set here for dat good O(1) lookup, and also so we dont have to worry about duplicate keys
 
         # Otherwise, we need to append it to current list of modifications for this contract
         else:
-            mods = self.working.lindex(self._mods_list_key, self.contract_idx).decode()
-
-            # Do not record this key if it is already in the list of modifications
-            if key in mods:
-                self.log.debugv("Key <{}> already in existing mods <{}>. Skipping.".format(key, mods))
-                return
-
-            self.log.debugv("Adding mod key <{}> to existing mods <{}>".format(key, mods))
-            mods += self.MODS_LIST_DELIM + key
-            self.working.lset(self._mods_list_key, self.contract_idx, mods)
+            mods = all_mods[self.contract_idx]
+            self.log.debugv("Adding mod key <{}> to existing mod set <{}>".format(key, mods))
+            mods.add(key)
 
         # Development sanity check. This should NEVER happen (we should be executing contracts sequentially per sbb).
         # In other words, we should always be adding to the mod list of the latest contract, not a prior one
-        assert self.working.llen(self._mods_list_key) == self.contract_idx + 1, \
+        assert len(self.data['mods']) == self.contract_idx + 1, \
             "DEVELOPER LOGIC ERROR!!! Contract idx {} does not match modifications list of length {}"\
-            .format(self.contract_idx, self.working.llen(self._mods_list_key))
+            .format(self.contract_idx, len(self.data['mods']))
 
     def _copy_og_key_if_not_exists(self, key, *args, **kwargs):
         """
