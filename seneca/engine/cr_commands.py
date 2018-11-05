@@ -96,6 +96,24 @@ class CRCmdBase(metaclass=CRCmdMeta):
         raise NotImplementedError()
 
 
+class CRCmdExists(CRCmdBase):
+    COMMAND_NAME = 'exists'
+
+    def __call__(self, key):
+        # TODO this could be made more modular. Current implementation will not scale well --davis
+        # First check if key exists in getset
+        if key in self.data['getset']:
+            return True
+        # Next check if key is in HMap
+        if key in self.data['hm']:
+            return True
+        # Then check if it exists in the common layer...
+        if self.working.exists(key):
+            return True
+        # Then finally, check if it exists in the master layer
+        return self.master.exists(key)
+
+
 class CRCmdGetSetBase(CRCmdBase):
     DATA_NAME = 'getset'
 

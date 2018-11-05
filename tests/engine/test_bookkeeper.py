@@ -39,6 +39,5 @@ class TestBookKeeper(TestCase):
         #         print("Got key: {}".format(BookKeeper._get_key()))
 
 
-
 if __name__ == '__main__':
     unittest.main()

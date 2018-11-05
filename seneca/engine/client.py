@@ -126,11 +126,7 @@ class SenecaContractExecutor:
         BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=self.contract_idx, master_db=self.master_db)
 
     def _post_execution(self):
-        self.active_db.lpush(self.write_list_key, json.dumps({
-            'idx': self.sbb_index,
-            'keys': self.transaction_keys
-        }))
-        self.active_db."sbb_{}".format(self.sbb_index) -> incr(num_txns)
+        BookKeeper
 
 class SenecaClient(SenecaInterface, SenecaDatabaseOperations, SenecaContractExecutor):
 
