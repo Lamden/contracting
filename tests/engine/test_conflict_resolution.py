@@ -73,6 +73,10 @@ class TestConflictResolution(TestCase):
         self.assertEqual(getset[KEY2], k2_expected)
         self.assertEqual(getset[KEY3], k3_expected)
 
+        # Check modifications list
+        expected_mods = [{KEY1, KEY3}]
+        self.assertEqual(self.rp.data['mods'], expected_mods)
+
     def test_unimplemented_method_raises_assert(self):
         with self.assertRaises(AssertionError):
             self.rp.this_is_not_implemented('some_key')

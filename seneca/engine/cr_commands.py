@@ -137,7 +137,4 @@ class CRCmdSet(CRCmdGetSetBase):
         self.log.debugv("Setting SBB specific key <{}> to value {}".format(key, value))
         self.data['getset'][key]['mod'] = value
 
-        # TODO fix mod list and add this line back in
-        # self._add_key_to_mod_list(key)
-
-
+        self._add_key_to_mod_list(key)
