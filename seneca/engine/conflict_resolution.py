@@ -1,5 +1,5 @@
 import redis
-import functools
+from collections import defaultdict
 # TODO -- clean this file up
 
 
@@ -30,18 +30,31 @@ class CRDataBase(metaclass=CRDataMeta):
         """
         raise NotImplementedError()
 
+    def update_state_list(self):
+        """
+        Updates the 'state' list for the changes represented in this data structure. The state list is a list of outputs
+        or modifications from every contract.
+        """
+        raise NotImplementedError()
+
 
 class CRDataGetSet(CRDataBase, dict):
     NAME = 'getset'
 
     def merge_to_common(self):
-        pass
+        raise NotImplementedError()
+
+    def update_state_list(self):
+        raise NotImplementedError()
 
 
 class CRDataDelete(CRDataBase, set):
     NAME = 'del'
 
     def merge_to_common(self):
+        raise NotImplementedError()
+
+    def update_state_list(self):
         raise NotImplementedError()
 
 
@@ -52,6 +65,9 @@ class CRDataOperations(CRDataBase, list):
     NAME = 'ops'
 
     def merge_to_common(self):
+        raise NotImplementedError()
+
+    def update_state_list(self):
         raise NotImplementedError()
 
 
@@ -65,6 +81,9 @@ class CRDataOutputs(CRDataBase, list):
     def merge_to_common(self):
         raise NotImplementedError()
 
+    def update_state_list(self):
+        raise NotImplementedError()
+
 
 class CRDataModifications(CRDataBase, list):
     """
@@ -76,6 +95,10 @@ class CRDataModifications(CRDataBase, list):
     def merge_to_common(self):
         raise NotImplementedError()
 
+    def update_state_list(self):
+        # There is no need to update state list for this data structure
+        pass
+
 
 class CRDataContainer:
 
@@ -86,10 +109,19 @@ class CRDataContainer:
         self.sbb_idx = sbb_idx
 
         # cr_data holds instances of CRDataBase. The key is the 'NAME' field specified in the CRDataBase subclass
+        # For convenience, all these keys are directly accessible from this CRDataContainer instance (see __getitem__)
         self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
                         CRDataBase.registry.items()}
 
-        # TODO WHY DO WE NEED WORKING DB? CUZ THATS WHERE WE STORE THE COMMON LAYER. SBB SPECIFIC IN PYTHON MEMORY
+    def reset(self):
+        """
+        Resets all state held by this container.
+        """
+        for container in self.cr_data.values():
+            if type(container) in (list, set, dict, defaultdict):
+                container.clear()
+            else:
+                raise NotImplementedError("No reset logic implemented for container of type {}".format(type(container)))
 
     def merge_to_master(self):  # TODO should i just call this merge?
         pass
