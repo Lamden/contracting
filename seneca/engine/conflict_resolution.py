@@ -227,7 +227,7 @@ class CRDataContainer:
 
         # Add empty elements until run_results is the appropriate size
         if contract_idx >= len(self.run_results):
-            for _ in range(contract_idx - len(self.run_results) - 1):
+            for _ in range(contract_idx + 1 - len(self.run_results)):
                 self.run_results.append('')
 
         self.run_results[contract_idx] = result

@@ -115,7 +115,7 @@ class SenecaClient(SenecaInterface):
         except Exception as e:
             self.log.warning("Contract failed with error: {} \ncontract obj: {}".format(e, contract))
             # TODO can we get more specific fail messages?
-            result = 'FAIL'
+            result = 'FAIL' + ' -- ' + str(e)
 
         self.active_db.update_contract_result(self.curr_contract_idx, result)
         self.curr_contract_idx += 1
@@ -124,11 +124,11 @@ class SenecaClient(SenecaInterface):
         pass
 
     def start_sub_block(self):
+        # TODO add input-bag hash (for use in catchup logic)
         if len(self.available_dbs) == 0:
-            # TODO log error as this shouldn't happen in current flow
-            return False
+            raise Exception("Attempted to start a new sub block, but there are no available DBs!")
+
         self.active_db = self.available_dbs.pop(0)
-        # TODO add input-bag hash
         return True
 
     def end_sub_block(self):

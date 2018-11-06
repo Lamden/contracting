@@ -9,7 +9,7 @@ GENESIS_AUTHOR = 'davis'
 XFER_CODE_STR = """ \
 
 from seneca.contracts.currency import transfer
-transfer('stu', 3)
+transfer('{receiver}', {amount})
 """
 
 
@@ -22,12 +22,14 @@ mint('stu', 69)
 
 
 class MockContract:
-    def __init__(self, sender: str, code_str: str):
-        self.sender, self.code_str = sender, code_str
+    def __init__(self, sender: str, code: str, contract_name: str):
+        self.sender, self.code, self.contract_name = sender, code, contract_name
 
 
-def create_currency_tx(sender: str, receiver: str, amount: int):
-    pass
+def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: str='currency'):
+    code = XFER_CODE_STR.format(receiver=receiver, amount=amount)
+    contract = MockContract(sender=sender, code=code, contract_name=contract_name)
+    return contract
 
 
 class TestSenecaClient(TestCase):
@@ -62,8 +64,19 @@ class TestSenecaClient(TestCase):
 
         self.assertEqual(len(client.available_dbs), NUM_CACHES - 1)  # -1 for the current active db
 
-    def test_run_currency_tx(self):
-        pass
+    def test_run_tx_increments_contract_idx(self):
+        client = SenecaClient(sbb_idx=0, num_sbb=4)
+
+        self.assertEqual(client.curr_contract_idx, 0)
+
+        c1 = create_currency_tx('davis', 'stu', 14)
+        c2 = create_currency_tx('stu', 'davis', 40)
+
+        client.run_contract(c1)
+        self.assertEqual(client.curr_contract_idx, 1)
+
+        client.run_contract(c2)
+        self.assertEqual(client.curr_contract_idx, 2)
 
     # def test_run_
 
