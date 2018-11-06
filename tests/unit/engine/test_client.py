@@ -53,7 +53,7 @@ class TestSenecaClient(TestCase):
                     # code_obj = compile(tree, filename='__main__', mode="exec")
                     # SenecaInterpreter.set_code(fullname=contract_name, author='davis', code_obj=code_obj, code_str=code_str, keep_original=True)
 
-            cls._mint()
+            # cls._mint()
 
     def test_setup_dbs(self):
         client = SenecaClient(sbb_idx=0, num_sbb=4)
