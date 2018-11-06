@@ -59,12 +59,13 @@ class TestSenecaClient(TestCase):
         client = SenecaClient(sbb_idx=0, num_sbb=4)
 
         self.assertTrue(client.master_db is not None)
-        self.assertTrue(client.active_db is not None)
+        self.assertTrue(client.active_db is None)
 
-        self.assertEqual(len(client.available_dbs), NUM_CACHES - 1)  # -1 for the current active db
+        self.assertEqual(len(client.available_dbs), NUM_CACHES)
 
     def test_run_tx_increments_contract_idx(self):
         client = SenecaClient(sbb_idx=0, num_sbb=4)
+        client.start_sub_block('A' * 64)
 
         self.assertEqual(client.curr_contract_idx, 0)
 
@@ -76,6 +77,18 @@ class TestSenecaClient(TestCase):
 
         client.run_contract(c2)
         self.assertEqual(client.curr_contract_idx, 2)
+
+    def test_end_subblock(self):
+        client = SenecaClient(sbb_idx=0, num_sbb=4)
+        client.start_sub_block('A' * 64)
+
+        c1 = create_currency_tx('davis', 'stu', 14)
+        c2 = create_currency_tx('stu', 'davis', 40)
+        client.run_contract(c1)
+        client.run_contract(c2)
+
+
+
 
     # def test_run_
 

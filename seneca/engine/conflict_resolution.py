@@ -222,6 +222,9 @@ class CRDataContainer:
         # run_results is a list of strings, representing the return code of contracts (ie 'SUCC', 'FAIL', ..)
         self.run_results = []
 
+        self.merged_to_common = False
+        self.input_hash = None  # Input hash should be set by SenecaClient once a new sub block is started
+
     def update_contract_result(self, contract_idx: int, result: str):
         self.log.debugv("Updating run result for contract idx {} to <{}>".format(contract_idx, result))
 
@@ -263,10 +266,15 @@ class CRDataContainer:
         """
         return True in (obj.should_rerun(contract_idx) for obj in self.cr_data.values())
 
-    def merge_to_common(self):  # TODO should i just call this merge?
+    def merge_to_common(self):
+        assert not self.merged_to_common, "Already merged to common! merge_to_common should only be called once"
+
         for obj in self.cr_data.values():
             obj.merge_to_common()
 
+        self.merged_to_common = True
+
+    # TODO merge_to_master can probly be a class method, we just have to pass in working_db
     def merge_to_master(self):
         from seneca.engine.client import Macros  # to avoid cyclic imports
 

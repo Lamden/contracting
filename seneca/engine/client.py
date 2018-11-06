@@ -7,6 +7,8 @@ from seneca.engine.util import make_n_tup
 from seneca.constants.redis_config import *
 from seneca.engine.conflict_resolution import CRDataContainer
 from seneca.engine.book_keeper import BookKeeper
+from collections import deque
+
 
 class Macros:
     EXECUTION = '_execution'
@@ -50,10 +52,9 @@ class SenecaClient(SenecaInterface):
         self.contract_queue = deque()
 
         self.master_db = None
-        self.available_dbs = []
-        self.pending_dbs = []
         self.active_db = None
-        self.transaction_keys = []
+        self.available_dbs = deque()
+        self.pending_dbs = deque()
 
         self.max_number_workers = NUM_CACHES
 
@@ -65,7 +66,6 @@ class SenecaClient(SenecaInterface):
             db_client = redis.StrictRedis(host='localhost', port=self.port, db=db_num+DB_OFFSET, password=self.password)
             cr_data = CRDataContainer(working_db=db_client, master_db=self.master_db, sbb_idx=self.sbb_idx)
             self.available_dbs.append(cr_data)
-        self.active_db = self.available_dbs.pop()
 
     def reset_cr_data(self, ds: CRDataContainer):
         ds.reset()
@@ -100,6 +100,9 @@ class SenecaClient(SenecaInterface):
         })
 
     def run_contract(self, contract):
+        assert self.active_db, "active_db must be set to run a contract. Did you call start_sub_block?"
+        assert self.active_db.input_hash, "Input hash have been set by start_sub_block...davis u done goofed again"
+
         BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=self.curr_contract_idx, data=self.active_db)
 
         contract_name = contract.contract_name
@@ -124,17 +127,24 @@ class SenecaClient(SenecaInterface):
     def catchup(self):
         pass
 
-    def start_sub_block(self):
+    def has_available_db(self) -> bool:
+        return len(self.available_dbs) > 0
+
+    def start_sub_block(self, input_hash: str):
         # TODO add input-bag hash (for use in catchup logic)
-        if len(self.available_dbs) == 0:
+        if not self.has_available_db():
             raise Exception("Attempted to start a new sub block, but there are no available DBs!")
 
-        self.active_db = self.available_dbs.pop(0)
+        self.active_db = self.available_dbs.popleft()
+        self.active_db.input_hash = input_hash
 
     def end_sub_block(self):
         Phase.incr_phase_variable(self.active_db, Macros.EXECUTION)
         self.pending_dbs.append(self.active_db)
         self.active_db = None  # we really don't care, but might be useful initially for error checking
+
+        # TODO -- now we must merge this sub block to common, once the other subblocks have finished their work
+        pass
 
     def get_next_sub_block(self):
         f_db = self.pending_dbs[0]  # get the first one, but still leave it in the pending_dbs too
@@ -165,7 +175,7 @@ class SenecaClient(SenecaInterface):
 
     def synchronize_phase(self, db, key):
         """
-        Blocks until the db with key {}
+        Blocks until the value of 'key' on db reaches self.num_sb_builders
         :return:
         """
         while Phase.get_phase_variable(db, key) < self.num_sb_builders:
