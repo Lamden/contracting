@@ -124,8 +124,8 @@ class CRDataHMap(CRDataBase, defaultdict):
         mods_dict = defaultdict(set)
         for key in self:
             for field in self[key]:
-               if self[key][field]['og'] != self[key][field]['mod']:
-                   mods_dict[key].add(field)
+                if self[key][field]['og'] != self[key][field]['mod']:
+                    mods_dict[key].add(field)
 
         return mods_dict
 
@@ -268,7 +268,13 @@ class CRDataContainer:
             obj.merge_to_common()
 
     def merge_to_master(self):
+        from seneca.engine.client import Macros  # to avoid cyclic imports
+
         for key in self.working_db.keys():
+            # Ignore Phase keys
+            if key in Macros.ALL_MACROS:
+                continue
+
             t = self.working_db.type(key)
 
             if t == b'string':

@@ -9,9 +9,10 @@ from seneca.engine.conflict_resolution import CRDataContainer
 from seneca.engine.book_keeper import BookKeeper
 
 class Macros:
-    COMMON = '_common'
     EXECUTION = '_execution'
     CONFLICT_RESOLUTION = '_conflict_resolution'
+
+    ALL_MACROS = [EXECUTION, CONFLICT_RESOLUTION]
 
 class Phase:
     @staticmethod
@@ -129,15 +130,14 @@ class SenecaClient(SenecaInterface):
             raise Exception("Attempted to start a new sub block, but there are no available DBs!")
 
         self.active_db = self.available_dbs.pop(0)
-        return True
 
     def end_sub_block(self):
         Phase.incr_phase_variable(self.active_db, Macros.EXECUTION)
         self.pending_dbs.append(self.active_db)
-        self.active_db = None      # we really don't care, but might be useful initially for error checking
+        self.active_db = None  # we really don't care, but might be useful initially for error checking
 
     def get_next_sub_block(self):
-        f_db = self.pending_dbs[0]    # get the first one, but still leave it in the pending_dbs too
+        f_db = self.pending_dbs[0]  # get the first one, but still leave it in the pending_dbs too
         assert Phase.get_phase_variable(f_db, Macros.EXECUTION) == self.num_sb_builders
         self.synchronize_phase(f_db, Macros.EXECUTION)
         self.wait_my_turn(f_db, Macros.CONFLICT_RESOLUTION)
@@ -164,6 +164,10 @@ class SenecaClient(SenecaInterface):
         #         db.hset(Macros.COMMON, key, mod_value)
 
     def synchronize_phase(self, db, key):
+        """
+        Blocks until the db with key {}
+        :return:
+        """
         while Phase.get_phase_variable(db, key) < self.num_sb_builders:
             time.sleep(1) # TODO use better logic here
 

@@ -33,8 +33,7 @@ def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: s
 
 
 class TestSenecaClient(TestCase):
-    CONTRACTS_TO_STORE = {'runtime_test': 'runtime_test.sen.py', 'sample': 'sample.sen.py',
-                          'currency': 'kv_currency.sen.py'}
+    CONTRACTS_TO_STORE = {'currency': 'kv_currency.sen.py'}
 
     @classmethod
     def setUpClass(cls):
