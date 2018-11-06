@@ -93,11 +93,7 @@ class CRDataGetSet(CRDataBase, dict):
         mod_set = self.mods[contract_idx]
         for mod in self.mods[contract_idx]:
             # Get 'latest' value for key mod, pulling first from common layer, than master
-            if self.working.exists(mod):
-                latest_val = self.working.get(mod)
-            else:
-                latest_val = self.master.get(mod)
-
+            latest_val = self.working.get(mod) if self.working.exists(mod) else self.master.get(mod)
             if latest_val != self[mod]['og']:
                 return True
 
@@ -219,19 +215,32 @@ class CRDataContainer:
         self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
                         CRDataBase.registry.items()}
 
+        self.merged_to_common = False
+
+        # TODO deques are probobly more optimal than using arrays here
         # run_results is a list of strings, representing the return code of contracts (ie 'SUCC', 'FAIL', ..)
         self.run_results = []
-
-        self.merged_to_common = False
+        self.contracts = []  # A list of ContractionTransaction objects. SenecaClient should append as it runs contracts
         self.input_hash = None  # Input hash should be set by SenecaClient once a new sub block is started
 
-    def update_contract_result(self, contract_idx: int, result: str):
-        self.log.debugv("Updating run result for contract idx {} to <{}>".format(contract_idx, result))
+    @property
+    def next_contract_idx(self):
+        assert len(self.contracts) == len(self.run_results), "Oh dear...a logic error is present"
+        return len(self.contracts)
 
-        # Add empty elements until run_results is the appropriate size
-        if contract_idx >= len(self.run_results):
-            for _ in range(contract_idx + 1 - len(self.run_results)):
-                self.run_results.append('')
+    def add_contract_result(self, contract, result: str):
+        assert len(self.contracts) == len(self.run_results), "Oh dear...a logic error is present"
+        self.contracts.append(contract)
+        self.run_results.append(result)
+
+    def update_contract_result(self, contract_idx: int, result: str):
+        assert len(self.contracts) > contract_idx, "contract_idx {} out of bounds. Only {} contracts in self.contracts"\
+                                                   .format(contract_idx, len(self.contracts))
+        self.log.debugv("Updating run result for contract idx {} to <{}>".format(contract_idx, result))
+        # # Add empty elements until run_results is the appropriate size
+        # if contract_idx >= len(self.run_results):
+        #     for _ in range(contract_idx + 1 - len(self.run_results)):
+        #         self.run_results.append('')
 
         self.run_results[contract_idx] = result
 
@@ -239,13 +248,19 @@ class CRDataContainer:
         """
         Resets all state held by this container.
         """
+        def _is_subclass(obj, subs: tuple):
+            """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
+            for s in subs:
+                if issubclass(type(obj), s): return True
+            return False
+
         self.log.debug("Reseting CRData with reset_db={}".format(reset_db))
         if reset_db:
             self.working_db.flushdb()
             
         for container in self.cr_data.values():
             container.mods.clear()
-            if type(container) in (list, set, dict, defaultdict):
+            if _is_subclass(container, (list, set, dict, defaultdict)):
                 container.clear()
             else:
                 raise NotImplementedError("No reset logic implemented for container of type {}".format(type(container)))
