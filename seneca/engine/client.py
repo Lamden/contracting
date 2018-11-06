@@ -120,7 +120,12 @@ class SenecaClient(SenecaInterface):
     def _rerun_contracts_for_cr_data(self, cr_data: CRDataContainer):
         """ Reruns any contracts in cr_data, if necessary. This should be done before we merge cr_data to common. """
         self.log.info("Rerunning any necessary contracts for CRData with input hash {}".format(cr_data.input_hash))
-        # loop over all contracts in cr_data container, and rerun them if necessary. Update contract result after each
+        for i in range(len(cr_data.contracts)):
+            if cr_data.should_rerun(i):
+                self.log.info("Rerunning contract index {}, as original reads have changed".format(i))
+                BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=i, data=cr_data)
+                result = self._run_contract(cr_data.contracts[i])
+                cr_data.update_contract_result(contract_idx=i, result=result)
 
     def catchup(self):
         pass

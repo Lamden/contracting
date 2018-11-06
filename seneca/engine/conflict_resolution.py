@@ -225,23 +225,19 @@ class CRDataContainer:
 
     @property
     def next_contract_idx(self):
-        assert len(self.contracts) == len(self.run_results), "Oh dear...a logic error is present"
+        assert len(self.contracts) == len(self.run_results), "Oh dear...a logic error is present"  # TODO remove
         return len(self.contracts)
 
     def add_contract_result(self, contract, result: str):
-        assert len(self.contracts) == len(self.run_results), "Oh dear...a logic error is present"
+        assert len(self.contracts) == len(self.run_results), "Oh dear...a logic error is present"  # TODO remove
         self.contracts.append(contract)
         self.run_results.append(result)
 
     def update_contract_result(self, contract_idx: int, result: str):
+        assert len(self.contracts) == len(self.run_results), "Oh dear...a logic error is present"  # TODO remove
         assert len(self.contracts) > contract_idx, "contract_idx {} out of bounds. Only {} contracts in self.contracts"\
                                                    .format(contract_idx, len(self.contracts))
         self.log.debugv("Updating run result for contract idx {} to <{}>".format(contract_idx, result))
-        # # Add empty elements until run_results is the appropriate size
-        # if contract_idx >= len(self.run_results):
-        #     for _ in range(contract_idx + 1 - len(self.run_results)):
-        #         self.run_results.append('')
-
         self.run_results[contract_idx] = result
 
     def reset(self, reset_db=True):
