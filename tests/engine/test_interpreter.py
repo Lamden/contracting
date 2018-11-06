@@ -12,7 +12,7 @@ print(do_that_thing())
 
 XFER_CODE_STR = """ \
 
-from seneca.contracts.currency import mint, transfer
+from seneca.contracts.currency import transfer
 transfer('stu', 3)
 """
 
