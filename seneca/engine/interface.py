@@ -8,11 +8,10 @@ class SenecaInterface(SenecaInterpreter):
     """
 
     def __init__(self):
-        super().__init__()
         if not isinstance(sys.meta_path[2], RedisFinder):
             self.old_sys_path = sys.meta_path
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
-        self.setup()
+        SenecaInterpreter.setup()
 
     def __enter__(self, concurrent_mode=False):
         self.old_concurrent_mode = SenecaInterpreter.concurrent_mode
@@ -22,9 +21,6 @@ class SenecaInterface(SenecaInterpreter):
     def __exit__(self, type, value, traceback):
         SenecaInterpreter.concurrent_mode = self.old_concurrent_mode
         return False
-
-    def teardown(self):
-        sys.meta_path = self.old_sys_path
 
     def compile_code(self, code_str, scope={}):
         tree, prevalidated = self.parse_ast(code_str, protected_variables=list(scope.keys()))
