@@ -8,6 +8,7 @@ from seneca.constants.redis_config import *
 from seneca.engine.conflict_resolution import CRDataContainer
 from seneca.engine.book_keeper import BookKeeper
 from collections import deque, defaultdict
+from typing import Callable, List
 
 
 class Macros:
@@ -79,20 +80,6 @@ class SenecaClient(SenecaInterface):
         assert Phase.get_phase_variable(from_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders
         raise NotImplementedError()
 
-    def flush(self, input_hash=None, result_hash=None, update_state=True):
-        """
-        If update_state is True, this will also commit the changes
-        to the database. Otherwise, this method will discard any changes
-        """
-        raise NotImplementedError()
-        # f_db = self.pending_dbs.pop(0)
-        # if self.sbb_index == 0: # only one will do merging db work for now (but it could be the one that is not reponsible for sb)
-        #     if update_state:
-        #         # TODO make sure f_db is the one by matching input_hash(es) ?
-        #         self.update_master_db(f_db)
-        #     self.reset_db(f_db)
-        # self.worker_dbs.append(f_db)
-
     def submit_contract(self, contract):
         self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
             'rt': make_n_tup({
@@ -132,7 +119,8 @@ class SenecaClient(SenecaInterface):
 
     def _rerun_contracts_for_cr_data(self, cr_data: CRDataContainer):
         """ Reruns any contracts in cr_data, if necessary. This should be done before we merge cr_data to common. """
-        pass
+        self.log.info("Rerunning any necessary contracts for CRData with input hash {}".format(cr_data.input_hash))
+        # loop over all contracts in cr_data container, and rerun them if necessary. Update contract result after each
 
     def catchup(self):
         pass
@@ -147,18 +135,22 @@ class SenecaClient(SenecaInterface):
         self.active_db = self.available_dbs.popleft()
         self.active_db.input_hash = input_hash
 
-    def end_sub_block(self):
+    def end_sub_block(self, completion_handler: Callable[CRDataContainer]):
+        """
+        Ends the current sub block, and schedules for it rerun any necessary contracts, and then merge to the common
+        layer. Once this rerun and merge is complete, completion_handler is called with the finalized CRDataContainer
+        """
         self.log.notice("Ending sub block {} which has input hash {}".format(self.sbb_idx, self.active_db.input_hash))
 
         Phase.incr_phase_variable(self.active_db, Macros.EXECUTION)
 
-        future = asyncio.ensure_future(self._wait_and_merge_to_common(self.active_db))
+        future = asyncio.ensure_future(self._wait_and_merge_to_common(self.active_db, completion_handler))
         self.pending_futures[self.active_db.input_hash] = {'fut': future, 'data': self.active_db}
 
         self.pending_dbs.append(self.active_db)
         self.active_db = None  # we really don't care, but might be useful initially for error checking
 
-    async def _wait_and_merge_to_common(self, cr_data: CRDataContainer):
+    async def _wait_and_merge_to_common(self, cr_data: CRDataContainer, completion_handler: Callable[CRDataContainer]):
         """
         - Waits for this subblock index's turn to merge to common. Raises an error if it takes longer than Phase.EXEC_TIMEOUT
         - Rerun any necessary contracts
@@ -183,8 +175,12 @@ class SenecaClient(SenecaInterface):
         assert Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION) == self.sbb_idx, "Logic error :("
         self.log.notice("Merging sbb data to common layer. Time spent waiting for this sbb's turn: {}".format(elapsed))
 
+        self._rerun_contracts_for_cr_data(cr_data)
         cr_data.merge_to_common()
         Phase.incr_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION)
+        completion_handler(cr_data)
+
+        # TODO remove the corresponding future from self.pending_futures
 
     # def get_next_sub_block(self):
     #     f_db = self.pending_dbs[0]  # get the first one, but still leave it in the pending_dbs too
@@ -225,3 +221,17 @@ class SenecaClient(SenecaInterface):
     #     while Phase.get_phase_variable(db, key) < self.sbb_index:
     #         time.sleep(1) # TODO use better logic here
     #     assert Phase.get_phase_variable(db, key) == self.sbb_index
+
+    # def flush(self, input_hash=None, result_hash=None, update_state=True):
+    #     """
+    #     If update_state is True, this will also commit the changes
+    #     to the database. Otherwise, this method will discard any changes
+    #     """
+    #     raise NotImplementedError()
+    #     # f_db = self.pending_dbs.pop(0)
+    #     # if self.sbb_index == 0: # only one will do merging db work for now (but it could be the one that is not reponsible for sb)
+    #     #     if update_state:
+    #     #         # TODO make sure f_db is the one by matching input_hash(es) ?
+    #     #         self.update_master_db(f_db)
+    #     #     self.reset_db(f_db)
+    #     # self.worker_dbs.append(f_db)
