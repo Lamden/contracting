@@ -47,13 +47,12 @@ class TestSenecaClient(TestCase):
                 with open(test_contracts_path + file_name) as f:
                     code_str = f.read()
                     interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
-                    # tree, prevalidated = SenecaInterpreter.parse_ast(code_str)
-                    # prevalidated_obj = compile(prevalidated, filename='__main__', mode="exec")
-                    # SenecaInterpreter.execute(prevalidated_obj)
-                    # code_obj = compile(tree, filename='__main__', mode="exec")
-                    # SenecaInterpreter.set_code(fullname=contract_name, author='davis', code_obj=code_obj, code_str=code_str, keep_original=True)
 
-            # cls._mint()
+            rt = make_n_tup({
+                'author': GENESIS_AUTHOR,
+                'sender': GENESIS_AUTHOR,
+            })
+            interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
 
     def test_setup_dbs(self):
         client = SenecaClient(sbb_idx=0, num_sbb=4)
@@ -62,6 +61,9 @@ class TestSenecaClient(TestCase):
         self.assertTrue(client.active_db is not None)
 
         self.assertEqual(len(client.available_dbs), NUM_CACHES - 1)  # -1 for the current active db
+
+    def test_run_currency_tx(self):
+        pass
 
     # def test_run_
 

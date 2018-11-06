@@ -34,6 +34,7 @@ class SenecaInterpreter:
 
     @classmethod
     def get_code_obj(cls, fullname):
+        assert cls._is_setup, "Must be set up to get_code_obj!!!!"
         code_obj = cls.r.hget('contracts', fullname)
         assert code_obj, 'User module "{}" not found!'.format(fullname)
         return marshal.loads(code_obj)

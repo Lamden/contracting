@@ -8,11 +8,10 @@ class SenecaInterface(SenecaInterpreter):
     """
 
     def __init__(self):
-        super().__init__()
         if not isinstance(sys.meta_path[2], RedisFinder):
             self.old_sys_path = sys.meta_path
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
-        self.setup()
+        SenecaInterpreter.setup()
 
     def __enter__(self, concurrent_mode=False):
         self.old_concurrent_mode = SenecaInterpreter.concurrent_mode
