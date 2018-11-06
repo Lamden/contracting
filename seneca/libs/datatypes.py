@@ -353,16 +353,7 @@ class RObject:
             assert BookKeeper.has_info(), "No BookKeeping info found for this thread/process with key {}. Was set_info " \
                                           "called on this thread first?".format(BookKeeper._get_key())
             info = BookKeeper.get_info()
-
-            # TODO do we really need these to be properties on RObject? I think only RedisProxy will need them --davis
-            self.working_db = info['working_db']
-            self.master_db = info['master_db']
-            self.sbb_idx = info['sbb_idx']
-            self.contract_idx = info['contract_idx']
-
-            # TODO also, do we need to extract the information here? Can't
-            self.driver = RedisProxy(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
-                                     contract_idx=self.contract_idx)
+            self.driver = RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
 
             print("RObject __init__ called with BookKeeper info: {}".format(info))  # TODO remove
 

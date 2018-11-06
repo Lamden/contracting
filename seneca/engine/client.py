@@ -1,13 +1,11 @@
 from collections import deque
-from heapq import heappush, heappop
-from typing import List
 import time, asyncio, ujson as json, redis
 from seneca.libs.logger import get_logger
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.engine.util import make_n_tup
 from seneca.constants.redis_config import *
-from seneca.engine.conflict_resolution import CRDataStore
+from seneca.engine.conflict_resolution import CRDataContainer
 from seneca.engine.book_keeper import BookKeeper
 
 class Macros:
@@ -29,19 +27,48 @@ class Phase:
     def get_phase_variable(db, key):
         return db.get(key)
 
-class SenecaDatabaseOperations:
+
+class SenecaClient(SenecaInterface):
+
+    def __init__(self, sbb_idx, num_sbb, concurrent_mode=True, loop=None):
+
+        super().__init__()
+
+        name = self.__class__.__name__ + "[{}]".format(sbb_idx)
+        self.log = get_logger(name)
+        self.loop = loop or asyncio.get_event_loop()
+
+        self.port = get_redis_port()
+        self.password = get_redis_password()
+
+        self.sbb_idx = sbb_idx
+        self.num_sb_builders = num_sbb
+        self.concurrent_mode = concurrent_mode
+
+        self.curr_contract_idx = 0
+        self.contract_queue = deque()
+
+        self.master_db = None
+        self.available_dbs = []
+        self.pending_dbs = []
+        self.active_db = None
+        self.transaction_keys = []
+
+        self.max_number_workers = NUM_CACHES
+
+        self.setup_dbs()
 
     def setup_dbs(self):
         self.master_db = redis.StrictRedis(host='localhost', port=self.port, db=MASTER_DB, password=self.password)
         for db_num in range(self.max_number_workers):
             db_client = redis.StrictRedis(host='localhost', port=self.port, db=db_num+DB_OFFSET, password=self.password)
-            cr_data = CRDataStore(working_db=db_client, master_db=self.master_db, sbb_idx=self.sbb_idx)
-            self.worker_dbs.append(cr_data)
-        self.active_db = self.master_db
+            cr_data = CRDataContainer(working_db=db_client, master_db=self.master_db, sbb_idx=self.sbb_idx)
+            self.available_dbs.append(cr_data)
+        self.active_db = self.available_dbs.pop()
 
-    def reset_cr_data(self, ds: CRDataStore):
+    def reset_cr_data(self, ds: CRDataContainer):
         ds.reset()
-        Phase.reset_phase_variables(db)
+        Phase.reset_phase_variables(ds.working_db)
 
     def update_master_db(self, from_db):
         assert Phase.get_phase_variable(from_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders
@@ -54,46 +81,14 @@ class SenecaDatabaseOperations:
         If update_state is True, this will also commit the changes
         to the database. Otherwise, this method will discard any changes
         """
-        f_db = self.pending_dbs.pop(0)
-        if self.sbb_index == 0: # only one will do merging db work for now (but it could be the one that is not reponsible for sb)
-            if update_state:
-                # TODO make sure f_db is the one by matching input_hash(es) ?
-                self.update_master_db(f_db)
-            self.reset_db(f_db)
-        self.worker_dbs.append(f_db)
-
-    # assuming _execute will use these db_read and db_write for db_operations
-    # def db_read(self, db, key):
-    #     value = db.hget(Macros.COMMON, key)
-    #     if not value:
-    #         value = self.master_db.hget(Macros.COMMON, key)
-    #     return value
-    #
-    # def db_write(self, db, key, value):
-    #     orig_val = self.db_read(db, key)
-    #     db.hset(self.executed_key, key, json.dumps({
-    #         'ori': orig_val,
-    #         'mod': value
-    #     }))
-    #     self.transaction_keys.append(key)
-    #
-    # def get_order_key_lists(self, db, maxlen=100):
-    #     return [json.loads(l) for l in db.lrange(self.write_list_key, 0, maxlen)]
-    #
-    # def get_state_lists(self, db, maxlen=100):
-    #     return [json.loads(l) for l in db.lrange(self.state_key, 0, maxlen)]
-    #
-    # def _pre_execution(self):
-    #     self.transaction_keys = []
-    #
-    # def _post_execution(self):
-    #     self.active_db.lpush(self.write_list_key, json.dumps({
-    #         'idx': self.sbb_index,
-    #         'keys': self.transaction_keys
-    #     }))
-        # self.active_db."sbb_{}".format(self.sbb_index) -> incr(num_txns)
-
-class SenecaContractExecutor:
+        raise NotImplementedError()
+        # f_db = self.pending_dbs.pop(0)
+        # if self.sbb_index == 0: # only one will do merging db work for now (but it could be the one that is not reponsible for sb)
+        #     if update_state:
+        #         # TODO make sure f_db is the one by matching input_hash(es) ?
+        #         self.update_master_db(f_db)
+        #     self.reset_db(f_db)
+        # self.worker_dbs.append(f_db)
 
     def submit_contract(self, contract):
         self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
@@ -104,76 +99,35 @@ class SenecaContractExecutor:
         })
 
     def run_contract(self, contract):
+        BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=self.curr_contract_idx, data=self.active_db)
+
         contract_name = contract.contract_name
         metadata = self.get_contract_meta(contract_name)
-        self._pre_execution()
 
-        self.execute_code_str(contract.code, scope={
-            'rt': make_n_tup({
-                'author': metadata['author'],
-                'sender': contract.sender
+        try:
+            self.execute_code_str(contract.code, scope={
+                'rt': make_n_tup({
+                    'author': metadata['author'],
+                    'sender': contract.sender
+                })
             })
-        })
-        # WARNING TODO implement return output and state
-        output = 'fix this'
-        state = 'fix this'
-        self.active_db.lpush(self.transaction_key, json.dumps(
-            [contract.code, output, state]
-        ))
-        self._post_execution()
+            result = 'SUCC'
+        except Exception as e:
+            self.log.warning("Contract failed with error: {} \ncontract obj: {}".format(e, contract))
+            # TODO can we get more specific fail messages?
+            result = 'FAIL'
 
-    def _pre_execution(self):
-        BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=self.contract_idx, master_db=self.master_db, )
-
-    def _post_execution(self):
-        self.active_db.lpush(self.write_list_key, json.dumps({
-            'idx': self.sbb_index,
-            'keys': self.transaction_keys
-        }))
-        self.active_db."sbb_{}".format(self.sbb_index) -> incr(num_txns)
-
-class SenecaClient(SenecaInterface, SenecaDatabaseOperations, SenecaContractExecutor):
-
-    def __init__(self, sbb_idx, num_sbb, concurrent_mode=True, loop=None):
-
-        super().__init__()
-
-        name = self.__class__.__name__ + "[{}]".format(sbb_idx)
-        self.log = get_logger(name)
-
-        self.port = get_redis_port()
-        self.password = get_redis_password()
-
-        self.sbb_index = sbb_idx
-        self.num_sb_builders = num_sbb
-        self.concurrent_mode = concurrent_mode
-
-        self.curr_contract_idx = 0
-        self.contract_queue = deque()
-
-        self.master_db = None
-        self.worker_dbs = []
-        self.pending_dbs = []
-        self.active_db = None
-        self.transaction_keys = []
-
-        self.max_number_workers = NUM_CACHES
-
-        self.setup_dbs()
-
-    def finalize(self):
-        # do we need this method? what's finalizing transactions? Davis?
-        self.log.notice("Finalizing transactions...")
-        pass
+        self.active_db.update_contract_result(self.curr_contract_idx, result)
+        self.curr_contract_idx += 1
 
     def catchup(self):
         pass
 
     def start_sub_block(self):
-        if len(self.worker_dbs) == 0:
+        if len(self.available_dbs) == 0:
             # TODO log error as this shouldn't happen in current flow
             return False
-        self.active_db = self.worker_dbs.pop(0)
+        self.active_db = self.available_dbs.pop(0)
         # TODO add input-bag hash
         return True
 

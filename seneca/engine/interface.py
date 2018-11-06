@@ -14,6 +14,15 @@ class SenecaInterface(SenecaInterpreter):
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
         self.setup()
 
+    def __enter__(self, concurrent_mode=False):
+        self.old_concurrent_mode = SenecaInterpreter.concurrent_mode
+        SenecaInterpreter.concurrent_mode = concurrent_mode
+        return self
+
+    def __exit__(self, type, value, traceback):
+        SenecaInterpreter.concurrent_mode = self.old_concurrent_mode
+        return False
+
     def teardown(self):
         sys.meta_path = self.old_sys_path
 
@@ -35,12 +44,9 @@ class SenecaInterface(SenecaInterpreter):
     def publish_code_str(self, fullname, author, code_str, keep_original=False, scope={}):
         try:
             assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
-            code_obj = self.compile_code(code_str, scope)
-            self.set_code(fullname, code_obj, code_str, author, keep_original)
-            concurrent_mode = SenecaInterpreter.concurrent_mode
-            SenecaInterpreter.concurrent_mode = False
-            self.execute(code_obj, scope)
-            SenecaInterpreter.concurrent_mode = concurrent_mode
+            with SenecaInterface() as interface:
+                code_obj = self.compile_code(code_str, scope)
+                self.set_code(fullname, code_obj, code_str, author, keep_original)
         except:
             SenecaInterpreter.imports = {}
             raise
