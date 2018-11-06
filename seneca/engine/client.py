@@ -106,7 +106,12 @@ class SenecaClient(SenecaInterface):
         assert self.active_db.input_hash, "Input hash have been set by start_sub_block...davis u done goofed again"
 
         BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=self.active_db.next_contract_idx, data=self.active_db)
+        result = self._run_contract(contract)
+        self.active_db.add_contract_result(contract, result)
 
+    def _run_contract(self, contract) -> str:
+        """ Runs the contract object, and retuns a string representing the result (succ/fail).
+        Note: Assumes the BookKeeping info has already been set. """
         contract_name = contract.contract_name
         metadata = self.get_contract_meta(contract_name)
 
@@ -123,7 +128,11 @@ class SenecaClient(SenecaInterface):
             # TODO can we get more specific fail messages?
             result = 'FAIL' + ' -- ' + str(e)
 
-        self.active_db.add_contract_result(contract, result)
+        return result
+
+    def _rerun_contracts_for_cr_data(self, cr_data: CRDataContainer):
+        """ Reruns any contracts in cr_data, if necessary. This should be done before we merge cr_data to common. """
+        pass
 
     def catchup(self):
         pass
@@ -215,4 +224,4 @@ class SenecaClient(SenecaInterface):
     # def wait_my_turn(self, db, key):
     #     while Phase.get_phase_variable(db, key) < self.sbb_index:
     #         time.sleep(1) # TODO use better logic here
-        assert Phase.get_phase_variable(db, key) == self.sbb_index
+    #     assert Phase.get_phase_variable(db, key) == self.sbb_index
