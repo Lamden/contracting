@@ -25,8 +25,7 @@ class TestConflictResolution(TestCase):
             data = self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize)
             self.sbb_data[contract_idx] = data
 
-        self.r = RedisProxy(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
-                            data=data)
+        self.r = RedisProxy(sbb_idx=sbb_idx, contract_idx=contract_idx, data=data)
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
         return CRDataContainer(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)

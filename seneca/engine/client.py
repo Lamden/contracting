@@ -104,9 +104,10 @@ class SenecaContractExecutor:
         })
 
     def run_contract(self, contract):
+        self._pre_execution()
+
         contract_name = contract.contract_name
         metadata = self.get_contract_meta(contract_name)
-        self._pre_execution()
 
         self.execute_code_str(contract.code, scope={
             'rt': make_n_tup({
@@ -115,18 +116,18 @@ class SenecaContractExecutor:
             })
         })
         # WARNING TODO implement return output and state
-        output = 'fix this'
-        state = 'fix this'
-        self.active_db.lpush(self.transaction_key, json.dumps(
-            [contract.code, output, state]
-        ))
+        # output = 'fix this'
+        # state = 'fix this'
+        # self.active_db.lpush(self.transaction_key, json.dumps(
+        #     [contract.code, output, state]
+        # ))
         self._post_execution()
 
     def _pre_execution(self):
-        BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=self.contract_idx, master_db=self.master_db)
+        BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=self.curr_contract_idx, data=self.active_db)
 
     def _post_execution(self):
-        BookKeeper
+        self.curr_contract_idx += 1
 
 class SenecaClient(SenecaInterface, SenecaDatabaseOperations, SenecaContractExecutor):
 

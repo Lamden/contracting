@@ -1,5 +1,6 @@
 import redis
 from collections import defaultdict
+from seneca.libs.logger import get_logger
 from typing import List
 # TODO -- clean this file up
 
@@ -24,6 +25,7 @@ class CRDataMeta(type):
 class CRDataBase(metaclass=CRDataMeta):
     def __init__(self, master_db: redis.StrictRedis, working_db: redis.StrictRedis):
         super().__init__()
+        self.log = get_logger(type(self).__name__)
         self.master, self.working = master_db, working_db
         self.mods = []
 
@@ -206,6 +208,7 @@ class CRDataOutputs(CRDataBase, list):
 class CRDataContainer:
 
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, finalize=False):
+        self.log = get_logger(type(self).__name__)
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
         self.finalize = finalize
         self.working_db, self.master_db = working_db, master_db
@@ -215,6 +218,19 @@ class CRDataContainer:
         # For convenience, all these keys are directly accessible from this CRDataContainer instance (see __getitem__)
         self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
                         CRDataBase.registry.items()}
+
+        # run_results is a list of strings, representing the return code of contracts (ie 'SUCC', 'FAIL', ..)
+        self.run_results = []
+
+    def update_contract_result(self, contract_idx: int, result: str):
+        self.log.debugv("Updating run result for contract idx {} to <{}>".format(contract_idx, result))
+
+        # Add empty elements until run_results is the appropriate size
+        if contract_idx >= len(self.run_results):
+            for _ in range(contract_idx - len(self.run_results) - 1):
+                self.run_results.append('')
+
+        self.run_results[contract_idx] = result
 
     def reset(self, reset_db=True):
         """
@@ -270,12 +286,11 @@ class CRDataContainer:
 
 class RedisProxy:
 
-    def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
-                 data: CRDataContainer, finalize=False):
+    def __init__(self, sbb_idx: int, contract_idx: int, data: CRDataContainer, finalize=False):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
         self.finalize = finalize
         self.data = data
-        self.working_db, self.master_db = working_db, master_db
+        self.working_db, self.master_db = data.working_db, data.master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
 
     def __getattr__(self, item):
