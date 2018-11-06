@@ -22,9 +22,6 @@ class SenecaInterface(SenecaInterpreter):
         SenecaInterpreter.concurrent_mode = self.old_concurrent_mode
         return False
 
-    def teardown(self):
-        sys.meta_path = self.old_sys_path
-
     def compile_code(self, code_str, scope={}):
         tree, prevalidated = self.parse_ast(code_str, protected_variables=list(scope.keys()))
         prevalidated_obj = compile(prevalidated, filename='__main__', mode="exec")
