@@ -136,8 +136,10 @@ class SenecaClient(SenecaInterface):
         self.log.info("Rerunning any necessary contracts for CRData with input hash {}".format(cr_data.input_hash))
         for i in range(len(cr_data.contracts)):
             if cr_data.should_rerun(i):
-                self.log.info("Rerunning contract index {}, as original reads have changed".format(i))
                 BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=i, data=cr_data)
+                cr_data.reset_contract_data(i)
+
+                self.log.info("Rerunning contract index {}, as original reads have changed".format(i))
                 result = self._run_contract(cr_data.contracts[i])
                 cr_data.update_contract_result(contract_idx=i, result=result)
 

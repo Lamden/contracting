@@ -92,8 +92,6 @@ class TestConflictResolution(TestCase):
         self.assertTrue(self.sbb_data[0].should_rerun(0))
 
     def test_all_keys_and_values_for_basic_set_get(self):
-        # TODO this test is fragile af. make him more robust?
-
         KEY1, VAL1 = 'k1', b'v1'
         KEY2, VAL2 = 'k2', b'v2'
         KEY3, VAL3 = 'k3', b'v3'
@@ -107,7 +105,7 @@ class TestConflictResolution(TestCase):
         self.working.set(KEY3, VAL3)
 
         self.r.set(KEY1, NEW_VAL1)
-        self.r.contract_idx = 2
+        self.r.contract_idx = 1
         self.r.get(KEY2)  # To trigger a copy to sbb specific layer
         self.r.contract_idx = 2
         self.r.set(KEY3, NEW_VAL3)  # To trigger a copy to sbb specific layer
@@ -122,7 +120,6 @@ class TestConflictResolution(TestCase):
         self.assertEqual(getset[KEY3], k3_expected)
 
         # Check modifications list
-        # expected_mods = [{KEY1}, set(), {KEY3}]
         expected_mods = {0: {KEY1}, 2: {KEY3}}
         self.assertEqual(self.r.data['getset'].writes, expected_mods)
 
@@ -130,7 +127,7 @@ class TestConflictResolution(TestCase):
         self.working.set(KEY1, b'A NEW VALUE HAS ARRIVED')
         self.working.set(KEY2, b'A NEW VALUE HAS ARRIVED AGAIN')
         self.assertTrue(self.sbb_data[0].should_rerun(0))
-        self.assertFalse(self.sbb_data[0].should_rerun(1))
+        self.assertTrue(self.sbb_data[0].should_rerun(1))
         self.assertFalse(self.sbb_data[0].should_rerun(2))
 
     def test_merge_to_common(self):
