@@ -19,6 +19,10 @@ MINT_CODE_STR = """ \
 from seneca.contracts.currency import mint
 mint('davis', 100000)
 mint('stu', 69)
+mint('birb', 8000)
+mint('ghu', 9000)
+mint('tj', 8000)
+mint('playboi', 8000)
 """
 
 
@@ -111,6 +115,8 @@ class TestSenecaClient(TestCase):
         # self.assertTrue(complete_handler_called)
         mock_handler.assert_called()
 
+        loop.close()
+
     def test_end_subblock_2_sbb(self):
         def assert_completion_handler1(data: CRDataContainer):
             self.assertTrue(len(data.contracts) == expected_num_runs)
@@ -154,6 +160,73 @@ class TestSenecaClient(TestCase):
 
         mock_handler1.assert_called()
         mock_handler2.assert_called()
+
+        loop.close()
+
+    # def test_end_subblock_2_sbb_start_subblocks_before_ending_then_flush_all_dem_bois(self):
+    #     # TODO write a mock handler for each of the 4 subblocks being created (2 blocks, 2 sbbs per block)
+    #     def assert_completion_handler1(data: CRDataContainer):
+    #         self.assertTrue(len(data.contracts) == expected_num_runs)
+    #         self.assertTrue(len(data.run_results) == expected_num_runs)
+    #         self.assertEqual(data.run_results, expected_run_results)
+    #
+    #     expected_run_results = ['SUCC', 'SUCC']
+    #     expected_num_runs = 2
+    #     input_hash1 = 'A' * 64
+    #     input_hash2 = 'B' * 64
+    #     mock_handler1 = MagicMock()
+    #     mock_handler2 = MagicMock()
+    #     mock_handler1.side_effect = assert_completion_handler1
+    #     mock_handler2.side_effect = assert_completion_handler1
+    #
+    #     loop = asyncio.new_event_loop()
+    #     asyncio.set_event_loop(loop)
+    #
+    #     client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+    #     client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+    #
+    #     c1 = create_currency_tx('davis', 'stu', 14)
+    #     c2 = create_currency_tx('davis', 'ghu', 1000)
+    #     c3 = create_currency_tx('stu', 'davis', 15)
+    #     c4 = create_currency_tx('tj', 'ghu', 90)
+    #     c5 = create_currency_tx('ghu', 'stu', 66)
+    #     c6 = create_currency_tx('birb', 'playboi', 90)
+    #     c7 = create_currency_tx('playboi', 'birb', 800)
+    #     c8 = create_currency_tx('ghu', 'playboi', 8010)
+    #
+    #     # First block
+    #     client1.start_sub_block(input_hash1)
+    #     client2.start_sub_block(input_hash2)
+    #     client1.run_contract(c1)
+    #     client1.run_contract(c2)
+    #     client2.run_contract(c3)
+    #     client2.run_contract(c4)
+    #
+    #     # Second block
+    #     client1.start_sub_block(input_hash1)
+    #     client2.start_sub_block(input_hash2)
+    #     client1.run_contract(c5)
+    #     client1.run_contract(c6)
+    #     client2.run_contract(c7)
+    #     client2.run_contract(c8)
+    #     client1.end_sub_block(mock_handler1)
+    #     client2.end_sub_block(mock_handler2)
+    #
+    #     # Now, end them all
+    #     client1.end_sub_block(mock_handler1)
+    #     client2.end_sub_block(mock_handler2)
+    #     client1.end_sub_block(mock_handler1)
+    #     client2.end_sub_block(mock_handler2)
+    #
+    #     self.assertTrue(input_hash1 in client1.pending_futures)
+    #     self.assertTrue(input_hash2 in client2.pending_futures)
+    #
+    #     # We must run the future manually, since the event loop is not currently running
+    #     coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
+    #     loop.run_until_complete(asyncio.gather(*coros))
+    #
+    #     mock_handler1.assert_called()
+    #     mock_handler2.assert_called()
 
     # Test that pending_db/active_db/working_db get updated as we go thru the flow
 
