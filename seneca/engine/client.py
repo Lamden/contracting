@@ -195,7 +195,7 @@ class SenecaClient(SenecaInterface):
         cr_data.merge_to_common()
         Phase.incr_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION)
 
-        self.log.debug("Finished finalizing sub block for inpush hash {}! Calling completion handler".format(cr_data.input_hash))
+        self.log.debug("Finished finalizing sub block for input hash {}!")
         completion_handler(cr_data)
 
         self.pending_futures[cr_data.input_hash]['fut'].set_result('done')

@@ -229,13 +229,12 @@ class CRDataContainer:
         self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
                         CRDataBase.registry.items()}
 
-        self.merged_to_common = False
-
         # TODO deques are probobly more optimal than using arrays here
         # run_results is a list of strings, representing the return code of contracts (ie 'SUCC', 'FAIL', ..)
         self.run_results = []
         self.contracts = []  # A list of ContractionTransaction objects. SenecaClient should append as it runs contracts
         self.input_hash = None  # Input hash should be set by SenecaClient once a new sub block is started
+        self.merged_to_common = False
 
     @property
     def next_contract_idx(self):
@@ -267,6 +266,11 @@ class CRDataContainer:
         self.log.debug("Reseting CRData with reset_db={}".format(reset_db))
         if reset_db:
             self.working_db.flushdb()
+
+        self.merged_to_common = False
+        self.input_hash = None
+        self.run_results.clear()
+        self.contracts.clear()
             
         for container in self.cr_data.values():
             container.mods.clear()
@@ -276,12 +280,28 @@ class CRDataContainer:
                 raise NotImplementedError("No reset logic implemented for container of type {}".format(type(container)))
 
     def get_state_for_idx(self, contract_idx: int) -> str:
-        # TODO -- I assume the values will be iterated over deterministically on all different processes.
-        # Is this sane? Perhaps i must sort keys lexigraphically first? --davis
+        """
+        Returns the state for the contract at the specified index
+        """
+        assert contract_idx < len(self.contracts), "Contract index {} out of bounds for self.contracts of length {}" \
+                                                   .format(contract_idx, len(self.contracts))
+
         state_str = ''
-        for obj in self.cr_data.values():
-            state_str += obj.get_state_for_idx(contract_idx)
+        for key in sorted(self.cr_data.keys()):  # We sort the keys so that output will always be deterministic
+            state_str += self.cr_data[key].get_state_for_idx(contract_idx)
         return state_str
+
+    def get_subblock_rep(self) -> List[tuple]:
+        """
+        Returns a list of tuples. There will be one tuple for each contract in self.contracts, and tuples will be of the
+        form (contract, status, state). contract will be an instance of ContractTransaction. Status will be a string
+        representing the execution status of the contract (fail/succ/ect). State will be a string that represents the
+        changes to state made by that contract.
+        """
+        assert len(self.contracts) == len(self.run_results), "you done shit the bed again davis"
+        assert self.merged_to_common, "You should have merged to common before trying to get the subblock rep"
+
+        return [(self.contracts[i], self.run_results[i], self.get_state_for_idx(i)) for i in range(len(self.contracts))]
 
     def should_rerun(self, contract_idx: int) -> bool:
         """

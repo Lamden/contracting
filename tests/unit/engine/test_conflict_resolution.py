@@ -215,6 +215,17 @@ class TestConflictResolution(TestCase):
         self.r.set(KEY3, NEW_VAL3)
         self.r.set(KEY4, NEW_VAL4)
 
+        # Manually add the contracts/results being run. Store them so we can assert on them later
+        expected_contracts = []
+        expected_results = []
+        for i in range(3):
+            contract = 'contract_{}'.format(i)
+            result = 'run_result_{}'.format(i)
+            self.sbb_data[0].contracts.append(contract)
+            self.sbb_data[0].run_results.append(result)
+            expected_contracts.append(contract)
+            expected_results.append(result)
+
         # Check entire subblock state
         expected_state = "SET {k1} {v1};SET {k3} {v3};SET {k4} {v4};"\
                          .format(k1=KEY1, v1=NEW_VAL1, k2=KEY2, v2=VAL2, k3=KEY3, v3=NEW_VAL3, k4=KEY4, v4=NEW_VAL4)
@@ -231,6 +242,16 @@ class TestConflictResolution(TestCase):
         self.assertEqual(state_1, cr_data.get_state_for_idx(1))
         self.assertEqual(state_2, cr_data['getset'].get_state_for_idx(2))
         self.assertEqual(state_2, cr_data.get_state_for_idx(2))
+
+        # Check sb rep...fake merged_to_common
+        cr_data.merged_to_common = True
+        expected_states = (state_0, state_1, state_2)
+        expected_rep = []
+        for i in range(3):
+            expected_rep.append((expected_contracts[i], expected_results[i], expected_states[i]))
+
+        self.assertEqual(expected_rep, cr_data.get_subblock_rep())
+
 
     def test_all_keys_and_values_for_basic_hset_hget(self):
         KEY1, KEY2 = 'KEY1', 'KEY2'
