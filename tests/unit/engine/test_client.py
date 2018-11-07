@@ -40,8 +40,7 @@ def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: s
 class TestSenecaClient(TestCase):
     CONTRACTS_TO_STORE = {'currency': 'kv_currency.sen.py'}
 
-    @classmethod
-    def setUpClass(cls):
+    def setUp(self):
         with SenecaInterface() as interface:
             interface.r.flushall()
 
@@ -49,7 +48,7 @@ class TestSenecaClient(TestCase):
             import seneca
             test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
 
-            for contract_name, file_name in cls.CONTRACTS_TO_STORE.items():
+            for contract_name, file_name in self.CONTRACTS_TO_STORE.items():
                 with open(test_contracts_path + file_name) as f:
                     code_str = f.read()
                     interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)

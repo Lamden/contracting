@@ -189,7 +189,7 @@ class TestConflictResolution(TestCase):
         cr_data.merge_to_common()
 
         # Now check merge_to_master
-        cr_data.merge_to_master()
+        CRDataContainer.merge_to_master(working_db=cr_data.working_db, master_db=cr_data.master_db)
         self.assertEqual(self.master.get(KEY1), NEW_VAL1)
         self.assertEqual(self.master.get(KEY2), VAL2)
         self.assertEqual(self.master.get(KEY3), NEW_VAL3)
