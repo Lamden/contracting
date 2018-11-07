@@ -252,7 +252,6 @@ class TestConflictResolution(TestCase):
 
         self.assertEqual(expected_rep, cr_data.get_subblock_rep())
 
-
     def test_all_keys_and_values_for_basic_hset_hget(self):
         KEY1, KEY2 = 'KEY1', 'KEY2'
         FIELD1, VAL1 = 'k1', b'v1'
