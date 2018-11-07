@@ -267,6 +267,7 @@ class TestCRGetSet(TestCase):
         cr_data = cr_set.data['getset']
         self.assertTrue(cr_data.should_rerun(0))
 
+
 if __name__ == "__main__":
     unittest.main()
 
