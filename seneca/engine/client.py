@@ -63,7 +63,7 @@ class SenecaClient(SenecaInterface):
         self.active_db = None  # Set to a CRDataContainer instance
         self.available_dbs = deque()  # List of CRDataContainer instances
         self.pending_dbs = deque()  # List of CRDataContainer instances
-        self.pending_futures = defaultdict(dict)  # Map of input hashes -> {'fut': asyncio.Future, 'data': CRDataContainer}
+        self.pending_futures = {}  # Map of input hashes -> {'fut': asyncio.Future, 'data': CRDataContainer}
 
         self._setup_dbs()
 
@@ -198,7 +198,7 @@ class SenecaClient(SenecaInterface):
         self.log.debug("Finished finalizing sub block for inpush hash {}! Calling completion handler".format(cr_data.input_hash))
         completion_handler(cr_data)
 
-        # TODO remove the corresponding future from self.pending_futures
+        self.pending_futures[cr_data.input_hash]['fut'].set_result('done')
 
     async def _wait_for_phase_variable(self, db: redis.StrictRedis, key: str, value: int, timeout: int):
         elapsed = 0
