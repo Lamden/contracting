@@ -128,6 +128,34 @@ class TestCRGetSet(TestCase):
         expected = {'og': VALUE, 'mod': NEW_VALUE}
         self.assertEqual(expected, cr_set.data['getset'][KEY])
 
+    def test_get_adds_to_reads(self):
+        KEY = 'im_a_key'
+        VALUE = b'value_on_master'
+        cr_get = self._new_get()
+        self.master.set(KEY, VALUE)
+
+        actual = cr_get(KEY)
+
+        self.assertEqual(actual, VALUE)
+
+    def test_basic_setget_and_reset_contract_data(self):
+        KEY1 = 'im_a_key1'
+        KEY2 = 'im_a_key2'
+        VALUE1 = b'value_on_master1'
+        VALUE2 = b'value_on_master2'
+        NEW_VALUE1 = b'new_value1'
+        cr_set = self._new_set()
+        cr_get = self._new_get()
+        self.master.set(KEY1, VALUE1)
+        self.master.set(KEY2, VALUE2)
+
+        cr_get(KEY2)
+        cr_set(KEY1, NEW_VALUE1)
+
+        cr_get.data['getset'].reset_contract_data(0)
+        self.assertEqual(len(cr_set.data['getset'].mods[0]), 0)
+        self.assertEqual(len(cr_set.data['getset'].reads[0]), 0)
+
     def test_adds_key_that_does_not_yet_exist(self):
         KEY = 'im_a_key'
         VALUE = b'g00d_val'

@@ -59,6 +59,14 @@ class CRDataBase(metaclass=CRDataMeta):
         """
         raise NotImplementedError()
 
+    def reset_contract_data(self, contract_idx: int) -> bool:
+        """
+        Resets the reads list and modification list for the contract at index idx.
+        """
+        # Only reset if read/mod data exists for the contract_idx
+        for data in (self.mods, self.reads):
+            if len(data) > contract_idx: data[contract_idx].clear()
+
 
 class CRDataGetSet(CRDataBase, dict):
     NAME = 'getset'
@@ -264,20 +272,28 @@ class CRDataContainer:
                 raise NotImplementedError("No reset logic implemented for container of type {}".format(type(container)))
 
     def get_state_for_idx(self, contract_idx: int) -> str:
-        # I assume the values will be iterated over deterministically on all different processes. Is this sane? --davis
+        # TODO -- I assume the values will be iterated over deterministically on all different processes.
+        # Is this sane? Perhaps i must sort keys lexigraphically first? --davis
         state_str = ''
         for obj in self.cr_data.values():
             state_str += obj.get_state_for_idx(contract_idx)
         return state_str
 
-    def should_rerun(self, contract_idx: int):
+    def should_rerun(self, contract_idx: int) -> bool:
         """
         Returns true if the contract at index 'contract_idx' needs to be rerun. A contract needs to be rerun if any of
-        its write operations represent values that have been changed.
+        its read/write operations represent values that have been changedb.
         NOTE: This assumes smart contracts ALWAYS assert on values they have written to. Under this logic, asserts on
         read values will not be honored.
         """
         return True in (obj.should_rerun(contract_idx) for obj in self.cr_data.values())
+
+    def reset_contract_data(self, contract_idx: int) -> bool:
+        """
+        Resets the reads list and modification list for the contract at index idx.
+        """
+        for obj in self.cr_data.values():
+            obj.reset_contract_data(contract_idx)
 
     def merge_to_common(self):
         assert not self.merged_to_common, "Already merged to common! merge_to_common should only be called once"

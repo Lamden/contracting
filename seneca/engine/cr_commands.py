@@ -143,11 +143,13 @@ class CRCmdGet(CRCmdGetSetBase):
         mod_val = self.data['getset'][key]['mod']
         if mod_val is not None:
             self.log.debugv("SBB specific MODIFIED key found for key named <{}>".format(key))
-            return mod_val
-
         # Otherwise, default to the local original key
-        self.log.debugv("SBB specific ORIGINAL key found for key named <{}>".format(key))
-        return self.data['getset'][key]['og']
+        else:
+            self.log.debugv("SBB specific ORIGINAL key found for key named <{}>".format(key))
+            mod_val = self.data['getset'][key]['og']
+
+        self.data['getset'].reads
+        return mod_val
 
 
 class CRCmdSet(CRCmdGetSetBase):
