@@ -147,6 +147,7 @@ class SenecaClient(SenecaInterface):
         Ends the current sub block, and schedules for it rerun any necessary contracts, and then merge to the common
         layer. Once this rerun and merge is complete, completion_handler is called with the finalized CRDataContainer
         """
+        assert self.active_db, "Active db not set! Did you call start_sub_block?"
         self.log.notice("Ending sub block {} which has input hash {}".format(self.sbb_idx, self.active_db.input_hash))
 
         Phase.incr_phase_variable(self.active_db.working_db, Macros.EXECUTION)
@@ -175,22 +176,8 @@ class SenecaClient(SenecaInterface):
                                             timeout=Phase.CR_TIMEOUT)
         self.log.info("Done waiting for other SBBs to finish contract resolution")
 
-        # while Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) < self.sbb_idx:
-        #     await asyncio.sleep(Phase.POLL_INTERVAL)
-        #     elapsed += Phase.POLL_INTERVAL
-        #
-        #     if elapsed >= Phase.EXEC_TIMEOUT:
-        #         err_msg = "Client with sbb_idx {} exceeded timeout of {} waiting for its turn to merge to common! " \
-        #                   "Current conflict resolution phase value: {}"\
-        #                   .format(self.sbb_idx, elapsed, Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION))
-        #         self.log.fatal(err_msg)
-        #         raise Exception(err_msg)
-
-        # Development sanity check
-        assert Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.sbb_idx, "Logic error :("
-
         self._rerun_contracts_for_cr_data(cr_data)
-        self.log.notice("Merging sbb data to common layer")
+        self.log.notice("Merging sbb_{} data to common layer".format(self.sbb_idx))
         cr_data.merge_to_common()
         Phase.incr_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION)
 

@@ -79,7 +79,7 @@ class TestSenecaClient(TestCase):
         client.run_contract(c2)
         self.assertEqual(client.active_db.next_contract_idx, 2)
 
-    def test_end_subblock(self):
+    def test_end_subblock_1_sbb(self):
         def assert_completion_handler(data: CRDataContainer):
             self.assertTrue(len(data.contracts) == expected_num_runs)
             self.assertTrue(len(data.run_results) == expected_num_runs)
@@ -110,4 +110,48 @@ class TestSenecaClient(TestCase):
 
         # self.assertTrue(complete_handler_called)
         mock_handler.assert_called()
+
+    def test_end_subblock_2_sbb(self):
+        def assert_completion_handler1(data: CRDataContainer):
+            self.assertTrue(len(data.contracts) == expected_num_runs)
+            self.assertTrue(len(data.run_results) == expected_num_runs)
+            self.assertEqual(data.run_results, expected_run_results)
+
+        expected_run_results = ['SUCC', 'SUCC']
+        expected_num_runs = 2
+        input_hash1 = 'A' * 64
+        input_hash2 = 'B' * 64
+        mock_handler1 = MagicMock()
+        mock_handler2 = MagicMock()
+        mock_handler1.side_effect = assert_completion_handler1
+        mock_handler2.side_effect = assert_completion_handler1
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+        client1.start_sub_block(input_hash1)
+        client2.start_sub_block(input_hash2)
+
+        c1 = create_currency_tx('davis', 'stu', 14)
+        c2 = create_currency_tx('stu', 'davis', 40)
+        c3 = create_currency_tx('stu', 'davis', 15)
+        c4 = create_currency_tx('davis', 'stu', 90)
+        client1.run_contract(c1)
+        client1.run_contract(c2)
+        client2.run_contract(c3)
+        client2.run_contract(c4)
+
+        client1.end_sub_block(mock_handler1)
+        client2.end_sub_block(mock_handler2)
+        self.assertTrue(input_hash1 in client1.pending_futures)
+        self.assertTrue(input_hash2 in client2.pending_futures)
+
+        # We must run the future manually, since the event loop is not currently running
+        coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
+        loop.run_until_complete(asyncio.gather(*coros))
+
+        mock_handler1.assert_called()
+        mock_handler2.assert_called()
 
