@@ -59,7 +59,7 @@ class CRDataBase(metaclass=CRDataMeta):
         """
         raise NotImplementedError()
 
-    def reset_contract_data(self, contract_idx: int) -> bool:
+    def reset_contract_data(self, contract_idx: int):
         """
         Resets the reads list and modification list for the contract at index idx.
         """
@@ -97,14 +97,17 @@ class CRDataGetSet(CRDataBase, dict):
         return ''.join('SET {} {};'.format(k, self[k]['mod']) for k in sorted(mods))
 
     def should_rerun(self, contract_idx: int) -> bool:
-        if contract_idx >= len(self.writes):  # Check array out of bounds
-            return False
+        # A contract should rerun if any of the keys that it read/wrote have changed on either common or master
+        all_rw = self.writes[contract_idx].union(self.reads[contract_idx])
 
-        # Return True if the common layer key exists and is different than the original
-        mod_set = self.writes[contract_idx]
-        for mod in self.writes[contract_idx]:
+        for mod in all_rw:
+            latest_val = None
             # Get 'latest' value for key mod, pulling first from common layer, than master
-            latest_val = self.working.get(mod) if self.working.exists(mod) else self.master.get(mod)
+            if self.working.exists(mod):
+                latest_val = self.working.get(mod)
+            elif self.master.exists(mod):
+                latest_val = self.master.get(mod)
+
             if latest_val != self[mod]['og']:
                 return True
 
@@ -289,7 +292,7 @@ class CRDataContainer:
         """
         return True in (obj.should_rerun(contract_idx) for obj in self.cr_data.values())
 
-    def reset_contract_data(self, contract_idx: int) -> bool:
+    def reset_contract_data(self, contract_idx: int):
         """
         Resets the reads list and modification list for the contract at index idx.
         """

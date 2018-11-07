@@ -20,6 +20,7 @@ class CRCmdMeta(type):
 class CRCmdBase(metaclass=CRCmdMeta):
     DATA_NAME = None
 
+    # TODO -- remove the finalize var. We dont need this.
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
                  data: CRDataContainer, finalize=False):
         self.log = get_logger("{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))

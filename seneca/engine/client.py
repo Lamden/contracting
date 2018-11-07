@@ -180,12 +180,12 @@ class SenecaClient(SenecaInterface):
         """
         self.log.info("Waiting for other SBBs to finish execution...")
         await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.EXECUTION, value=self.num_sb_builders,
-                                            timeout=Phase.EXEC_TIMEOUT)
+                                            timeout=(len(self.pending_dbs) + 1) * Phase.EXEC_TIMEOUT)
         self.log.info("Done waiting for other SBBs to finish execution")
 
         self.log.info("Waiting for other SBBs to finish conflict resolution...")
         await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.CONFLICT_RESOLUTION, value=self.sbb_idx,
-                                            timeout=Phase.CR_TIMEOUT)
+                                            timeout=(len(self.pending_dbs) + 1) * Phase.CR_TIMEOUT)
         self.log.info("Done waiting for other SBBs to finish contract resolution")
 
         self._rerun_contracts_for_cr_data(cr_data)

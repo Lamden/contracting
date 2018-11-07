@@ -180,6 +180,92 @@ class TestCRGetSet(TestCase):
         expected = {'og': None, 'mod': VALUE}
         self.assertEqual(expected, cr_set.data['getset'][KEY])
 
+    def test_should_rerun_no_changes(self):
+        KEY1 = 'im_a_key1'
+        KEY2 = 'im_a_key2'
+        VALUE1 = b'value_on_master1'
+        VALUE2 = b'value_on_master2'
+        NEW_VALUE1 = b'new_value1'
+        cr_set = self._new_set()
+        cr_get = self._new_get()
+        self.master.set(KEY1, VALUE1)
+        self.master.set(KEY2, VALUE2)
+
+        cr_get(KEY2)
+        cr_set(KEY1, NEW_VALUE1)
+
+        cr_data = cr_set.data['getset']
+        self.assertFalse(cr_data.should_rerun(0))
+
+    def test_should_rerun_change_common_only_write(self):
+        KEY1 = 'im_a_key1'
+        KEY2 = 'im_a_key2'
+        VALUE1 = b'value_on_master1'
+        VALUE2 = b'value_on_master2'
+        NEW_VALUE1 = b'new_value1'
+        cr_set = self._new_set()
+        self.master.set(KEY1, VALUE1)
+        self.master.set(KEY2, VALUE2)
+
+        cr_set(KEY1, NEW_VALUE1)
+
+        # Make some changes to common on the written key
+        self.working.set(KEY1, b'new_common1')
+
+        cr_data = cr_set.data['getset']
+        self.assertTrue(cr_data.should_rerun(0))
+
+    def test_should_rerun_change_common_only_read(self):
+        KEY1 = 'im_a_key1'
+        KEY2 = 'im_a_key2'
+        VALUE1 = b'value_on_master1'
+        VALUE2 = b'value_on_master2'
+        cr_get = self._new_get()
+        self.master.set(KEY1, VALUE1)
+        self.master.set(KEY2, VALUE2)
+
+        cr_get(KEY1)
+
+        # Make some changes to common on the written key
+        self.working.set(KEY1, b'new_common1')
+
+        cr_data = cr_get.data['getset']
+        self.assertTrue(cr_data.should_rerun(0))
+
+    def test_should_rerun_change_master_only_read(self):
+        KEY1 = 'im_a_key1'
+        KEY2 = 'im_a_key2'
+        VALUE1 = b'value_on_master1'
+        VALUE2 = b'value_on_master2'
+        cr_get = self._new_get()
+        self.master.set(KEY1, VALUE1)
+        self.master.set(KEY2, VALUE2)
+
+        cr_get(KEY1)
+
+        # Make some changes to common on the written key
+        self.master.set(KEY1, b'new_common1')
+
+        cr_data = cr_get.data['getset']
+        self.assertTrue(cr_data.should_rerun(0))
+
+    def test_should_rerun_change_master_only_write(self):
+        KEY1 = 'im_a_key1'
+        KEY2 = 'im_a_key2'
+        VALUE1 = b'value_on_master1'
+        VALUE2 = b'value_on_master2'
+        NEW_VALUE1 = b'new_value1'
+        cr_set = self._new_set()
+        self.master.set(KEY1, VALUE1)
+        self.master.set(KEY2, VALUE2)
+
+        cr_set(KEY1, NEW_VALUE1)
+
+        # Make some changes to common on the written key
+        self.master.set(KEY1, b'new_common1')
+
+        cr_data = cr_set.data['getset']
+        self.assertTrue(cr_data.should_rerun(0))
 
 if __name__ == "__main__":
     unittest.main()
