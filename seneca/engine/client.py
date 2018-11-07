@@ -65,22 +65,33 @@ class SenecaClient(SenecaInterface):
         self.pending_dbs = deque()  # List of CRDataContainer instances
         self.pending_futures = defaultdict(dict)  # Map of input hashes -> {'fut': asyncio.Future, 'data': CRDataContainer}
 
-        self.setup_dbs()
+        self._setup_dbs()
 
-    def setup_dbs(self):
+    def _setup_dbs(self):
         self.master_db = redis.StrictRedis(host='localhost', port=self.port, db=MASTER_DB, password=self.password)
         for db_num in range(self.max_number_workers):
             db_client = redis.StrictRedis(host='localhost', port=self.port, db=db_num+DB_OFFSET, password=self.password)
             cr_data = CRDataContainer(working_db=db_client, master_db=self.master_db, sbb_idx=self.sbb_idx)
             self.available_dbs.append(cr_data)
 
-    def reset_cr_data(self, ds: CRDataContainer):
+    def _reset_cr_data(self, ds: CRDataContainer):
         ds.reset()
         Phase.reset_phase_variables(ds.working_db)
 
-    def update_master_db(self, from_db):
-        assert Phase.get_phase_variable(from_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders
-        raise NotImplementedError()
+    def update_master_db(self, should_commit=True):
+        """ Merges the first (leftpop) pending_db to master. """
+        assert len(self.pending_dbs) > 0, "No pending dbs to update to master!"
+        cr_data = self.pending_dbs.popleft()
+        assert Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders
+        assert Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION) == self.num_sb_builders
+
+        if should_commit:
+            self.log.notice("Merging common layer to master db")
+            CRDataContainer.merge_to_master(working_db=cr_data.working_db, master_db=self.master_db)
+
+        self.log.debugv("Resetting CRDataContainer with input hash {}".format(cr_data.input_hash))
+        self._reset_cr_data(cr_data)
+        self.available_dbs.append(cr_data)
 
     def submit_contract(self, contract):
         self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
@@ -101,6 +112,7 @@ class SenecaClient(SenecaInterface):
     def _run_contract(self, contract) -> str:
         """ Runs the contract object, and retuns a string representing the result (succ/fail).
         Note: Assumes the BookKeeping info has already been set. """
+        assert BookKeeper.has_info(), "Must set BookKeeping info before calling _run_contract!"
         contract_name = contract.contract_name
         metadata = self.get_contract_meta(contract_name)
 
@@ -130,7 +142,7 @@ class SenecaClient(SenecaInterface):
                 cr_data.update_contract_result(contract_idx=i, result=result)
 
     def catchup(self):
-        raise NotImplementedError()
+        raise NotImplementedError('code this up if ur tryna use it u lazy bum')
 
     def has_available_db(self) -> bool:
         return len(self.available_dbs) > 0
@@ -185,6 +197,7 @@ class SenecaClient(SenecaInterface):
         completion_handler(cr_data)
 
         # TODO remove the corresponding future from self.pending_futures
+        # TODO properly recycle this cr_data
 
     async def _wait_for_phase_variable(self, db: redis.StrictRedis, key: str, value: int, timeout: int):
         elapsed = 0
@@ -201,57 +214,3 @@ class SenecaClient(SenecaInterface):
                 raise Exception(err_msg)
 
         self.log.debug("Waited a total of {} seconds for phase variable {} to reach value {}".format(elapsed, key, value))
-
-    # def get_next_sub_block(self):
-    #     f_db = self.pending_dbs[0]  # get the first one, but still leave it in the pending_dbs too
-    #     assert Phase.get_phase_variable(f_db, Macros.EXECUTION) == self.num_sb_builders
-    #     self.synchronize_phase(f_db, Macros.EXECUTION)
-    #     self.wait_my_turn(f_db, Macros.CONFLICT_RESOLUTION)
-    #     txns = self.merge_sub_block(f_db)
-    #     Phase.incr_phase_variable(self.f_db, Macros.CONFLICT_RESOLUTION)
-    #     return txns
-    #
-    # def merge_sub_block(self, db):
-    #     pass
-    #     # for ord_no, list_obj in enumerate(self.get_order_key_lists(db)):
-    #     #     key_list, sbb_index = list_obj['keys'], list_obj['idx']
-    #     #     modified = False
-    #     #     for key in key_list:
-    #     #         orig_value = db.hget(Macros.COMMON, key)['ori']
-    #     #         sbb_orig_value = db.hget(self.executed_key, key)['ori']
-    #     #         if sbb_orig_value != orig_value:
-    #     #             modified = True
-    #     #             db.hset(self.executed_key, key, orig_value)
-    #     #     if modified:
-    #     #         pass
-    #     #         # self.run_contract(contract)
-    #     #     for key in key_list:
-    #     #         mod_value = db.hget(self.executed_key, key)['mod']
-    #     #         db.hset(Macros.COMMON, key, mod_value)
-    #
-    # def synchronize_phase(self, db, key):
-    #     """
-    #     Blocks until the value of 'key' on db reaches self.num_sb_builders
-    #     :return:
-    #     """
-    #     while Phase.get_phase_variable(db, key) < self.num_sb_builders:
-    #         time.sleep(1) # TODO use better logic here
-    #
-    # def wait_my_turn(self, db, key):
-    #     while Phase.get_phase_variable(db, key) < self.sbb_index:
-    #         time.sleep(1) # TODO use better logic here
-    #     assert Phase.get_phase_variable(db, key) == self.sbb_index
-
-    # def flush(self, input_hash=None, result_hash=None, update_state=True):
-    #     """
-    #     If update_state is True, this will also commit the changes
-    #     to the database. Otherwise, this method will discard any changes
-    #     """
-    #     raise NotImplementedError()
-    #     # f_db = self.pending_dbs.pop(0)
-    #     # if self.sbb_index == 0: # only one will do merging db work for now (but it could be the one that is not reponsible for sb)
-    #     #     if update_state:
-    #     #         # TODO make sure f_db is the one by matching input_hash(es) ?
-    #     #         self.update_master_db(f_db)
-    #     #     self.reset_db(f_db)
-    #     # self.worker_dbs.append(f_db)

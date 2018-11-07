@@ -285,21 +285,21 @@ class CRDataContainer:
 
         self.merged_to_common = True
 
-    # TODO merge_to_master can probly be a class method, we just have to pass in working_db
-    def merge_to_master(self):
+    @classmethod
+    def merge_to_master(cls, working_db: redis.StrictRedis, master_db: redis.StrictRedis):
         from seneca.engine.client import Macros  # to avoid cyclic imports
 
-        for key in self.working_db.keys():
+        for key in working_db.keys():
             # Ignore Phase keys
             if key in Macros.ALL_MACROS:
                 continue
 
-            t = self.working_db.type(key)
+            t = working_db.type(key)
 
             if t == b'string':
-                CRDataGetSet.merge_to_master(self.working_db, self.master_db, key)
+                CRDataGetSet.merge_to_master(working_db, master_db, key)
             elif t == b'hash':
-                CRDataHMap.merge_to_master(self.working_db, self.master_db, key)
+                CRDataHMap.merge_to_master(working_db, master_db, key)
             else:
                 raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, t))
 

@@ -155,3 +155,7 @@ class TestSenecaClient(TestCase):
         mock_handler1.assert_called()
         mock_handler2.assert_called()
 
+    # Test that pending_db/active_db/working_db get updated as we go thru the flow
+
+    # Test starting a new sub block before the last sub block finishes
+
