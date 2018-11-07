@@ -159,3 +159,5 @@ class TestSenecaClient(TestCase):
 
     # Test starting a new sub block before the last sub block finishes
 
+    # Test with multiple sb's where stuff in SB 2 will pass the first time and fail the second time (cause some og read was modified)
+

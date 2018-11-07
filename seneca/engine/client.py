@@ -197,7 +197,6 @@ class SenecaClient(SenecaInterface):
         completion_handler(cr_data)
 
         # TODO remove the corresponding future from self.pending_futures
-        # TODO properly recycle this cr_data
 
     async def _wait_for_phase_variable(self, db: redis.StrictRedis, key: str, value: int, timeout: int):
         elapsed = 0
