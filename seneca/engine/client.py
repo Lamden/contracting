@@ -23,7 +23,7 @@ class Macros:
 class Phase:
     EXEC_TIMEOUT = 30  # Number of seconds client will wait for other clients to finish execution phase
     CR_TIMEOUT = 30  # Number of seconds client will wait for other clients to finish conflict resolution phase
-    POLL_INTERVAL = 1  # Poll for Phase changes every POLL_INTERVAL seconds
+    POLL_INTERVAL = 0.5  # Poll for Phase changes every POLL_INTERVAL seconds
 
     @staticmethod
     def reset_phase_variables(db):
@@ -36,13 +36,15 @@ class Phase:
 
     @staticmethod
     def get_phase_variable(db, key):
-        return db.get(key)
+        if not db.exists(key):
+            return 0
+        return int(db.get(key).decode())
 
 
 class SenecaClient(SenecaInterface):
 
     def __init__(self, sbb_idx, num_sbb, concurrent_mode=True, loop=None):
-
+        # TODO do we even need to bother with the concurrent_mode flag? We are treating that its always true --davis
         super().__init__()
 
         name = self.__class__.__name__ + "[sbb-{}]".format(sbb_idx)
@@ -90,7 +92,7 @@ class SenecaClient(SenecaInterface):
 
     def run_contract(self, contract):
         assert self.active_db, "active_db must be set to run a contract. Did you call start_sub_block?"
-        assert self.active_db.input_hash, "Input hash have been set by start_sub_block...davis u done goofed again"
+        assert self.active_db.input_hash, "Input hash not set...davis u done goofed again"
 
         BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=self.active_db.next_contract_idx, data=self.active_db)
         result = self._run_contract(contract)
@@ -128,7 +130,7 @@ class SenecaClient(SenecaInterface):
                 cr_data.update_contract_result(contract_idx=i, result=result)
 
     def catchup(self):
-        pass
+        raise NotImplementedError()
 
     def has_available_db(self) -> bool:
         return len(self.available_dbs) > 0
@@ -140,14 +142,14 @@ class SenecaClient(SenecaInterface):
         self.active_db = self.available_dbs.popleft()
         self.active_db.input_hash = input_hash
 
-    def end_sub_block(self, completion_handler: Callable[CRDataContainer]):
+    def end_sub_block(self, completion_handler: Callable[[CRDataContainer], None]):
         """
         Ends the current sub block, and schedules for it rerun any necessary contracts, and then merge to the common
         layer. Once this rerun and merge is complete, completion_handler is called with the finalized CRDataContainer
         """
         self.log.notice("Ending sub block {} which has input hash {}".format(self.sbb_idx, self.active_db.input_hash))
 
-        Phase.incr_phase_variable(self.active_db, Macros.EXECUTION)
+        Phase.incr_phase_variable(self.active_db.working_db, Macros.EXECUTION)
 
         future = asyncio.ensure_future(self._wait_and_merge_to_common(self.active_db, completion_handler))
         self.pending_futures[self.active_db.input_hash] = {'fut': future, 'data': self.active_db}
@@ -155,37 +157,63 @@ class SenecaClient(SenecaInterface):
         self.pending_dbs.append(self.active_db)
         self.active_db = None  # we really don't care, but might be useful initially for error checking
 
-    async def _wait_and_merge_to_common(self, cr_data: CRDataContainer, completion_handler: Callable[CRDataContainer]):
+    async def _wait_and_merge_to_common(self, cr_data: CRDataContainer, completion_handler: Callable[[CRDataContainer], None]):
         """
-        - Waits for this subblock index's turn to merge to common. Raises an error if it takes longer than Phase.EXEC_TIMEOUT
+        - Waits for all other SBBs to finish execution. Raises an error if this takes longer than Phase.EXEC_TIMEOUT
+        - Waits for this subblock index's turn to merge to common. Raises an error if it takes longer than Phase.CR_TIMEOUT
         - Rerun any necessary contracts
         - Merges cr_data to common layer, and then increment the CONFLICT_RESOLUTION phase variable
         - Calls the completion handle with the subblock data once all of the above is complete
         """
-        elapsed = 0
-        self.log.info("Waiting to merge to common...")
+        self.log.info("Waiting for other SBBs to finish execution...")
+        await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.EXECUTION, value=self.num_sb_builders,
+                                            timeout=Phase.EXEC_TIMEOUT)
+        self.log.info("Done waiting for other SBBs to finish execution")
 
-        while Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION) < self.sbb_idx:
-            await asyncio.sleep(Phase.POLL_INTERVAL)
-            elapsed += Phase.POLL_INTERVAL
+        self.log.info("Waiting for other SBBs to finish conflict resolution...")
+        await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.CONFLICT_RESOLUTION, value=self.sbb_idx,
+                                            timeout=Phase.CR_TIMEOUT)
+        self.log.info("Done waiting for other SBBs to finish contract resolution")
 
-            if elapsed >= Phase.EXEC_TIMEOUT:
-                err_msg = "Client with sbb_idx {} exceeded timeout of {} waiting for its turn to merge to common! " \
-                          "Current execution phase value: {}"\
-                          .format(self.sbb_idx, elapsed, Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION))
-                self.log.fatal(err_msg)
-                raise Exception(err_msg)
+        # while Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) < self.sbb_idx:
+        #     await asyncio.sleep(Phase.POLL_INTERVAL)
+        #     elapsed += Phase.POLL_INTERVAL
+        #
+        #     if elapsed >= Phase.EXEC_TIMEOUT:
+        #         err_msg = "Client with sbb_idx {} exceeded timeout of {} waiting for its turn to merge to common! " \
+        #                   "Current conflict resolution phase value: {}"\
+        #                   .format(self.sbb_idx, elapsed, Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION))
+        #         self.log.fatal(err_msg)
+        #         raise Exception(err_msg)
 
         # Development sanity check
-        assert Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION) == self.sbb_idx, "Logic error :("
-        self.log.notice("Merging sbb data to common layer. Time spent waiting for this sbb's turn: {}".format(elapsed))
+        assert Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.sbb_idx, "Logic error :("
 
         self._rerun_contracts_for_cr_data(cr_data)
+        self.log.notice("Merging sbb data to common layer")
         cr_data.merge_to_common()
         Phase.incr_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION)
+
+        self.log.debug("Finished finalizing sub block for inpush hash {}! Calling completion handler".format(cr_data.input_hash))
         completion_handler(cr_data)
 
         # TODO remove the corresponding future from self.pending_futures
+
+    async def _wait_for_phase_variable(self, db: redis.StrictRedis, key: str, value: int, timeout: int):
+        elapsed = 0
+        while Phase.get_phase_variable(db, key) != value:
+            await asyncio.sleep(Phase.POLL_INTERVAL)
+            elapsed += Phase.POLL_INTERVAL
+
+            if elapsed >= timeout:
+                err_msg = "Client with sbb_idx {} exceeded timeout of {} waiting for its turn to merge to common! " \
+                          "Current conflict resolution phase value: {}" \
+                    .format(self.sbb_idx, elapsed,
+                            Phase.get_phase_variable(db, key))
+                self.log.fatal(err_msg)
+                raise Exception(err_msg)
+
+        self.log.debug("Waited a total of {} seconds for phase variable {} to reach value {}".format(elapsed, key, value))
 
     # def get_next_sub_block(self):
     #     f_db = self.pending_dbs[0]  # get the first one, but still leave it in the pending_dbs too
