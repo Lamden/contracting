@@ -28,8 +28,8 @@ class CRDataBase(metaclass=CRDataMeta):
         self.log = get_logger(type(self).__name__)
         self.master, self.working = master_db, working_db
         # TODO a deque (doubly linked list) might be more efficient for the mods and reads data --davis
-        self.mods = []
-        self.reads = []
+        self.writes = defaultdict(set)
+        self.reads = defaultdict(set)
 
     def merge_to_common(self):
         """
@@ -64,7 +64,7 @@ class CRDataBase(metaclass=CRDataMeta):
         Resets the reads list and modification list for the contract at index idx.
         """
         # Only reset if read/mod data exists for the contract_idx
-        for data in (self.mods, self.reads):
+        for data in (self.writes, self.reads):
             if len(data) > contract_idx: data[contract_idx].clear()
 
 
@@ -72,6 +72,7 @@ class CRDataGetSet(CRDataBase, dict):
     NAME = 'getset'
 
     def _get_modified_keys(self):
+        # TODO this needs to return READs that have had their original values changed too!
         return set().union((key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
 
     def merge_to_common(self):
@@ -89,19 +90,19 @@ class CRDataGetSet(CRDataBase, dict):
         return ''.join('SET {} {};'.format(k, self[k]['mod']) for k in sorted(modified_keys))
 
     def get_state_for_idx(self, contract_idx: int) -> str:
-        if contract_idx >= len(self.mods):  # Edge condition, must check array bounds
+        if contract_idx >= len(self.writes):  # Edge condition, must check array bounds
             return ''
 
-        mods = self.mods[contract_idx]
+        mods = self.writes[contract_idx]
         return ''.join('SET {} {};'.format(k, self[k]['mod']) for k in sorted(mods))
 
     def should_rerun(self, contract_idx: int) -> bool:
-        if contract_idx >= len(self.mods):  # Check array out of bounds
+        if contract_idx >= len(self.writes):  # Check array out of bounds
             return False
 
         # Return True if the common layer key exists and is different than the original
-        mod_set = self.mods[contract_idx]
-        for mod in self.mods[contract_idx]:
+        mod_set = self.writes[contract_idx]
+        for mod in self.writes[contract_idx]:
             # Get 'latest' value for key mod, pulling first from common layer, than master
             latest_val = self.working.get(mod) if self.working.exists(mod) else self.master.get(mod)
             if latest_val != self[mod]['og']:

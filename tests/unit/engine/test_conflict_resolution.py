@@ -122,8 +122,9 @@ class TestConflictResolution(TestCase):
         self.assertEqual(getset[KEY3], k3_expected)
 
         # Check modifications list
-        expected_mods = [{KEY1}, set(), {KEY3}]
-        self.assertEqual(self.r.data['getset'].mods, expected_mods)
+        # expected_mods = [{KEY1}, set(), {KEY3}]
+        expected_mods = {0: {KEY1}, 2: {KEY3}}
+        self.assertEqual(self.r.data['getset'].writes, expected_mods)
 
         # Check should_rerun (tinker with common first)
         self.working.set(KEY1, b'A NEW VALUE HAS ARRIVED')
