@@ -67,6 +67,9 @@ class CRDataBase(metaclass=CRDataMeta):
         self.reads[contract_idx].clear()
         self.outputs[contract_idx] = ''
 
+    def get_modified_keys(self) -> set:
+        return set()
+
 
 class CRDataGetSet(CRDataBase, dict):
     NAME = 'getset'
@@ -114,6 +117,29 @@ class CRDataGetSet(CRDataBase, dict):
         assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
         val = working_db.get(key)
         master_db.set(key, val)
+
+    def get_modified_keys(self) -> set:
+        mods = set()
+        for k in self:
+            if (self.master.exists(k) and (self.master.get(k) != self[k]['og'])) or (
+                    self.working.exists(k) and (self.working.get(k) != self[k]['og'])):
+                mods.add(k)
+
+        return mods
+
+    def get_contracts_for_keys(self, keys: set, reads=True, writes=True, exclude: set=None) -> List[int]:
+        """ Get all contract indexes that had their reads and/or writes affected by the contracts in keys"""
+        pass
+        # contract_idxs = []
+        #
+        # for idx in range(max(len(self.reads), len(self.writes))):
+        #     if reads and (idx in self.reads):
+        #         if len(self.reads) > 0:
+        #
+        # if reads:
+        #     for idx, mods in self.reads:
+        #         if len(keys.intersection(mods)) > 0 and c
+
 
 
 class CRDataHMap(CRDataBase, defaultdict):
@@ -318,7 +344,8 @@ class CRDataContainer:
         # reset the contract data before you rerun it
         # loop
 
-
+        # PREFER MASTER VALUE when copying keys over. if og should have been copied from master during exec phase,
+        # so if master is diff from og that means another block changed master, and that value should be prefered
 
         # what if both master and common differ from the orig values? which ones do you use?
         # we would need to track original master value (at time of the read). or just ignore this problem until
