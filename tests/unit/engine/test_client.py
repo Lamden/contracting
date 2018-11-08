@@ -103,7 +103,8 @@ class TestSenecaClient(TestCase):
         loop.run_until_complete(client.pending_futures[input_hash]['fut'])
 
         actual_sbb_rep = client.update_master_db()
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"), (c2, "SUCC", "SET balances:davis 10026;SET balances:stu 43;")]
+        expected_sbb_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
+                            (c2, "SUCC", "SET balances:stu 43;SET balances:davis 10026;")]
         self.assertEqual(expected_sbb_rep, actual_sbb_rep)
 
         loop.close()

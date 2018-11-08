@@ -27,9 +27,9 @@ class CRDataBase(metaclass=CRDataMeta):
         super().__init__()
         self.log = get_logger(type(self).__name__)
         self.master, self.working = master_db, working_db
-        # TODO a deque (doubly linked list) might be more efficient for the mods and reads data --davis
         self.writes = defaultdict(set)
         self.reads = defaultdict(set)
+        self.outputs = defaultdict(str)
 
     def merge_to_common(self):
         """
@@ -90,11 +90,7 @@ class CRDataGetSet(CRDataBase, dict):
         return ''.join('SET {} {};'.format(k, self[k]['mod'].decode()) for k in sorted(modified_keys))
 
     def get_state_for_idx(self, contract_idx: int) -> str:
-        if contract_idx >= len(self.writes):  # Edge condition, must check array bounds
-            return ''
-
-        mods = self.writes[contract_idx]
-        return ''.join('SET {} {};'.format(k, self[k]['mod'].decode()) for k in sorted(mods))
+        return self.outputs[contract_idx]
 
     def should_rerun(self, contract_idx: int) -> bool:
         # A contract should rerun if any of the keys that it read/wrote have changed on either common or master
@@ -277,6 +273,7 @@ class CRDataContainer:
         for container in self.cr_data.values():
             container.writes.clear()
             container.reads.clear()
+            container.outputs.clear()
             if _is_subclass(container, (list, set, dict, defaultdict)):
                 container.clear()
             else:
