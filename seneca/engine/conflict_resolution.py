@@ -133,6 +133,35 @@ class CRDataGetSet(CRDataBase, dict):
 
         return mods
 
+    def get_modified_keys_recursive(self):
+        mod_keys = self.get_modified_keys()
+        self.add_adjacent_keys(mod_keys)
+        return mod_keys
+
+    def add_adjacent_keys(self, key_set):
+        copy_set = set(key_set)
+        for key in copy_set:
+            self._add_adjacent_keys(key, key_set)
+
+    def _add_adjacent_keys(self, key: str, key_set: set):
+        assert key in key_set, 'logic error'
+        assert key in self, 'key is not in self??'
+
+        # Get all keys modified in conjunction with 'key'
+        new_keys = set()
+        for contract_idx in self[key]['contracts']:
+            all_rw = self.writes[contract_idx].union(self.reads[contract_idx])
+            new_keys = new_keys.union(all_rw)
+
+        # Recursive stage
+        for k in new_keys:
+            if k in key_set:  # Base case -- if this key is already in the key_list do not recurse
+                continue
+            else:
+                key_set.add(k)
+                self._add_adjacent_keys(k, key_set)
+
+
     def reset_key(self, key):
         # TODO I  think we are going to have problems when the key is different on both master AND common.
         # this is because if this context was built on top of another pending_db, and we are not the first subblock,
@@ -141,8 +170,9 @@ class CRDataGetSet(CRDataBase, dict):
         # use common
         og_val = self[key]['og']
 
-        # TODO do we need to reset the contracts that this key touched also???
+        # TODO do we need to reset the contracts that this key touched also??? For now i think yes
         self[key]['mod'] = None
+        self[key]['contracts'] = set()
 
         # First, try and copy over master if it differs from original value
         if self.master.exists(key) and self.master.get(key) != og_val:
@@ -153,8 +183,6 @@ class CRDataGetSet(CRDataBase, dict):
         # Complain if neither of these conditions are met
         else:
             raise Exception("Attempted to reset key <{}> but key not found in common or master layer!".format(key))
-
-
 
     def get_contracts_for_keys(self, keys: set, reads=True, writes=True, exclude: set=None) -> List[int]:
         """ Get all contract indexes that had their reads and/or writes affected by the contracts in keys"""

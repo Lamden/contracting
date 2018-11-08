@@ -365,6 +365,39 @@ class TestCRGetSet(TestCase):
         self.assertEqual(cr_data[KEY1]['og'], MASTER_VALUE1)
         self.assertEqual(cr_data[KEY1]['mod'], None)
 
+    def test_get_modified_keys_recursive(self):
+        k = ['k{}'.format(i+1) for i in range(5)]
+        v = ['v{}'.format(i+1) for i in range(5)]
+
+        cr_set = self._new_set()
+        cr_data = cr_set.data['getset']
+
+        for i in range(len(k)):
+            cr_data[k[i]] = {'og': v[i], 'mod': v[i] + '_MOD', 'contracts': set()}
+
+        cr_data[k[0]]['contracts'] = {0, 2}
+        cr_data[k[1]]['contracts'] = {0, 3}
+        cr_data[k[2]]['contracts'] = {1}
+        cr_data[k[3]]['contracts'] = {2}
+        cr_data[k[4]]['contracts'] = {3}
+
+        cr_data.writes[0] = {k[0], k[1]}
+        cr_data.reads[0] = {k[1]}
+
+        cr_data.writes[1] = {k[2]}
+        cr_data.reads[1] = {k[2]}
+
+        cr_data.writes[2] = {k[0], k[3]}
+        cr_data.reads[2] = {k[0]}
+
+        cr_data.writes[3] = {k[1], k[4]}
+        cr_data.reads[3] = {k[1]}
+
+        self.master.set(k[3], 'SOME NEW VALUE FOR k[3]')
+
+        expected_mods = {k[3], k[0], k[1], k[4]}
+        actual_mods = cr_data.get_modified_keys_recursive()
+        self.assertEqual(expected_mods, actual_mods)
 
 if __name__ == "__main__":
     unittest.main()
