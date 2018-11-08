@@ -90,10 +90,14 @@ class SenecaClient(SenecaInterface):
         assert len(self.pending_dbs) > 0, "No pending dbs to update to master!"
         cr_data = self.pending_dbs.popleft()
         assert cr_data.merge_to_common, "CRData not merged to common yet!"
-        assert Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION) == self.num_sb_builders, \
-            "Execution stage incomplete!"
-        assert Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders, \
-            "Conflict resolution stage incomplete!"
+
+        # TODO this is bad hacky. Only SBB 0 will be able to make these asserts, b/c the db is cleared afterwords.
+        # we could defer resetting the db until the last SB calls this, but nvm that for now
+        if self.sbb_idx == 0:
+            assert Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION) == self.num_sb_builders, \
+                "Execution stage incomplete!"
+            assert Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders, \
+                "Conflict resolution stage incomplete!"
 
         if should_commit:
             self.log.notice("Merging common layer to master db")
@@ -209,7 +213,7 @@ class SenecaClient(SenecaInterface):
         cr_data.merge_to_common()
         Phase.incr_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION)
 
-        self.log.debug("Finished finalizing sub block for input hash {}!")
+        self.log.debug("Finished finalizing sub block for input hash {}!".format(cr_data.input_hash))
         self.pending_futures[cr_data.input_hash]['fut'].set_result('done')
 
     async def _wait_for_phase_variable(self, db: redis.StrictRedis, key: str, value: int, timeout: int):

@@ -63,9 +63,9 @@ class CRDataBase(metaclass=CRDataMeta):
         """
         Resets the reads list and modification list for the contract at index idx.
         """
-        # Only reset if read/mod data exists for the contract_idx
-        for data in (self.writes, self.reads):
-            if len(data) > contract_idx: data[contract_idx].clear()
+        self.writes[contract_idx].clear()
+        self.reads[contract_idx].clear()
+        self.outputs[contract_idx] = ''
 
 
 class CRDataGetSet(CRDataBase, dict):
