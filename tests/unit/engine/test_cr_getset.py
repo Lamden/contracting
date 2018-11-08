@@ -140,6 +140,18 @@ class TestCRGetSet(TestCase):
         writes = cr_set.data['getset'].writes
         self.assertTrue(KEY in writes[0])
 
+    def test_basic_set_adds_to_key_contract_mods(self):
+        KEY = 'im_a_key'
+        VALUE = b'value_on_master'
+        NEW_VALUE = b'new_value'
+        cr_set = self._new_set()
+        self.master.set(KEY, VALUE)
+
+        cr_set(KEY, NEW_VALUE)
+
+        contracts_mod = cr_set.data['getset'][KEY]['contracts']
+        self.assertTrue(cr_set.contract_idx in contracts_mod)
+
     def test_basic_get_adds_to_reads(self):
         KEY = 'im_a_key'
         VALUE = b'value_on_master'

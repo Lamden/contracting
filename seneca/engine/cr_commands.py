@@ -110,7 +110,7 @@ class CRCmdGetSetBase(CRCmdBase):
 
     def _copy_key_to_sbb_data(self, db: redis.StrictRedis, key: str):
         val = db.get(key) if db else None
-        self.data['getset'][key] = {'og': val, 'mod': None}
+        self.data['getset'][key] = {'og': val, 'mod': None, 'contracts': set()}
 
 
 class CRCmdGet(CRCmdGetSetBase):
@@ -149,6 +149,7 @@ class CRCmdSet(CRCmdGetSetBase):
 
         self.log.debugv("Setting SBB specific key <{}> to value {}".format(key, value))
         self.data['getset'][key]['mod'] = value
+        self.data['getset'][key]['contracts'].add(self.contract_idx)
         self.data['getset'].writes[self.contract_idx].add(key)
         self.data['getset'].outputs[self.contract_idx] += 'SET {} {};'.format(key, value.decode())
 
