@@ -36,18 +36,17 @@ class CRCmdBase(metaclass=CRCmdMeta):
         """
         # If the key already exists, bounce out of this method immediately
         if self._sbb_original_exists(key, *args, **kwargs):
-            self.log.debugv("Key <{}> already exists in sub-block specific data, thus not recopying".format(key))
+            self.log.spam("Key <{}> already exists in sub-block specific data, thus not recopying".format(key))
             return
 
         # First check the common layer for the key
         if self._db_original_exists(self.working, key, *args, **kwargs):
-            self.log.debugv("Copying common key <{}> to sb specific data" .format(key))
+            self.log.spam("Copying common key <{}> to sb specific data" .format(key))
             self._copy_key_to_sbb_data(self.working, key, *args, **kwargs)
 
         # Next, check the Master layer for the key
         elif self._db_original_exists(self.master, key, *args, **kwargs):
-            self.log.debugv("Copying master key <{}> to sb specific data" .format(key))
-            # type(self)._write(self.working, og_key, val)
+            self.log.spam("Copying master key <{}> to sb specific data" .format(key))
             self._copy_key_to_sbb_data(self.master, key, *args, **kwargs)
 
         # Otherwise, if key not found in common or master layer, mark the original as None
@@ -123,16 +122,19 @@ class CRCmdGet(CRCmdGetSetBase):
         # TODO make all this DRYer so you can abstract it like a pro
 
         # First, try and return the local modified key
-        mod_val = self.data['getset'][key]['mod']
-        if mod_val is not None:
+        val = self.data['getset'][key]['mod']
+        if val is not None:
             self.log.debugv("SBB specific MODIFIED key found for key named <{}>".format(key))
         # Otherwise, default to the local original key
         else:
             self.log.debugv("SBB specific ORIGINAL key found for key named <{}>".format(key))
-            mod_val = self.data['getset'][key]['og']
+            val = self.data['getset'][key]['og']
+
+        if val is None:
+            raise Exception("Key '{}' does not exist, but was attempted to be GET".format(key))
 
         self.data['getset'].reads[self.contract_idx].add(key)
-        return mod_val
+        return val
 
 
 class CRCmdSet(CRCmdGetSetBase):

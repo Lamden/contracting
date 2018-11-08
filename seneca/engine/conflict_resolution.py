@@ -250,9 +250,7 @@ class CRDataContainer:
         self.run_results[contract_idx] = result
 
     def reset(self, reset_db=True):
-        """
-        Resets all state held by this container.
-        """
+        """ Resets all state held by this container. """
         # TODO i think this would be a lot easier if we just scrapped this whole CRDataContainer object and made a new
         # one, but then would we have to worry about memory leaks? idk but either way screw python
         def _is_subclass(obj, subs: tuple):
@@ -311,6 +309,20 @@ class CRDataContainer:
         read values will not be honored.
         """
         return True in (obj.should_rerun(contract_idx) for obj in self.cr_data.values())
+
+    def iter_rerun_indexes(self):
+        pass
+        # build a set of all reads/write that have their original value changed
+        # copy, from common layer, to the new original value, and set the modified value to None
+        # build a min heap of contract indexes that need to be run by check contract's mod list
+        # reset the contract data before you rerun it
+        # loop
+
+
+
+        # what if both master and common differ from the orig values? which ones do you use?
+        # we would need to track original master value (at time of the read). or just ignore this problem until
+        # we implement proper chaining of db reads
 
     def reset_contract_data(self, contract_idx: int):
         """
