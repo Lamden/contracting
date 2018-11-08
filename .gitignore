@@ -11,3 +11,4 @@ docker/redis.env
 dump.rdb
 *.log
 *.log_color
+*.csv
