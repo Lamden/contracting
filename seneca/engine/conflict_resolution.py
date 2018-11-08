@@ -289,20 +289,14 @@ class CRDataContainer:
         if reset_db:
             self.working_db.flushdb()
 
+        # Reset this object's state
         self.merged_to_common = False
         self.input_hash = None
         self.run_results.clear()
         self.contracts.clear()
-
-        # TODO can we just reassign each CRDataBase to a new instance? Do we have to worry about memory leaks?
-        for container in self.cr_data.values():
-            container.writes.clear()
-            container.reads.clear()
-            container.outputs.clear()
-            if _is_subclass(container, (list, set, dict, defaultdict)):
-                container.clear()
-            else:
-                raise NotImplementedError("No reset logic implemented for container of type {}".format(type(container)))
+        # TODO is this ok resetting all the CRData's like this? Should we worry about memory leaks? --davis
+        self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
+                        CRDataBase.registry.items()}
 
     def get_state_for_idx(self, contract_idx: int) -> str:
         """
