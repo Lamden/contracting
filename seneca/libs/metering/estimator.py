@@ -11,6 +11,10 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
+import seneca
+
+constants_path = seneca.__path__[0] + '/constants/'
+
 def timeit(fn):
     def _fn(self, op, code_str, *args, **kwargs):
 
@@ -62,9 +66,9 @@ class OperationsEstimator:
         self.total_opcodes = 144
         self.non_zero_min_cost = np.float('2.7937841015807387e-09')
         self.costs = {}
-        self.histogram_fname = 'histogram.csv'
-        self.costs_fname = 'costs.csv'
-        self.cu_costs_fname = 'cu_costs.csv'
+        self.histogram_fname = os.path.join(constants_path, 'histogram.csv')
+        self.costs_fname = os.path.join(constants_path, 'costs.csv')
+        self.cu_costs_fname = os.path.join(constants_path, 'cu_costs.const')
         self.show_plot = show_plot
         if not os.path.exists(self.costs_fname):
             self.compute_opcode_costs()
@@ -79,7 +83,7 @@ class OperationsEstimator:
     def calc_cost(self, code_obj):
         return exec(code_obj)
 
-    # @suppress_stdout
+    @suppress_stdout
     def precalc_costs(self):
         self.calc_cost('POP_TOP','''
 (lambda:1)()

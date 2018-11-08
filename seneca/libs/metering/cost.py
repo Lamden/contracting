@@ -1,10 +1,6 @@
 from seneca.libs.metering.estimator import OperationsEstimator
 import dis, sys, os
 
-# if __name__ == '__main__':
-#     import os
-#     os.system('rm *.csv')
-
 class Cost:
 
     def __init__(self):
