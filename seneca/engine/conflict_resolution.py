@@ -67,8 +67,13 @@ class CRDataBase(metaclass=CRDataMeta):
         self.reads[contract_idx].clear()
         self.outputs[contract_idx] = ''
 
+    # TODO better interface
+    # Abstraction for get_modified_keys/reset_keys is very weak. I don't think they will work with complex data types
     def get_modified_keys(self) -> set:
         return set()
+
+    def reset_key(self, key):
+        pass
 
 
 class CRDataGetSet(CRDataBase, dict):
@@ -95,6 +100,7 @@ class CRDataGetSet(CRDataBase, dict):
     def get_state_for_idx(self, contract_idx: int) -> str:
         return self.outputs[contract_idx]
 
+    # TODO remove this API, i dont think we'll be needing it
     def should_rerun(self, contract_idx: int) -> bool:
         # A contract should rerun if any of the keys that it read/wrote have changed on either common or master
         all_rw = self.writes[contract_idx].union(self.reads[contract_idx])
@@ -126,6 +132,9 @@ class CRDataGetSet(CRDataBase, dict):
                 mods.add(k)
 
         return mods
+
+    def reset_key(self, key):
+        raise NotImplementedError()
 
     def get_contracts_for_keys(self, keys: set, reads=True, writes=True, exclude: set=None) -> List[int]:
         """ Get all contract indexes that had their reads and/or writes affected by the contracts in keys"""

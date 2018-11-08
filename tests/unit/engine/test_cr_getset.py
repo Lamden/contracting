@@ -279,6 +279,46 @@ class TestCRGetSet(TestCase):
         cr_data = cr_set.data['getset']
         self.assertTrue(cr_data.should_rerun(0))
 
+    def test_get_modified_keys_from_common(self):
+        KEY1 = 'im_a_key1'
+        KEY2 = 'im_a_key2'
+        VALUE1 = b'value_on_master1'
+        VALUE2 = b'value_on_master2'
+        NEW_VALUE1 = b'new_value1'
+        cr_set = self._new_set()
+        self.master.set(KEY1, VALUE1)
+        self.master.set(KEY2, VALUE2)
+
+        cr_set(KEY1, NEW_VALUE1)
+
+        # Make some changes to common on the written key
+        self.working.set(KEY1, b'new_common1')
+
+        cr_data = cr_set.data['getset']
+        actual_mods = cr_data.get_modified_keys()
+        expected_mods = {KEY1}
+        self.assertEqual(expected_mods, actual_mods)
+
+    def test_get_modified_keys_from_master(self):
+        KEY1 = 'im_a_key1'
+        KEY2 = 'im_a_key2'
+        VALUE1 = b'value_on_master1'
+        VALUE2 = b'value_on_master2'
+        NEW_VALUE1 = b'new_value1'
+        cr_set = self._new_set()
+        self.master.set(KEY1, VALUE1)
+        self.master.set(KEY2, VALUE2)
+
+        cr_set(KEY1, NEW_VALUE1)
+
+        # Make some changes to common on the written key
+        self.master.set(KEY1, b'new_common1')
+
+        cr_data = cr_set.data['getset']
+        actual_mods = cr_data.get_modified_keys()
+        expected_mods = {KEY1}
+        self.assertEqual(expected_mods, actual_mods)
+
 
 if __name__ == "__main__":
     unittest.main()
