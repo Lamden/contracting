@@ -194,18 +194,18 @@ class TestConflictResolution(TestCase):
         self.assertEqual(self.master.get(KEY4), NEW_VAL4)
 
     def test_state_rep(self):
-        KEY1, VAL1 = 'k1', b'v1'
-        KEY2, VAL2 = 'k2', b'v2'
-        KEY3, VAL3 = 'k3', b'v3'
-        KEY4, VAL4 = 'k4', b'v4'
-        NEW_VAL1 = b'v1_NEW'
-        NEW_VAL3 = b'v3_NEW'
-        NEW_VAL4 = b'v4_NEW'
+        KEY1, VAL1 = 'k1', 'v1'
+        KEY2, VAL2 = 'k2', 'v2'
+        KEY3, VAL3 = 'k3', 'v3'
+        KEY4, VAL4 = 'k4', 'v4'
+        NEW_VAL1 = 'v1_NEW'
+        NEW_VAL3 = 'v3_NEW'
+        NEW_VAL4 = 'v4_NEW'
 
         # Seed keys on master
         self.master.set(KEY1, VAL1)
         self.master.set(KEY2, VAL2)
-        self.master.set(KEY3, b'val 3 on master that should be ignored in presence of KEY3 on common layer')
+        self.master.set(KEY3, 'val 3 on master that should be ignored in presence of KEY3 on common layer')
         self.working.set(KEY3, VAL3)
 
         self.r.set(KEY1, NEW_VAL1)

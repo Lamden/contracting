@@ -17,7 +17,7 @@ transfer('{receiver}', {amount})
 MINT_CODE_STR = """ \
 
 from seneca.contracts.currency import mint
-mint('davis', 100000)
+mint('davis', 10000)
 mint('stu', 69)
 mint('birb', 8000)
 mint('ghu', 9000)
@@ -83,16 +83,7 @@ class TestSenecaClient(TestCase):
         self.assertEqual(client.active_db.next_contract_idx, 2)
 
     def test_end_subblock_1_sbb(self):
-        def assert_completion_handler(data: CRDataContainer):
-            self.assertTrue(len(data.contracts) == expected_num_runs)
-            self.assertTrue(len(data.run_results) == expected_num_runs)
-            self.assertEqual(data.run_results, expected_run_results)
-
-        expected_run_results = ['SUCC', 'SUCC']
-        expected_num_runs = 2
         input_hash = 'A' * 64
-        mock_handler = MagicMock()
-        mock_handler.side_effect = assert_completion_handler
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -105,14 +96,15 @@ class TestSenecaClient(TestCase):
         client.run_contract(c1)
         client.run_contract(c2)
 
-        client.end_sub_block(mock_handler)
+        client.end_sub_block()
         self.assertTrue(input_hash in client.pending_futures)
 
         # We must run the future manually, since the event loop is not currently running
         loop.run_until_complete(client.pending_futures[input_hash]['fut'])
 
-        # self.assertTrue(complete_handler_called)
-        mock_handler.assert_called()
+        actual_sbb_rep = client.update_master_db()
+        expected_sbb_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"), (c2, "SUCC", "SET balances:davis 10026;SET balances:stu 43;")]
+        self.assertEqual(expected_sbb_rep, actual_sbb_rep)
 
         loop.close()
 

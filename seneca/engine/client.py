@@ -78,20 +78,34 @@ class SenecaClient(SenecaInterface):
         ds.reset()
         Phase.reset_phase_variables(ds.working_db)
 
-    def update_master_db(self, should_commit=True):
-        """ Merges the first (leftpop) pending_db to master. """
+    def update_master_db(self, should_commit=True) -> List[tuple]:
+        """
+        Merges the first (leftpop) pending_db to master.
+
+        Returns a list of tuples. There will be one tuple for each contract in self.contracts, and tuples will be of the
+        form (contract, status, state). contract will be an instance of ContractTransaction. Status will be a string
+        representing the execution status of the contract (fail/succ/ect). State will be a string that represents the
+        changes to state made by that contract.
+        """
         assert len(self.pending_dbs) > 0, "No pending dbs to update to master!"
         cr_data = self.pending_dbs.popleft()
-        assert Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders
-        assert Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION) == self.num_sb_builders
+        assert cr_data.merge_to_common, "CRData not merged to common yet!"
+        assert Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION) == self.num_sb_builders, \
+            "Execution stage incomplete!"
+        assert Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders, \
+            "Conflict resolution stage incomplete!"
 
         if should_commit:
             self.log.notice("Merging common layer to master db")
             CRDataContainer.merge_to_master(working_db=cr_data.working_db, master_db=self.master_db)
 
+        sbb_rep = cr_data.get_subblock_rep()
+
         self.log.debugv("Resetting CRDataContainer with input hash {}".format(cr_data.input_hash))
         self._reset_cr_data(cr_data)
         self.available_dbs.append(cr_data)
+
+        return sbb_rep
 
     def submit_contract(self, contract):
         self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
@@ -156,7 +170,7 @@ class SenecaClient(SenecaInterface):
         self.active_db = self.available_dbs.popleft()
         self.active_db.input_hash = input_hash
 
-    def end_sub_block(self, completion_handler: Callable[[CRDataContainer], None]):
+    def end_sub_block(self):
         """
         Ends the current sub block, and schedules for it rerun any necessary contracts, and then merge to the common
         layer. Once this rerun and merge is complete, completion_handler is called with the finalized CRDataContainer
@@ -166,13 +180,13 @@ class SenecaClient(SenecaInterface):
 
         Phase.incr_phase_variable(self.active_db.working_db, Macros.EXECUTION)
 
-        future = asyncio.ensure_future(self._wait_and_merge_to_common(self.active_db, completion_handler))
+        future = asyncio.ensure_future(self._wait_and_merge_to_common(self.active_db))
         self.pending_futures[self.active_db.input_hash] = {'fut': future, 'data': self.active_db}
 
         self.pending_dbs.append(self.active_db)
         self.active_db = None  # we really don't care, but might be useful initially for error checking
 
-    async def _wait_and_merge_to_common(self, cr_data: CRDataContainer, completion_handler: Callable[[CRDataContainer], None]):
+    async def _wait_and_merge_to_common(self, cr_data: CRDataContainer):
         """
         - Waits for all other SBBs to finish execution. Raises an error if this takes longer than Phase.EXEC_TIMEOUT
         - Waits for this subblock index's turn to merge to common. Raises an error if it takes longer than Phase.CR_TIMEOUT
@@ -196,8 +210,6 @@ class SenecaClient(SenecaInterface):
         Phase.incr_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION)
 
         self.log.debug("Finished finalizing sub block for input hash {}!")
-        completion_handler(cr_data)
-
         self.pending_futures[cr_data.input_hash]['fut'].set_result('done')
 
     async def _wait_for_phase_variable(self, db: redis.StrictRedis, key: str, value: int, timeout: int):

@@ -87,14 +87,14 @@ class CRDataGetSet(CRDataBase, dict):
         """
         modified_keys = self._get_modified_keys()
         # Need to sort the modified_keys so state output is deterministic
-        return ''.join('SET {} {};'.format(k, self[k]['mod']) for k in sorted(modified_keys))
+        return ''.join('SET {} {};'.format(k, self[k]['mod'].decode()) for k in sorted(modified_keys))
 
     def get_state_for_idx(self, contract_idx: int) -> str:
         if contract_idx >= len(self.writes):  # Edge condition, must check array bounds
             return ''
 
         mods = self.writes[contract_idx]
-        return ''.join('SET {} {};'.format(k, self[k]['mod']) for k in sorted(mods))
+        return ''.join('SET {} {};'.format(k, self[k]['mod'].decode()) for k in sorted(mods))
 
     def should_rerun(self, contract_idx: int) -> bool:
         # A contract should rerun if any of the keys that it read/wrote have changed on either common or master
@@ -257,6 +257,8 @@ class CRDataContainer:
         """
         Resets all state held by this container.
         """
+        # TODO i think this would be a lot easier if we just scrapped this whole CRDataContainer object and made a new
+        # one, but then would we have to worry about memory leaks? idk but either way screw python
         def _is_subclass(obj, subs: tuple):
             """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
             for s in subs:
@@ -273,7 +275,8 @@ class CRDataContainer:
         self.contracts.clear()
             
         for container in self.cr_data.values():
-            container.mods.clear()
+            container.writes.clear()
+            container.reads.clear()
             if _is_subclass(container, (list, set, dict, defaultdict)):
                 container.clear()
             else:
