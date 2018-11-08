@@ -134,7 +134,27 @@ class CRDataGetSet(CRDataBase, dict):
         return mods
 
     def reset_key(self, key):
-        raise NotImplementedError()
+        # TODO I  think we are going to have problems when the key is different on both master AND common.
+        # this is because if this context was built on top of another pending_db, and we are not the first subblock,
+        # should we use the common layer (which presumably a prior sb copied from the updated master), or do we use
+        # the updated master? I think we need some special logic for if this is subblock 0 then use master, otherwise
+        # use common
+        og_val = self[key]['og']
+
+        # TODO do we need to reset the contracts that this key touched also???
+        self[key]['mod'] = None
+
+        # First, try and copy over master if it differs from original value
+        if self.master.exists(key) and self.master.get(key) != og_val:
+            self[key]['og'] = self.master.get(key)
+        # Next, try to copy it over from common
+        elif self.working.exists(key) and self.working.get(key) != og_val:
+            self[key]['og'] = self.working.get(key)
+        # Complain if neither of these conditions are met
+        else:
+            raise Exception("Attempted to reset key <{}> but key not found in common or master layer!".format(key))
+
+
 
     def get_contracts_for_keys(self, keys: set, reads=True, writes=True, exclude: set=None) -> List[int]:
         """ Get all contract indexes that had their reads and/or writes affected by the contracts in keys"""
