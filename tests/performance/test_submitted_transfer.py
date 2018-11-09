@@ -9,7 +9,7 @@ import redis, unittest, seneca, time
 r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
 
 test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
-CONTRACT_COUNT = 1000
+CONTRACT_COUNT = 10000
 
 class TestPublishTransfer(TestCase):
 
