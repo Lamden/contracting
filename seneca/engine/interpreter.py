@@ -178,8 +178,10 @@ result = {}({}, {})
             ','.join(['{}={}'.format(k,json.dumps(v)) for k,v in kwargs.items()])
         )
         scope = {
-            'author': author,
-            'sender': sender
+            'rt': {
+                'author': author,
+                'sender': sender
+            }
         }
         cls.loaded['__main__'] = scope
         exec(code_str, scope)
