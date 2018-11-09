@@ -1,5 +1,4 @@
 from unittest import TestCase
-from seneca.engine.util import make_n_tup
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException, CompilationException
 from os.path import join
@@ -40,7 +39,7 @@ print(reasonable_call())
 
     def test_globals_redis(self):
         bk_info = {'sbb_idx': 2, 'contract_idx': 12}
-        rt_info = {'rt': make_n_tup({'sender': 'davis', 'author': 'davis'})}
+        rt_info = {'rt': {'sender': 'davis', 'author': 'davis'}}
         all_info = {**bk_info, **rt_info}
         with open(join(test_contracts_path, 'sample.sen.py')) as f:
             self.si.publish_code_str('sample', 'davis', f.read(), keep_original=True)

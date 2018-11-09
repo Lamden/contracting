@@ -49,9 +49,25 @@ jobs:
           command: |
             export PYTHONPATH=$PYTHONPATH:~/seneca
             python3 tests/run.py
+  test-cilantro-from-seneca:
+    docker:
+      - image: circleci/python:3.6.5
+    working_directory: ~/src/lamden/seneca
+
+    steps:
+      - checkout
+      - run: sudo chown -R circleci:circleci /usr/local/bin
+      - run: sudo chown -R circleci:circleci /usr/local/lib/python3.6/site-packages
+      - run:
+          name: Test Cilantro
+          command: |
+            pip3 install requests
+            echo "Testing Cilantro using Seneca Branch $CIRCLE_BRANCH"
+            python3 scripts/cilantro_tester.py --seneca_branch $CIRCLE_BRANCH
 
 workflows:
   version: 2
   seneca_tests:
     jobs:
       - build
+      # - test-cilantro-from-seneca

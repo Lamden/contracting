@@ -20,6 +20,7 @@ class CRCmdMeta(type):
 class CRCmdBase(metaclass=CRCmdMeta):
     DATA_NAME = None
 
+    # TODO -- remove the finalize var. We dont need this.
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
                  data: CRDataContainer, finalize=False):
         self.log = get_logger("{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
@@ -28,21 +29,6 @@ class CRCmdBase(metaclass=CRCmdMeta):
         self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
 
-    def _add_key_to_mod_list(self, key, *args, **kwargs):
-        assert self.DATA_NAME is not None, 'DATA_NAME class attribute must be set to a CRDataContainer subclass'
-        cr_data_name = self.DATA_NAME
-        self.log.spam("Adding key <{}> to modification list if it does not exist".format(key))
-        all_mods = self.data[cr_data_name].mods
-
-        # Append a new set onto the list if a set of modifications does until one exists for this contract index
-        # TODO we can probly make this more efficient using a hash table where key is contract idx and val is mod set
-        while len(all_mods) <= self.contract_idx:
-            all_mods.append(set())
-
-        mods = all_mods[self.contract_idx]
-        self.log.debugv("Adding mod key <{}> to mod set <{}>".format(key, mods))
-        mods.add(key)
-
     def _copy_og_key_if_not_exists(self, key, *args, **kwargs):
         """
         Copies the key from either master db or common layer (working db) to the sub-block specific layer, if it does
@@ -50,18 +36,17 @@ class CRCmdBase(metaclass=CRCmdMeta):
         """
         # If the key already exists, bounce out of this method immediately
         if self._sbb_original_exists(key, *args, **kwargs):
-            self.log.debugv("Key <{}> already exists in sub-block specific data, thus not recopying".format(key))
+            self.log.spam("Key <{}> already exists in sub-block specific data, thus not recopying".format(key))
             return
 
         # First check the common layer for the key
         if self._db_original_exists(self.working, key, *args, **kwargs):
-            self.log.debugv("Copying common key <{}> to sb specific data" .format(key))
+            self.log.spam("Copying common key <{}> to sb specific data" .format(key))
             self._copy_key_to_sbb_data(self.working, key, *args, **kwargs)
 
         # Next, check the Master layer for the key
         elif self._db_original_exists(self.master, key, *args, **kwargs):
-            self.log.debugv("Copying master key <{}> to sb specific data" .format(key))
-            # type(self)._write(self.working, og_key, val)
+            self.log.spam("Copying master key <{}> to sb specific data" .format(key))
             self._copy_key_to_sbb_data(self.master, key, *args, **kwargs)
 
         # Otherwise, if key not found in common or master layer, mark the original as None
@@ -96,6 +81,24 @@ class CRCmdBase(metaclass=CRCmdMeta):
         raise NotImplementedError()
 
 
+class CRCmdExists(CRCmdBase):
+    COMMAND_NAME = 'exists'
+
+    def __call__(self, key):
+        # TODO this could be made more modular. Current implementation will not scale well --davis
+        # First check if key exists in getset
+        if key in self.data['getset']:
+            return True
+        # Next check if key is in HMap
+        if key in self.data['hm']:
+            return True
+        # Then check if it exists in the common layer...
+        if self.working.exists(key):
+            return True
+        # Then finally, check if it exists in the master layer
+        return self.master.exists(key)
+
+
 class CRCmdGetSetBase(CRCmdBase):
     DATA_NAME = 'getset'
 
@@ -107,10 +110,7 @@ class CRCmdGetSetBase(CRCmdBase):
 
     def _copy_key_to_sbb_data(self, db: redis.StrictRedis, key: str):
         val = db.get(key) if db else None
-        self.data['getset'][key] = {'og': val, 'mod': None}
-
-    # def _add_key_to_mod_list(self, key, *args, cr_data_name=None, **kwargs):
-    #     return super()._add_key_to_mod_list(key, cr_data_name='getset')
+        self.data['getset'][key] = {'og': val, 'mod': None, 'contracts': set()}
 
 
 class CRCmdGet(CRCmdGetSetBase):
@@ -122,14 +122,20 @@ class CRCmdGet(CRCmdGetSetBase):
         # TODO make all this DRYer so you can abstract it like a pro
 
         # First, try and return the local modified key
-        mod_val = self.data['getset'][key]['mod']
-        if mod_val is not None:
+        val = self.data['getset'][key]['mod']
+        if val is not None:
             self.log.debugv("SBB specific MODIFIED key found for key named <{}>".format(key))
-            return mod_val
-
         # Otherwise, default to the local original key
-        self.log.debugv("SBB specific ORIGINAL key found for key named <{}>".format(key))
-        return self.data['getset'][key]['og']
+        else:
+            self.log.debugv("SBB specific ORIGINAL key found for key named <{}>".format(key))
+            val = self.data['getset'][key]['og']
+
+        if val is None:
+            raise Exception("Key '{}' does not exist, but was attempted to be GET".format(key))
+
+        self.data['getset'].reads[self.contract_idx].add(key)
+        self.data['getset'][key]['contracts'].add(self.contract_idx)
+        return val
 
 
 class CRCmdSet(CRCmdGetSetBase):
@@ -144,8 +150,9 @@ class CRCmdSet(CRCmdGetSetBase):
 
         self.log.debugv("Setting SBB specific key <{}> to value {}".format(key, value))
         self.data['getset'][key]['mod'] = value
-
-        self._add_key_to_mod_list(key)
+        self.data['getset'][key]['contracts'].add(self.contract_idx)
+        self.data['getset'].writes[self.contract_idx].add(key)
+        self.data['getset'].outputs[self.contract_idx] += 'SET {} {};'.format(key, value.decode())
 
 
 class CRCmdHMapBase(CRCmdBase):
@@ -186,6 +193,7 @@ class CRCmdHGet(CRCmdHMapBase):
         # Otherwise, default to the local original key
         self.log.debugv("SBB specific ORIGINAL key found for key named <{}>".format(key))
         return self.data['hm'][key][field]['og']
+        # TODO add the read list
 
 
 class CRCmdHSet(CRCmdHMapBase):
@@ -201,5 +209,6 @@ class CRCmdHSet(CRCmdHMapBase):
         self.log.debugv("Setting SBB specific key <{}> to value {}".format(key, value))
         self.data['hm'][key][field]['mod'] = value
 
-        self._add_key_to_mod_list(self._get_key_field_name(key, field))
+        # self._add_key_to_mod_list(self._get_key_field_name(key, field))
+        # TODO add the write list
 

@@ -2,7 +2,6 @@ import os, seneca, time, redis, subprocess
 from os import getenv as env
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
-from seneca.engine.util import make_n_tup
 from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, load_env
 
 def cli(fn):
@@ -14,10 +13,10 @@ def cli(fn):
 ################################################################################
         '''.format(fname))
         kwargs['scope'] = {
-            'rt': make_n_tup({
+            'rt': {
                 'author': kwargs.get('author'),
                 'sender': kwargs.get('sender')
-            })
+            }
         }
         try:
             with open(fname) as f:

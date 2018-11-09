@@ -24,7 +24,7 @@ defaults.get('delegate_count', 63)
 
 def vote_for_delegate(d):
     last_election = defaults.get('last_election')
-    if last_vote.get(rt.sender) != last_election:
+    if last_vote.get(rt['sender']) != last_election:
         last_vote.set(last_election)
         return votes.increment(d, 1)
 
