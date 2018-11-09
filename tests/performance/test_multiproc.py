@@ -81,7 +81,7 @@ transfer('tej', 1)
 
     def test_transfer_precompiled(self):
         def run_code_obj(user):
-            si = SenecaInterface()
+            si = SenecaInterface(False)
             SenecaInterpreter.setup(False)
             code_str = '''
 from test_contracts.kv_currency import transfer
@@ -90,6 +90,20 @@ transfer('tej', 1)
             code_obj = si.compile_code(code_str)
             for i in range(CONTRACT_COUNT):
                 si.run_code(code_obj, {'rt': {'sender': user, 'author': user}})
+        processes = [
+            Process(target=run_code_obj, args=(user,)) \
+            for user in users
+        ]
+        [p.start() for p in processes]
+        [p.join() for p in processes]
+
+    def test_transfer_template(self):
+        def run_code_obj(user):
+            si = SenecaInterface(False)
+            SenecaInterpreter.setup(False)
+            for i in range(CONTRACT_COUNT):
+                si.execute_function('test_contracts.kv_currency.transfer',
+                    user, user, 'tej', 1)
         processes = [
             Process(target=run_code_obj, args=(user,)) \
             for user in users
