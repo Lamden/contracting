@@ -399,6 +399,6 @@ class TestCRGetSet(TestCase):
         actual_mods = cr_data.get_modified_keys_recursive()
         self.assertEqual(expected_mods, actual_mods)
 
+
 if __name__ == "__main__":
     unittest.main()
-

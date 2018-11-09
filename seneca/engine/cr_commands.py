@@ -134,6 +134,7 @@ class CRCmdGet(CRCmdGetSetBase):
             raise Exception("Key '{}' does not exist, but was attempted to be GET".format(key))
 
         self.data['getset'].reads[self.contract_idx].add(key)
+        self.data['getset'][key]['contracts'].add(self.contract_idx)
         return val
 
 

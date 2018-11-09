@@ -72,8 +72,14 @@ class CRDataBase(metaclass=CRDataMeta):
     def get_modified_keys(self) -> set:
         return set()
 
+    def get_modified_keys_recursive(self) -> set:
+        return set()
+
     def reset_key(self, key):
         pass
+
+    def get_rerun_list(self, reset_keys=True) -> List[int]:
+        return []
 
 
 class CRDataGetSet(CRDataBase, dict):
@@ -124,6 +130,20 @@ class CRDataGetSet(CRDataBase, dict):
         val = working_db.get(key)
         master_db.set(key, val)
 
+    def get_rerun_list(self, reset_keys=True) -> List[int]:
+        mod_keys = self.get_modified_keys_recursive()
+        contract_set = set()
+        self.log.debugv("Modified keys for rerunning: {}".format(mod_keys))
+
+        for key in mod_keys:
+            contract_set = contract_set.union(self[key]['contracts'])
+            if reset_keys:
+                self.reset_key(key)
+
+        self.log.important("CONTRACT SET TO RERUN: {}".format(contract_set))
+
+        return sorted(contract_set)
+
     def get_modified_keys(self) -> set:
         mods = set()
         for k in self:
@@ -133,7 +153,7 @@ class CRDataGetSet(CRDataBase, dict):
 
         return mods
 
-    def get_modified_keys_recursive(self):
+    def get_modified_keys_recursive(self) -> set:
         mod_keys = self.get_modified_keys()
         self.add_adjacent_keys(mod_keys)
         return mod_keys
@@ -161,7 +181,6 @@ class CRDataGetSet(CRDataBase, dict):
                 key_set.add(k)
                 self._add_adjacent_keys(k, key_set)
 
-
     def reset_key(self, key):
         # TODO I  think we are going to have problems when the key is different on both master AND common.
         # this is because if this context was built on top of another pending_db, and we are not the first subblock,
@@ -170,19 +189,20 @@ class CRDataGetSet(CRDataBase, dict):
         # use common
         og_val = self[key]['og']
 
-        # TODO do we need to reset the contracts that this key touched also??? For now i think yes
         self[key]['mod'] = None
         self[key]['contracts'] = set()
 
         # First, try and copy over master if it differs from original value
         if self.master.exists(key) and self.master.get(key) != og_val:
+            self.log.debugv("Reseting key {} to MASTER value {}".format(key, self.master.get(key)))
             self[key]['og'] = self.master.get(key)
         # Next, try to copy it over from common
         elif self.working.exists(key) and self.working.get(key) != og_val:
+            self.log.debugv("Reseting key {} to COMMON value {}".format(key, self.working.get(key)))
             self[key]['og'] = self.working.get(key)
-        # Complain if neither of these conditions are met
+        # If there isnt a common/master value to fetch, than do nothing (leave the original value as is)
         else:
-            raise Exception("Attempted to reset key <{}> but key not found in common or master layer!".format(key))
+            self.log.spam("No updated value found for key {}. Clearing modified and leaving original val".format(key))
 
     def get_contracts_for_keys(self, keys: set, reads=True, writes=True, exclude: set=None) -> List[int]:
         """ Get all contract indexes that had their reads and/or writes affected by the contracts in keys"""
@@ -379,6 +399,7 @@ class CRDataContainer:
 
         return [(self.contracts[i], self.run_results[i], self.get_state_for_idx(i)) for i in range(len(self.contracts))]
 
+    # TODO deprecate this API
     def should_rerun(self, contract_idx: int) -> bool:
         """
         Returns true if the contract at index 'contract_idx' needs to be rerun. A contract needs to be rerun if any of
@@ -389,19 +410,23 @@ class CRDataContainer:
         return True in (obj.should_rerun(contract_idx) for obj in self.cr_data.values())
 
     def iter_rerun_indexes(self):
-        pass
-        # build a set of all reads/write that have their original value changed
-        # copy, from common layer, to the new original value, and set the modified value to None
-        # build a min heap of contract indexes that need to be run by check contract's mod list
-        # reset the contract data before you rerun it
-        # loop
+        # TODO this only works for getset right now
+        # TODO this does not support new keys being modified during the rerun process
+        data = self.cr_data['getset']
+        contract_list = data.get_rerun_list()
+        self.log.debugv("Contracts indexes to rerun: {}".format(contract_list))
 
-        # PREFER MASTER VALUE when copying keys over. if og should have been copied from master during exec phase,
-        # so if master is diff from og that means another block changed master, and that value should be prefered
+        for i in contract_list:
+            self.log.debugv("Rerunning contract at index {}".format(i))
+            og_reads, og_writes = data.reads[i], data.reads[i]
+            self.reset_contract_data(i)
 
-        # what if both master and common differ from the orig values? which ones do you use?
-        # we would need to track original master value (at time of the read). or just ignore this problem until
-        # we implement proper chaining of db reads
+            yield i
+
+            assert og_reads == data.reads[i], "Original reads have changed for contract idx {}!\nOriginal: {}\nNew " \
+                                              "Reads: {}".format(i, og_reads, data.reads[i])
+            assert og_writes == data.writes[i], "Original writes have changed for contract idx {}!\nOriginal: {}\nNew " \
+                                                "Writes: {}".format(i, og_writes, data.writes[i])
 
     def reset_contract_data(self, contract_idx: int):
         """
@@ -480,4 +505,18 @@ JUST RAISE AN ASSERTION FOR NOW IF A NEW KEY IS MODIFIED
 1) at start of rerun, CRData gets all contracts that have had their original values changed (on common or master)
 2) copy over new values into effected key's original values (prioritize master if master is diff). Set mod value to None
 3) if 
+
+       # build a set of all reads/write that have their original value changed
+        # copy, from common layer, to the new original value, and set the modified value to None
+        # build a min heap of contract indexes that need to be run by check contract's mod list
+        # reset the contract data before you rerun it
+        # loop
+
+        # PREFER MASTER VALUE when copying keys over. if og should have been copied from master during exec phase,
+        # so if master is diff from og that means another block changed master, and that value should be prefered
+
+        # what if both master and common differ from the orig values? which ones do you use?
+        # we would need to track original master value (at time of the read). or just ignore this problem until
+        # we implement proper chaining of db reads
+
 """
