@@ -51,14 +51,6 @@ class CRDataBase(metaclass=CRDataMeta):
         """
         return ''
 
-    def should_rerun(self, contract_idx: int) -> bool:
-        """
-        Returns true if the contract at index 'contract_idx' needs to be rerun. A contract needs to be rerun if any of
-        its write operations represent values that have been changed.
-        NOTE: This assumes smart contracts assert on values they have written to
-        """
-        raise NotImplementedError()
-
     def reset_contract_data(self, contract_idx: int):
         """
         Resets the reads list and modification list for the contract at index idx.
@@ -105,24 +97,6 @@ class CRDataGetSet(CRDataBase, dict):
 
     def get_state_for_idx(self, contract_idx: int) -> str:
         return self.outputs[contract_idx]
-
-    # TODO remove this API, i dont think we'll be needing it
-    def should_rerun(self, contract_idx: int) -> bool:
-        # A contract should rerun if any of the keys that it read/wrote have changed on either common or master
-        all_rw = self.writes[contract_idx].union(self.reads[contract_idx])
-
-        for mod in all_rw:
-            latest_val = None
-            # Get 'latest' value for key mod, pulling first from common layer, than master
-            if self.working.exists(mod):
-                latest_val = self.working.get(mod)
-            elif self.master.exists(mod):
-                latest_val = self.master.get(mod)
-
-            if latest_val != self[mod]['og']:
-                return True
-
-        return False
 
     @classmethod
     def merge_to_master(cls, working_db: redis.StrictRedis, master_db: redis.StrictRedis, key: str):
@@ -204,20 +178,6 @@ class CRDataGetSet(CRDataBase, dict):
         else:
             self.log.spam("No updated value found for key {}. Clearing modified and leaving original val".format(key))
 
-    def get_contracts_for_keys(self, keys: set, reads=True, writes=True, exclude: set=None) -> List[int]:
-        """ Get all contract indexes that had their reads and/or writes affected by the contracts in keys"""
-        pass
-        # contract_idxs = []
-        #
-        # for idx in range(max(len(self.reads), len(self.writes))):
-        #     if reads and (idx in self.reads):
-        #         if len(self.reads) > 0:
-        #
-        # if reads:
-        #     for idx, mods in self.reads:
-        #         if len(keys.intersection(mods)) > 0 and c
-
-
 
 class CRDataHMap(CRDataBase, defaultdict):
     NAME = 'hm'
@@ -246,10 +206,6 @@ class CRDataHMap(CRDataBase, defaultdict):
         return False  # TODO implement
         raise NotImplementedError()
 
-    def should_rerun(self, contract_idx: int) -> bool:
-        return False  # TODO implement
-        raise NotImplementedError()
-
     @classmethod
     def merge_to_master(cls, working_db: redis.StrictRedis, master_db: redis.StrictRedis, key: str):
         assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
@@ -268,10 +224,6 @@ class CRDataDelete(CRDataBase, set):
         raise NotImplementedError()
 
     def get_state_rep(self):
-        return False  # TODO implement
-        raise NotImplementedError()
-
-    def should_rerun(self, contract_idx: int) -> bool:
         return False  # TODO implement
         raise NotImplementedError()
 
@@ -309,9 +261,6 @@ class CRDataOutputs(CRDataBase, list):
     def get_state_rep(self):
         return False  # TODO implement
         raise NotImplementedError()
-
-    def should_rerun(self, contract_idx: int) -> bool:
-        return False
 
 
 class CRDataContainer:
@@ -398,16 +347,6 @@ class CRDataContainer:
         assert self.merged_to_common, "You should have merged to common before trying to get the subblock rep"
 
         return [(self.contracts[i], self.run_results[i], self.get_state_for_idx(i)) for i in range(len(self.contracts))]
-
-    # TODO deprecate this API
-    def should_rerun(self, contract_idx: int) -> bool:
-        """
-        Returns true if the contract at index 'contract_idx' needs to be rerun. A contract needs to be rerun if any of
-        its read/write operations represent values that have been changedb.
-        NOTE: This assumes smart contracts ALWAYS assert on values they have written to. Under this logic, asserts on
-        read values will not be honored.
-        """
-        return True in (obj.should_rerun(contract_idx) for obj in self.cr_data.values())
 
     def iter_rerun_indexes(self):
         # TODO this only works for getset right now

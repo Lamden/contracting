@@ -30,67 +30,6 @@ class TestConflictResolution(TestCase):
     def _new_cr_data(self, sbb_idx=0, finalize=False):
         return CRDataContainer(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
 
-    def test_basic_set_get(self):
-        KEY1, VAL1 = 'k1', 'v1'
-        KEY2, VAL2 = 'k2', 'v2'
-        NEW_VAL1 = 'v1_NEW'
-
-        # Seed keys on master
-        self.master.set(KEY1, VAL1)
-        self.master.set(KEY2, VAL2)
-
-        self.r.set(KEY1, NEW_VAL1)
-
-        actual = self.r.get(KEY1).decode()
-
-        self.assertEqual(actual, NEW_VAL1)
-        self.assertEqual(self.r.get(KEY2).decode(), VAL2)
-
-        self.assertFalse(self.sbb_data[0].should_rerun(0))
-        self.assertFalse(self.sbb_data[0].should_rerun(1))
-
-    def test_basic_set_get_rerun_when_change_common(self):
-        KEY1, VAL1 = 'k1', 'v1'
-        KEY2, VAL2 = 'k2', 'v2'
-        NEW_VAL1 = 'v1_NEW'
-        NEWER_VAL1 = 'v1_NEWEST_FROM_ANOTHER_SB'
-
-        # Seed keys on master
-        self.master.set(KEY1, VAL1)
-        self.master.set(KEY2, VAL2)
-
-        self.r.set(KEY1, NEW_VAL1)
-
-        actual = self.r.get(KEY1).decode()
-
-        self.assertEqual(actual, NEW_VAL1)
-        self.assertEqual(self.r.get(KEY2).decode(), VAL2)
-
-        # Change common data so that contract 1 should be rerun
-        self.working.set(KEY1, NEWER_VAL1)
-        self.assertTrue(self.sbb_data[0].should_rerun(0))
-
-    def test_basic_set_get_rerun_when_change_master(self):
-        KEY1, VAL1 = 'k1', 'v1'
-        KEY2, VAL2 = 'k2', 'v2'
-        NEW_VAL1 = 'v1_NEW'
-        NEWER_VAL1 = 'v1_NEWEST_FROM_ANOTHER_SB'
-
-        # Seed keys on master
-        self.master.set(KEY1, VAL1)
-        self.master.set(KEY2, VAL2)
-
-        self.r.set(KEY1, NEW_VAL1)
-
-        actual = self.r.get(KEY1).decode()
-
-        self.assertEqual(actual, NEW_VAL1)
-        self.assertEqual(self.r.get(KEY2).decode(), VAL2)
-
-        # Change common data so that contract 1 should be rerun
-        self.master.set(KEY1, NEWER_VAL1)
-        self.assertTrue(self.sbb_data[0].should_rerun(0))
-
     def test_all_keys_and_values_for_basic_set_get(self):
         KEY1, VAL1 = 'k1', b'v1'
         KEY2, VAL2 = 'k2', b'v2'
@@ -101,7 +40,6 @@ class TestConflictResolution(TestCase):
         # Seed keys on master
         self.master.set(KEY1, VAL1)
         self.master.set(KEY2, VAL2)
-        self.master.set(KEY3, b'val 3 on master that should be ignored in presence of KEY3 on common layer')
         self.working.set(KEY3, VAL3)
 
         self.r.set(KEY1, NEW_VAL1)
@@ -112,9 +50,9 @@ class TestConflictResolution(TestCase):
 
         # Check the modified and original values
         getset = self.r.data['getset']
-        k1_expected = {'og': VAL1, 'mod': NEW_VAL1}
-        k2_expected = {'og': VAL2, 'mod': None}
-        k3_expected = {'og': VAL3, 'mod': NEW_VAL3}
+        k1_expected = {'og': VAL1, 'mod': NEW_VAL1, 'contracts': {0}}
+        k2_expected = {'og': VAL2, 'mod': None, 'contracts': {1}}
+        k3_expected = {'og': VAL3, 'mod': NEW_VAL3, 'contracts': {2}}
         self.assertEqual(getset[KEY1], k1_expected)
         self.assertEqual(getset[KEY2], k2_expected)
         self.assertEqual(getset[KEY3], k3_expected)
@@ -124,11 +62,12 @@ class TestConflictResolution(TestCase):
         self.assertEqual(self.r.data['getset'].writes, expected_mods)
 
         # Check should_rerun (tinker with common first)
+        cr_data = self.sbb_data[0]['getset']
         self.working.set(KEY1, b'A NEW VALUE HAS ARRIVED')
         self.working.set(KEY2, b'A NEW VALUE HAS ARRIVED AGAIN')
-        self.assertTrue(self.sbb_data[0].should_rerun(0))
-        self.assertTrue(self.sbb_data[0].should_rerun(1))
-        self.assertFalse(self.sbb_data[0].should_rerun(2))
+        self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
+        self.assertTrue(1 in list(cr_data.get_rerun_list(reset_keys=False)))
+        self.assertFalse(2 in list(cr_data.get_rerun_list(reset_keys=False)))
 
     def test_merge_to_common(self):
         KEY1, VAL1 = 'k1', b'v1'

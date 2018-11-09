@@ -69,7 +69,7 @@ class TestCRGetSet(TestCase):
         cr_get = self._new_get()
         self.master.set(KEY, VALUE_M)
         self.working.set(KEY, VALUE_C)
-        cr_get.data['getset'][KEY] = {'og': VALUE_SBB, 'mod': None}
+        cr_get.data['getset'][KEY] = {'og': VALUE_SBB, 'mod': None, 'contracts': {0}}
 
         actual = cr_get(KEY)
 
@@ -84,7 +84,7 @@ class TestCRGetSet(TestCase):
         cr_get = self._new_get()
         self.master.set(KEY, VALUE_M)
         self.working.set(KEY, VALUE_C)
-        cr_get.data['getset'][KEY] = {'og': VALUE_SBB_OG, 'mod': VALUE_SBB_MOD}
+        cr_get.data['getset'][KEY] = {'og': VALUE_SBB_OG, 'mod': VALUE_SBB_MOD, 'contracts': {0}}
 
         actual = cr_get(KEY)
 
@@ -99,7 +99,7 @@ class TestCRGetSet(TestCase):
         cr_get(KEY)  # calling get should trigger the key to be copied to the SBB specific layer
 
         self.assertTrue(cr_get._sbb_original_exists(KEY))
-        self.assertEqual(cr_get.data['getset'][KEY], {'og': VALUE_M, 'mod': None})
+        self.assertEqual(cr_get.data['getset'][KEY], {'og': VALUE_M, 'mod': None, 'contracts': {0}})
 
     def test_get_copies_original_from_common(self):
         KEY = 'im_a_key'
@@ -125,7 +125,7 @@ class TestCRGetSet(TestCase):
 
         cr_set(KEY, NEW_VALUE)
 
-        expected = {'og': VALUE, 'mod': NEW_VALUE}
+        expected = {'og': VALUE, 'mod': NEW_VALUE, 'contracts': {0}}
         self.assertEqual(expected, cr_set.data['getset'][KEY])
 
     def test_basic_set_adds_to_writes(self):
@@ -189,7 +189,7 @@ class TestCRGetSet(TestCase):
 
         cr_set(KEY, VALUE)
 
-        expected = {'og': None, 'mod': VALUE}
+        expected = {'og': None, 'mod': VALUE, 'contracts': {0}}
         self.assertEqual(expected, cr_set.data['getset'][KEY])
 
     def test_should_rerun_no_changes(self):
@@ -207,7 +207,7 @@ class TestCRGetSet(TestCase):
         cr_set(KEY1, NEW_VALUE1)
 
         cr_data = cr_set.data['getset']
-        self.assertFalse(cr_data.should_rerun(0))
+        self.assertFalse(0 in list(cr_data.get_rerun_list(reset_keys=False)))
 
     def test_should_rerun_change_common_only_write(self):
         KEY1 = 'im_a_key1'
@@ -225,7 +225,8 @@ class TestCRGetSet(TestCase):
         self.working.set(KEY1, b'new_common1')
 
         cr_data = cr_set.data['getset']
-        self.assertTrue(cr_data.should_rerun(0))
+        self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
+
 
     def test_should_rerun_change_common_only_read(self):
         KEY1 = 'im_a_key1'
@@ -242,7 +243,7 @@ class TestCRGetSet(TestCase):
         self.working.set(KEY1, b'new_common1')
 
         cr_data = cr_get.data['getset']
-        self.assertTrue(cr_data.should_rerun(0))
+        self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
 
     def test_should_rerun_change_master_only_read(self):
         KEY1 = 'im_a_key1'
@@ -259,7 +260,7 @@ class TestCRGetSet(TestCase):
         self.master.set(KEY1, b'new_common1')
 
         cr_data = cr_get.data['getset']
-        self.assertTrue(cr_data.should_rerun(0))
+        self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
 
     def test_should_rerun_change_master_only_write(self):
         KEY1 = 'im_a_key1'
@@ -277,7 +278,7 @@ class TestCRGetSet(TestCase):
         self.master.set(KEY1, b'new_common1')
 
         cr_data = cr_set.data['getset']
-        self.assertTrue(cr_data.should_rerun(0))
+        self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
 
     def test_get_modified_keys_from_common(self):
         KEY1 = 'im_a_key1'

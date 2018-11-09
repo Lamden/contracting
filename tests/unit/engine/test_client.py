@@ -188,14 +188,14 @@ class TestSenecaClient(TestCase):
         loop.run_until_complete(asyncio.gather(*coros))
 
         # Check the sb rep output after merging to master on each
-        expected_sbb1_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
-                             (c2, "SUCC", "SET balances:stu 43;SET balances:davis 10026;")]
-        expected_sbb2_rep = [(c3, "SUCC", "SET balances:ghu 8985;SET balances:davis 10041;"),
-                             (c4, "SUCC", "SET balances:tj 7910;SET balances:birb 8015;")]
+        expected_sbb1_1 = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
+                           (c2, "SUCC", "SET balances:stu 43;SET balances:davis 10026;")]
+        expected_sbb2_1 = [(c3, "SUCC", "SET balances:ghu 8985;SET balances:davis 10041;"),
+                           (c4, "SUCC", "SET balances:tj 7910;SET balances:birb 8015;")]
         actual_sbb1_rep = client1.update_master_db()
         actual_sbb2_rep = client2.update_master_db(False)
-        self.assertEqual(expected_sbb1_rep, actual_sbb1_rep)
-        self.assertEqual(expected_sbb2_rep, actual_sbb2_rep)
+        self.assertEqual(expected_sbb1_1, actual_sbb1_rep)
+        self.assertEqual(expected_sbb2_1, actual_sbb2_rep)
 
         loop.close()
 
