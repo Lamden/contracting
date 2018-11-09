@@ -21,8 +21,9 @@ class Macros:
 
 
 class Phase:
-    EXEC_TIMEOUT = 30  # Number of seconds client will wait for other clients to finish execution phase
-    CR_TIMEOUT = 30  # Number of seconds client will wait for other clients to finish conflict resolution phase
+    EXEC_TIMEOUT = 14  # Number of seconds client will wait for other clients to finish execution phase
+    CR_TIMEOUT = 14  # Number of seconds client will wait for other clients to finish conflict resolution phase
+    BLOCK_TIMEOUT = 30  # Number of seconds a pending db will wait until it is at the top (first element) of pending_dbs
     POLL_INTERVAL = 0.5  # Poll for Phase changes every POLL_INTERVAL seconds
 
     @staticmethod
@@ -189,16 +190,21 @@ class SenecaClient(SenecaInterface):
     async def _wait_and_merge_to_common(self, cr_data: CRDataContainer):
         """
         - Waits for all other SBBs to finish execution. Raises an error if this takes longer than Phase.EXEC_TIMEOUT
-        - Waits for this subblock index's turn to merge to common. Raises an error if it takes longer than Phase.CR_TIMEOUT
-        - Rerun any necessary contracts
-        - Merges cr_data to common layer, and then increment the CONFLICT_RESOLUTION phase variable
-        - Calls the completion handle with the subblock data once all of the above is complete
+        - Waits for all subblocks before it finish conflict resolution. Raises an error if it takes longer than Phase.CR_TIMEOUT
+        - If the db is at the top of pending_dbs, we then:
+            - Rerun any necessary contracts
+            - Merges cr_data to common layer, and then increment the CONFLICT_RESOLUTION phase variable
+        - If it is not on the top of pending db's, the merging logic will be called later when merge_to_master is called
         """
-        self.log.info("Waiting for other SBBs to finish execution...")
-        await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.EXECUTION, value=self.num_sb_builders,
-                                            timeout=(len(self.pending_dbs) + 1) * Phase.EXEC_TIMEOUT)
-        self.log.info("Done waiting for other SBBs to finish execution")
+        self._wait_for_execution_stage(cr_data)
 
+        if self.pending_dbs[0] is not cr_data:
+            await self._wait_until_top_of_pending(cr_data)
+
+        await self._wait_for_cr_and_merge(cr_data)
+        # self.pending_futures[cr_data.input_hash]['fut'].set_result('done')  # TODO fix this its complaining...
+
+    async def _wait_for_cr_and_merge(self, cr_data: CRDataContainer):
         self.log.info("Waiting for other SBBs to finish conflict resolution...")
         await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.CONFLICT_RESOLUTION, value=self.sbb_idx,
                                             timeout=(len(self.pending_dbs) + 1) * Phase.CR_TIMEOUT)
@@ -210,7 +216,31 @@ class SenecaClient(SenecaInterface):
         Phase.incr_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION)
 
         self.log.debug("Finished finalizing sub block for input hash {}!".format(cr_data.input_hash))
-        # self.pending_futures[cr_data.input_hash]['fut'].set_result('done')  # TODO fix this its complaining...
+
+    async def _wait_until_top_of_pending(self, cr_data: CRDataContainer):
+        """ Waits until cr_data is at the top (first element) of self.pending_dbs """
+        elapsed = 0
+        timeout = Phase.BLOCK_TIMEOUT * len(self.pending_dbs)
+        self.log.debug("CRData with input hash {} waiting its turn until its at the top of pending_dbs..."
+                       .format(cr_data.input_hash))
+
+        while self.pending_dbs[0] is not cr_data:
+            await asyncio.sleep(Phase.POLL_INTERVAL)
+            elapsed += Phase.POLL_INTERVAL
+
+            if elapsed >= timeout:
+                err_msg = "Exceeded timeout of {} waiting for db with input hash {} to reach top of pending dbs!" \
+                          .format(timeout, cr_data.input_hash)
+                self.log.fatal(err_msg)
+                raise Exception(err_msg)
+
+        self.log.info("CRData with input hash {} DONE waiting to be at the top of pending db!".format(cr_data.input_hash))
+
+    async def _wait_for_execution_stage(self, cr_data: CRDataContainer):
+        self.log.info("Waiting for other SBBs to finish execution...")
+        await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.EXECUTION, value=self.num_sb_builders,
+                                            timeout=(len(self.pending_dbs) + 1) * Phase.EXEC_TIMEOUT)
+        self.log.info("Done waiting for other SBBs to finish execution")
 
     async def _wait_for_phase_variable(self, db: redis.StrictRedis, key: str, value: int, timeout: int):
         elapsed = 0
@@ -219,9 +249,9 @@ class SenecaClient(SenecaInterface):
             elapsed += Phase.POLL_INTERVAL
 
             if elapsed >= timeout:
-                err_msg = "Client with sbb_idx {} exceeded timeout of {} waiting for its turn to merge to common! " \
+                err_msg = "Client with sbb_idx {} exceeded timeout of {} waiting for phase key {} to reach {}! " \
                           "Current conflict resolution phase value: {}" \
-                    .format(self.sbb_idx, elapsed,
+                    .format(self.sbb_idx, elapsed, key, value,
                             Phase.get_phase_variable(db, key))
                 self.log.fatal(err_msg)
                 raise Exception(err_msg)
