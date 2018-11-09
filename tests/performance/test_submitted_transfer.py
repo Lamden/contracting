@@ -17,7 +17,7 @@ class TestPublishTransfer(TestCase):
         r.flushdb()
         SenecaInterpreter.setup()
         SenecaInterpreter.concurrent_mode = False
-        self.si = SenecaInterface()
+        self.si = SenecaInterface(False)
         self.rt = {'rt': make_n_tup({'sender': 'stu', 'author': 'stu'})}
         print('''
 ################################################################################
@@ -42,7 +42,7 @@ transfer('ass', 1)
 
     def publish_contract(self):
         with open(join(test_contracts_path, 'kv_currency.sen.py')) as f:
-            self.si.publish_code_str('kv_currency', f.read(), keep_original=True)
+            self.si.publish_code_str('kv_currency', 'falcon', f.read(), keep_original=True)
 
     def mint_account(self):
         self.si.execute_code_str("""

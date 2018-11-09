@@ -15,7 +15,7 @@ class TestProtoTransfer(TestCase):
 
     def setUp(self):
         r.flushdb()
-        self.si = SenecaInterface()
+        self.si = SenecaInterface(False)
         self.rt = {'rt': make_n_tup({'sender': 'stu', 'author': 'stu'})}
         print('''
 ################################################################################

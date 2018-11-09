@@ -40,6 +40,8 @@ string_to_type = {
 }
 
 primitive_types = [int, str, bool, bytes, None]
+REDIS_PORT = get_redis_port()
+REDIS_PASSWORD = get_redis_password()
 
 def encode_type(t):
     if isinstance(t, RObject):
@@ -328,11 +330,10 @@ def vivify(potential_prefix, t):
 
 class RObject:
     def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj',
-                 driver=redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
+                 driver=redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB, password=REDIS_PASSWORD)
                  ):
         assert driver is not None, 'Provide a Redis driver.'
         self.driver = driver
-        self.log = get_logger(type(self).__name__)
         self.prefix = prefix
         self.concurrent_mode = SenecaInterpreter.concurrent_mode
         self.key_type = key_type
@@ -585,7 +586,7 @@ class Table(RObject):
 
         if type(k) in complex_types:
             k = k.rep()
-            
+
         result = self.driver.hmget('{}{}'.format(self.p, k), keys)
         result = [self.decode_value(r) for r in result]
 

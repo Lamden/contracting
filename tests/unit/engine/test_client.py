@@ -41,7 +41,7 @@ class TestSenecaClient(TestCase):
     CONTRACTS_TO_STORE = {'currency': 'kv_currency.sen.py'}
 
     def setUp(self):
-        with SenecaInterface() as interface:
+        with SenecaInterface(False) as interface:
             interface.r.flushall()
 
             # Store all smart contracts in CONTRACTS_TO_STORE
@@ -57,6 +57,7 @@ class TestSenecaClient(TestCase):
                 'author': GENESIS_AUTHOR,
                 'sender': GENESIS_AUTHOR,
             })
+            print("Seneca con mode: {}".format(SenecaInterpreter.concurrent_mode))
             interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
 
     def test_setup_dbs(self):
