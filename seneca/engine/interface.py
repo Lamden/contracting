@@ -8,7 +8,6 @@ class SenecaInterface(SenecaInterpreter):
     """
 
     def __init__(self, concurrent_mode=True):
-        print('init called with con mode: {}'.format(concurrent_mode))
         if not isinstance(sys.meta_path[2], RedisFinder):
             self.old_sys_path = sys.meta_path
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
@@ -16,7 +15,6 @@ class SenecaInterface(SenecaInterpreter):
         SenecaInterpreter.concurrent_mode = concurrent_mode
 
     def __enter__(self, *args, **kwargs):
-        print(args, ' --- ', kwargs)
         self.old_concurrent_mode = SenecaInterpreter.concurrent_mode
         return self
 

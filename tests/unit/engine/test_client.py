@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 from seneca.engine.client import *
 from seneca.engine.interface import SenecaInterface
+from seneca.libs.logger import overwrite_logger_level
 
 
 GENESIS_AUTHOR = 'davis'
@@ -41,6 +42,7 @@ class TestSenecaClient(TestCase):
     CONTRACTS_TO_STORE = {'currency': 'kv_currency.sen.py'}
 
     def setUp(self):
+        overwrite_logger_level(0)
         with SenecaInterface(False) as interface:
             interface.r.flushall()
 
@@ -57,7 +59,6 @@ class TestSenecaClient(TestCase):
                 'author': GENESIS_AUTHOR,
                 'sender': GENESIS_AUTHOR,
             })
-            print("Seneca con mode: {}".format(SenecaInterpreter.concurrent_mode))
             interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
 
     def test_setup_dbs(self):
