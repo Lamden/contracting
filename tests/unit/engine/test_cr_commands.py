@@ -25,9 +25,9 @@ class TestCRCommandsBase(TestCase):
     def test_add_one_key_to_mod_list(self):
         KEY = 'key_that_was_modified'
         cr_cmd = self._new_cmd()
-        cr_cmd._add_key_to_mod_list(KEY)
+        cr_cmd.data['getset'].writes[0].add(KEY)
 
-        actual_mods = cr_cmd.data['getset'].mods
+        actual_mods = cr_cmd.data['getset'].writes
 
         self.assertEqual(len(actual_mods), 1)
         self.assertEqual({KEY}, actual_mods[0])
@@ -36,11 +36,11 @@ class TestCRCommandsBase(TestCase):
         KEY1 = 'key1_that_was_modified'
         KEY2 = 'key2_that_was_modified'
         cr_cmd = self._new_cmd()
-        cr_cmd._add_key_to_mod_list(KEY1)
-        cr_cmd._add_key_to_mod_list(KEY2)
+        cr_cmd.data['getset'].writes[0].add(KEY1)
+        cr_cmd.data['getset'].writes[0].add(KEY2)
 
-        actual_mods = cr_cmd.data['getset'].mods
-        expected_mods = [{KEY1, KEY2}]
+        actual_mods = cr_cmd.data['getset'].writes
+        expected_mods = {0: {KEY1, KEY2}}
 
         self.assertEqual(len(actual_mods), 1)
         self.assertEqual(len(actual_mods[0]), 2)
@@ -50,11 +50,11 @@ class TestCRCommandsBase(TestCase):
         KEY1 = 'key1_that_was_modified'
         KEY2 = 'key1_that_was_modified'
         cr_cmd = self._new_cmd()
-        cr_cmd._add_key_to_mod_list(KEY1)
-        cr_cmd._add_key_to_mod_list(KEY2)
+        cr_cmd.data['getset'].writes[0].add(KEY1)
+        cr_cmd.data['getset'].writes[0].add(KEY2)
 
-        actual_mods = cr_cmd.data['getset'].mods
-        expected_mods = [{KEY1}]
+        actual_mods = cr_cmd.data['getset'].writes
+        expected_mods = {0: {KEY1}}
 
         self.assertEqual(len(actual_mods), 1)
         self.assertEqual(len(actual_mods[0]), 1)
@@ -65,12 +65,12 @@ class TestCRCommandsBase(TestCase):
         KEY2 = 'key2_that_was_modified'
         cr_cmd1 = self._new_cmd()
         cr_cmd2 = self._new_cmd(contract_idx=1, cr_data=cr_cmd1.data)
-        cr_cmd1._add_key_to_mod_list(KEY1)
-        cr_cmd2._add_key_to_mod_list(KEY2)
+        cr_cmd1.data['getset'].writes[0].add(KEY1)
+        cr_cmd2.data['getset'].writes[1].add(KEY2)
 
         # These guys should share the same modification list (since they are from the same sbb idx)
-        self.assertEqual(cr_cmd1.data['getset'].mods, cr_cmd2.data['getset'].mods)
-        actual_mods = cr_cmd1.data['getset'].mods
+        self.assertEqual(cr_cmd1.data['getset'].writes, cr_cmd2.data['getset'].writes)
+        actual_mods = cr_cmd1.data['getset'].writes
 
         self.assertEqual(len(actual_mods), 2)
         self.assertEqual(len(actual_mods[0]), 1)
@@ -82,11 +82,11 @@ class TestCRCommandsBase(TestCase):
         KEY1 = 'key1_that_was_modified'
         KEY2 = 'key2_that_was_modified'
         cr_cmd = self._new_cmd()
-        cr_cmd._add_key_to_mod_list(KEY1)
-        cr_cmd._add_key_to_mod_list(KEY2)
+        cr_cmd.data['getset'].writes[0].add(KEY1)
+        cr_cmd.data['getset'].writes[0].add(KEY2)
 
-        actual_mods = cr_cmd.data['getset'].mods
-        expected_mods = [{KEY1, KEY2}]
+        actual_mods = cr_cmd.data['getset'].writes
+        expected_mods = {0: {KEY1, KEY2}}
 
         self.assertEqual(actual_mods, expected_mods)
 
@@ -94,13 +94,14 @@ class TestCRCommandsBase(TestCase):
         KEY2 = 'key2_that_was_modified'
         cr_cmd1 = self._new_cmd()
         cr_cmd2 = self._new_cmd(contract_idx=1, cr_data=cr_cmd1.data)
-        cr_cmd2._add_key_to_mod_list(KEY2)
+        # cr_cmd2._add_key_to_mod_list(KEY2)
+        cr_cmd2.data['getset'].writes[1].add(KEY2)
 
         # These guys should share the same modification list (since they are from the same sbb idx)
-        self.assertEqual(cr_cmd1.data['getset'].mods, cr_cmd2.data['getset'].mods)
-        actual_mods = cr_cmd1.data['getset'].mods
+        self.assertEqual(cr_cmd1.data['getset'].writes, cr_cmd2.data['getset'].writes)
+        actual_mods = cr_cmd1.data['getset'].writes
 
-        self.assertEqual(len(actual_mods), 2)
+        self.assertEqual(len(actual_mods), 1)
         self.assertEqual(len(actual_mods[0]), 0)
         self.assertEqual(len(actual_mods[1]), 1)
         self.assertEqual(actual_mods[0], set())

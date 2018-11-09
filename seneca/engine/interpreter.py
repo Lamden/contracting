@@ -1,9 +1,6 @@
 import redis, ast, marshal, array, copy, inspect, types, uuid, copy, ujson as json, sys, time
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
 from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET
-from seneca.libs.logger import get_logger
-from seneca.engine.util import make_n_tup
-
 
 class ReadOnlyException(Exception):
     pass
@@ -18,15 +15,16 @@ class SenecaInterpreter:
     exports = {}
     imports = {}
     loaded = {}
+    metas = {}
     _is_setup = False
     concurrent_mode = True
 
     @classmethod
     def setup(cls, concurrent_mode=True):
         if not cls._is_setup:
-            cls.concurrent_mode = concurrent_mode
             cls.r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
             cls._is_setup = True
+            cls.concurrent_mode = concurrent_mode
 
     @classmethod
     def teardown(cls):
@@ -47,21 +45,24 @@ class SenecaInterpreter:
 
     @classmethod
     def get_contract_meta(cls, fullname):
-        byte_str = cls.r.hget('contracts_meta', fullname)
-        assert byte_str, 'Contract "{}" does not exist.'.format(fullname)
-        meta = json.loads(byte_str)
-        return meta
+        if cls.metas.get(fullname):
+            return cls.metas[fullname]
+        else:
+            byte_str = cls.r.hget('contracts_meta', fullname)
+            assert byte_str, 'Contract "{}" does not exist.'.format(fullname)
+            meta = json.loads(byte_str)
+            cls.metas[fullname] = meta
+            return meta
 
     @classmethod
     def set_code(cls, fullname, code_obj, code_str, author, keep_original=False):
         pipe = cls.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
-        if keep_original:
-            pipe.hset('contracts_meta', fullname, json.dumps({
-                'code_str': code_str,
-                'author': author,
-                'timestamp': time.time()
-            }))
+        pipe.hset('contracts_meta', fullname, json.dumps({
+            'code_str': code_str,
+            'author': author,
+            'timestamp': time.time()
+        }))
         pipe.execute()
 
     @classmethod
@@ -137,7 +138,6 @@ class SenecaInterpreter:
                         raise ImportError('Cannot import modules inside a function!')
 
                 prevalidated.body.append(item)
-
             current_ast_types.add(type(item))
 
         illegal_ast_nodes = current_ast_types - ALLOWED_AST_TYPES
@@ -177,10 +177,10 @@ result = {}({}, {})
             ','.join([json.dumps(arg) for arg in args]),
             ','.join(['{}={}'.format(k,json.dumps(v)) for k,v in kwargs.items()])
         )
-        scope = {'rt': make_n_tup({
+        scope = {
             'author': author,
             'sender': sender
-        })}
+        }
         cls.loaded['__main__'] = scope
         exec(code_str, scope)
         return scope.get('result')
@@ -194,12 +194,12 @@ class ScopeParser:
         fn.__globals__.update(SenecaInterpreter.loaded['__main__'])
 
     def set_scope_during_compilation(self, fn):
-        self.module = '.'.join([fn.__module__ or '', fn.__name__])
+        self.module = '.'.join([fn.__module__, fn.__name__])
         fn.__globals__['__contract__'] = fn.__module__
 
 class Export(ScopeParser):
-
     def __call__(self, fn):
+        if not fn.__module__: return
         self.set_scope_during_compilation(fn)
         SenecaInterpreter.exports[self.module] = True
         def _fn(*args, **kwargs):

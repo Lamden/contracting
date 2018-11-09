@@ -19,8 +19,8 @@ def initiate(_initiator: str,
 
 		# dynamic import of token
 		token = importlib.import_module(_token)
-		assert token.allowance(rt.sender, rt.contract_address) >= _amount
-		token.transfer_from(rt.sender, rt.contract_address, _amount)
+		assert token.allowance(rt['sender'], rt['contract_address']) >= _amount
+		token.transfer_from(rt['sender'], rt['contract_address'], _amount)
 
 		swaps[_participant][_hashlock] = {
 			'initiator': _initiator,
@@ -32,19 +32,19 @@ def initiate(_initiator: str,
 
 def redeem(secret: bytes):
 	digest = hashlib.sha3_256().update(secret).digest()
-	if swaps[rt.sender][digest].exists():
-		s = [rt.sender][digest]
-		assert s['participant'] == rt.sender
+	if swaps[rt['sender']][digest].exists():
+		s = swaps[rt['sender']][digest]
+		assert s['participant'] == rt['sender
 
 		token = importlib.import_module(s['token'])
-		token.transfer(rt.sender, s['value'])
+		token.transfer(rt['sender, s['value'])
 
 def refund(secret: bytes):
 	digest = hashlib.sha3_256().update(secret).digest()
-	if swaps[rt.sender][digest].exists():
-		s = [rt.sender][digest]
+	if swaps[rt['sender']][digest].exists():
+		s = swaps[rt['sender']][digest]
 		assert s['expiration'] < now
-		assert s['initiator'] == rt.sender
+		assert s['initiator'] == rt['sender
 
 		token = importlib.import_module(s['token'])
-		token.transfer(rt.sender, s['value'])
+		token.transfer(rt['sender, s['value'])
