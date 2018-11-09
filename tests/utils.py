@@ -27,8 +27,8 @@ class TestInterface(TestCase):
     def setUp(self):
         self.r.flushdb()
         # Only do this once in each process!
-        SenecaInterpreter.setup(concurrent_mode=False)
-        self.si = SenecaInterface()
+        SenecaInterpreter.setup()
+        self.si = SenecaInterface(False)
         print('''
 ################################################################################
 {}

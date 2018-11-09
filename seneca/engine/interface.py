@@ -13,9 +13,8 @@ class SenecaInterface(SenecaInterpreter):
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
         SenecaInterpreter.setup(concurrent_mode)
 
-    def __enter__(self, concurrent_mode=True):
+    def __enter__(self):
         self.old_concurrent_mode = SenecaInterpreter.concurrent_mode
-        SenecaInterpreter.concurrent_mode = concurrent_mode
         return self
 
     def __exit__(self, type, value, traceback):
@@ -27,7 +26,14 @@ class SenecaInterface(SenecaInterpreter):
         prevalidated_obj = compile(prevalidated, filename='__main__', mode="exec")
         self.execute(prevalidated_obj, scope)
         code_obj = compile(tree, filename='__main__', mode="exec")
+        # api = self.construct_api(scope)
         return code_obj
+
+    def construct_api(self, scope):
+        for k,v in scope.items():
+            if hasattr(v, '__qualname__'):
+                if v.__qualname__ == 'Export.__call__.<locals>._fn':
+                    print(k, 'xxx')
 
     def execute_code_str(self, code_str, scope={}):
         try:
@@ -40,7 +46,7 @@ class SenecaInterface(SenecaInterpreter):
     def publish_code_str(self, fullname, author, code_str, keep_original=False, scope={}):
         try:
             assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
-            with SenecaInterface() as interface:
+            with SenecaInterface(False) as interface:
                 code_obj = self.compile_code(code_str, scope)
                 self.set_code(fullname, code_obj, code_str, author, keep_original)
         except:

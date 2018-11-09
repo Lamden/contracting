@@ -56,12 +56,11 @@ class SenecaInterpreter:
     def set_code(cls, fullname, code_obj, code_str, author, keep_original=False):
         pipe = cls.r.pipeline()
         pipe.hset('contracts', fullname, marshal.dumps(code_obj))
-        if keep_original:
-            pipe.hset('contracts_meta', fullname, json.dumps({
-                'code_str': code_str,
-                'author': author,
-                'timestamp': time.time()
-            }))
+        pipe.hset('contracts_meta', fullname, json.dumps({
+            'code_str': code_str,
+            'author': author,
+            'timestamp': time.time()
+        }))
         pipe.execute()
 
     @classmethod
@@ -97,6 +96,7 @@ class SenecaInterpreter:
     @classmethod
     def validate(cls):
         for import_path in cls.imports:
+            # print(cls.exports)
             if not cls.exports.get(import_path):
                 raise CompilationException('Forbidden to import "{}"'.format(
                     import_path))
@@ -135,6 +135,12 @@ class SenecaInterpreter:
                 for fn_item in item.body:
                     if isinstance(fn_item, (ast.Import, ast.ImportFrom)):
                         raise ImportError('Cannot import modules inside a function!')
+                # for dec in item.decorator_list:
+                #     if dec.id == 'export':
+                #         print(dir(item))
+                #         print(item.name)
+                #         print(item.args.args)
+                #         break
 
                 prevalidated.body.append(item)
 
@@ -194,12 +200,13 @@ class ScopeParser:
         fn.__globals__.update(SenecaInterpreter.loaded['__main__'])
 
     def set_scope_during_compilation(self, fn):
-        self.module = '.'.join([fn.__module__ or '', fn.__name__])
+        self.module = '.'.join([fn.__module__, fn.__name__])
         fn.__globals__['__contract__'] = fn.__module__
 
 class Export(ScopeParser):
-
     def __call__(self, fn):
+        if not fn.__module__:
+            return
         self.set_scope_during_compilation(fn)
         SenecaInterpreter.exports[self.module] = True
         def _fn(*args, **kwargs):
