@@ -8,7 +8,6 @@ class SenecaInterface(SenecaInterpreter):
     """
 
     def __init__(self, concurrent_mode=True):
-        print('init called with con mode: {}'.format(concurrent_mode))
         if not isinstance(sys.meta_path[2], RedisFinder):
             self.old_sys_path = sys.meta_path
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
@@ -28,14 +27,7 @@ class SenecaInterface(SenecaInterpreter):
         prevalidated_obj = compile(prevalidated, filename='__main__', mode="exec")
         self.execute(prevalidated_obj, scope)
         code_obj = compile(tree, filename='__main__', mode="exec")
-        # api = self.construct_api(scope)
         return code_obj
-
-    def construct_api(self, scope):
-        for k,v in scope.items():
-            if hasattr(v, '__qualname__'):
-                if v.__qualname__ == 'Export.__call__.<locals>._fn':
-                    print(k, 'xxx')
 
     def execute_code_str(self, code_str, scope={}):
         try:
