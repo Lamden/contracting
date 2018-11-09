@@ -22,7 +22,7 @@ mint('stu', 69)
 mint('birb', 8000)
 mint('ghu', 9000)
 mint('tj', 8000)
-mint('playboi', 8000)
+mint('ethan', 8000)
 """
 
 
@@ -154,8 +154,8 @@ class TestSenecaClient(TestCase):
     def test_end_subblock_2_sbb_start_subblocks_before_ending_then_flush_all_dem_bois(self):
         input_hash1 = 'A' * 64
         input_hash2 = 'B' * 64
-        input_hash3 = 'B' * 64
-        input_hash4 = 'B' * 64
+        input_hash3 = 'C' * 64
+        input_hash4 = 'D' * 64
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -166,13 +166,13 @@ class TestSenecaClient(TestCase):
         client2.start_sub_block(input_hash2)
 
         c1 = create_currency_tx('davis', 'stu', 14)
-        c2 = create_currency_tx('stu', 'davis', 69)
+        c2 = create_currency_tx('stu', 'davis', 40)
         c3 = create_currency_tx('ghu', 'davis', 15)
         c4 = create_currency_tx('tj', 'birb', 90)
         c5 = create_currency_tx('ethan', 'birb', 60)
-        c6 = create_currency_tx('', 'birb', 90)
-        c7 = create_currency_tx('tj', 'birb', 90)
-        c8 = create_currency_tx('tj', 'birb', 90)
+        c6 = create_currency_tx('stu', 'davis', 10)
+        c7 = create_currency_tx('ghu', 'tj', 50)
+        c8 = create_currency_tx('birb', 'davis', 100)
         client1.run_contract(c1)
         client1.run_contract(c2)
         client2.run_contract(c3)
@@ -191,7 +191,10 @@ class TestSenecaClient(TestCase):
         expected_sbb1_1 = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
                            (c2, "SUCC", "SET balances:stu 43;SET balances:davis 10026;")]
         expected_sbb2_1 = [(c3, "SUCC", "SET balances:ghu 8985;SET balances:davis 10041;"),
-                           (c4, "SUCC", "SET balances:tj 7910;SET balances:birb 8015;")]
+                           (c4, "SUCC", "SET balances:tj 7910;SET balances:birb 8090;")]
+        expected_sbb1_2 = [(c5, "SUCC", "SET balances:ethan 7940;SET balances:birb 8130;"),
+                           (c6, "SUCC", "SET balances:stu 33;SET balances:davis 10051;")]
+        # TODO define expected_sbb2_1
         actual_sbb1_rep = client1.update_master_db()
         actual_sbb2_rep = client2.update_master_db(False)
         self.assertEqual(expected_sbb1_1, actual_sbb1_rep)
