@@ -585,7 +585,7 @@ class Table(RObject):
 
         if type(k) in complex_types:
             k = k.rep()
-            
+
         result = self.driver.hmget('{}{}'.format(self.p, k), keys)
         result = [self.decode_value(r) for r in result]
 

@@ -7,13 +7,13 @@ class SenecaInterface(SenecaInterpreter):
         High level API for interacting with Seneca Smart Contracts
     """
 
-    def __init__(self):
+    def __init__(self, concurrent_mode=True):
         if not isinstance(sys.meta_path[2], RedisFinder):
             self.old_sys_path = sys.meta_path
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
-        SenecaInterpreter.setup()
+        SenecaInterpreter.setup(concurrent_mode)
 
-    def __enter__(self, concurrent_mode=False):
+    def __enter__(self, concurrent_mode=True):
         self.old_concurrent_mode = SenecaInterpreter.concurrent_mode
         SenecaInterpreter.concurrent_mode = concurrent_mode
         return self
