@@ -194,6 +194,7 @@ class TestSenecaClient(TestCase):
                            (c4, "SUCC", "SET balances:tj 7910;SET balances:birb 8090;")]
         expected_sbb1_2 = [(c5, "SUCC", "SET balances:ethan 7940;SET balances:birb 8130;"),
                            (c6, "SUCC", "SET balances:stu 33;SET balances:davis 10051;")]
+        
         # TODO define expected_sbb2_1
         actual_sbb1_rep = client1.update_master_db()
         actual_sbb2_rep = client2.update_master_db(False)
