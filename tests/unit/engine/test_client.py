@@ -211,7 +211,7 @@ class TestSenecaClient(TestCase):
         expected_sbb2_2 = [(c7, "SUCC", "SET balances:ghu 8935;SET balances:tj 7960;"),
                            (c8, "SUCC", "SET balances:birb 8050;SET balances:davis 10151;")]
 
-        actual_sbb1_1 = client1.update_master_db()
+        actual_sbb1_1 = client1.update_master_db(True)
         actual_sbb2_1 = client2.update_master_db(False)
         self.assertEqual(expected_sbb1_1, actual_sbb1_1)
         self.assertEqual(expected_sbb2_1, actual_sbb2_1)
@@ -219,7 +219,7 @@ class TestSenecaClient(TestCase):
         coros = (client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
         loop.run_until_complete(asyncio.gather(*coros))
 
-        actual_sbb1_2 = client1.update_master_db()
+        actual_sbb1_2 = client1.update_master_db(True)
         actual_sbb2_2 = client2.update_master_db(False)
         self.assertEqual(expected_sbb1_2, actual_sbb1_2)
         self.assertEqual(expected_sbb2_2, actual_sbb2_2)

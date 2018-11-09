@@ -161,20 +161,20 @@ class CRDataGetSet(CRDataBase, dict):
         # should we use the common layer (which presumably a prior sb copied from the updated master), or do we use
         # the updated master? I think we need some special logic for if this is subblock 0 then use master, otherwise
         # use common
+        self.log.debugv("Resetting key {}".format(key))
         og_val = self[key]['og']
 
         self[key]['mod'] = None
         self[key]['contracts'] = set()
 
         # First, try and copy over master if it differs from original value
-        if self.master.exists(key) and self.master.get(key) != og_val:
-            self.log.debugv("Reseting key {} to MASTER value {}".format(key, self.master.get(key)))
-            self[key]['og'] = self.master.get(key)
-        # Next, try to copy it over from common
-        elif self.working.exists(key) and self.working.get(key) != og_val:
+
+        if self.working.exists(key) and self.working.get(key) != og_val:
             self.log.debugv("Reseting key {} to COMMON value {}".format(key, self.working.get(key)))
             self[key]['og'] = self.working.get(key)
-        # If there isnt a common/master value to fetch, than do nothing (leave the original value as is)
+        elif self.master.exists(key) and self.master.get(key) != og_val:
+            self.log.debugv("Reseting key {} to MASTER value {}".format(key, self.master.get(key)))
+            self[key]['og'] = self.master.get(key)
         else:
             self.log.spam("No updated value found for key {}. Clearing modified and leaving original val".format(key))
 

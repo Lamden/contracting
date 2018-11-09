@@ -358,7 +358,6 @@ class TestCRGetSet(TestCase):
 
         # Make some changes to master on the written key
         self.master.set(KEY1, MASTER_VALUE1)
-        self.working.set(KEY1, COMMON_VALUE1)
 
         cr_data = cr_set.data['getset']
         cr_data.reset_key(KEY1)

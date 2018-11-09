@@ -196,7 +196,7 @@ class SenecaClient(SenecaInterface):
             - Merges cr_data to common layer, and then increment the CONFLICT_RESOLUTION phase variable
         - If it is not on the top of pending db's, the merging logic will be called later when merge_to_master is called
         """
-        self._wait_for_execution_stage(cr_data)
+        await self._wait_for_execution_stage(cr_data)
 
         if self.pending_dbs[0] is not cr_data:
             await self._wait_until_top_of_pending(cr_data)
