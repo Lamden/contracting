@@ -1,6 +1,7 @@
 import redis, ast, marshal, array, copy, inspect, types, uuid, copy, ujson as json, sys, time
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
-from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET
+from seneca.constants.config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET, CODE_OBJ_MAX_CACHE
+from functools import lru_cache
 
 class ReadOnlyException(Exception):
     pass
@@ -9,13 +10,12 @@ class ReadOnlyException(Exception):
 class CompilationException(Exception):
     pass
 
-
 class SenecaInterpreter:
 
     exports = {}
     imports = {}
     loaded = {}
-    metas = {}
+    cache = {}
     _is_setup = False
     concurrent_mode = True
 
@@ -45,14 +45,10 @@ class SenecaInterpreter:
 
     @classmethod
     def get_contract_meta(cls, fullname):
-        if cls.metas.get(fullname):
-            return cls.metas[fullname]
-        else:
-            byte_str = cls.r.hget('contracts_meta', fullname)
-            assert byte_str, 'Contract "{}" does not exist.'.format(fullname)
-            meta = json.loads(byte_str)
-            cls.metas[fullname] = meta
-            return meta
+        byte_str = cls.r.hget('contracts_meta', fullname)
+        assert byte_str, 'Contract "{}" does not exist.'.format(fullname)
+        meta = json.loads(byte_str)
+        return meta
 
     @classmethod
     def set_code(cls, fullname, code_obj, code_str, author, keep_original=False):
@@ -158,7 +154,8 @@ class SenecaInterpreter:
     def execute(cls, code, scope={}, is_main=True):
         scope.update({
             '__builtins__': SAFE_BUILTINS,
-            'export': Export()
+            'export': Export(),
+            '__use_locals__': False
         })
         if is_main:
             cls.loaded['__main__'] = scope
@@ -167,24 +164,31 @@ class SenecaInterpreter:
             cls.validate()
 
     @classmethod
-    def execute_function(cls, module_path, author, sender, *args, **kwargs):
+    @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
+    def get_cached_code_obj(cls, module_path):
         cls.assert_import_path(module_path)
         module = module_path.rsplit('.', 1)
         code_str = '''
 from {} import {}
-result = {}({}, {})
-        '''.format(module[0], module[1], module[1],
-            ','.join([json.dumps(arg) for arg in args]),
-            ','.join(['{}={}'.format(k,json.dumps(v)) for k,v in kwargs.items()])
-        )
+result = {}()
+        '''.format(module[0], module[1], module[1])
+        code_obj = compile(code_str, '__main__', 'exec')
+        return code_obj
+
+    @classmethod
+    def execute_function(cls, module_path, author, sender, *args, **kwargs):
+        code_obj = cls.get_cached_code_obj(module_path)
         scope = {
             'rt': {
                 'author': author,
                 'sender': sender
-            }
+            },
+            '__args__': args,
+            '__kwargs__': kwargs,
+            '__use_locals__': True
         }
         cls.loaded['__main__'] = scope
-        exec(code_str, scope)
+        exec(code_obj, scope)
         return scope.get('result')
 
 class ScopeParser:
@@ -197,14 +201,17 @@ class ScopeParser:
 
     def set_scope_during_compilation(self, fn):
         self.module = '.'.join([fn.__module__, fn.__name__])
+        SenecaInterpreter.exports[self.module] = True
         fn.__globals__['__contract__'] = fn.__module__
 
 class Export(ScopeParser):
     def __call__(self, fn):
         if not fn.__module__: return
         self.set_scope_during_compilation(fn)
-        SenecaInterpreter.exports[self.module] = True
         def _fn(*args, **kwargs):
             self.set_scope(fn)
+            if fn.__globals__.get('__use_locals__'):
+                if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
+                if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
             return fn(*args, **kwargs)
         return _fn

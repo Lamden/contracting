@@ -2,7 +2,7 @@ from unittest import TestCase
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
 from seneca.engine.book_keeper import BookKeeper
-from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
+from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 from os.path import join
 from tests.utils import captured_output
 from multiprocessing import Pool, Process
