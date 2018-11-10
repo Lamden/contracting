@@ -1,7 +1,7 @@
 from unittest import TestCase
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
-from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
+from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 from os.path import join
 from tests.utils import captured_output
 import redis, unittest, seneca, time
@@ -62,7 +62,7 @@ print('ass has a balance of: ' + str(balance_of('ass')))
     def test_transfer_template(self):
         for i in range(CONTRACT_COUNT):
             self.si.execute_function('test_contracts.kv_currency.transfer',
-                self.author, self.sender, 'ass', 1)
+                self.author, self.sender, 'ass', amount=1)
 
 if __name__ == '__main__':
     unittest.main()
