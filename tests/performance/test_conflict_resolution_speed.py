@@ -16,15 +16,12 @@ transfer('{receiver}', {amount})
 
 
 MINT_CODE_STR = """ \
-
 from seneca.contracts.currency import mint
-mint('davis', 10000)
-mint('stu', 69)
-mint('birb', 8000)
-mint('ghu', 9000)
-mint('tj', 8000)
-mint('ethan', 8000)
+mint({}, {})
 """
+
+CONTRACTS_TO_STORE = {'currency': 'kv_currency.sen.py'}
+NUM_WALLETS = 10 ** 5
 
 
 class MockContract:
@@ -32,10 +29,36 @@ class MockContract:
         self.sender, self.code, self.contract_name = sender, code, contract_name
 
 
+def setup():
+    # overwrite_logger_level(0)
+    with SenecaInterface(False) as interface:
+        interface.r.flushall()
+
+        # Store all smart contracts in CONTRACTS_TO_STORE
+        import seneca
+        test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
+
+        for contract_name, file_name in CONTRACTS_TO_STORE.items():
+            with open(test_contracts_path + file_name) as f:
+                code_str = f.read()
+                interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
+
+        rt = make_n_tup({
+            'author': GENESIS_AUTHOR,
+            'sender': GENESIS_AUTHOR,
+        })
+        interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
+        # interface.execute_function(module_path)
+
+
 def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: str='currency'):
     code = XFER_CODE_STR.format(receiver=receiver, amount=amount)
     contract = MockContract(sender=sender, code=code, contract_name=contract_name)
     return contract
+
+
+def test_baseline():
+    pass
 
 
 class TestSenecaClient(TestCase):
@@ -55,10 +78,10 @@ class TestSenecaClient(TestCase):
                     code_str = f.read()
                     interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
 
-            rt = {
+            rt = make_n_tup({
                 'author': GENESIS_AUTHOR,
                 'sender': GENESIS_AUTHOR,
-            }
+            })
             interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
 
     def test_setup_dbs(self):
@@ -233,3 +256,4 @@ class TestSenecaClient(TestCase):
     # Test starting a new sub block before the last sub block finishes
 
     # Test with multiple sb's where stuff in SB 2 will pass the first time and fail the second time (cause some og read was modified)
+

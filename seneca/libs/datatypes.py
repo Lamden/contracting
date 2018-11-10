@@ -356,8 +356,6 @@ class RObject:
             info = BookKeeper.get_info()
             self.driver = RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
 
-            print("RObject __init__ called with BookKeeper info: {}".format(info))  # TODO remove
-
     def encode_value(self, value):
         v = None
 
