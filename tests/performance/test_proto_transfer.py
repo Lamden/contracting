@@ -1,5 +1,4 @@
 from unittest import TestCase
-from seneca.engine.util import make_n_tup
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
 from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
@@ -16,7 +15,9 @@ class TestProtoTransfer(TestCase):
     def setUp(self):
         r.flushdb()
         self.si = SenecaInterface(False)
-        self.rt = {'rt': make_n_tup({'sender': 'stu', 'author': 'stu'})}
+        self.author = 'stu'
+        self.sender = 'stu'
+        self.rt = {'rt': {'sender': self.author, 'author': self.sender}}
         print('''
 ################################################################################
 {}
@@ -57,6 +58,11 @@ print('ass has a balance of: ' + str(balance_of('ass')))
     def test_transfer_precompiled(self):
         for i in range(CONTRACT_COUNT):
             self.si.run_code(self.code_obj, self.rt)
+
+    def test_transfer_template(self):
+        for i in range(CONTRACT_COUNT):
+            self.si.execute_function('test_contracts.kv_currency.transfer',
+                self.author, self.sender, 'ass', 1)
 
 if __name__ == '__main__':
     unittest.main()

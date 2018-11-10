@@ -3,7 +3,6 @@ import time, asyncio, ujson as json, redis
 from seneca.libs.logger import get_logger
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
-from seneca.engine.util import make_n_tup
 from seneca.constants.redis_config import *
 from seneca.engine.conflict_resolution import CRDataContainer
 from seneca.engine.book_keeper import BookKeeper
@@ -114,10 +113,10 @@ class SenecaClient(SenecaInterface):
 
     def submit_contract(self, contract):
         self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
-            'rt': make_n_tup({
+            'rt': {
                 'author': contract.sender,
                 'sender': contract.sender
-            })
+            }
         })
 
     def run_contract(self, contract):
@@ -137,10 +136,10 @@ class SenecaClient(SenecaInterface):
 
         try:
             self.execute_code_str(contract.code, scope={
-                'rt': make_n_tup({
+                'rt': {
                     'author': metadata['author'],
                     'sender': contract.sender
-                })
+                }
             })
             result = 'SUCC'
         except Exception as e:

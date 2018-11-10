@@ -1,5 +1,4 @@
 from unittest import TestCase
-from seneca.engine.util import make_n_tup
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
 from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
@@ -18,7 +17,7 @@ class TestPublishTransfer(TestCase):
         SenecaInterpreter.setup()
         SenecaInterpreter.concurrent_mode = False
         self.si = SenecaInterface(False)
-        self.rt = {'rt': make_n_tup({'sender': 'stu', 'author': 'stu'})}
+        self.rt = {'rt': {'sender': 'stu', 'author': 'stu'}}
         print('''
 ################################################################################
 {}

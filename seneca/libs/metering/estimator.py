@@ -81,7 +81,7 @@ class OperationsEstimator:
 
     @timeit
     def calc_cost(self, code_obj):
-        return exec(code_obj)
+        exec(code_obj)
 
     @suppress_stdout
     def precalc_costs(self):

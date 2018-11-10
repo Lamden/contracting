@@ -417,9 +417,14 @@ class HMap(RObject):
         v = self.encode_value(value)
         self.check_key_type(key)
 
+        if type(key) in complex_types:
+            key = key.rep()
+
         return self.driver.set('{}{}{}'.format(self.prefix, self.delimiter, key), v)
 
     def get(self, key):
+        if type(key) in complex_types:
+            key = key.rep()
         g = self.driver.get('{}{}{}'.format(self.prefix, self.delimiter, key))
         g = self.decode_value(g)
         return g

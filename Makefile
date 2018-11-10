@@ -8,7 +8,7 @@ clean:
 	bash ./scripts/clean.sh
 
 build-cython: clean
-	cythonize -i --exclude="test_contracts/" ./seneca
+	cythonize -i ./seneca/engine ./seneca/constants ./seneca/libs
 
 test: start-server
 	python3 tests/run.py

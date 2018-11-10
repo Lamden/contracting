@@ -55,10 +55,10 @@ class TestSenecaClient(TestCase):
                     code_str = f.read()
                     interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
 
-            rt = make_n_tup({
+            rt = {
                 'author': GENESIS_AUTHOR,
                 'sender': GENESIS_AUTHOR,
-            })
+            }
             interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
 
     def test_setup_dbs(self):
@@ -233,4 +233,3 @@ class TestSenecaClient(TestCase):
     # Test starting a new sub block before the last sub block finishes
 
     # Test with multiple sb's where stuff in SB 2 will pass the first time and fail the second time (cause some og read was modified)
-

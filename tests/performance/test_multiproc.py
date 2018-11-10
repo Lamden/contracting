@@ -1,5 +1,4 @@
 from unittest import TestCase
-from seneca.engine.util import make_n_tup
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
 from seneca.engine.book_keeper import BookKeeper
@@ -47,7 +46,7 @@ transfer('tej', 1)
         self.si.execute_code_str("""
 from test_contracts.kv_currency import mint
 mint('{}', {})
-        """.format(user, CONTRACT_COUNT), {'rt': make_n_tup({'sender': user, 'author': user})})
+        """.format(user, CONTRACT_COUNT), {'rt': {'sender': user, 'author': user}})
 
     def print_balance(self):
         self.si.execute_code_str("""
@@ -57,7 +56,7 @@ print('dav has a balance of: ' + str(balance_of('dav')))
 print('fal has a balance of: ' + str(balance_of('fal')))
 print('rag has a balance of: ' + str(balance_of('rag')))
 print('tej has a balance of: ' + str(balance_of('tej')))
-        """, {'rt': make_n_tup({'sender': 'stu', 'author': 'stu'})})
+        """, {'rt': {'sender': 'stu', 'author': 'stu'}})
 
     def test_transfer_compile_on_the_go(self):
         def run_code_str(user):
@@ -72,7 +71,7 @@ transfer('tej', 1)
 
             '''
             for i in range(CONTRACT_COUNT):
-                si.execute_code_str(code_str, {'rt': make_n_tup({'sender': user, 'author': user})})
+                si.execute_code_str(code_str, {'rt': {'sender': user, 'author': user}})
         processes = [
             Process(target=run_code_str, args=(user,)) \
             for user in users
@@ -82,7 +81,7 @@ transfer('tej', 1)
 
     def test_transfer_precompiled(self):
         def run_code_obj(user):
-            si = SenecaInterface()
+            si = SenecaInterface(False)
             SenecaInterpreter.setup(False)
             code_str = '''
 from test_contracts.kv_currency import transfer
@@ -90,7 +89,21 @@ transfer('tej', 1)
             '''
             code_obj = si.compile_code(code_str)
             for i in range(CONTRACT_COUNT):
-                si.run_code(code_obj, {'rt': make_n_tup({'sender': user, 'author': user})})
+                si.run_code(code_obj, {'rt': {'sender': user, 'author': user}})
+        processes = [
+            Process(target=run_code_obj, args=(user,)) \
+            for user in users
+        ]
+        [p.start() for p in processes]
+        [p.join() for p in processes]
+
+    def test_transfer_template(self):
+        def run_code_obj(user):
+            si = SenecaInterface(False)
+            SenecaInterpreter.setup(False)
+            for i in range(CONTRACT_COUNT):
+                si.execute_function('test_contracts.kv_currency.transfer',
+                    user, user, 'tej', 1)
         processes = [
             Process(target=run_code_obj, args=(user,)) \
             for user in users
