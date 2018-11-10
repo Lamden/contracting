@@ -2,7 +2,7 @@ import os, seneca, time, redis, subprocess
 from os import getenv as env
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
-from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, load_env
+from seneca.constants.config import get_redis_port, get_redis_password, MASTER_DB, load_env
 
 def cli(fn):
     def _fn(fname, *args, **kwargs):

@@ -3,7 +3,7 @@ import time, asyncio, ujson as json, redis
 from seneca.libs.logger import get_logger
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
-from seneca.constants.redis_config import *
+from seneca.constants.config import *
 from seneca.engine.conflict_resolution import CRDataContainer
 from seneca.engine.book_keeper import BookKeeper
 from collections import deque, defaultdict
