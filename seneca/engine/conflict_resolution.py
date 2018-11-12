@@ -362,6 +362,8 @@ class CRDataContainer:
 
             yield i
 
+            # TODO i think these assertions will fail when we rerun a contract that fails (b/c read/write list will
+            # be empty). We should only do this logic if the execution was successful
             assert og_reads == data.reads[i], "Original reads have changed for contract idx {}!\nOriginal: {}\nNew " \
                                               "Reads: {}".format(i, og_reads, data.reads[i])
             assert og_writes == data.writes[i], "Original writes have changed for contract idx {}!\nOriginal: {}\nNew " \

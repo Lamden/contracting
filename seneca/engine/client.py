@@ -130,6 +130,8 @@ class SenecaClient(SenecaInterface):
     def _run_contract(self, contract) -> str:
         """ Runs the contract object, and retuns a string representing the result (succ/fail).
         Note: Assumes the BookKeeping info has already been set. """
+        # TODO fix this to return result of running as a contract as a Bool as well. This way we can the CRDataContainer
+        # to 'revert' the appropriate contract info
         assert BookKeeper.has_info(), "Must set BookKeeping info before calling _run_contract!"
         contract_name = contract.contract_name
         metadata = self.get_contract_meta(contract_name)
