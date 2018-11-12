@@ -1,7 +1,7 @@
 import os, threading
 import redis
 from multiprocessing import Lock
-from seneca.engine.conflict_resolution import CRDataContainer
+from seneca.engine.conflict_resolution import CRContext
 
 
 class BookKeeper:
@@ -18,7 +18,7 @@ class BookKeeper:
         return key
 
     @classmethod
-    def set_info(cls, sbb_idx: int, contract_idx: int, data: CRDataContainer) -> None:
+    def set_info(cls, sbb_idx: int, contract_idx: int, data: CRContext) -> None:
         """
         Sets the info (subblock builder index and contract index) for the current thread.
         """

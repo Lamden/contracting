@@ -263,7 +263,7 @@ class CRDataOutputs(CRDataBase, list):
         raise NotImplementedError()
 
 
-class CRDataContainer:
+class CRContext:
 
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, finalize=False):
         self.log = get_logger(type(self).__name__)
@@ -273,7 +273,7 @@ class CRDataContainer:
         self.sbb_idx = sbb_idx
 
         # cr_data holds instances of CRDataBase. The key is the 'NAME' field specified in the CRDataBase subclass
-        # For convenience, all these keys are directly accessible from this CRDataContainer instance (see __getitem__)
+        # For convenience, all these keys are directly accessible from this CRContext instance (see __getitem__)
         self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
                         CRDataBase.registry.items()}
 
@@ -303,7 +303,7 @@ class CRDataContainer:
 
     def reset(self, reset_db=True):
         """ Resets all state held by this container. """
-        # TODO i think this would be a lot easier if we just scrapped this whole CRDataContainer object and made a new
+        # TODO i think this would be a lot easier if we just scrapped this whole CRContext object and made a new
         # one, but then would we have to worry about memory leaks? idk but either way screw python
         def _is_subclass(obj, subs: tuple):
             """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
@@ -410,7 +410,7 @@ class CRDataContainer:
 
 class RedisProxy:
 
-    def __init__(self, sbb_idx: int, contract_idx: int, data: CRDataContainer, finalize=False):
+    def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, finalize=False):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
         self.finalize = finalize
         self.data = data

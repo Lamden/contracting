@@ -1,6 +1,6 @@
 import redis
 from seneca.libs.logger import get_logger
-from seneca.engine.conflict_resolution import CRDataGetSet, CRDataContainer, CRDataBase
+from seneca.engine.conflict_resolution import CRDataGetSet, CRContext, CRDataBase
 
 
 class CRCmdMeta(type):
@@ -22,7 +22,7 @@ class CRCmdBase(metaclass=CRCmdMeta):
 
     # TODO -- remove the finalize var. We dont need this.
     def __init__(self, working_db, master_db, sbb_idx: int, contract_idx: int,
-                 data: CRDataContainer, finalize=False):
+                 data: CRContext, finalize=False):
         self.log = get_logger("{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
         self.finalize = finalize
         self.data = data
