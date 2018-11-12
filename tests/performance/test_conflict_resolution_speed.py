@@ -24,6 +24,8 @@ mint({}, {})
 CONTRACTS_TO_STORE = {'currency': 'kv_currency.sen.py'}
 NUM_WALLETS = 10 ** 5
 SEED_AMOUNT = 10 ** 6
+PERSON_A = 'conflictor_a'
+PERSON_B = 'conflictor_b'
 
 
 class MockContract:
@@ -46,11 +48,16 @@ def setup():
                 interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
 
         start = time.time()
+        print("------ MINTING -------")
         print("Minting {} wallets...".format(NUM_WALLETS))
         for i in range(NUM_WALLETS):
             interface.execute_function(module_path='seneca.contracts.currency.mint', author=GENESIS_AUTHOR,
-                                       sender=GENESIS_AUTHOR, to=i, amount=SEED_AMOUNT)
-        print("Finished minting wallet in {} seconds".format(round(start-time.time(), 2)))
+                                       sender=GENESIS_AUTHOR, to=str(i), amount=SEED_AMOUNT)
+        for w in (PERSON_A, PERSON_B):
+            interface.execute_function(module_path='seneca.contracts.currency.mint', author=GENESIS_AUTHOR,
+                                       sender=GENESIS_AUTHOR, to=w, amount=SEED_AMOUNT)
+        print("Finished minting wallet in {} seconds".format(round(time.time()-start, 2)))
+        print("----------------------")
 
 
 def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: str='currency'):
@@ -59,7 +66,7 @@ def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: s
     return contract
 
 
-def test_baseline(num_contracts: int=10 ** 5):
+def test_baseline(num_contracts: int=30000):
     start = time.time()
     print(" ----- BASELINE ------")
     print("Running {} contracts with random addresses...".format(num_contracts))
@@ -68,8 +75,10 @@ def test_baseline(num_contracts: int=10 ** 5):
             amount = 1
             sender, receiver = random.sample(range(NUM_WALLETS), 2)
             interface.execute_function(module_path='seneca.contracts.currency.transfer', author=GENESIS_AUTHOR,
-                                       sender=sender, to=receiver, amount=amount)
-    print("Finished running baseline contracts in {} seconds ".format(round(time.time()-start, 2)))
+                                       sender=str(sender), to=str(receiver), amount=amount)
+    dur = time.time()-start
+    print("Finished running baseline contracts in {} seconds ".format(round(dur, 2)))
+    print("Baseline TPS: {}".format(num_contracts/dur))
     print("----------------------")
 
 
