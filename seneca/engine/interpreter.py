@@ -2,10 +2,12 @@ import redis, ast, marshal, array, copy, inspect, types, uuid, copy, ujson as js
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
 from seneca.constants.config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET, CODE_OBJ_MAX_CACHE
 from functools import lru_cache
+from seneca.libs.metering.tracer import Tracer
+import seneca, os
+from os.path import join
 
 class ReadOnlyException(Exception):
     pass
-
 
 class CompilationException(Exception):
     pass
@@ -25,6 +27,15 @@ class SenecaInterpreter:
             cls.r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
             cls._is_setup = True
             cls.concurrent_mode = concurrent_mode
+            cls.setup_tracer()
+
+    @classmethod
+    def setup_tracer(cls):
+        seneca_path = seneca.__path__[0]
+        path = join(seneca_path, 'constants', 'cu_costs.const')
+        os.environ['CU_COST_FNAME'] = path
+        cls.tracer = Tracer()
+
 
     @classmethod
     def teardown(cls):
@@ -155,7 +166,8 @@ class SenecaInterpreter:
         scope.update({
             '__builtins__': SAFE_BUILTINS,
             'export': Export(),
-            '__use_locals__': False
+            '__use_locals__': False,
+            '__tracer__': cls.tracer
         })
         if is_main:
             cls.loaded['__main__'] = scope
@@ -169,27 +181,32 @@ class SenecaInterpreter:
         cls.assert_import_path(module_path)
         module = module_path.rsplit('.', 1)
         code_str = '''
+__tracer__.set_stamp(__stamp_supplied__)
+__tracer__.start()
 from {} import {}
 result = {}()
+__tracer__.stop()
         '''.format(module[0], module[1], module[1])
         code_obj = compile(code_str, '__main__', 'exec')
         return code_obj
 
     @classmethod
-    def execute_function(cls, module_path, author, sender, *args, **kwargs):
+    def execute_function(cls, module_path, author, sender, stamps, *args, **kwargs):
         code_obj = cls.get_cached_code_obj(module_path)
         scope = {
-            'rt': {
-                'author': author,
-                'sender': sender
-            },
+            'rt': { 'author': author, 'sender': sender },
             '__args__': args,
             '__kwargs__': kwargs,
-            '__use_locals__': True
+            '__use_locals__': True,
+            '__tracer__': cls.tracer,
+            '__stamp_supplied__': stamps
         }
         cls.loaded['__main__'] = scope
         exec(code_obj, scope)
-        return scope.get('result')
+        return {
+            'output': scope.get('result'),
+            'cost': cls.tracer.get_stamp_used()
+        }
 
 class ScopeParser:
     @property

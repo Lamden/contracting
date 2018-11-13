@@ -37,8 +37,8 @@ typedef struct {
 
     /* Variables to keep track of metering */
     int cu_costs[144];
-    int cost;
-    int gas_supplied;
+    unsigned int cost;
+    unsigned int stamp_supplied;
     int started;
 
 } Tracer;
@@ -88,16 +88,16 @@ Tracer_dealloc(Tracer *self)
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-// static void reprint(PyObject *obj) {
-//     PyObject * repr = PyObject_Repr(obj);
-//     PyObject * str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-//     const char *bytes = PyBytes_AS_STRING(str);
-//
-//     printf("REPR: %s\n", bytes);
-//
-//     Py_XDECREF(repr);
-//     Py_XDECREF(str);
-// }
+static void reprint(PyObject *obj) {
+    PyObject * repr = PyObject_Repr(obj);
+    PyObject * str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
+    const char *bytes = PyBytes_AS_STRING(str);
+
+    printf("REPR: %s\n", bytes);
+
+    Py_XDECREF(repr);
+    Py_XDECREF(str);
+}
 
 
 /*
@@ -107,7 +107,6 @@ Tracer_dealloc(Tracer *self)
  static int
  Tracer_trace(Tracer *self, PyFrameObject *frame, int what, PyObject *arg)
  {
-     PyObject * bytes;
      const char * str;
      int opcode;
 
@@ -122,20 +121,20 @@ Tracer_dealloc(Tracer *self)
 
          case PyTrace_LINE:      /* 2 */
              // printf("LINE\n");
-             bytes = PyObject_Bytes(frame->f_code->co_code);
-             str = PyBytes_AS_STRING(bytes);
+             str = PyBytes_AS_STRING(frame->f_code->co_code);
              opcode = str[frame->f_lasti];
+             if (opcode < 0) opcode = -opcode;
              self->cost += self->cu_costs[opcode];
-             if (self->cost > self->gas_supplied) {
-                 PyErr_SetString(PyExc_SystemError, "The cost has exceeded the gas supplied!\n");
+             if (self->cost > self->stamp_supplied) {
+                 PyErr_SetString(PyExc_SystemError, "The cost has exceeded the stamp supplied!\n");
                  return RET_ERROR;
              }
              break;
 
-         case PyTrace_EXCEPTION:
-             // printf("EXCEPTION\n");
-             return RET_ERROR;
-             break;
+         // case PyTrace_EXCEPTION:
+         //     printf("EXCEPTION\n");
+         //     // return RET_ERROR;
+         //     break;
 
          default:
              break;
@@ -147,11 +146,9 @@ Tracer_dealloc(Tracer *self)
 static PyObject *
 Tracer_start(Tracer *self, PyObject *args)
 {
-
     PyEval_SetTrace((Py_tracefunc)Tracer_trace, (PyObject*)self);
     self->cost = 0;
     self->started = 1;
-
     return Py_BuildValue("");
 }
 
@@ -167,14 +164,14 @@ Tracer_stop(Tracer *self, PyObject *args)
 }
 
 static PyObject *
-Tracer_set_gas(Tracer *self, PyObject *args, PyObject *kwds)
+Tracer_set_stamp(Tracer *self, PyObject *args, PyObject *kwds)
 {
-    PyArg_ParseTuple(args, "i", &self->gas_supplied);
+    PyArg_ParseTuple(args, "i", &self->stamp_supplied);
     return Py_BuildValue("");
 }
 
 static PyObject *
-Tracer_get_gas_used(Tracer *self, PyObject *args, PyObject *kwds)
+Tracer_get_stamp_used(Tracer *self, PyObject *args, PyObject *kwds)
 {
     return Py_BuildValue("i", self->cost);
 }
@@ -195,11 +192,11 @@ Tracer_methods[] = {
     // { "get_stats",  (PyCFunction) Tracer_get_stats,     METH_VARARGS,
     //         PyDoc_STR("Get statistics about the tracing") },
 
-    { "set_gas",  (PyCFunction) Tracer_set_gas,     METH_VARARGS,
-            PyDoc_STR("Set the gas before starting the tracer") },
+    { "set_stamp",  (PyCFunction) Tracer_set_stamp,     METH_VARARGS,
+            PyDoc_STR("Set the stamp before starting the tracer") },
 
-    { "get_gas_used",  (PyCFunction) Tracer_get_gas_used,     METH_VARARGS,
-            PyDoc_STR("Get the gas usage after it's been completed") },
+    { "get_stamp_used",  (PyCFunction) Tracer_get_stamp_used,     METH_VARARGS,
+            PyDoc_STR("Get the stamp usage after it's been completed") },
 
     { NULL }
 };
@@ -248,7 +245,7 @@ TracerType = {
 
 /* Module definition */
 
-#define MODULE_DOC PyDoc_STR("Fast coverage tracer.")
+#define MODULE_DOC PyDoc_STR("Fast tracer for Smart Contract metering.")
 
 #if PY_MAJOR_VERSION >= 3
 
@@ -269,6 +266,7 @@ moduledef = {
 PyObject *
 PyInit_tracer(void)
 {
+
     PyObject * mod = PyModule_Create(&moduledef);
     if (mod == NULL) {
         return NULL;
@@ -292,8 +290,8 @@ void
 inittracer(void)
 {
     PyObject * mod;
-
     mod = Py_InitModule3("seneca.libs.metering.Tracer", NULL, MODULE_DOC);
+
     if (mod == NULL) {
         return;
     }

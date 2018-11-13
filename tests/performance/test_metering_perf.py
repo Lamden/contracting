@@ -1,14 +1,17 @@
 import timeit, time
 
 setup = '''
-from seneca.libs.metering.cost import Cost
 from tests.utils import recur_fibo
 code_str = "recur_fibo(20)"
 code_obj = compile(code_str, '__main__', 'exec')
+class Cost:
+    @classmethod
+    def nop(cls, code_obj, recur_fibo):
+        exec(code_obj)
 c = Cost()
 '''
 raw = timeit.timeit('''
-c.nop(code_obj)
+c.nop(code_obj, recur_fibo)
 print('Raw execution.')
 ''', setup=setup, number=10, timer=time.clock)
 
@@ -22,18 +25,14 @@ path = join(seneca_path, 'constants', 'cu_costs.const')
 os.environ['CU_COST_FNAME'] = path
 
 from tests.utils import recur_fibo
-code_str = "recur_fibo(20)"
+code_str = "__tracer__.set_stamp(50000); __tracer__.start(); recur_fibo(20); __tracer__.stop()"
 code_obj = compile(code_str, '__main__', 'exec')
 t = Tracer()
-
 '''
 tracing = timeit.timeit('''
-t.set_gas(50000)
-t.start()
-exec(code_obj)
-cost = t.get_gas_used()
-t.stop()
-print('Metered execution ({} CUs)'.format(cost))
+exec(code_obj, {'__tracer__': t, 'recur_fibo': recur_fibo})
+# cost = t.get_stamp_used()
+# print('Metered execution ({} CUs)'.format(cost))
 ''', setup=tracing_setup, number=10, timer=time.clock)
 
 print(raw)

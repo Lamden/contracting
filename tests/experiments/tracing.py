@@ -10,7 +10,7 @@ def measure_this():
     return 'yes'
 
 t = Tracer()
-t.set_gas(1000)
+t.set_stamp(1000)
 t.start()
 
 print('xxx\n\n\n')
@@ -20,6 +20,6 @@ a = b
 measure_this()
 print('\n\n\nxxx')
 
-cost = t.get_gas_used()
 t.stop()
+cost = t.get_stamp_used()
 print('cost=',cost)
