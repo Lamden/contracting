@@ -12,9 +12,9 @@ setup(
     },
     packages=find_packages(),
     install_requires=open('requirements.txt').readlines(),
-    url='https://github.com/Lamden/vmnet',
+    url='https://github.com/Lamden/seneca',
     author='Lamden',
-    email='team@lamden.io',
+    author_email='team@lamden.io',
     classifiers=[
         'Programming Language :: Python :: 3.6',
     ],

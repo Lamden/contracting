@@ -7,6 +7,9 @@ help:
 clean:
 	bash ./scripts/clean.sh
 
+build-ext:
+	bash ./scripts/build_ext.sh
+
 build-cython: clean
 	cythonize -i ./seneca/engine ./seneca/constants ./seneca/libs
 
