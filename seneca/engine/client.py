@@ -9,6 +9,8 @@ from seneca.engine.book_keeper import BookKeeper
 from collections import deque, defaultdict
 from typing import Callable, List
 
+SUCC_FLAG = 'SUCC'
+
 
 class Macros:
     # TODO we need to make sure these keys dont conflict with user stuff in the common layer. I.e. users cannot be
@@ -123,16 +125,15 @@ class SenecaClient(SenecaInterface):
         assert self.active_db, "active_db must be set to run a contract. Did you call start_sub_block?"
         assert self.active_db.input_hash, "Input hash not set...davis u done goofed again"
 
-        BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=self.active_db.next_contract_idx, data=self.active_db)
-        result = self._run_contract(contract)
+        result = self._run_contract(contract, contract_idx=self.active_db.next_contract_idx, data=self.active_db)
         self.active_db.add_contract_result(contract, result)
 
-    def _run_contract(self, contract) -> str:
+    def _run_contract(self, contract, contract_idx: int, data: CRContext) -> str:
         """ Runs the contract object, and retuns a string representing the result (succ/fail).
         Note: Assumes the BookKeeping info has already been set. """
         # TODO fix this to return result of running as a contract as a Bool as well. This way we can the CRContext
         # to 'revert' the appropriate contract info
-        assert BookKeeper.has_info(), "Must set BookKeeping info before calling _run_contract!"
+        BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data)
         contract_name = contract.contract_name
         metadata = self.get_contract_meta(contract_name)
 
@@ -143,11 +144,12 @@ class SenecaClient(SenecaInterface):
                     'sender': contract.sender
                 }
             })
-            result = 'SUCC'
+            result = SUCC_FLAG
         except Exception as e:
             self.log.warning("Contract failed with error: {} \ncontract obj: {}".format(e, contract))
             # TODO can we get more specific fail messages?
             result = 'FAIL' + ' -- ' + str(e)
+            data.rollback_contract(contract_idx)
 
         return result
 
@@ -155,8 +157,7 @@ class SenecaClient(SenecaInterface):
         """ Reruns any contracts in cr_data, if necessary. This should be done before we merge cr_data to common. """
         self.log.info("Rerunning any necessary contracts for CRData with input hash {}".format(cr_data.input_hash))
         for i in cr_data.iter_rerun_indexes():
-            BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=i, data=cr_data)
-            result = self._run_contract(cr_data.contracts[i])
+            result = self._run_contract(cr_data.contracts[i], contract_idx=i, data=cr_data)
             cr_data.update_contract_result(contract_idx=i, result=result)
 
     def catchup(self):
