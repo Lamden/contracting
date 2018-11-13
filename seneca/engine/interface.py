@@ -12,6 +12,7 @@ class SenecaInterface(SenecaInterpreter):
             self.old_sys_path = sys.meta_path
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
         SenecaInterpreter.setup(concurrent_mode)
+        SenecaInterpreter.concurrent_mode = concurrent_mode
 
     def __enter__(self, *args, **kwargs):
         self.old_concurrent_mode = SenecaInterpreter.concurrent_mode
