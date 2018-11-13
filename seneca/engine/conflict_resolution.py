@@ -30,31 +30,25 @@ class CRDataBase(metaclass=CRDataMeta):
         self.writes = defaultdict(set)
         self.reads = defaultdict(set)
         self.outputs = defaultdict(str)
+        self.redo_log = defaultdict(dict)
 
     def merge_to_common(self):
-        """
-        Merges the subblock specific data to the common layer
-        """
+        """ Merges the subblock specific data to the common layer """
         raise NotImplementedError()
 
     def get_state_rep(self) -> str:
-        """
-        Updates the 'state' list for the changes represented in this data structure. The state list is a list of outputs
-        or modifications from every contract.
-        """
+        """ Updates the 'state' list for the changes represented in this data structure. The state list is a list of outputs
+        or modifications from every contract. """
         raise NotImplementedError()
 
     def get_state_for_idx(self, contract_idx: int) -> str:
         """
         Gets a state representation string for a particular contract index. This should be overwritten by all subclasses
-        that track any sort of state modifications
-        """
+        that track any sort of state modifications """
         return ''
 
     def reset_contract_data(self, contract_idx: int):
-        """
-        Resets the reads list and modification list for the contract at index idx.
-        """
+        """ Resets the reads list and modification list for the contract at index idx. """
         self.writes[contract_idx].clear()
         self.reads[contract_idx].clear()
         self.outputs[contract_idx] = ''
@@ -73,6 +67,9 @@ class CRDataBase(metaclass=CRDataMeta):
     def get_rerun_list(self, reset_keys=True) -> List[int]:
         return []
 
+    def rollback_contract(self, contract_idx: int):
+        pass
+
 
 class CRDataGetSet(CRDataBase, dict):
     NAME = 'getset'
@@ -86,6 +83,12 @@ class CRDataGetSet(CRDataBase, dict):
         for key in modified_keys:
             self.working.set(key, self[key]['mod'])
 
+    @classmethod
+    def merge_to_master(cls, working_db: redis.StrictRedis, master_db: redis.StrictRedis, key: str):
+        assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
+        val = working_db.get(key)
+        master_db.set(key, val)
+
     def get_state_rep(self) -> str:
         """
         Return a representation of all redis DB commands to update to the absolute state in minimum operations
@@ -95,14 +98,36 @@ class CRDataGetSet(CRDataBase, dict):
         # Need to sort the modified_keys so state output is deterministic
         return ''.join('SET {} {};'.format(k, self[k]['mod'].decode()) for k in sorted(modified_keys))
 
+    def rollback_contract(self, contract_idx: int):
+        self.log.debug("Reseting contract idx {}".format(contract_idx))
+        if contract_idx not in self.redo_log:
+            # TODO for dev, we raise an exception, as we do not expect contracts to read only w/o writing
+            raise Exception("Contract idx {} not in redo_log!".format(contract_idx))
+            self.log.warning("Contract idx {} not in redo_log! Returning with reverting".format(contract_idx))
+            return
+
+        self.reset_contract_data(contract_idx)
+
+        for key in self.redo_log[contract_idx]:
+            og_val = self.redo_log[contract_idx][key]
+            # Remove the key entirely if value is none
+            if og_val is None:
+                self.log.debugv("Removing key {}".format(key))
+                del self[key]
+            # Otherwise, reset the key to the value before the contract
+            else:
+                self.log.debugv("Resetting key {} to value {}".format(key, og_val))
+                self[key]['mod'] = og_val
+
+            # Remove this contract idx from the key's affected contracts
+            if contract_idx in self[key]['contracts']:
+                self[key]['contracts'].remove(contract_idx)
+
     def get_state_for_idx(self, contract_idx: int) -> str:
         return self.outputs[contract_idx]
 
-    @classmethod
-    def merge_to_master(cls, working_db: redis.StrictRedis, master_db: redis.StrictRedis, key: str):
-        assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
-        val = working_db.get(key)
-        master_db.set(key, val)
+    def revert_contract(self, contract_idx: int):
+        assert contract_idx in self.redo_log, "Contract index {} not found in redo log!".format(contract_idx)
 
     def get_rerun_list(self, reset_keys=True) -> List[int]:
         mod_keys = self.get_modified_keys_recursive()
@@ -263,7 +288,7 @@ class CRDataOutputs(CRDataBase, list):
         raise NotImplementedError()
 
 
-class CRDataContainer:
+class CRContext:
 
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, finalize=False):
         self.log = get_logger(type(self).__name__)
@@ -273,7 +298,7 @@ class CRDataContainer:
         self.sbb_idx = sbb_idx
 
         # cr_data holds instances of CRDataBase. The key is the 'NAME' field specified in the CRDataBase subclass
-        # For convenience, all these keys are directly accessible from this CRDataContainer instance (see __getitem__)
+        # For convenience, all these keys are directly accessible from this CRContext instance (see __getitem__)
         self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
                         CRDataBase.registry.items()}
 
@@ -301,9 +326,13 @@ class CRDataContainer:
         self.log.debugv("Updating run result for contract idx {} to <{}>".format(contract_idx, result))
         self.run_results[contract_idx] = result
 
+    def rollback_contract(self, contract_idx: int):
+        # TODO this only works for set/get
+        self.cr_data['getset'].rollback_contract(contract_idx)
+
     def reset(self, reset_db=True):
         """ Resets all state held by this container. """
-        # TODO i think this would be a lot easier if we just scrapped this whole CRDataContainer object and made a new
+        # TODO i think this would be a lot easier if we just scrapped this whole CRContext object and made a new
         # one, but then would we have to worry about memory leaks? idk but either way screw python
         def _is_subclass(obj, subs: tuple):
             """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
@@ -362,6 +391,8 @@ class CRDataContainer:
 
             yield i
 
+            # TODO i think these assertions will fail when we rerun a contract that fails (b/c read/write list will
+            # be empty). We should only do this logic if the execution was successful
             assert og_reads == data.reads[i], "Original reads have changed for contract idx {}!\nOriginal: {}\nNew " \
                                               "Reads: {}".format(i, og_reads, data.reads[i])
             assert og_writes == data.writes[i], "Original writes have changed for contract idx {}!\nOriginal: {}\nNew " \
@@ -408,7 +439,7 @@ class CRDataContainer:
 
 class RedisProxy:
 
-    def __init__(self, sbb_idx: int, contract_idx: int, data: CRDataContainer, finalize=False):
+    def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, finalize=False):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
         self.finalize = finalize
         self.data = data

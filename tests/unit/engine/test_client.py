@@ -111,6 +111,36 @@ class TestSenecaClient(TestCase):
 
         loop.close()
 
+    def test_end_subblock_1_sbb_with_failure(self):
+        input_hash = 'A' * 64
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.start_sub_block(input_hash)
+
+        c1 = create_currency_tx('davis', 'stu', 14)
+        c2 = create_currency_tx('stu', 'davis', 9000)
+        c3 = create_currency_tx('stu', 'davis', 40)
+        client.run_contract(c1)
+        client.run_contract(c2)
+        client.run_contract(c3)
+
+        client.end_sub_block()
+        self.assertTrue(input_hash in client.pending_futures)
+
+        # We must run the future manually, since the event loop is not currently running
+        loop.run_until_complete(client.pending_futures[input_hash]['fut'])
+
+        actual_sbb_rep = client.update_master_db()
+        expected_sbb_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
+                            (c2, "FAIL -- Sender balance must be non-negative!!!", ""),
+                            (c3, "SUCC", "SET balances:stu 43;SET balances:davis 10026;")]
+        self.assertEqual(expected_sbb_rep, actual_sbb_rep)
+
+        loop.close()
+
     def test_end_subblock_2_sbb(self):
         input_hash1 = 'A' * 64
         input_hash2 = 'B' * 64
