@@ -45,10 +45,16 @@ jobs:
             dockerize -wait tcp://localhost:6379 -timeout 2m
 
       - run:
+          name: Build C-extensions
+          command: |
+            make build-ext
+
+      - run:
           name: run tests
           command: |
             export PYTHONPATH=$PYTHONPATH:~/seneca
             python3 tests/run.py
+
   test-cilantro-from-seneca:
     docker:
       - image: circleci/python:3.6.5
