@@ -202,10 +202,14 @@ __tracer__.stop()
             '__stamp_supplied__': stamps
         }
         cls.loaded['__main__'] = scope
-        exec(code_obj, scope)
+        try:
+            exec(code_obj, scope)
+        except SystemError:
+            return { 'status': 'out_of_stamps' }
         return {
+            'status': 'success',
             'output': scope.get('result'),
-            'cost': cls.tracer.get_stamp_used()
+            'remaining_stamps': stamps - cls.tracer.get_stamp_used()
         }
 
 class ScopeParser:
