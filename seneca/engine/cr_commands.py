@@ -53,6 +53,9 @@ class CRCmdBase(metaclass=CRCmdMeta):
         else:
             self._copy_key_to_sbb_data(None, key, *args, **kwargs)
 
+    def _add_key_to_redo_log(self, key, *args, **kwargs):
+        raise NotImplementedError()
+
     def __call__(self, *args, **kwargs):
         raise NotImplementedError()
 
@@ -112,11 +115,7 @@ class CRCmdGetSetBase(CRCmdBase):
         val = db.get(key) if db else None
         self.data['getset'][key] = {'og': val, 'mod': None, 'contracts': set()}
 
-
-class CRCmdGet(CRCmdGetSetBase):
-    COMMAND_NAME = 'get'
-
-    def __call__(self, key):
+    def _get(self, key, return_none=False):
         self._copy_og_key_if_not_exists(key)
 
         # TODO make all this DRYer so you can abstract it like a pro
@@ -130,7 +129,7 @@ class CRCmdGet(CRCmdGetSetBase):
             self.log.debugv("SBB specific ORIGINAL key found for key named <{}>".format(key))
             val = self.data['getset'][key]['og']
 
-        if val is None:
+        if val is None and not return_none:
             raise Exception("Key '{}' does not exist, but was attempted to be GET".format(key))
 
         self.data['getset'].reads[self.contract_idx].add(key)
@@ -138,8 +137,26 @@ class CRCmdGet(CRCmdGetSetBase):
         return val
 
 
+# TODO refactor this so they can live in the same base class, and we just specify the command name with a decorator
+class CRCmdGet(CRCmdGetSetBase):
+    COMMAND_NAME = 'get'
+
+    def __call__(self, key):
+        return self._get(key)
+
+
 class CRCmdSet(CRCmdGetSetBase):
     COMMAND_NAME = 'set'
+
+    def _add_key_to_redo_log(self, key, *args, **kwargs):
+        # Return if key already exist in this contract's redo log
+        if key in self.data['getset'].redo_log[self.contract_idx]:
+            return
+
+        self.data['getset'].redo_log[self.contract_idx][key] = self._get(key, return_none=True)
+        self.log.debugv("Contract {} added key {} to redo log with val {}".format(self.contract_idx, key,
+                                                                                  self.data['getset'].redo_log[
+                                                                                      self.contract_idx][key]))
 
     def __call__(self, key, value):
         assert type(value) in (str, bytes), "Attempted to use 'set' with a value that is not str or bytes (val={}). " \
@@ -147,6 +164,8 @@ class CRCmdSet(CRCmdGetSetBase):
         self._copy_og_key_if_not_exists(key)
         if type(value) is str:
             value = value.encode()
+
+        self._add_key_to_redo_log(key)
 
         self.log.debugv("Setting SBB specific key <{}> to value {}".format(key, value))
         self.data['getset'][key]['mod'] = value
