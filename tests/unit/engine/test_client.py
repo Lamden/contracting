@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 from seneca.engine.client import *
 from seneca.engine.interface import SenecaInterface
+from seneca.engine.interpreter import SenecaInterpreter
 from seneca.libs.logger import overwrite_logger_level
 
 
@@ -45,7 +46,6 @@ class TestSenecaClient(TestCase):
         overwrite_logger_level(0)
         with SenecaInterface(False) as interface:
             interface.r.flushall()
-
             # Store all smart contracts in CONTRACTS_TO_STORE
             import seneca
             test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
@@ -59,7 +59,7 @@ class TestSenecaClient(TestCase):
                 'author': GENESIS_AUTHOR,
                 'sender': GENESIS_AUTHOR,
             }
-            interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
+            interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt, '__contract__': ''})
 
     def test_setup_dbs(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)

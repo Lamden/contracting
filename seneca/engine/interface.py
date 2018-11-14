@@ -1,4 +1,4 @@
-import sys, importlib
+import sys, importlib, warnings
 from seneca.engine.module import SenecaFinder, RedisFinder
 from seneca.engine.interpreter import SenecaInterpreter
 
@@ -28,7 +28,8 @@ class SenecaInterface(SenecaInterpreter):
         code_obj = compile(tree, filename='__main__', mode="exec")
         return code_obj
 
-    def execute_code_str(self, code_str, scope={}):
+    def execute_code_str(self, code_str, scope={'rt': {'author': 'anonymous', 'contract': 'arbitrary'}}):
+        warnings.warn('execute_code_str() will be deprecated for security purposes')
         try:
             code_obj = self.compile_code(code_str, scope)
             return self.execute(code_obj, scope)
@@ -40,21 +41,8 @@ class SenecaInterface(SenecaInterpreter):
         try:
             assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
             with SenecaInterface(False) as interface:
-                code_obj = self.compile_code(code_str, scope)
+                code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
                 self.set_code(fullname, code_obj, code_str, author, keep_original)
-        except:
-            SenecaInterpreter.imports = {}
-            raise
-
-    # Already defined
-    # def remove_code(self, fullname): pass
-
-    def get_code(self, fullname):
-        return self.get_code_str(fullname)
-
-    def run_code(self, code_obj, scope):
-        try:
-            return self.execute(code_obj, scope)
         except:
             SenecaInterpreter.imports = {}
             raise

@@ -34,7 +34,7 @@ from test_contracts.good import one_you_cannot_export
             self.si.execute_code_str("""
 from test_contracts.reasonable import reasonable_call
 print(reasonable_call())
-            """, {'__sender__': '123'})
+            """, {'rt': {'sender':'123'}})
             self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: test_contracts.reasonable')
 
     def test_globals_redis(self):
