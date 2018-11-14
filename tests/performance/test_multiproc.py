@@ -103,7 +103,7 @@ transfer('tej', 1)
             SenecaInterpreter.setup(False)
             for i in range(CONTRACT_COUNT):
                 si.execute_function('test_contracts.kv_currency.transfer',
-                    user, user, 'tej', 1)
+                    user, user, 10000, 'tej', 1)
         processes = [
             Process(target=run_code_obj, args=(user,)) \
             for user in users
