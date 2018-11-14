@@ -133,6 +133,27 @@ class TestSenecaClient(TestCase):
 
         loop.close()
 
+    def test_execute_sb(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        input_hash = 'A' * 64
+        c1 = create_currency_tx('davis', 'stu', 14)
+        c2 = create_currency_tx('stu', 'davis', 40)
+        expected_sbb_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
+                            (c2, "SUCC", "SET balances:stu 43;SET balances:davis 10026;")]
+
+        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+
+        client.execute_sb(input_hash=input_hash, contracts=[c1, c2],
+                          completion_handler=self.assert_completion(expected_sbb_rep, input_hash))
+        self.assertTrue(input_hash in client.pending_futures)
+
+        # We must run the future manually, since the event loop is not currently running
+        loop.run_until_complete(client.pending_futures[input_hash]['fut'])
+
+        loop.close()
+
     def test_end_subblock_1_sbb_with_failure(self):
 
         loop = asyncio.new_event_loop()

@@ -170,14 +170,14 @@ class SenecaClient(SenecaInterface):
     def has_available_db(self) -> bool:
         return len(self.available_dbs) > 0
 
-    def execute_sb(self, input_hash: str, contracts: list):
+    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
         # TODO -- wait until we have an available DB. If we do not have any available db's put this call in a queue
         # and pull it off the queue once we pop a pending_db and gain another available_db
 
         self._start_sb(input_hash)
         for c in contracts:
             self.run_contract(c)
-        self._end_sb()
+        self._end_sb(completion_handler)
 
     def _start_sb(self, input_hash: str):
         assert self.active_db is None, "Attempted to _start_sb, but active_db is already set! Did you end the " \
