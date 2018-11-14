@@ -2,7 +2,7 @@ import redis, ast, marshal, array, copy, inspect, types, uuid, copy, ujson as js
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
 from seneca.constants.config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET, CODE_OBJ_MAX_CACHE
 from functools import lru_cache
-from seneca.libs.metering.tracer import Tracer
+from tracer import Tracer
 import seneca, os
 from os.path import join
 

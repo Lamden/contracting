@@ -37,7 +37,8 @@ jobs:
       - run:
           name: Build C-extensions
           command: |
-            make build-ext
+            sudo python3 setup.py build
+            sudo python3 setup.py install
 
       - save_cache:
           paths:
@@ -52,7 +53,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            export PYTHONPATH=$(pwd)
+            export PYTHONPATH=$PYTHONPATH:$(pwd)
             python3 tests/run.py
 
   test-cilantro-from-seneca:
