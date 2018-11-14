@@ -180,7 +180,7 @@ class SenecaInterpreter:
         cls.assert_import_path(module_path)
         module = module_path.rsplit('.', 1)
         code_str = '''
-__tracer__.set_stamp(__stamp_supplied__)
+__tracer__.set_stamp(__stamps_supplied__)
 __tracer__.start()
 from {} import {}
 result = {}()
@@ -199,7 +199,7 @@ __tracer__.stop()
             '__kwargs__': kwargs,
             '__use_locals__': True,
             '__tracer__': cls.tracer,
-            '__stamp_supplied__': stamps
+            '__stamps_supplied__': stamps
         }
         cls.loaded['__main__'] = scope
         try:
