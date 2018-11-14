@@ -38,7 +38,7 @@ jobs:
           name: Build C-extensions
           command: |
             sudo python3 setup.py build
-            sudo python3 setup.py install
+            python3 setup.py install
 
       - save_cache:
           paths:
@@ -54,7 +54,7 @@ jobs:
           name: run tests
           command: |
             export PYTHONPATH=$PYTHONPATH:~/seneca
-            sudo python3 tests/run.py
+            python3 tests/run.py
 
   test-cilantro-from-seneca:
     docker:
