@@ -47,7 +47,8 @@ jobs:
       - run:
           name: Build C-extensions
           command: |
-            make build-ext
+            python3 setup.py build
+            python3 setup.py install
 
       - run:
           name: run tests

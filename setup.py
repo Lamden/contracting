@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-from setuptools.extension import Extension
+from setuptools.extension import Library
 
 __version__ = '0.1.0'
 
@@ -20,6 +20,6 @@ setup(
     ],
     zip_safe=False,
     ext_modules=[
-        Extension('seneca.libs.metering.tracer', sources = ['seneca/libs/metering/tracer.c'])
+        Library('tracer', sources = ['seneca/libs/metering/tracer.c'])
     ]
 )
