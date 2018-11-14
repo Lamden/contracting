@@ -34,6 +34,12 @@ jobs:
             sudo pip install -r requirements.txt
             sudo pip install -r dev-requirements.txt
 
+      - run:
+          name: Build C-extensions
+          command: |
+            sudo python3 setup.py build
+            sudo python3 setup.py install
+
       - save_cache:
           paths:
             - ./venv
@@ -43,12 +49,6 @@ jobs:
           name: Wait for Redis
           command: |
             dockerize -wait tcp://localhost:6379 -timeout 2m
-
-      - run:
-          name: Build C-extensions
-          command: |
-            python3 setup.py build
-            python3 setup.py install
 
       - run:
           name: run tests
