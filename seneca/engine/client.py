@@ -96,7 +96,7 @@ class SenecaClient(SenecaInterface):
         assert len(self.pending_dbs) > 0, "No pending dbs to update to master!"
 
         # TODO we need to handle the case where update_master_db is called before conflict resolution (phase 2) has
-        # completed for the first pending_db. In this case, we should wait for him to finish.
+        # completed for the first pending_db. In this case, we should wait for him to finish before merging.
         cr_data = self.pending_dbs.popleft()
         assert cr_data.merge_to_common, "CRData not merged to common yet!"
 
@@ -135,8 +135,6 @@ class SenecaClient(SenecaInterface):
     def _run_contract(self, contract, contract_idx: int, data: CRContext) -> str:
         """ Runs the contract object, and retuns a string representing the result (succ/fail).
         Note: Assumes the BookKeeping info has already been set. """
-        # TODO fix this to return result of running as a contract as a Bool as well. This way we can the CRContext
-        # to 'revert' the appropriate contract info
         BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data)
         contract_name = contract.contract_name
         metadata = self.get_contract_meta(contract_name)
@@ -151,7 +149,6 @@ class SenecaClient(SenecaInterface):
             result = SUCC_FLAG
         except Exception as e:
             self.log.warning("Contract failed with error: {} \ncontract obj: {}".format(e, contract))
-            # TODO can we get more specific fail messages?
             result = 'FAIL' + ' -- ' + str(e)
             data.rollback_contract(contract_idx)
 
@@ -241,6 +238,8 @@ class SenecaClient(SenecaInterface):
 
     async def _wait_until_top_of_pending(self, cr_data: CRContext):
         """ Waits until cr_data is at the top (first element) of self.pending_dbs """
+        # TODO technically this 'wait' can be triggered reactively when we leftpop pending_dbs in merge_to_master
+        # This is an optimization we can do later
         elapsed = 0
         timeout = Phase.BLOCK_TIMEOUT * len(self.pending_dbs)
         self.log.debug("CRData with input hash {} waiting its turn until its at the top of pending_dbs..."
