@@ -80,6 +80,17 @@ class SenecaClient(SenecaInterface):
         ds.reset()
         Phase.reset_phase_variables(ds.working_db)
 
+    def flush_all(self):
+        """ Flushes all pending/active/available dbs. This effectively 'resets' all databases except master."""
+        if self.active_db:
+            self._reset_cr_data(self.active_db)
+            self.active_db = None
+        for s in (self.pending_dbs, self.available_dbs):
+            for cr in s:
+                self._reset_cr_data(cr)
+            s.clear()
+        self._setup_dbs()
+
     def update_master_db(self, should_commit=True) -> List[tuple]:
         """
         Merges the first (leftpop) pending_db to master.

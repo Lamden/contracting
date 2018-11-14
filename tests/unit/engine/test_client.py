@@ -69,6 +69,21 @@ class TestSenecaClient(TestCase):
 
         self.assertEqual(len(client.available_dbs), NUM_CACHES)
 
+    def test_flush(self):
+        client = SenecaClient(sbb_idx=0, num_sbb=1)
+
+        c1 = create_currency_tx('davis', 'stu', 14)
+        c2 = create_currency_tx('stu', 'davis', 40)
+
+        client.start_sub_block('A' * 64)
+        client.run_contract(c1)
+        client.run_contract(c2)
+
+        client.flush_all()
+
+        self.assertEqual(len(client.pending_dbs), 0)
+        self.assertEqual(client.active_db, None)
+
     def test_run_tx_increments_contract_idx(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
         client.start_sub_block('A' * 64)
