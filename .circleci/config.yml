@@ -54,7 +54,7 @@ jobs:
           name: run tests
           command: |
             export PYTHONPATH=$PYTHONPATH:~/seneca
-            python3 tests/run.py
+            sudo python3 tests/run.py
 
   test-cilantro-from-seneca:
     docker:
