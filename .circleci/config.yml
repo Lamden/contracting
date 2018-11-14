@@ -53,7 +53,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            export PYTHONPATH=$PYTHONPATH:$(pwd)
+            export PYTHONPATH=$PYTHONPATH:$(pwd):~/seneca
             python3 tests/run.py
 
   test-cilantro-from-seneca:
