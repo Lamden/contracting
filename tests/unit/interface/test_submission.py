@@ -23,7 +23,7 @@ def ok():
 from seneca.contracts.crazy import ok
 ok()
         """)
-        self.assertEqual(code_str, self.si.get_code('crazy'))
+        self.assertEqual(code_str, self.si.get_code_str('crazy'))
 
     def test_publish_bad_code(self):
         """

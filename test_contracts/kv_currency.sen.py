@@ -19,7 +19,6 @@ def transfer(to, amount):
 
     assert sender_balance >= 0, "Sender balance must be non-negative!!!"
 
-
 @export
 def approve(spender, amount):
     allowed[rt['sender']][spender] = amount
