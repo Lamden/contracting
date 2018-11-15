@@ -27,10 +27,14 @@ class TestInterface(TestCase):
     def setUp(self):
         self.r.flushdb()
         # Only do this once in each process!
-        SenecaInterpreter.setup()
         self.si = SenecaInterface(False)
+        SenecaInterpreter.setup(False)
         print('''
 ################################################################################
 {}
 ################################################################################
         '''.format(self.id))
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.r.flushdb()

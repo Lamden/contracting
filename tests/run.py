@@ -1,4 +1,4 @@
-import unittest, os
+import unittest, os, sys
 from os import getenv as env
 
 testmodules = [
@@ -19,4 +19,6 @@ for t in testmodules:
         # else, just load all the test cases from the module.
         suite.addTest(unittest.defaultTestLoader.loadTestsFromName(t))
 
-    unittest.TextTestRunner().run(suite)
+    result = unittest.TextTestRunner().run(suite)
+    if not result.wasSuccessful():
+        sys.exit(1)
