@@ -119,11 +119,17 @@ class SenecaInterpreter:
 
         for idx, item in enumerate(ast.walk(tree)):
 
+            if isinstance(item, ast.Name):
+                if cls.is_system_variable(item.id):
+                    raise CompilationException('Not allowed to read "{}"'.format(item.id))
+
+            # Restrict __attr__ to be accessed
             if isinstance(item, ast.Attribute):
-                cls.check_attr(item)
+                if cls.is_system_variable(item.attr):
+                    raise CompilationException('Not allowed to read "{}"'.format(item.attr))
 
             # Restrict protected_imports to ones in ALLOWED_IMPORT_PATHS
-            if isinstance(item, ast.Import):
+            elif isinstance(item, ast.Import):
                 module_name = item.names[0].name
                 cls.assert_import_path(module_name)
                 prevalidated.body.append(item)
@@ -155,17 +161,15 @@ class SenecaInterpreter:
 
         return tree, prevalidated
 
-    @classmethod
-    def check_attr(cls, target):
-        if target.attr.startswith('__') and target.attr.endswith('__'):
-            raise CompilationException('Not allowed to read "{}", see line {}'.format(target.attr, target.lineno))
+    @staticmethod
+    def is_system_variable(v):
+        return v.startswith('__') and v.endswith('__')
 
     @classmethod
     def check_protected(cls, target, protected_variables):
         if isinstance(target, ast.Subscript):
             return
-        if target.id.startswith('__') and target.id.endswith('__') \
-            or target.id in protected_variables \
+        if target.id in protected_variables \
             or target.id in [k.rsplit('.', 1)[-1] for k in cls.imports.keys()]:
             raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
 
@@ -188,32 +192,29 @@ class SenecaInterpreter:
         cls.assert_import_path(module_path)
         module = module_path.rsplit('.', 1)
         code_str = '''
-__tracer__.set_stamp(__stamps_supplied__)
-__tracer__.start()
-from {} import {}
 result = {}()
-__tracer__.stop()
-        '''.format(module[0], module[1], module[1])
+        '''.format(module[1])
         code_obj = compile(code_str, '__main__', 'exec')
-        return code_obj
+        import_obj = compile('from {} import {}'.format(module[0], module[1]), '__main__', 'exec')
+        return code_obj, import_obj
 
     @classmethod
     def execute_function(cls, module_path, author, sender, stamps, *args, **kwargs):
-        code_obj = cls.get_cached_code_obj(module_path)
         scope = {
             'rt': { 'author': author, 'sender': sender, 'contract': module_path },
             '__builtins__': SAFE_BUILTINS,
             '__args__': args,
             '__kwargs__': kwargs,
-            '__use_locals__': True,
-            '__tracer__': cls.tracer,
-            '__stamps_supplied__': stamps
+            '__use_locals__': True
         }
+        code_obj, import_obj = cls.get_cached_code_obj(module_path)
         cls.loaded['__main__'] = scope
-        try:
-            exec(code_obj, scope)
-        except SystemError:
-            return { 'status': 'out_of_stamps' }
+        exec(import_obj, scope)
+        cls.tracer.set_stamp(stamps)
+        cls.tracer.start()
+        exec(code_obj, scope)
+        cls.tracer.stop()
+        # print('xxx',cls.tracer.get_stamp_used())
         return {
             'status': 'success',
             'output': scope.get('result'),

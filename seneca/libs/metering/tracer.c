@@ -126,7 +126,9 @@ static void reprint(PyObject *obj) {
              if (opcode < 0) opcode = -opcode;
              self->cost += self->cu_costs[opcode];
              if (self->cost > self->stamp_supplied) {
-                 PyErr_SetString(PyExc_SystemError, "The cost has exceeded the stamp supplied!\n");
+                 PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
+                 PyEval_SetTrace(NULL, NULL);
+                 self->started = 0;
                  return RET_ERROR;
              }
              break;
