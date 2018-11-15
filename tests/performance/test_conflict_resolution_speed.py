@@ -52,10 +52,10 @@ def setup():
         print("Minting {} wallets...".format(NUM_WALLETS))
         for i in range(NUM_WALLETS):
             interface.execute_function(module_path='seneca.contracts.currency.mint', author=GENESIS_AUTHOR,
-                                       sender=GENESIS_AUTHOR, to=str(i), amount=SEED_AMOUNT)
+                                       sender=GENESIS_AUTHOR, to=str(i), amount=SEED_AMOUNT, stamps=1000)
         for w in (PERSON_A, PERSON_B):
             interface.execute_function(module_path='seneca.contracts.currency.mint', author=GENESIS_AUTHOR,
-                                       sender=GENESIS_AUTHOR, to=w, amount=SEED_AMOUNT)
+                                       sender=GENESIS_AUTHOR, to=w, amount=SEED_AMOUNT, stamps=1000)
         print("Finished minting wallet in {} seconds".format(round(time.time()-start, 2)))
         print("----------------------")
 
@@ -75,7 +75,7 @@ def test_baseline(num_contracts: int=30000):
             amount = 1
             sender, receiver = random.sample(range(NUM_WALLETS), 2)
             interface.execute_function(module_path='seneca.contracts.currency.transfer', author=GENESIS_AUTHOR,
-                                       sender=str(sender), to=str(receiver), amount=amount)
+                                       sender=str(sender), to=str(receiver), amount=amount, stamps=1000)
     dur = time.time()-start
     print("Finished running baseline contracts in {} seconds ".format(round(dur, 2)))
     print("Baseline TPS: {}".format(num_contracts/dur))
@@ -285,4 +285,3 @@ if __name__ == '__main__':
 #     # Test starting a new sub block before the last sub block finishes
 #
 #     # Test with multiple sb's where stuff in SB 2 will pass the first time and fail the second time (cause some og read was modified)
-

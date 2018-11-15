@@ -29,11 +29,9 @@ class TestInterface(TestCase):
         # Only do this once in each process!
         self.si = SenecaInterface(False)
         SenecaInterpreter.setup(False)
-        print('''
-################################################################################
-{}
-################################################################################
-        '''.format(self.id))
+        print('\n{}'.format('#' * 128))
+        print(self.id)
+        print('{}\n'.format('#' * 128))
 
     @classmethod
     def tearDownClass(cls):

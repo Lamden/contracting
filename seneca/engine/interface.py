@@ -29,7 +29,6 @@ class SenecaInterface(SenecaInterpreter):
         return code_obj
 
     def execute_code_str(self, code_str, scope={'rt': {'sender': 'anonymous', 'author': 'anonymous', 'contract': 'arbitrary'}}):
-        warnings.warn('execute_code_str() will be deprecated for security purposes')
         try:
             code_obj = self.compile_code(code_str, scope)
             return self.execute(code_obj, scope)

@@ -61,5 +61,11 @@ print(do_that_thing())
                 'me', 'also_me', 10000, {'x': 'y'})
             print('Should not print this: ', result)
 
+    def test_execute_function_out_of_gas(self):
+        with self.assertRaises(AssertionError) as context:
+            result = self.si.execute_function('test_contracts.reasonable.call_with_args',
+                'me', 'also_me', 5, 'it is required', not_required='it is not requried')
+
+
 if __name__ == '__main__':
     unittest.main()
