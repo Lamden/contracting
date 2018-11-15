@@ -133,7 +133,8 @@ class SenecaClient(SenecaInterface):
         self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
             'rt': {
                 'author': contract.sender,
-                'sender': contract.sender
+                'sender': contract.sender,
+                'contract': contract.contract_name
             }
         })
 
@@ -155,9 +156,9 @@ class SenecaClient(SenecaInterface):
             self.execute_code_str(contract.code, scope={
                 'rt': {
                     'author': metadata['author'],
-                    'sender': contract.sender
-                },
-                '__contract__': contract_name
+                    'sender': contract.sender,
+                    'contract': contract_name
+                }
             })
             result = SUCC_FLAG
         except Exception as e:

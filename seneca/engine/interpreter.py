@@ -119,6 +119,9 @@ class SenecaInterpreter:
 
         for idx, item in enumerate(ast.walk(tree)):
 
+            if isinstance(item, ast.Attribute):
+                cls.check_attr(item)
+
             # Restrict protected_imports to ones in ALLOWED_IMPORT_PATHS
             if isinstance(item, ast.Import):
                 module_name = item.names[0].name
@@ -152,12 +155,18 @@ class SenecaInterpreter:
 
         return tree, prevalidated
 
-    @staticmethod
-    def check_protected(target, protected_variables):
+    @classmethod
+    def check_attr(cls, target):
+        if target.attr.startswith('__') and target.attr.endswith('__'):
+            raise CompilationException('Not allowed to read "{}", see line {}'.format(target.attr, target.lineno))
+
+    @classmethod
+    def check_protected(cls, target, protected_variables):
         if isinstance(target, ast.Subscript):
             return
         if target.id.startswith('__') and target.id.endswith('__') \
-            or target.id in protected_variables:
+            or target.id in protected_variables \
+            or target.id in [k.rsplit('.', 1)[-1] for k in cls.imports.keys()]:
             raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
 
     @classmethod

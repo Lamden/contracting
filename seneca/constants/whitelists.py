@@ -76,18 +76,17 @@ ALLOWED_IMPORT_PATHS = [
 
 _SAFE_NAMES = [
     '__import__',
-    '__name__',
-    '__doc__',
-
-    'help',
-    'print',
 
     'None',
     'False',
     'True',
+
+    'callable',
+    'isinstance',
+    'issubclass',
+
     'abs',
     'bool',
-    'callable',
     'chr',
     'complex',
     'divmod',
@@ -96,8 +95,7 @@ _SAFE_NAMES = [
     'hex',
     'id',
     'int',
-    'isinstance',
-    'issubclass',
+
     'len',
     'oct',
     'ord',
@@ -111,7 +109,9 @@ _SAFE_NAMES = [
     'zip',
 
     # JUST FOR TESTING! TODO remove this irl
-    'globals'
+    'dir',
+    'help',
+    'print'
 ]
 
 _SAFE_EXCEPTIONS = [
