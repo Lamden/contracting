@@ -1,7 +1,17 @@
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
+import os
 
-__version__ = '0.1.0'
+major = 0
+
+def get_version_number():
+    if os.getenv('CIRCLECI'):
+        minor, patch = divmod(int(os.getenv('CIRCLE_BUILD_NUM')), 360)
+        return '{}.{}.{}'.format(major, get_version_number())
+    else:
+        return '{}.1.0'.format(major)
+
+__version__ = get_version_number()
 
 setup(
     name='seneca',

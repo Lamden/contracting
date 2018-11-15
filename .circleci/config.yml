@@ -56,6 +56,16 @@ jobs:
             export PYTHONPATH=$PYTHONPATH:$(pwd):~/seneca
             python3 tests/run.py
 
+      - run:
+          name: Install Twine
+          command: |
+            sudo apt-get install twine
+
+      - run:
+          name: Upload to PyPI
+          command: |
+            python3 scripts/upload_pip.py
+
   test-cilantro-from-seneca:
     docker:
       - image: circleci/python:3.6.5
