@@ -123,7 +123,7 @@ if __name__ == '__main__':
 #
 #     def test_run_tx_increments_contract_idx(self):
 #         client = SenecaClient(sbb_idx=0, num_sbb=1)
-#         client.start_sub_block('A' * 64)
+#         client._start_sb('A' * 64)
 #
 #         self.assertEqual(client.active_db.next_contract_idx, 0)
 #
@@ -143,14 +143,14 @@ if __name__ == '__main__':
 #         asyncio.set_event_loop(loop)
 #
 #         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
-#         client.start_sub_block(input_hash)
+#         client._start_sb(input_hash)
 #
 #         c1 = create_currency_tx('davis', 'stu', 14)
 #         c2 = create_currency_tx('stu', 'davis', 40)
 #         client.run_contract(c1)
 #         client.run_contract(c2)
 #
-#         client.end_sub_block()
+#         client._end_sb()
 #         self.assertTrue(input_hash in client.pending_futures)
 #
 #         # We must run the future manually, since the event loop is not currently running
@@ -172,8 +172,8 @@ if __name__ == '__main__':
 #
 #         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
 #         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
-#         client1.start_sub_block(input_hash1)
-#         client2.start_sub_block(input_hash2)
+#         client1._start_sb(input_hash1)
+#         client2._start_sb(input_hash2)
 #
 #         c1 = create_currency_tx('davis', 'stu', 14)
 #         c2 = create_currency_tx('stu', 'davis', 40)
@@ -184,8 +184,8 @@ if __name__ == '__main__':
 #         client2.run_contract(c3)
 #         client2.run_contract(c4)
 #
-#         client1.end_sub_block()
-#         client2.end_sub_block()
+#         client1._end_sb()
+#         client2._end_sb()
 #         self.assertTrue(input_hash1 in client1.pending_futures)
 #         self.assertTrue(input_hash2 in client2.pending_futures)
 #
@@ -217,8 +217,8 @@ if __name__ == '__main__':
 #         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
 #         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
 #
-#         client1.start_sub_block(input_hash1)
-#         client2.start_sub_block(input_hash2)
+#         client1._start_sb(input_hash1)
+#         client2._start_sb(input_hash2)
 #
 #         c1 = create_currency_tx('davis', 'stu', 14)
 #         c2 = create_currency_tx('stu', 'davis', 40)
@@ -229,11 +229,11 @@ if __name__ == '__main__':
 #         client2.run_contract(c3)
 #         client2.run_contract(c4)
 #
-#         client1.end_sub_block()
-#         client2.end_sub_block()
+#         client1._end_sb()
+#         client2._end_sb()
 #
-#         client1.start_sub_block(input_hash3)
-#         client2.start_sub_block(input_hash4)
+#         client1._start_sb(input_hash3)
+#         client2._start_sb(input_hash4)
 #
 #         c5 = create_currency_tx('ethan', 'birb', 60)
 #         c6 = create_currency_tx('stu', 'davis', 10)
@@ -244,8 +244,8 @@ if __name__ == '__main__':
 #         client2.run_contract(c7)
 #         client2.run_contract(c8)
 #
-#         client1.end_sub_block()
-#         client2.end_sub_block()
+#         client1._end_sb()
+#         client2._end_sb()
 #         self.assertTrue(input_hash1 in client1.pending_futures)
 #         self.assertTrue(input_hash3 in client1.pending_futures)
 #         self.assertTrue(input_hash2 in client2.pending_futures)

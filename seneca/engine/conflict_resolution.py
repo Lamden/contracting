@@ -139,7 +139,7 @@ class CRDataGetSet(CRDataBase, dict):
             if reset_keys:
                 self.reset_key(key)
 
-        self.log.important("CONTRACT SET TO RERUN: {}".format(contract_set))
+        self.log.debugv("CONTRACT SET TO RERUN: {}".format(contract_set))
 
         return sorted(contract_set)
 
