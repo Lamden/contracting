@@ -124,10 +124,9 @@ class SenecaClient(SenecaInterface):
 
         cr_finished = Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders
         if not cr_data.merged_to_common or (self.sbb_idx == 0 and cr_finished):
-            self.log.critical(("NOT MERGING YET!"))
+            self.log.notice(("Deferring merge for input_hash {}".format(input_hash)))
             self.pending_futures[cr_data.input_hash]['merge'] = True
         else:
-            self.log.critical(("MERGING NOW!"))
             self._update_master_db()
 
         # if cr_data.merged_to_common:
