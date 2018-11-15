@@ -43,16 +43,17 @@ def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: s
 class TestSenecaClient(TestCase):
     CONTRACTS_TO_STORE = {'currency': 'kv_currency.sen.py'}
 
-    def assert_completion(self, expected_sbb_rep: List[tuple], input_hash=''):
+    def assert_completion(self, expected_sbb_rep: List[tuple]=None, input_hash=''):
         def _completion_handler(cr_data: CRContext):
             if input_hash:
                 self.assertEqual(cr_data.input_hash, input_hash)
-            self.assertEqual(expected_sbb_rep, cr_data.get_subblock_rep())
+            if expected_sbb_rep:
+                self.assertEqual(expected_sbb_rep, cr_data.get_subblock_rep())
 
         return _completion_handler
 
     def setUp(self):
-        overwrite_logger_level(0)
+        # overwrite_logger_level(0)
         with SenecaInterface(False) as interface:
             interface.r.flushall()
 
@@ -275,15 +276,78 @@ class TestSenecaClient(TestCase):
         self.assertTrue(input_hash2 in client2.pending_futures)
         self.assertTrue(input_hash4 in client2.pending_futures)
 
+        client1.update_master_db(input_hash1)
+        client2.update_master_db(input_hash2)
+
         # We must run the future manually, since the event loop is not currently running
         coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
         loop.run_until_complete(asyncio.gather(*coros))
 
-        client1.update_master_db(True)
-        client2.update_master_db(False)
-
         coros = (client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
         loop.run_until_complete(asyncio.gather(*coros))
+
+        loop.close()
+
+    def test_update_master_db_with_incomplete_sb(self):
+        input_hash1 = 'A' * 64
+        input_hash2 = 'B' * 64
+        input_hash3 = 'C' * 64
+        input_hash4 = 'D' * 64
+
+        c1 = create_currency_tx('davis', 'stu', 14)
+        c2 = create_currency_tx('stu', 'davis', 40)
+        c3 = create_currency_tx('ghu', 'davis', 15)
+        c4 = create_currency_tx('tj', 'birb', 90)
+        c5 = create_currency_tx('ethan', 'birb', 60)
+        c6 = create_currency_tx('stu', 'davis', 10)
+        c7 = create_currency_tx('ghu', 'tj', 50)
+        c8 = create_currency_tx('birb', 'davis', 100)
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+
+        client1._start_sb(input_hash1)
+        client2._start_sb(input_hash2)
+
+        client1.run_contract(c1)
+        client1.run_contract(c2)
+        client2.run_contract(c3)
+        client2.run_contract(c4)
+
+        client1._end_sb(self.assert_completion(None, input_hash1))
+        client2._end_sb(self.assert_completion(None, input_hash2))
+
+        client1._start_sb(input_hash3)
+        client2._start_sb(input_hash4)
+
+        client1.run_contract(c5)
+        client1.run_contract(c6)
+        client2.run_contract(c7)
+        client2.run_contract(c8)
+
+        client1._end_sb(self.assert_completion(None, input_hash3))
+        client2._end_sb(self.assert_completion(None, input_hash4))
+
+        client1.update_master_db(input_hash1)
+        client2.update_master_db(input_hash2)
+        client1.update_master_db(input_hash3)
+        client2.update_master_db(input_hash4)
+
+        self.assertTrue(input_hash1 in client1.pending_futures)
+        self.assertTrue(input_hash3 in client1.pending_futures)
+        self.assertTrue(input_hash2 in client2.pending_futures)
+        self.assertTrue(input_hash4 in client2.pending_futures)
+
+        # We must run the future manually, since the event loop is not currently running
+        coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'],
+                 client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
+        loop.run_until_complete(asyncio.gather(*coros))
+
+        for c in (client1, client2):
+            self.assertEqual(len(c.pending_dbs), 0)
 
         loop.close()
 

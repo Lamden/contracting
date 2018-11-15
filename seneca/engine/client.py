@@ -89,33 +89,53 @@ class SenecaClient(SenecaInterface):
             for cr in s:
                 self._reset_cr_data(cr)
             s.clear()
+
+        for input_hash in self.pending_futures:
+            self.pending_futures[input_hash]['fut'].cancel()
+        self.pending_futures.clear()
+
         self._setup_dbs()
 
-    def update_master_db(self, should_commit=True):
-        """ Merges the first (leftpop) pending_db to master. """
+    def _update_master_db(self):
         assert len(self.pending_dbs) > 0, "No pending dbs to update to master!"
 
-        # TODO we need to handle the case where update_master_db is called before conflict resolution (phase 2) has
-        # completed for the first pending_db. In this case, we should wait for him to finish before merging.
         cr_data = self.pending_dbs.popleft()
-        assert cr_data.merge_to_common, "CRData not merged to common yet!"
+        assert cr_data.merged_to_common, "CRData not merged to common yet!"
 
-        # TODO this is bad hacky. Only SBB 0 will be able to make these asserts, b/c the db is cleared afterwords.
-        # we could defer resetting the db until the last SB calls this, but nvm that for now
         if self.sbb_idx == 0:
             assert Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION) == self.num_sb_builders, \
                 "Execution stage incomplete!"
             assert Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders, \
                 "Conflict resolution stage incomplete!"
 
-        if should_commit:
-            assert self.sbb_idx == 0, "We only expect sbb 0 to commit to master!"
             self.log.notice("Merging common layer to master db")
             CRContext.merge_to_master(working_db=cr_data.working_db, master_db=self.master_db)
 
-        self.log.debugv("Resetting CRContext with input hash {}".format(cr_data.input_hash))
-        self._reset_cr_data(cr_data)
+            self.log.debugv("Resetting CRContext with input hash {}".format(cr_data.input_hash))
+            self._reset_cr_data(cr_data)
+
         self.available_dbs.append(cr_data)
+
+    def update_master_db(self, input_hash: str):
+        assert len(self.pending_dbs) > 0, "No pending dbs to update to master!"
+        assert input_hash in self.pending_futures, "Input hash {} not in pending_futures {}".format(input_hash, self.pending_futures)
+        cr_data = self.pending_futures[input_hash]['data']
+        assert cr_data in self.pending_dbs, "you done shit the bed again davis"
+
+        cr_finished = Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders
+        if not cr_data.merged_to_common or (self.sbb_idx == 0 and cr_finished):
+            self.log.critical(("NOT MERGING YET!"))
+            self.pending_futures[cr_data.input_hash]['merge'] = True
+        else:
+            self.log.critical(("MERGING NOW!"))
+            self._update_master_db()
+
+        # if cr_data.merged_to_common:
+        #     self.log.critical(("MERGING NOW!"))
+        #     self._update_master_db()
+        # else:
+        #     self.log.critical(("NOT MERGING YET!"))
+        #     self.pending_futures[cr_data.input_hash]['merge'] = True
 
     def submit_contract(self, contract):
         self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
@@ -199,7 +219,7 @@ class SenecaClient(SenecaInterface):
         Phase.incr_phase_variable(self.active_db.working_db, Macros.EXECUTION)
 
         future = asyncio.ensure_future(self._wait_and_merge_to_common(self.active_db, completion_handler))
-        self.pending_futures[self.active_db.input_hash] = {'fut': future, 'data': self.active_db}
+        self.pending_futures[self.active_db.input_hash] = {'fut': future, 'data': self.active_db, 'merge': False}
 
         self.pending_dbs.append(self.active_db)
         self.active_db = None  # we really don't care, but might be useful initially for error checking
@@ -212,6 +232,7 @@ class SenecaClient(SenecaInterface):
         - Starts conflict resolution, which involves:
             - Rerun any necessary contracts
             - Merges cr_data to common layer, and then increment the CONFLICT_RESOLUTION phase variable
+        - If the 'merge' flag is set by an earlier update_master_db call, then this is done next
         """
         await self._wait_for_execution_stage(cr_data)
 
@@ -219,8 +240,18 @@ class SenecaClient(SenecaInterface):
             await self._wait_until_top_of_pending(cr_data)
 
         await self._wait_for_cr_and_merge(cr_data)
-        self.log.notice("Invoking completion handler for subblock with input hash {}".format(cr_data.input_hash))
+
+        self.log.notice("Invoking completion handler for sub block with input hash {}".format(cr_data.input_hash))
         completion_handler(cr_data)
+
+        if self.pending_futures[cr_data.input_hash]['merge']:
+            self.log.debugv("Merge flag set to true for sbb with input hash {}".format(cr_data.input_hash))
+            # If this is the first sub-block, then we are responsible for merging to master. Thus we must wait
+            # for everyone to finish conflict resolution before we merge to master.
+            if self.sbb_idx == 0:
+                await self._wait_for_everybody_cr(cr_data)
+            self._update_master_db()
+
         # self.pending_futures[cr_data.input_hash]['fut'].set_result('done')  # TODO fix this its complaining...
 
     async def _wait_for_cr_and_merge(self, cr_data: CRContext):
@@ -262,6 +293,12 @@ class SenecaClient(SenecaInterface):
         await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.EXECUTION, value=self.num_sb_builders,
                                             timeout=(len(self.pending_dbs) + 1) * Phase.EXEC_TIMEOUT)
         self.log.info("Done waiting for other SBBs to finish execution")
+
+    async def _wait_for_everybody_cr(self, cr_data: CRContext):
+        self.log.info("Waiting for conflict resolution to finish for ALL sub blocks...")
+        await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.CONFLICT_RESOLUTION,
+                                            value=self.num_sb_builders, timeout=Phase.CR_TIMEOUT)
+        self.log.info("Conflict resolution complete for ALL sub blocks")
 
     async def _wait_for_phase_variable(self, db: redis.StrictRedis, key: str, value: int, timeout: int):
         elapsed = 0
