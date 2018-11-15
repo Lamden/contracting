@@ -12,11 +12,12 @@ ENV PYTHONPATH /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         python3.6 python3-pip python3.6-dev \
-        redis-server net-tools \
+        redis-server net-tools python3-ujson gcc \
     && pip3 install --upgrade setuptools wheel \
     && pip3 install -r requirements.txt \
     && pip3 install -r dev-requirements.txt
 
-RUN python3 setup.py install
+RUN python3 setup.py build \
+  && python3 setup.py install
 
 CMD bash /app/scripts/start.sh
