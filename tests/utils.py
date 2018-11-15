@@ -4,7 +4,7 @@ from io import StringIO
 from unittest import TestCase
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
-from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
+from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 
 def recur_fibo(n):
     if n <= 1:
@@ -27,10 +27,14 @@ class TestInterface(TestCase):
     def setUp(self):
         self.r.flushdb()
         # Only do this once in each process!
-        SenecaInterpreter.setup()
         self.si = SenecaInterface(False)
+        SenecaInterpreter.setup(False)
         print('''
 ################################################################################
 {}
 ################################################################################
         '''.format(self.id))
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.r.flushdb()

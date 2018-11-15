@@ -1,7 +1,7 @@
 from unittest import TestCase
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
-from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
+from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 from os.path import join
 from tests.utils import captured_output
 import redis, unittest, seneca, time
@@ -29,7 +29,7 @@ from test_contracts.kv_currency import transfer
 transfer('ass', 1)
         '''
         self.print_balance()
-        self.code_obj = self.si.compile_code(self.code_str)
+        self.code_obj = self.si.compile_code(self.code_str, self.rt)
         self.start = time.time()
 
     def tearDown(self):
@@ -51,18 +51,10 @@ print('stu has a balance of: ' + str(balance_of('stu')))
 print('ass has a balance of: ' + str(balance_of('ass')))
         """, self.rt)
 
-    def test_transfer_compile_on_the_go(self):
-        for i in range(CONTRACT_COUNT):
-            self.si.execute_code_str(self.code_str, self.rt)
-
-    def test_transfer_precompiled(self):
-        for i in range(CONTRACT_COUNT):
-            self.si.run_code(self.code_obj, self.rt)
-
-    def test_transfer_template(self):
+    def test_transfer_template_with_metering(self):
         for i in range(CONTRACT_COUNT):
             self.si.execute_function('test_contracts.kv_currency.transfer',
-                self.author, self.sender, 'ass', 1)
+                self.author, self.sender, 10000, 'ass', amount=1)
 
 if __name__ == '__main__':
     unittest.main()

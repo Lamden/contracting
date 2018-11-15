@@ -28,7 +28,7 @@ class TestConflictResolution(TestCase):
         self.r = RedisProxy(sbb_idx=sbb_idx, contract_idx=contract_idx, data=data)
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
-        return CRDataContainer(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
+        return CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
 
     def test_all_keys_and_values_for_basic_set_get(self):
         KEY1, VAL1 = 'k1', b'v1'
@@ -126,7 +126,7 @@ class TestConflictResolution(TestCase):
         cr_data.merge_to_common()
 
         # Now check merge_to_master
-        CRDataContainer.merge_to_master(working_db=cr_data.working_db, master_db=cr_data.master_db)
+        CRContext.merge_to_master(working_db=cr_data.working_db, master_db=cr_data.master_db)
         self.assertEqual(self.master.get(KEY1), NEW_VAL1)
         self.assertEqual(self.master.get(KEY2), VAL2)
         self.assertEqual(self.master.get(KEY3), NEW_VAL3)

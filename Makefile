@@ -7,8 +7,11 @@ help:
 clean:
 	bash ./scripts/clean.sh
 
+build-ext:
+	bash ./scripts/build_ext.sh
+
 build-cython: clean
-	cythonize -i --exclude="test_contracts/" ./seneca
+	cythonize -i ./seneca/engine ./seneca/constants ./seneca/libs
 
 test: start-server
 	python3 tests/run.py
@@ -28,9 +31,7 @@ start-server:
 
 start-docker:
 	docker rm -f seneca || true
-	docker run --rm -v $$(pwd):/app --name seneca --security-opt apparmor=docker-default seneca_base &
-	sleep 1
-	docker exec -ti seneca /bin/bash
+	docker run -it --entrypoint /bin/bash --rm -v $$(pwd):/app --name seneca --security-opt apparmor=docker-default seneca_base
 
 kill-docker:
 	docker kill `docker ps -q` || true; sleep 2

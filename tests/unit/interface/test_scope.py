@@ -34,7 +34,7 @@ from test_contracts.good import one_you_cannot_export
             self.si.execute_code_str("""
 from test_contracts.reasonable import reasonable_call
 print(reasonable_call())
-            """, {'__sender__': '123'})
+            """, {'rt': {'sender':'123'}})
             self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: test_contracts.reasonable')
 
     def test_globals_redis(self):
@@ -52,13 +52,13 @@ print(do_that_thing())
 
     def test_execute_function(self):
         result = self.si.execute_function('test_contracts.reasonable.call_with_args',
-            'me', 'also_me', 'it is required', not_required='it is not requried')
-        self.assertEqual(result, ('it is required', 'it is not requried'))
+            'me', 'also_me', 10000, 'it is required', not_required='it is not requried')
+        self.assertEqual(result['status'], 'success')
 
     def test_execute_function_invalid(self):
         with self.assertRaises(ImportError) as context:
             result = self.si.execute_function('seneca.engine.util.make_n_tup',
-                'me', 'also_me', {'x': 'y'})
+                'me', 'also_me', 10000, {'x': 'y'})
             print('Should not print this: ', result)
 
 if __name__ == '__main__':

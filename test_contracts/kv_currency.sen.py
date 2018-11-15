@@ -7,7 +7,6 @@ allowed = hmap('allowed', str, hmap(value_type=int))
 def balance_of(wallet_id):
     return balances[wallet_id]
 
-
 @export
 def transfer(to, amount):
     balances = hmap('balances', str, int)
@@ -19,7 +18,6 @@ def transfer(to, amount):
     sender_balance = balances[rt['sender']]
 
     assert sender_balance >= 0, "Sender balance must be non-negative!!!"
-
 
 @export
 def approve(spender, amount):
@@ -43,7 +41,7 @@ def allowance(approver, spender):
 
 @export
 def mint(to, amount):
-    print("minting {} to wallet {}".format(amount, to))
+    # print("minting {} to wallet {}".format(amount, to))
     assert rt['sender'] == rt['author'], 'Only the original contract author can mint!'
 
     balances[to] += amount

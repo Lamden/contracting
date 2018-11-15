@@ -21,7 +21,7 @@ jobs:
           - v1-dependencies-
 
       - run:
-          name: Dockerize v0.6.0
+          name: Install Dockerize v0.6.0
           command: |
             wget https://github.com/jwilder/dockerize/releases/download/v0.6.0/dockerize-linux-amd64-v0.6.0.tar.gz
             sudo rm -rf /usr/local/bin/dockerize
@@ -33,6 +33,12 @@ jobs:
           command: |
             sudo pip install -r requirements.txt
             sudo pip install -r dev-requirements.txt
+
+      - run:
+          name: Build C-extensions
+          command: |
+            sudo python3 setup.py build
+            sudo python3 setup.py install
 
       - save_cache:
           paths:
@@ -47,8 +53,9 @@ jobs:
       - run:
           name: run tests
           command: |
-            export PYTHONPATH=$PYTHONPATH:~/seneca
+            export PYTHONPATH=$PYTHONPATH:$(pwd):~/seneca
             python3 tests/run.py
+
   test-cilantro-from-seneca:
     docker:
       - image: circleci/python:3.6.5

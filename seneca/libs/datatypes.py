@@ -1,6 +1,6 @@
 import redis
 import ujson as json
-from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
+from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 from seneca.libs.logger import get_logger
 from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.interpreter import SenecaInterpreter
@@ -42,6 +42,14 @@ string_to_type = {
 primitive_types = [int, str, bool, bytes, None]
 REDIS_PORT = get_redis_port()
 REDIS_PASSWORD = get_redis_password()
+
+def extract_prefix(s):
+    prefix = None
+    if s[0] == '<':
+        prefix_idx_end = s.find('>')
+        prefix_s = s[:prefix_idx_end]
+        return prefix_s.split(':')[-1], s[1+prefix_idx_end:]
+    return None, s
 
 def encode_type(t):
     if isinstance(t, RObject):
@@ -107,11 +115,7 @@ def build_table_from_repr(s):
     s = s[slice_idx:]
 
     # check if the prefix has been defined
-    prefix = None
-    if s[0] == '<':
-        prefix_idx_end = s.find('>')
-        prefix = s[1:prefix_idx_end]
-        s = s[1 + prefix_idx_end:]
+    prefix, s = extract_prefix(s)
 
     start = s.find('({') + 2
     end = s.find('})')
@@ -154,11 +158,7 @@ def build_list_from_repr(s):
     s = s[slice_idx:]
 
     # check if the prefix has been defined
-    prefix = None
-    if s[0] == '<':
-        prefix_idx_end = s.find('>')
-        prefix = s[1:prefix_idx_end]
-        s = s[1 + prefix_idx_end:]
+    prefix, s = extract_prefix(s)
 
     _type = s[1:-1]
 
@@ -174,11 +174,7 @@ def build_map_from_repr(s):
     s = s[slice_idx:]
 
     # check if the prefix has been defined
-    prefix = None
-    if s[0] == '<':
-        prefix_idx_end = s.find('>')
-        prefix = s[1:prefix_idx_end]
-        s = s[1 + prefix_idx_end:]
+    prefix, s = extract_prefix(s)
 
     types = s.split(',')
 
@@ -197,11 +193,7 @@ def build_ranked_from_repr(s):
     s = s[slice_idx:]
 
     # check if the prefix has been defined
-    prefix = None
-    if s[0] == '<':
-        prefix_idx_end = s.find('>')
-        prefix = s[1:prefix_idx_end]
-        s = s[1 + prefix_idx_end:]
+    prefix, s = extract_prefix(s)
 
     types = s.split(',')
 
@@ -333,6 +325,7 @@ class RObject:
                  driver=redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB, password=REDIS_PASSWORD)
                  ):
         assert driver is not None, 'Provide a Redis driver.'
+        self.contract_id = SenecaInterpreter.loaded['__main__']['rt']['contract']
         self.driver = driver
         self.prefix = prefix
         self.concurrent_mode = SenecaInterpreter.concurrent_mode
@@ -355,8 +348,6 @@ class RObject:
                                           "called on this thread first?".format(BookKeeper._get_key())
             info = BookKeeper.get_info()
             self.driver = RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
-
-            print("RObject __init__ called with BookKeeper info: {}".format(info))  # TODO remove
 
     def encode_value(self, value):
         v = None
@@ -441,7 +432,8 @@ class HMap(RObject):
         return self.set(k, v)
 
     def rep(self):
-        return '{}map<{}>({},{})'.format(CTP,
+        return '{}map<{}:{}>({},{})'.format(CTP,
+                                         self.contract_id,
                                          self.prefix,
                                          encode_type(self.key_type),
                                          encode_type(self.value_type))
@@ -508,7 +500,7 @@ class HList(RObject):
         return self.set(i, v)
 
     def rep(self):
-        return '{}list<{}>({})'.format(CTP, self.prefix, encode_type(self.value_type))
+        return '{}list<{}:{}>({})'.format(CTP, self.contract_id, self.prefix, encode_type(self.value_type))
 
     def exists(self, k):
         return self.driver.exists(k)
@@ -621,7 +613,7 @@ class Table(RObject):
             d += ','
         d = d[:-1]
         d += '})'
-        return CTP + self.rep_str + '<' + self.prefix + '>' + d
+        return CTP + self.rep_str + '<' + self.contract_id + ':' + self.prefix + '>' + d
 
 
 def table(prefix=None, key_type=str, schema=None):
@@ -678,7 +670,8 @@ class Ranked(RObject):
         self.increment(member, i)
 
     def rep(self):
-        return '{}ranked<{}>({},{})'.format(CTP,
+        return '{}ranked<{}:{}>({},{})'.format(CTP,
+                                            self.contract_id,
                                             self.prefix,
                                             encode_type(self.key_type),
                                             encode_type(self.value_type))

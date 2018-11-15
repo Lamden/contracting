@@ -31,7 +31,7 @@ class TestCRGetSet(TestCase):
                             data=data)
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
-        return CRDataContainer(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
+        return CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
 
     def _new_get(self, sbb_idx=0, contract_idx=0, finalize=False):
         return self._new_getset(should_set=False, sbb_idx=0, contract_idx=contract_idx, finalize=finalize)
@@ -128,6 +128,26 @@ class TestCRGetSet(TestCase):
         expected = {'og': VALUE, 'mod': NEW_VALUE, 'contracts': {0}}
         self.assertEqual(expected, cr_set.data['getset'][KEY])
 
+    def test_basic_set_adds_to_redo_log(self):
+        KEY = 'im_a_key'
+        VALUE = b'value_on_master'
+        NEW_VALUE = b'new_value'
+        cr_set = self._new_set()
+        self.master.set(KEY, VALUE)
+
+        cr_set(KEY, NEW_VALUE)
+
+        self.assertEqual(cr_set.data['getset'].redo_log[0][KEY], VALUE)
+
+    def test_basic_set_new_key_adds_to_redo_log(self):
+        KEY = 'im_a_key'
+        NEW_VALUE = b'new_value'
+        cr_set = self._new_set()
+
+        cr_set(KEY, NEW_VALUE)
+
+        self.assertEqual(cr_set.data['getset'].redo_log[0][KEY], None)
+
     def test_basic_set_adds_to_writes(self):
         KEY = 'im_a_key'
         VALUE = b'value_on_master'
@@ -163,6 +183,36 @@ class TestCRGetSet(TestCase):
 
         reads = cr_get.data['getset'].reads
         self.assertTrue(KEY in reads[0])
+
+    def test_basic_set_and_rollback(self):
+        KEY = 'im_a_key'
+        VALUE = b'value_on_master'
+        NEW_VALUE = b'new_value'
+        cr_set = self._new_set()
+        self.master.set(KEY, VALUE)
+
+        cr_set(KEY, NEW_VALUE)
+
+        cr_set.data['getset'].rollback_contract(0)
+        expected = {'og': VALUE, 'mod': VALUE, 'contracts': set()}
+        self.assertEqual(expected, cr_set.data['getset'][KEY])
+
+    def test_basic_set_and_rollback_two_contracts(self):
+        KEY = 'im_a_key'
+        VALUE = b'value_on_master'
+        NEW_VALUE = b'new_value'
+        NEWER_VALUE = b'newer_value'
+        cr_set1 = self._new_set()
+        self.master.set(KEY, VALUE)
+
+        cr_set1(KEY, NEW_VALUE)
+
+        cr_set2 = self._new_set(contract_idx=1)
+        cr_set2(KEY, NEWER_VALUE)
+
+        cr_set2.data['getset'].rollback_contract(1)
+        expected = {'og': VALUE, 'mod': NEW_VALUE, 'contracts': {0}}
+        self.assertEqual(expected, cr_set1.data['getset'][KEY])
 
     def test_basic_setget_and_reset_contract_data(self):
         KEY1 = 'im_a_key1'

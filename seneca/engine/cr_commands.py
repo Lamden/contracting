@@ -1,6 +1,6 @@
 import redis
 from seneca.libs.logger import get_logger
-from seneca.engine.conflict_resolution import CRDataGetSet, CRDataContainer, CRDataBase
+from seneca.engine.conflict_resolution import CRDataGetSet, CRContext, CRDataBase
 
 
 class CRCmdMeta(type):
@@ -21,8 +21,8 @@ class CRCmdBase(metaclass=CRCmdMeta):
     DATA_NAME = None
 
     # TODO -- remove the finalize var. We dont need this.
-    def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, contract_idx: int,
-                 data: CRDataContainer, finalize=False):
+    def __init__(self, working_db, master_db, sbb_idx: int, contract_idx: int,
+                 data: CRContext, finalize=False):
         self.log = get_logger("{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
         self.finalize = finalize
         self.data = data
@@ -53,10 +53,13 @@ class CRCmdBase(metaclass=CRCmdMeta):
         else:
             self._copy_key_to_sbb_data(None, key, *args, **kwargs)
 
+    def _add_key_to_redo_log(self, key, *args, **kwargs):
+        raise NotImplementedError()
+
     def __call__(self, *args, **kwargs):
         raise NotImplementedError()
 
-    def _db_original_exists(self, db: redis.StrictRedis, key: str, *args, **kwargs) -> bool:
+    def _db_original_exists(self, db, key, *args, **kwargs) -> bool:
         """
         Returns True if 'key' exists on db. False otherwise. args/kwargs can be supplied for more complex
         implementations by subclasses
@@ -71,7 +74,7 @@ class CRCmdBase(metaclass=CRCmdMeta):
         """
         raise NotImplementedError()
 
-    def _copy_key_to_sbb_data(self, db: redis.StrictRedis or None, key: str, *args, **kwargs):
+    def _copy_key_to_sbb_data(self, db, key, *args, **kwargs):
         """
         Copies 'key' from the specified to the sub-block specific data
         :param db: The DB to copy the key from. If None, it is implied that the key does not exist in common/master, and
@@ -102,21 +105,17 @@ class CRCmdExists(CRCmdBase):
 class CRCmdGetSetBase(CRCmdBase):
     DATA_NAME = 'getset'
 
-    def _db_original_exists(self, db: redis.StrictRedis, key: str) -> bool:
+    def _db_original_exists(self, db, key) -> bool:
         return db.exists(key)
 
     def _sbb_original_exists(self, key) -> bool:
         return key in self.data['getset']
 
-    def _copy_key_to_sbb_data(self, db: redis.StrictRedis, key: str):
+    def _copy_key_to_sbb_data(self, db, key):
         val = db.get(key) if db else None
         self.data['getset'][key] = {'og': val, 'mod': None, 'contracts': set()}
 
-
-class CRCmdGet(CRCmdGetSetBase):
-    COMMAND_NAME = 'get'
-
-    def __call__(self, key):
+    def _get(self, key, return_none=False):
         self._copy_og_key_if_not_exists(key)
 
         # TODO make all this DRYer so you can abstract it like a pro
@@ -130,7 +129,7 @@ class CRCmdGet(CRCmdGetSetBase):
             self.log.debugv("SBB specific ORIGINAL key found for key named <{}>".format(key))
             val = self.data['getset'][key]['og']
 
-        if val is None:
+        if val is None and not return_none:
             raise Exception("Key '{}' does not exist, but was attempted to be GET".format(key))
 
         self.data['getset'].reads[self.contract_idx].add(key)
@@ -138,15 +137,35 @@ class CRCmdGet(CRCmdGetSetBase):
         return val
 
 
+# TODO refactor this so they can live in the same base class, and we just specify the command name with a decorator
+class CRCmdGet(CRCmdGetSetBase):
+    COMMAND_NAME = 'get'
+
+    def __call__(self, key):
+        return self._get(key)
+
+
 class CRCmdSet(CRCmdGetSetBase):
     COMMAND_NAME = 'set'
 
-    def __call__(self, key: str, value):
+    def _add_key_to_redo_log(self, key, *args, **kwargs):
+        # Return if key already exist in this contract's redo log
+        if key in self.data['getset'].redo_log[self.contract_idx]:
+            return
+
+        self.data['getset'].redo_log[self.contract_idx][key] = self._get(key, return_none=True)
+        self.log.debugv("Contract {} added key {} to redo log with val {}".format(self.contract_idx, key,
+                                                                                  self.data['getset'].redo_log[
+                                                                                      self.contract_idx][key]))
+
+    def __call__(self, key, value):
         assert type(value) in (str, bytes), "Attempted to use 'set' with a value that is not str or bytes (val={}). " \
                                             "This is not supported currently.".format(value)
         self._copy_og_key_if_not_exists(key)
         if type(value) is str:
             value = value.encode()
+
+        self._add_key_to_redo_log(key)
 
         self.log.debugv("Setting SBB specific key <{}> to value {}".format(key, value))
         self.data['getset'][key]['mod'] = value
@@ -162,17 +181,17 @@ class CRCmdHMapBase(CRCmdBase):
     MOD_DELIM = '*-*'
     DATA_NAME = 'hm'
 
-    def _db_original_exists(self, db: redis.StrictRedis, key: str, field: str) -> bool:
+    def _db_original_exists(self, db, key, field) -> bool:
         return db.hexists(key, field)
 
-    def _sbb_original_exists(self, key: str, field: str) -> bool:
+    def _sbb_original_exists(self, key, field) -> bool:
         return key in self.data['hm'] and field in self.data['hm'][key]
 
-    def _copy_key_to_sbb_data(self, db: redis.StrictRedis, key: str, field: str):
+    def _copy_key_to_sbb_data(self, db, key, field):
         val = db.hget(key, field) if db else None
         self.data['hm'][key][field] = {'og': val, 'mod': None}
 
-    def _get_key_field_name(self, key: str, field: str):
+    def _get_key_field_name(self, key, field):
         return key + self.MOD_DELIM + field
 
 
@@ -199,7 +218,7 @@ class CRCmdHGet(CRCmdHMapBase):
 class CRCmdHSet(CRCmdHMapBase):
     COMMAND_NAME = 'hset'
 
-    def __call__(self, key: str, field: str, value):
+    def __call__(self, key, field, value):
         assert type(value) in (str, bytes), "Attempted to use 'hset' with a value that is not str or bytes (val={}). " \
                                             "This is not supported currently.".format(value)
         self._copy_og_key_if_not_exists(key, field)
@@ -211,4 +230,3 @@ class CRCmdHSet(CRCmdHMapBase):
 
         # self._add_key_to_mod_list(self._get_key_field_name(key, field))
         # TODO add the write list
-

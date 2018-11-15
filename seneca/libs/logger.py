@@ -53,12 +53,14 @@ CUSTOM_LEVELS = {
 for log_name, log_level in CUSTOM_LEVELS.items():
     logging.addLevelName(log_level, log_name)
 
+
 def apply_custom_level(log, name: str, level: int):
     def _lvl_func(message, *args, **kws):
         if level >= log.getEffectiveLevel():
             log._log(level, message, args, **kws)
 
     setattr(log, name.lower(), _lvl_func)
+
 
 """
 Custom Styling
@@ -118,7 +120,17 @@ class ColoredStreamHandler(logging.StreamHandler):
         )
 
 
+def _ignore(*args, **kwargs):
+    pass
+
+class MockLogger:
+    def __getattr__(self, item):
+        return _ignore
+
+
 def get_logger(name=''):
+    if _LOG_LVL == 0:
+        return MockLogger()
 
     filedir = "logs/{}".format(os.getenv('TEST_NAME', 'test'))
     filename = "{}/{}.log".format(filedir, os.getenv('HOST_NAME', name))

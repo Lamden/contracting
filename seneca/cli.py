@@ -2,7 +2,7 @@ import os, seneca, time, redis, subprocess
 from os import getenv as env
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
-from seneca.constants.redis_config import get_redis_port, get_redis_password, MASTER_DB, load_env
+from seneca.constants.config import get_redis_port, get_redis_password, MASTER_DB, load_env
 
 def cli(fn):
     def _fn(fname, *args, **kwargs):
@@ -53,13 +53,6 @@ def run_by_file(si, code_str, *args, **kwargs):
     print('"{}" is RUN'.format(fname))
 
 @cli
-def run_by_name(si, fullname, *args, **kwargs):
-    scope = kwargs.get('scope', {})
-    code_obj = si.get_code(fullname)
-    si.run_code(code_obj, scope=scope)
-    print('"{}" is RUN'.format(fullname))
-
-@cli
 def publish(si, code_str, fullname, *args, **kwargs):
     scope = kwargs.get('scope', {})
     si.publish_code_str(fullname, code_str, keep_original=True, scope=scope)
@@ -87,8 +80,6 @@ def main():
     elif args.run:
         if args.run.endswith('.sen.py'):
             run_by_file(args.run, author=args.author, sender=args.sender)
-        else:
-            run_by_name(args.run, author=args.author, sender=args.sender)
     elif args.delete:
         remove_code(args.delete, author=args.author, sender=args.sender)
     else:

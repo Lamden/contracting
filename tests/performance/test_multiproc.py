@@ -2,7 +2,7 @@ from unittest import TestCase
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
 from seneca.engine.book_keeper import BookKeeper
-from seneca.constants.redis_config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
+from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 from os.path import join
 from tests.utils import captured_output
 from multiprocessing import Pool, Process
@@ -58,38 +58,13 @@ print('rag has a balance of: ' + str(balance_of('rag')))
 print('tej has a balance of: ' + str(balance_of('tej')))
         """, {'rt': {'sender': 'stu', 'author': 'stu'}})
 
-    def test_transfer_compile_on_the_go(self):
-        def run_code_str(user):
-            log = get_logger("Dumpy[{}]".format(user))
-            log.notice("starting process")
-            SenecaInterpreter.concurrent_mode = False
-            si = SenecaInterface(False)
-            si.setup()
-            code_str = '''
-from test_contracts.kv_currency import transfer
-transfer('tej', 1)
-
-            '''
-            for i in range(CONTRACT_COUNT):
-                si.execute_code_str(code_str, {'rt': {'sender': user, 'author': user}})
-        processes = [
-            Process(target=run_code_str, args=(user,)) \
-            for user in users
-        ]
-        [p.start() for p in processes]
-        [p.join() for p in processes]
-
-    def test_transfer_precompiled(self):
+    def test_transfer_template(self):
         def run_code_obj(user):
-            si = SenecaInterface()
+            si = SenecaInterface(False)
             SenecaInterpreter.setup(False)
-            code_str = '''
-from test_contracts.kv_currency import transfer
-transfer('tej', 1)
-            '''
-            code_obj = si.compile_code(code_str)
             for i in range(CONTRACT_COUNT):
-                si.run_code(code_obj, {'rt': {'sender': user, 'author': user}})
+                si.execute_function('test_contracts.kv_currency.transfer',
+                    user, user, 10000, 'tej', 1)
         processes = [
             Process(target=run_code_obj, args=(user,)) \
             for user in users
