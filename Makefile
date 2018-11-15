@@ -35,3 +35,6 @@ start-docker:
 
 kill-docker:
 	docker kill `docker ps -q` || true; sleep 2
+
+upload:
+	python ./scripts/upload_pip.py
