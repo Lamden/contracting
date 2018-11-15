@@ -51,14 +51,6 @@ print('stu has a balance of: ' + str(balance_of('stu')))
 print('ass has a balance of: ' + str(balance_of('ass')))
         """, self.rt)
 
-    def test_transfer_compile_on_the_go(self):
-        for i in range(CONTRACT_COUNT):
-            self.si.execute_code_str(self.code_str, self.rt)
-
-    def test_transfer_precompiled(self):
-        for i in range(CONTRACT_COUNT):
-            self.si.run_code(self.code_obj, self.rt)
-
     def test_transfer_template_with_metering(self):
         for i in range(CONTRACT_COUNT):
             self.si.execute_function('test_contracts.kv_currency.transfer',

@@ -36,7 +36,6 @@ class SenecaInterpreter:
         os.environ['CU_COST_FNAME'] = path
         cls.tracer = Tracer()
 
-
     @classmethod
     def teardown(cls):
         cls._is_setup = False
@@ -164,10 +163,9 @@ class SenecaInterpreter:
     @classmethod
     def execute(cls, code, scope={}, is_main=True):
         scope.update({
-            '__builtins__': SAFE_BUILTINS,
             'export': Export(),
+            '__builtins__': SAFE_BUILTINS,
             '__use_locals__': False,
-            '__tracer__': cls.tracer
         })
         if is_main:
             cls.loaded['__main__'] = scope
@@ -181,7 +179,7 @@ class SenecaInterpreter:
         cls.assert_import_path(module_path)
         module = module_path.rsplit('.', 1)
         code_str = '''
-__tracer__.set_stamp(__stamp_supplied__)
+__tracer__.set_stamp(__stamps_supplied__)
 __tracer__.start()
 from {} import {}
 result = {}()
@@ -194,12 +192,13 @@ __tracer__.stop()
     def execute_function(cls, module_path, author, sender, stamps, *args, **kwargs):
         code_obj = cls.get_cached_code_obj(module_path)
         scope = {
-            'rt': { 'author': author, 'sender': sender },
+            'rt': { 'author': author, 'sender': sender, 'contract': module_path },
+            '__builtins__': SAFE_BUILTINS,
             '__args__': args,
             '__kwargs__': kwargs,
             '__use_locals__': True,
             '__tracer__': cls.tracer,
-            '__stamp_supplied__': stamps
+            '__stamps_supplied__': stamps
         }
         cls.loaded['__main__'] = scope
         try:
@@ -213,26 +212,24 @@ __tracer__.stop()
         }
 
 class ScopeParser:
-    @property
-    def namespace(self):
-        return inspect.stack()[2].filename.replace('.sen.py', '').split('/')[-1]
 
-    def set_scope(self, fn):
+    def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(SenecaInterpreter.loaded['__main__'])
+        fn.__globals__['rt']['contract'] = fn.__module__
+        if fn.__globals__.get('__use_locals__'):
+            if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
+            if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
+        return args, kwargs
 
     def set_scope_during_compilation(self, fn):
         self.module = '.'.join([fn.__module__, fn.__name__])
         SenecaInterpreter.exports[self.module] = True
-        fn.__globals__['__contract__'] = fn.__module__
 
 class Export(ScopeParser):
     def __call__(self, fn):
         if not fn.__module__: return
         self.set_scope_during_compilation(fn)
         def _fn(*args, **kwargs):
-            self.set_scope(fn)
-            if fn.__globals__.get('__use_locals__'):
-                if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
-                if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
+            args, kwargs = self.set_scope(fn, args, kwargs)
             return fn(*args, **kwargs)
         return _fn

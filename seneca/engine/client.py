@@ -156,7 +156,8 @@ class SenecaClient(SenecaInterface):
                 'rt': {
                     'author': metadata['author'],
                     'sender': contract.sender
-                }
+                },
+                '__contract__': contract_name
             })
             result = SUCC_FLAG
         except Exception as e:
