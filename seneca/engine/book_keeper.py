@@ -23,7 +23,7 @@ class BookKeeper:
         Sets the info (subblock builder index and contract index) for the current thread.
         """
         key = cls._get_key()
-        print("\nSetting key {} with info sbb_idx: {} and contract_idx: {}".format(key, sbb_idx, contract_idx))  # TODO remove
+        # print("\nSetting key {} with info sbb_idx: {} and contract_idx: {}".format(key, sbb_idx, contract_idx))  # TODO remove
 
         with cls._lock:
             cls._shared_state[key] = {'sbb_idx': sbb_idx, 'contract_idx': contract_idx, 'data': data}
