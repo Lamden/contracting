@@ -129,13 +129,6 @@ class SenecaClient(SenecaInterface):
         else:
             self._update_master_db()
 
-        # if cr_data.merged_to_common:
-        #     self.log.critical(("MERGING NOW!"))
-        #     self._update_master_db()
-        # else:
-        #     self.log.critical(("NOT MERGING YET!"))
-        #     self.pending_futures[cr_data.input_hash]['merge'] = True
-
     def submit_contract(self, contract):
         self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
             'rt': {
