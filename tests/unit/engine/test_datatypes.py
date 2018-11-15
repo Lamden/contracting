@@ -15,14 +15,9 @@ class TestDatatypes(TestCase):
 
     def setUp(self):
         SenecaInterpreter.concurrent_mode = False
-        SenecaInterpreter.loaded = {'__main__': {'__contract__': 'test'}}
         self.r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
         self.l = HList(prefix='yo')
         self.r.flushdb()
-
-        # clears the list so it's easier to push and pop to / test
-        # while self.l.pop() is not None:
-            # pass
 
     def test_type_mappings(self):
         self.assertTrue(type_to_string[str] == 'str')

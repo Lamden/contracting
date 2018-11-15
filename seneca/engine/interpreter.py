@@ -36,7 +36,6 @@ class SenecaInterpreter:
         os.environ['CU_COST_FNAME'] = path
         cls.tracer = Tracer()
 
-
     @classmethod
     def teardown(cls):
         cls._is_setup = False
@@ -213,9 +212,6 @@ __tracer__.stop()
         }
 
 class ScopeParser:
-    @property
-    def namespace(self):
-        return inspect.stack()[2].filename.replace('.sen.py', '').split('/')[-1]
 
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(SenecaInterpreter.loaded['__main__'])

@@ -333,7 +333,7 @@ class RObject:
                  driver=redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB, password=REDIS_PASSWORD)
                  ):
         assert driver is not None, 'Provide a Redis driver.'
-        # self.contract_id = SenecaInterpreter.loaded['__main__']['__contract__']
+        self.contract_id = SenecaInterpreter.loaded['__main__']['rt']['contract']
         self.driver = driver
         self.prefix = prefix
         self.concurrent_mode = SenecaInterpreter.concurrent_mode

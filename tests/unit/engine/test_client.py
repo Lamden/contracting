@@ -58,8 +58,9 @@ class TestSenecaClient(TestCase):
             rt = {
                 'author': GENESIS_AUTHOR,
                 'sender': GENESIS_AUTHOR,
+                'contract': 'minter'
             }
-            interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt, '__contract__': ''})
+            interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
 
     def test_setup_dbs(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
