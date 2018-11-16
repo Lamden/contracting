@@ -1,4 +1,4 @@
-if [ "$CIRCLE_BRANCH" == "dev" ]
+if [ "$CIRCLE_BRANCH" == "dev" ] || [ "$CIRCLE_BRANCH" == "master" ]
 then
   sudo -E python3 setup.py build_ext -i
   sudo -E python3 setup.py sdist bdist_wheel
