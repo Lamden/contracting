@@ -34,6 +34,7 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     zip_safe=False,
+    include_package_data=True,
     ext_modules=[
         Extension('seneca.libs.metering.tracer', sources = ['seneca/libs/metering/tracer.c'])
     ]
