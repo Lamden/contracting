@@ -69,7 +69,7 @@ class Data:
         self.driver.set(self.key, args[0])
 
     def get(self, *args):
-        self.driver.get(self.key)
+        return self.driver.get(self.key)
 
 
 class Int(Data):
@@ -80,14 +80,22 @@ class Int(Data):
         assert isinstance(d, int), 'Provided argument is not an integer.'
         super().set(d)
 
+    def get(self):
+        i = super().get()
+        return int(i.decode())
+
 
 class Str(Data):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     def set(self, d):
-        assert isinstance(d, int), 'Provided argument is not a string.'
+        assert isinstance(d, str), 'Provided argument is not a string.'
         super().set(d)
+
+    def get(self):
+        s = super().get()
+        return s.decode()
 
 
 class Bool(Data):
@@ -96,7 +104,12 @@ class Bool(Data):
 
     def set(self, d):
         assert isinstance(d, bool), 'Provided argument is not a boolean.'
-        super().set(d)
+        super().set(1) if d else super().set(0)
+
+    def get(self):
+        b = super().get()
+        _b = int(b.decode())
+        return True if _b else False
 
 
 class Bytes(Data):
