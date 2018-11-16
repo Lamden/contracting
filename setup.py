@@ -32,6 +32,6 @@ setup(
     ],
     zip_safe=False,
     ext_modules=[
-        Extension('tracer', sources = ['seneca/libs/metering/tracer.c'])
+        Extension('seneca.libs.metering.tracer', sources = ['seneca/libs/metering/tracer.c'])
     ]
 )
