@@ -49,10 +49,10 @@ class Data:
         else:
             self.driver = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB, password=REDIS_PASSWORD)
 
-    def set(self, d):
-        self.driver.set(self.key, d)
+    def set(self, *args):
+        self.driver.set(self.key, args[0])
 
-    def get(self):
+    def get(self, *args):
         self.driver.get(self.key)
 
 
@@ -101,11 +101,19 @@ class Pointer(Data):
 # if r, ranking
 
 class List:
-    pass
+    def __init__(self):
+        super().__init__()
 
 
-class Map:
-    pass
+class Map(Data):
+    def __init__(self):
+        super().__init__()
+
+    def set(self, k, v):
+        self.driver.hmset(self.key, {k: v})
+
+    def get(self, k):
+        self.driver.hmget(self.key, k)
 
 
 class Ranking:
