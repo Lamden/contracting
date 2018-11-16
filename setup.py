@@ -2,6 +2,15 @@ from setuptools import setup, find_packages
 from setuptools.extension import Extension
 import os
 
+try:
+    from wheel.bdist_wheel import bdist_wheel as _bdist_wheel
+    class bdist_wheel(_bdist_wheel):
+        def finalize_options(self):
+            _bdist_wheel.finalize_options(self)
+            self.root_is_pure = False
+except ImportError:
+    bdist_wheel = None
+
 major = 0
 
 def get_version_number():
@@ -21,6 +30,7 @@ print('#' * 128)
 setup(
     name='seneca',
     version=__version__,
+    cmdclass={'bdist_wheel': bdist_wheel},
     description='Python-based smart contract language and interpreter.',
     entry_points={
         'console_scripts': ['seneca=seneca.cli:main'],
