@@ -24,7 +24,11 @@ class Registry:
     @classmethod
     def get_key(cls, obj):
         idx = cls.mapping[obj]
-        contract_id = SenecaInterpreter.loaded['__main__']['rt']['contract']
+
+        try:
+            contract_id = SenecaInterpreter.loaded['__main__']['rt']['contract']
+        except:
+            contract_id = ''
 
         sha3 = hashlib.sha3_256()
         sha3.update(contract_id.encode())
@@ -32,7 +36,14 @@ class Registry:
 
         sha3 = hashlib.sha3_256()
         sha3.update(contract_hash)
-        sha3.update(bytes.fromhex(hex(idx)[2:]))
+
+        hex_string = hex(idx)[2:]
+
+        # pad hex if string is odd. otherwise it won't convert into bytes
+        if len(hex_string) % 2 == 1:
+            hex_string = '0' + hex_string
+
+        sha3.update(bytes.fromhex(hex_string))
         return sha3.digest()
 
 
@@ -57,8 +68,8 @@ class Data:
 
 
 class Int(Data):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def set(self, d):
         assert isinstance(d, int), 'Provided argument is not an integer.'
@@ -66,8 +77,8 @@ class Int(Data):
 
 
 class Str(Data):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def set(self, d):
         assert isinstance(d, int), 'Provided argument is not a string.'
@@ -75,8 +86,8 @@ class Str(Data):
 
 
 class Bool(Data):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def set(self, d):
         assert isinstance(d, bool), 'Provided argument is not a boolean.'
@@ -84,8 +95,8 @@ class Bool(Data):
 
 
 class Bytes(Data):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def set(self, d):
         assert isinstance(d, bytes), 'Provided argument is not a byte string.'
@@ -100,14 +111,33 @@ class Pointer(Data):
 # if m, map
 # if r, ranking
 
-class List:
-    def __init__(self):
-        super().__init__()
+class List(Data):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def set(self, i, v):
+        self.driver.lset(self.key, i, v)
+
+    def append(self, v):
+        self.driver.rpush(self.key, v)
+
+    def extend(self, l):
+        for e in l:
+            self.append(e)
+
+    def push(self, v):
+        self.driver.lpush(self.key, v)
+
+    def pop(self):
+        return self.driver.lpop(self.key)
+
+    def pop_right(self):
+        return self.driver.rpop(self.key)
 
 
 class Map(Data):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def set(self, k, v):
         self.driver.hmset(self.key, {k: v})
