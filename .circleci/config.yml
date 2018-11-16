@@ -40,6 +40,11 @@ jobs:
             sudo pip install -r requirements.txt
             sudo pip install -r dev-requirements.txt
 
+      - run:
+          name: Build C-extensions
+          command: |
+            sudo -E python3 setup.py build_ext -i
+
       - save_cache:
           paths:
             - ./venv
