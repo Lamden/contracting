@@ -18,6 +18,21 @@ print('#' * 128)
 print('\n    VERSION = {}\n'.format(__version__))
 print('#' * 128)
 
+dev_requirements = [
+    'coloredlogs==10.0',
+    'coverage==4.5.1',
+    'pynacl',
+    # WARNING replace dateutil!
+    'python-dateutil==2.7.3',
+    'scipy==1.1.0',
+    'numpy==1.15.4'
+]
+requirements = [
+    'redis==2.10.6',
+    'python-dotenv==0.9.1',
+    'ujson==1.35'
+]
+
 setup(
     name='seneca',
     version=__version__,
@@ -26,7 +41,7 @@ setup(
         'console_scripts': ['seneca=seneca.cli:main'],
     },
     packages=find_packages(),
-    install_requires=open('requirements.txt').readlines(),
+    install_requires=requirements + dev_requirements,
     url='https://github.com/Lamden/seneca',
     author='Lamden',
     author_email='team@lamden.io',
