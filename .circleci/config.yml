@@ -64,7 +64,7 @@ jobs:
       - run:
           name: Upload to PyPI
           command: |
-            python3 scripts/upload_pip.py
+            bash scripts/upload_pip.sh
 
   test-cilantro-from-seneca:
     docker:
