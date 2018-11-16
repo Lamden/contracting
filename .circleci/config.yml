@@ -43,8 +43,8 @@ jobs:
       - run:
           name: Build C-extensions
           command: |
-            sudo python3 setup.py build_ext -i
-            sudo python3 setup.py install
+            sudo -E python3 setup.py build_ext -i
+            sudo -E python3 setup.py install
 
       - save_cache:
           paths:
