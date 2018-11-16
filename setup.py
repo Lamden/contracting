@@ -8,12 +8,15 @@ def get_version_number():
     if os.getenv('CIRCLECI'):
         minor, patch = divmod(int(os.getenv('CIRCLE_BUILD_NUM')), 360)
         ver = '{}.{}.{}'.format(major, minor, patch)
-        print('CircleCI will now upload version "{}"'.format(ver))
         return ver
     else:
         return '{}.1.0'.format(major)
 
 __version__ = get_version_number()
+
+print('#' * 128)
+print('\n    VERSION = {}\n'.format(__version__))
+print('#' * 128)
 
 setup(
     name='seneca',
@@ -32,6 +35,6 @@ setup(
     ],
     zip_safe=False,
     ext_modules=[
-        Extension('tracer', sources = ['seneca/libs/metering/tracer.c'])
+        Extension('seneca.libs.metering.tracer', sources = ['seneca/libs/metering/tracer.c'])
     ]
 )
