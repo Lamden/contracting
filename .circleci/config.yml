@@ -64,6 +64,7 @@ jobs:
       - run:
           name: Upload to PyPI
           command: |
+            if [ $CIRCLE_BRANCH = 'dev' ]; then run_something; fi
             python3 scripts/upload_pip.py
 
   test-cilantro-from-seneca:

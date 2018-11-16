@@ -7,7 +7,9 @@ major = 0
 def get_version_number():
     if os.getenv('CIRCLECI'):
         minor, patch = divmod(int(os.getenv('CIRCLE_BUILD_NUM')), 360)
-        return '{}.{}.{}'.format(major, minor, patch)
+        ver = '{}.{}.{}'.format(major, minor, patch)
+        print('CircleCI will now upload version "{}"'.format(ver))
+        return ver
     else:
         return '{}.1.0'.format(major)
 
