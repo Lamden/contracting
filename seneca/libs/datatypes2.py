@@ -46,6 +46,11 @@ class Registry:
         sha3.update(bytes.fromhex(hex_string))
         return sha3.digest()
 
+    @classmethod
+    def flush(cls):
+        cls.mapping.clear()
+        cls.count = 0
+
 
 class Data:
     def __init__(self, use_local=False):

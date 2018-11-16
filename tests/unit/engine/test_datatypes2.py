@@ -16,3 +16,10 @@ class TestDatatypes(TestCase):
 
         self.assertEqual(Registry.get_key(o), test_sha3.digest())
 
+    def test_registry_flush(self):
+        o = Int(use_local=True)
+        Registry.flush()
+
+        self.assertEqual(Registry.mapping, {})
+        self.assertEqual(Registry.count, 0)
+
