@@ -31,7 +31,7 @@ jobs:
       - run:
           name: Install Twine
           command: |
-            sudo apt-get install twine
+            sudo pip3 install twine
 
       - run:
           name: install dependencies
