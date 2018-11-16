@@ -1,4 +1,4 @@
-if [ "$CIRCLE_BRANCH" -eq "dev" ]
+if [ "$CIRCLE_BRANCH" == "dev" ]
 then
   python3 setup.py build
   python3 setup.py sdist bdist_wheel
