@@ -181,6 +181,7 @@ class SenecaInterpreter:
             '__use_locals__': False,
         })
         if is_main:
+            scope.update({'fn': '__main__'})
             cls.loaded['__main__'] = scope
         exec(code, scope)
         if is_main:
@@ -201,7 +202,7 @@ result = {}()
     @classmethod
     def execute_function(cls, module_path, author, sender, stamps, *args, **kwargs):
         scope = {
-            'rt': { 'author': author, 'sender': sender, 'contract': module_path },
+            'rt': {'author': author, 'sender': sender, 'contract': module_path, 'fn': module_path.rsplit('.')[-1]},
             '__builtins__': SAFE_BUILTINS,
             '__args__': args,
             '__kwargs__': kwargs,

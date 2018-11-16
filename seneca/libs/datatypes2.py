@@ -37,11 +37,11 @@ class Registry:
 
 
 class Data:
-    def __init__(self):
+    def __init__(self, use_local=False):
         Registry.add(self)
         self.key = Registry.get_key(self)
         self.concurrent_mode = SenecaInterpreter.concurrent_mode
-        if self.concurrent_mode:
+        if self.concurrent_mode and not use_local:
             assert BookKeeper.has_info(), "No BookKeeping info found for this thread/process with key {}. Was set_info " \
                                           "called on this thread first?".format(BookKeeper._get_key())
             info = BookKeeper.get_info()
@@ -49,23 +49,47 @@ class Data:
         else:
             self.driver = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB, password=REDIS_PASSWORD)
 
-    def set(self):
-        pass
+    def set(self, d):
+        self.driver.set(self.key, d)
 
     def get(self):
-        pass
+        self.driver.get(self.key)
 
 
 class Int(Data):
-    pass
+    def __init__(self):
+        super().__init__()
+
+    def set(self, d):
+        assert isinstance(d, int), 'Provided argument is not an integer.'
+        super().set(d)
 
 
 class Str(Data):
-    pass
+    def __init__(self):
+        super().__init__()
+
+    def set(self, d):
+        assert isinstance(d, int), 'Provided argument is not a string.'
+        super().set(d)
 
 
 class Bool(Data):
-    pass
+    def __init__(self):
+        super().__init__()
+
+    def set(self, d):
+        assert isinstance(d, bool), 'Provided argument is not a boolean.'
+        super().set(d)
+
+
+class Bytes(Data):
+    def __init__(self):
+        super().__init__()
+
+    def set(self, d):
+        assert isinstance(d, bytes), 'Provided argument is not a byte string.'
+        super().set(d)
 
 # p(<key>) is the value. you set it to a key (which has to be automatic) and 'getting' it will return
 class Pointer(Data):
