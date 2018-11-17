@@ -191,9 +191,6 @@ Tracer_methods[] = {
     { "stop",       (PyCFunction) Tracer_stop,          METH_VARARGS,
             PyDoc_STR("Stop the tracer") },
 
-    // { "get_stats",  (PyCFunction) Tracer_get_stats,     METH_VARARGS,
-    //         PyDoc_STR("Get statistics about the tracing") },
-
     { "set_stamp",  (PyCFunction) Tracer_set_stamp,     METH_VARARGS,
             PyDoc_STR("Set the stamp before starting the tracer") },
 
@@ -206,7 +203,7 @@ Tracer_methods[] = {
 static PyTypeObject
 TracerType = {
     MyType_HEAD_INIT
-    "seneca.libs.metering.Tracer",         /*tp_name*/
+    "seneca.libs.metering.tracer",         /*tp_name*/
     sizeof(Tracer),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)Tracer_dealloc, /*tp_dealloc*/
@@ -254,7 +251,7 @@ TracerType = {
 static PyModuleDef
 moduledef = {
     PyModuleDef_HEAD_INIT,
-    "seneca.libs.metering.Tracer",
+    "seneca.libs.metering.tracer",
     MODULE_DOC,
     -1,
     NULL,       /* methods */
@@ -268,21 +265,19 @@ moduledef = {
 PyObject *
 PyInit_tracer(void)
 {
-
+    Py_Initialize();
     PyObject * mod = PyModule_Create(&moduledef);
     if (mod == NULL) {
         return NULL;
     }
-
     TracerType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&TracerType) < 0) {
         Py_DECREF(mod);
+        printf("Not ready");
         return NULL;
     }
-
     Py_INCREF(&TracerType);
     PyModule_AddObject(mod, "Tracer", (PyObject *)&TracerType);
-
     return mod;
 }
 
@@ -292,7 +287,7 @@ void
 inittracer(void)
 {
     PyObject * mod;
-    mod = Py_InitModule3("seneca.libs.metering.Tracer", NULL, MODULE_DOC);
+    mod = Py_InitModule3("seneca.libs.metering.tracer", NULL, MODULE_DOC);
 
     if (mod == NULL) {
         return;
