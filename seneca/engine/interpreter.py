@@ -1,6 +1,7 @@
 import redis, ast, marshal, array, copy, inspect, types, uuid, copy, ujson as json, sys, time
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
 from seneca.constants.config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET, CODE_OBJ_MAX_CACHE
+from seneca.constants.env import DECIMAL_PRECISION
 from functools import lru_cache
 from tracer import Tracer
 import seneca, os
@@ -111,6 +112,10 @@ class SenecaInterpreter:
     @classmethod
     def parse_ast(cls, code_str, protected_variables=[]):
 
+        decimal_addon = '''from seneca.libs.decimal import make_decimal'''.format(DECIMAL_PRECISION)
+
+        code_str = decimal_addon + '\n' + code_str
+
         tree = ast.parse(code_str)
         protected_variables += ['export']
         current_ast_types = set()
@@ -146,6 +151,12 @@ class SenecaInterpreter:
 
             elif isinstance(item, ast.AugAssign):
                 cls.check_protected(item.target, protected_variables)
+
+            elif isinstance(item, ast.Num):
+                # turn floats into decimals
+                if isinstance(item.n, float):
+                    item = ast.Call(func=ast.Name(id='make_decimal', ctx=ast.Load()),
+                                    args=[item], keywords=[])
 
             elif isinstance(item, ast.FunctionDef):
                 for fn_item in item.body:

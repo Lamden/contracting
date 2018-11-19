@@ -13,8 +13,14 @@ REDIS_PASSWORD = get_redis_password()
 
 
 class Registry:
+    # Maps objects to a count for lookup
     mapping = {}
+
+    # Counts 'salt' objects to produce unique keys which can be seen as 'addresses' in memory
     count = 0
+
+    # Keys needs to be kept track of because
+    keys = []
 
     @classmethod
     def add(cls, obj):
@@ -53,9 +59,13 @@ class Registry:
 
 
 class Data:
-    def __init__(self, use_local=False):
+    def __init__(self, use_local=False, register=True, key=None):
         Registry.add(self)
-        self.key = Registry.get_key(self)
+        self.prefix = 'd'
+        if register:
+            self.key = Registry.get_key(self)
+        else:
+            self.key = key
         self.concurrent_mode = SenecaInterpreter.concurrent_mode
         if self.concurrent_mode and not use_local:
             assert BookKeeper.has_info(), "No BookKeeping info found for this thread/process with key {}. Was set_info " \
@@ -166,3 +176,19 @@ class Map(Data):
 
 class Ranking:
     pass
+
+
+def resolve(data: bytes):
+    prefix = data[0]
+    data = data[1:]
+
+    if prefix == b'i':
+        return int(data.decode())
+
+    if prefix == b's':
+        return data.decode()
+
+    if prefix == b'b':
+        d = int(data.decode())
+        return True if d else False
+
