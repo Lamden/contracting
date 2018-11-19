@@ -11,7 +11,8 @@ class TestSubmission(TestInterface):
         code_str = \
 '''
 f = 123.0000000000001
-print(repr(f))
+g = 55.1239878129861298371928749128
+print(f + g)
 '''
 
         self.si.execute_code_str(code_str)

@@ -1,6 +1,6 @@
 from decimal import Context
+from seneca.constants.env import DECIMAL_PRECISION
 
 
 def make_decimal(f):
-    print('hello')
-    return Context(prec=2).create_decimal_from_float(f)
+    return Context(prec=DECIMAL_PRECISION).create_decimal_from_float(f)

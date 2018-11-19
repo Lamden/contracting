@@ -112,8 +112,8 @@ class SenecaInterpreter:
     @classmethod
     def parse_ast(cls, code_str, protected_variables=[]):
 
-        #decimal_addon = ''
-        decimal_addon = '''from seneca.libs.decimal import make_decimal'''.format(DECIMAL_PRECISION)
+        # crude but effective way to force fixed precision without developer behavior change
+        decimal_addon = 'from seneca.libs.decimal import make_decimal'
 
         code_str = decimal_addon + '\n' + code_str
 
@@ -127,23 +127,27 @@ class SenecaInterpreter:
             def visit_Name(self, node):
                 if SenecaInterpreter.is_system_variable(node.id):
                     raise CompilationException('Not allowed to read "{}"'.format(node.id))
+                self.generic_visit(node)
                 return node
 
             def visit_Attribute(self, node):
                 if SenecaInterpreter.is_system_variable(node.attr):
                     raise CompilationException('Not allowed to read "{}"'.format(node.attr))
+                self.generic_visit(node)
                 return node
 
             def visit_Import(self, node):
                 module_name = node.names[0].name
                 SenecaInterpreter.assert_import_path(module_name)
                 prevalidated.body.append(node)
+                self.generic_visit(node)
                 return node
 
             def visit_ImportFrom(self, node):
                 module_name = node.names[0].name
                 SenecaInterpreter.assert_import_path(node.module, module_name=module_name)
                 prevalidated.body.append(node)
+                self.generic_visit(node)
                 return node
 
             def visit_Assign(self, node):
@@ -155,69 +159,15 @@ class SenecaInterpreter:
 
             def visit_AugAssign(self, node):
                 SenecaInterpreter.check_protected(node.target, protected_variables)
+                self.generic_visit(node)
                 return node
 
             def visit_Num(self, node):
                 if isinstance(node.n, float):
                     return ast.Call(func=ast.Name(id='make_decimal', ctx=ast.Load()),
                                     args=[node], keywords=[])
+                self.generic_visit(node)
                 return node
-        #
-        # for idx, item in enumerate(ast.walk(tree)):
-        #
-        #     if isinstance(item, ast.Name):
-        #         if cls.is_system_variable(item.id):
-        #             raise CompilationException('Not allowed to read "{}"'.format(item.id))
-        #
-        #     # Restrict __attr__ to be accessed
-        #     if isinstance(item, ast.Attribute):
-        #         if cls.is_system_variable(item.attr):
-        #             raise CompilationException('Not allowed to read "{}"'.format(item.attr))
-        #
-        #     # Restrict protected_imports to ones in ALLOWED_IMPORT_PATHS
-        #     elif isinstance(item, ast.Import):
-        #         module_name = item.names[0].name
-        #         cls.assert_import_path(module_name)
-        #         prevalidated.body.append(item)
-        #
-        #     elif isinstance(item, ast.ImportFrom):
-        #         module_name = item.names[0].name
-        #         cls.assert_import_path(item.module, module_name=module_name)
-        #         prevalidated.body.append(item)
-        #
-        #     # Restrict variable assignment
-        #     elif isinstance(item, ast.Assign):
-        #         for target in item.targets:
-        #             cls.check_protected(target, protected_variables)
-        #
-        #     elif isinstance(item, ast.AugAssign):
-        #         cls.check_protected(item.target, protected_variables)
-        #
-        #     elif isinstance(item, ast.Num):
-        #         # turn floats into decimals
-        #         print('yeet')
-        #         if isinstance(item.n, float):
-        #             # item = ast.copy_location(ast.Call(func=ast.Name(id='make_decimal', ctx=ast.Load()),
-        #             #                 args=[item], keywords=[]), item)
-        #
-        #             _func = ast.Name()
-        #             _func.id = 'make_decimal'
-        #             _func.ctx = ast.Load()
-        #
-        #             node = ast.Call()
-        #             node.func = _func
-        #             node.lineno = item.lineno
-        #             node.col_offset = 0
-        #             node.id = 'make_decimal'
-        #             node.args = [item]
-        #
-        #     elif isinstance(item, ast.FunctionDef):
-        #         for fn_item in item.body:
-        #             if isinstance(fn_item, (ast.Import, ast.ImportFrom)):
-        #                 raise ImportError('Cannot import modules inside a function!')
-        #
-        #         prevalidated.body.append(item)
-        #     current_ast_types.add(type(item))
 
         tree = SenecaNodeTransformer().visit(tree)
         ast.fix_missing_locations(tree)
