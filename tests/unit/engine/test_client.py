@@ -32,7 +32,7 @@ def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: s
 
 
 class TestSenecaClient(TestCase):
-    CONTRACTS_TO_STORE = {'currency': 'kv_currency.sen.py'}
+    CONTRACTS_TO_STORE = {'currency': 'currency.sen.py'}
 
     def assert_completion(self, expected_sbb_rep: List[tuple]=None, input_hash=''):
         def _completion_handler(cr_data: CRContext):
