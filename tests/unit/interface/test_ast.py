@@ -5,6 +5,7 @@ from os.path import join
 from tests.utils import captured_output, TestInterface
 import redis, unittest, seneca
 
+
 class TestSubmission(TestInterface):
     def test_floats_to_decimals(self):
         code_str = \
