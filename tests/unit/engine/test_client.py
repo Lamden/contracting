@@ -4,38 +4,30 @@ from seneca.engine.client import *
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.libs.logger import overwrite_logger_level
+from decimal import Decimal
 
 
 GENESIS_AUTHOR = 'davis'
-
-
-XFER_CODE_STR = """ \
-
-from seneca.contracts.currency import transfer
-transfer('{receiver}', {amount})
-"""
-
-
-MINT_CODE_STR = """ \
-
-from seneca.contracts.currency import mint
-mint('davis', 10000)
-mint('stu', 69)
-mint('birb', 8000)
-mint('ghu', 9000)
-mint('tj', 8000)
-mint('ethan', 8000)
-"""
+STAMP_AMOUNT = 100000
+MINT_WALLETS = {
+    'davis': 10000,
+    'stu': 69,
+    'birb': 8000,
+    'ghu': 9000,
+    'tj': 8000,
+    'ethan': 8000
+}
 
 
 class MockContract:
-    def __init__(self, sender: str, code: str, contract_name: str):
-        self.sender, self.code, self.contract_name = sender, code, contract_name
+    def __init__(self, sender: str, contract_name: str, func_name: str, stamps=STAMP_AMOUNT, **kwargs):
+        self.stamps, self.sender, self.func_name, self.contract_name = stamps, sender, func_name, contract_name
+        self.kwargs = kwargs
 
 
 def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: str='currency'):
-    code = XFER_CODE_STR.format(receiver=receiver, amount=amount)
-    contract = MockContract(sender=sender, code=code, contract_name=contract_name)
+    contract = MockContract(sender=sender, contract_name='currency', func_name='transfer', to=receiver,
+                            amount=amount)
     return contract
 
 
@@ -69,7 +61,10 @@ class TestSenecaClient(TestCase):
                 'sender': GENESIS_AUTHOR,
                 'contract': 'minter'
             }
-            interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
+            # interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
+            for wallet, amount in MINT_WALLETS.items():
+                interface.execute_function(module_path='seneca.contracts.currency.mint', author=GENESIS_AUTHOR,
+                                           sender=GENESIS_AUTHOR, stamps=9000, to=wallet, amount=amount)
 
     def test_setup_dbs(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
