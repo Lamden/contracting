@@ -188,33 +188,42 @@ class SenecaInterpreter:
 
     @classmethod
     @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
-    def get_cached_code_obj(cls, module_path):
+    def get_cached_code_obj(cls, module_path, stamps_supplied):
         cls.assert_import_path(module_path)
         module = module_path.rsplit('.', 1)
         code_str = '''
 result = {}()
         '''.format(module[1])
         code_obj = compile(code_str, '__main__', 'exec')
-        import_obj = compile('from {} import {}'.format(module[0], module[1]), '__main__', 'exec')
+        import_obj = compile('''
+from seneca.contracts.currency import balance_of, submit_stamps
+submit_stamps({})
+from {} import {}
+        '''.format(stamps_supplied, module[0], module[1]), '__main__', 'exec')
         return code_obj, import_obj
 
     @classmethod
     def execute_function(cls, module_path, author, sender, stamps, *args, **kwargs):
         scope = {
-            'rt': { 'author': author, 'sender': sender, 'contract': module_path },
+            'rt': { 'author': author, 'sender': sender, 'contract': module_path.rsplit('.', 1)[0] },
             '__builtins__': SAFE_BUILTINS,
             '__args__': args,
             '__kwargs__': kwargs,
-            '__use_locals__': True
+            '__use_locals__': False
         }
-        code_obj, import_obj = cls.get_cached_code_obj(module_path)
+        code_obj, import_obj = cls.get_cached_code_obj(module_path, stamps)
         cls.loaded['__main__'] = scope
-        exec(import_obj, scope)
-        cls.tracer.set_stamp(stamps)
-        cls.tracer.start()
-        exec(code_obj, scope)
-        cls.tracer.stop()
-        # print('xxx',cls.tracer.get_stamp_used())
+        if module_path == 'seneca.contracts.currency.mint':
+            exec('from seneca.contracts.currency import mint', scope)
+            scope.update({'__use_locals__': True})
+            exec(code_obj, scope)
+        else:
+            exec(import_obj, scope)
+            scope.update({'__use_locals__': True})
+            cls.tracer.set_stamp(stamps)
+            cls.tracer.start()
+            exec(code_obj, scope)
+            cls.tracer.stop()
         return {
             'status': 'success',
             'output': scope.get('result'),
