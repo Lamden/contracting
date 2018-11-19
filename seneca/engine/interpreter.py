@@ -149,6 +149,8 @@ class SenecaInterpreter:
             def visit_Assign(self, node):
                 for target in node.targets:
                     SenecaInterpreter.check_protected(target, protected_variables)
+
+                self.generic_visit(node)
                 return node
 
             def visit_AugAssign(self, node):
@@ -156,10 +158,7 @@ class SenecaInterpreter:
                 return node
 
             def visit_Num(self, node):
-                print('eyy???')
-                print(node.n)
                 if isinstance(node.n, float):
-                    print('eyyyyy')
                     return ast.Call(func=ast.Name(id='make_decimal', ctx=ast.Load()),
                                     args=[node], keywords=[])
                 return node
@@ -221,6 +220,7 @@ class SenecaInterpreter:
         #     current_ast_types.add(type(item))
 
         tree = SenecaNodeTransformer().visit(tree)
+        ast.fix_missing_locations(tree)
 
         illegal_ast_nodes = current_ast_types - ALLOWED_AST_TYPES
         assert not illegal_ast_nodes, 'Illegal AST node(s) in module: {}'.format(
