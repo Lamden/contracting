@@ -1,7 +1,6 @@
 import redis, ast, marshal, array, copy, inspect, types, uuid, copy, ujson as json, sys, time
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
 from seneca.constants.config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET, CODE_OBJ_MAX_CACHE
-from seneca.constants.env import DECIMAL_PRECISION
 from functools import lru_cache
 from tracer import Tracer
 import seneca, os
@@ -163,7 +162,8 @@ class SenecaInterpreter:
                 return node
 
             def visit_Num(self, node):
-                if isinstance(node.n, float):
+                if isinstance(node.n, float) or isinstance(node.n, int):
+                    print('holla')
                     return ast.Call(func=ast.Name(id='make_decimal', ctx=ast.Load()),
                                     args=[node], keywords=[])
                 self.generic_visit(node)
@@ -239,8 +239,8 @@ result = {}()
             'remaining_stamps': stamps - cls.tracer.get_stamp_used()
         }
 
-class ScopeParser:
 
+class ScopeParser:
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(SenecaInterpreter.loaded['__main__'])
         fn.__globals__['rt']['contract'] = fn.__module__
@@ -252,6 +252,7 @@ class ScopeParser:
     def set_scope_during_compilation(self, fn):
         self.module = '.'.join([fn.__module__, fn.__name__])
         SenecaInterpreter.exports[self.module] = True
+
 
 class Export(ScopeParser):
     def __call__(self, fn):

@@ -5,7 +5,7 @@ from seneca.libs.logger import get_logger
 from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.engine.conflict_resolution import RedisProxy
-
+from decimal import Decimal
 '''
 
 Datatype serialization format:
@@ -28,7 +28,9 @@ type_to_string = {
     str: 'str',
     int: 'int',
     bool: 'bool',
-    bytes: 'bytes'
+    bytes: 'bytes',
+    float: 'float',
+    Decimal: 'float'
 }
 
 
@@ -36,12 +38,14 @@ string_to_type = {
     'str': str,
     'int': int,
     'bool': bool,
-    'bytes': bytes
+    'bytes': bytes,
+    'float': Decimal
 }
 
 primitive_types = [int, str, bool, bytes, None]
 REDIS_PORT = get_redis_port()
 REDIS_PASSWORD = get_redis_password()
+
 
 def extract_prefix(s):
     prefix = None
@@ -50,6 +54,7 @@ def extract_prefix(s):
         prefix_s = s[:prefix_idx_end]
         return prefix_s.split(':')[-1], s[1+prefix_idx_end:]
     return None, s
+
 
 def encode_type(t):
     if isinstance(t, RObject):
@@ -66,6 +71,7 @@ primitive_tokens = ['int', 'str', 'bool', 'bytes']
 complex_tokens = ['map', 'list', 'table', 'ranked']
 all_tokens = ['int', 'str', 'bool', 'bytes', 'map', 'list', 'table', 'ranked']
 # # #
+
 
 def parse_representation(s):
     if s[0] == CTP:
