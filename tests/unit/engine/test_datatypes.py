@@ -506,8 +506,9 @@ class TestDatatypes(TestCase):
         h.set('stu', 0.01)
 
         f = h.get('stu')
-        print(type(f))
-        print(f)
+
+        self.assertTrue(isinstance(f, Decimal))
+        self.assertEqual(Decimal('0.01'), f)
 
 if __name__ == '__main__':
     unittest.main()
