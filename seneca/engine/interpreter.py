@@ -235,10 +235,11 @@ from {} import {}
                 cls.tracer.stop()
             else:
                 exec(code_obj, scope)
+        stamps = stamps - cls.tracer.get_stamp_used() if stamps is not None else 0
         return {
             'status': 'success',
             'output': scope.get('result'),
-            'remaining_stamps': stamps - cls.tracer.get_stamp_used()
+            'remaining_stamps': stamps
         }
 
 

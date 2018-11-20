@@ -8,7 +8,7 @@ from decimal import Decimal
 
 
 GENESIS_AUTHOR = 'davis'
-STAMP_AMOUNT = 100000
+STAMP_AMOUNT = None
 MINT_WALLETS = {
     'davis': 10000,
     'stu': 69,
@@ -69,7 +69,7 @@ class TestSenecaClient(TestCase):
             # interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
             for wallet, amount in MINT_WALLETS.items():
                 interface.execute_function(module_path='seneca.contracts.currency.mint', author=GENESIS_AUTHOR,
-                                           sender=GENESIS_AUTHOR, stamps=9000, to=wallet, amount=amount)
+                                           sender=GENESIS_AUTHOR, stamps=STAMP_AMOUNT, to=wallet, amount=amount)
 
     def test_setup_dbs(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
