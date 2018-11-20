@@ -200,7 +200,7 @@ result = {}()
 from seneca.contracts.currency import balance_of, submit_stamps
 submit_stamps({})
 from {} import {}
-            '''.format(stamps_supplied, module[0], module[1]))
+            '''.format(stamps_supplied, module[0], module[1]), '__main__', 'exec')
         else:
             import_obj = compile('''
 from {} import {}
