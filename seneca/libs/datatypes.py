@@ -363,7 +363,7 @@ class RObject:
             info = BookKeeper.get_info()
             self.driver = RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
 
-    def encode_value(self, value):
+    def encode_value(self, value, explicit=None):
         v = None
 
         if issubclass(type(self.value_type), Placeholder):
@@ -372,7 +372,7 @@ class RObject:
             v = value.rep()
 
         else:
-            assert type(value) == self.value_type or self.value_type is None, \
+            assert type(value) == self.value_type or self.value_type is None or explicit is True, \
                 'Value is not of type "{}"'.format(self.value_type)
             v = json.dumps(value)
 
@@ -648,11 +648,11 @@ class Ranked(RObject):
                          rep_str='ranked')
 
     def add(self, member, score: int):
-        m = self.encode_value(member)
+        m = self.encode_value(member, explicit=True)
         return self.driver.zadd(self.prefix, score, m)
 
     def delete(self, member):
-        m = self.encode_value(member)
+        m = self.encode_value(member, explicit=True)
         return self.driver.zrem(self.prefix, m)
 
     def get_max(self):
@@ -669,11 +669,13 @@ class Ranked(RObject):
 
     def pop_max(self):
         m = self.get_max()
-        return self.delete(m)
+        self.delete(m)
+        return m
 
     def pop_min(self):
         m = self.get_min()
-        return self.delete(m)
+        self.delete(m)
+        return m
 
     def score(self, member):
         m = self.encode_value(member)

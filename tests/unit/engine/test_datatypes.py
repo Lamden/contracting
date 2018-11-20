@@ -3,6 +3,7 @@ import unittest
 from unittest import TestCase
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.libs.datatypes import *
+from seneca.libs.decimal import make_decimal
 from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 
 '''
@@ -501,7 +502,25 @@ class TestDatatypes(TestCase):
 
         self.assertEqual(l.pop(), None)
 
-    def test_float_1(self):
+    def test_ranked_pop_max(self):
+        r = ranked('woot', str, int)
+        r.add('stu', 1000)
+        r.add('davis', 1001)
+        r.add('falcon', 999)
+
+        _r = r.pop_max()
+        self.assertEqual(_r, 'davis')
+
+    def test_ranked_pop_min(self):
+        r = ranked('woot', str, int)
+        r.add('stu', 1000)
+        r.add('davis', 1001)
+        r.add('falcon', 999)
+
+        _r = r.pop_min()
+        self.assertEqual(_r, 'falcon')
+
+    def test_float_hmap(self):
         h = hmap('test', str, float)
         h.set('stu', 0.01)
 
@@ -509,6 +528,17 @@ class TestDatatypes(TestCase):
 
         self.assertTrue(isinstance(f, Decimal))
         self.assertEqual(Decimal('0.01'), f)
+
+    def test_float_as_key_type(self):
+        h = hmap('test2', float, float)
+        h.set(0.1234, 22/7)
+
+        f = h.get(0.1234)
+
+        _f = make_decimal(22/7)
+
+        #self.assertTrue(isinstance(f, Decimal))
+        #self.assertEqual(Decimal(str(_f)), f)
 
 if __name__ == '__main__':
     unittest.main()
