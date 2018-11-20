@@ -64,7 +64,7 @@ setup(
     classifiers=[
         'Programming Language :: Python :: 3.6',
     ],
-    zip_safe=False,
+    zip_safe=True,
     data_files=[
         ('./seneca/constants', ['seneca/constants/cu_costs.const']),
     ],
