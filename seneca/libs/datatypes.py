@@ -108,16 +108,14 @@ def parse_complex_type_repr(s):
 
 
 def parse_simple_type_repr(s):
-    if s == 'str':
-        return str
-    if s == 'int':
-        return int
-    if s == 'bool':
-        return bool
-    if s == 'bytes':
-        return bytes
-    if s == 'float':
-        return Decimal
+    m = {
+        'str': str,
+        'int': int,
+        'bool': bool,
+        'bytes': bytes,
+        'float': Decimal
+    }
+    return m.get(s)
 
 
 def build_table_from_repr(s):
@@ -377,7 +375,6 @@ class RObject:
             if isinstance(value, float):
                 v = make_decimal(value)
                 v = str(v)
-                print('yee: {}'.format(v))
             else:
                 v = json.dumps(value)
 
@@ -393,7 +390,6 @@ class RObject:
             if value[0] == CTP:
                 return parse_complex_type_repr(value)
             else:
-                print(value)
                 try:
                     value = Decimal(value)
                 except:

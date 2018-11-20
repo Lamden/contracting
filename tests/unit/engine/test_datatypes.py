@@ -541,7 +541,6 @@ class TestDatatypes(TestCase):
         f = h.get(0.1234)
 
         _f = make_decimal(22/7)
-        print(_f)
 
         self.assertTrue(isinstance(f, Decimal))
         self.assertEqual(_f, f)
