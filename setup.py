@@ -11,7 +11,7 @@ def get_version_number():
         ver = '{}.{}.{}'.format(major, minor, patch)
         return ver
     else:
-        return '{}.1.180'.format(major)
+        return '{}.3.32'.format(major)
 
 __version__ = get_version_number()
 
