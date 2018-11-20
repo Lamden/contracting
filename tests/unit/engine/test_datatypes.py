@@ -501,6 +501,13 @@ class TestDatatypes(TestCase):
 
         self.assertEqual(l.pop(), None)
 
+    def test_float_1(self):
+        h = hmap('test', str, float)
+        h.set('stu', 0.01)
+
+        f = h.get('stu')
+        print(type(f))
+        print(f)
 
 if __name__ == '__main__':
     unittest.main()

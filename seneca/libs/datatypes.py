@@ -6,6 +6,7 @@ from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.engine.conflict_resolution import RedisProxy
 from decimal import Decimal
+from seneca.libs.decimal import make_decimal
 '''
 
 Datatype serialization format:
@@ -42,7 +43,7 @@ string_to_type = {
     'float': Decimal
 }
 
-primitive_types = [int, str, bool, bytes, None]
+primitive_types = [int, str, bool, bytes, Decimal, float, None]
 REDIS_PORT = get_redis_port()
 REDIS_PASSWORD = get_redis_password()
 
@@ -55,7 +56,10 @@ def extract_prefix(s):
         return prefix_s.split(':')[-1], s[1+prefix_idx_end:]
     return None, s
 
-
+'''
+Returns the representation of the complex type if it is not a primative.
+Otherwise, returns 
+'''
 def encode_type(t):
     if isinstance(t, RObject):
         return t.rep()
@@ -67,7 +71,7 @@ def encode_type(t):
     return None
 
 
-primitive_tokens = ['int', 'str', 'bool', 'bytes']
+primitive_tokens = ['int', 'str', 'bool', 'bytes', 'float', 'float']
 complex_tokens = ['map', 'list', 'table', 'ranked']
 all_tokens = ['int', 'str', 'bool', 'bytes', 'map', 'list', 'table', 'ranked']
 # # #
@@ -112,6 +116,8 @@ def parse_simple_type_repr(s):
         return bool
     if s == 'bytes':
         return bytes
+    if s == 'float':
+        return Decimal
 
 
 def build_table_from_repr(s):
@@ -301,7 +307,9 @@ def is_complex_type(v):
 vivified_primitives = {
     int: 0,
     str: '',
-    bool: False
+    bool: False,
+    float: Decimal('0'),
+    bytes: b''
 }
 
 
