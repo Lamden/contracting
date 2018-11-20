@@ -381,6 +381,10 @@ class RObject:
                 return parse_complex_type_repr(value)
             else:
                 value = json.loads(value)
+
+                # get fixed point precision for floats
+                if isinstance(value, float):
+                    value = Decimal(str(value))
         return value
 
     def check_key_type(self, key):
