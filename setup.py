@@ -9,9 +9,13 @@ def get_version_number():
     if os.getenv('CIRCLECI'):
         minor, patch = divmod(int(os.getenv('CIRCLE_BUILD_NUM')), 180)
         ver = '{}.{}.{}'.format(major, minor, patch)
+        with open('.version', 'w+') as f:
+            f.write(ver)
         return ver
     else:
-        return '{}.3.32'.format(major)
+        with open('.version') as f:
+            ver = f.read()
+            return ver
 
 __version__ = get_version_number()
 
