@@ -19,6 +19,29 @@ MINT_WALLETS = {
 }
 
 
+TEST_CONTRACT = \
+"""
+balances = {'hello': 'world'}
+
+@export
+def one_you_can_export():
+    print('Running one_you_can_export()')
+
+@export
+def one_you_can_also_export():
+    print('Running one_you_can_also_export()')
+    one_you_can_export()
+
+def one_you_cannot_export(dont, do, it='wrong'):
+    print('Always runs: Running one_you_cannot_export()')
+
+@export
+def one_you_can_also_also_export():
+    print('Running one_you_can_also_also_export()')
+    one_you_cannot_export('a', 'b', it='c')
+"""
+
+
 class MockContractTransaction:
     def __init__(self, sender: str, contract_name: str, func_name: str, stamps=STAMP_AMOUNT, **kwargs):
         self.stamps, self.sender, self.func_name, self.contract_name = stamps, sender, func_name, contract_name
@@ -26,8 +49,8 @@ class MockContractTransaction:
 
 
 class MockPublishTransaction:
-    def __init__(self, sender: str, contract_name: str, code_str: str, stamps=STAMP_AMOUNT):
-        self.stamps, self.sender, self.code_str, self.contract_name = stamps, sender, code_str, contract_name
+    def __init__(self, sender: str, contract_name: str, contract_code: str, stamps=STAMP_AMOUNT):
+        self.stamps, self.sender, self.contract_code, self.contract_name = stamps, sender, contract_code, contract_name
 
 
 def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: str='currency'):
@@ -110,8 +133,28 @@ class TestSenecaClient(TestCase):
         self.assertEqual(client.active_db.next_contract_idx, 2)
 
     def test_with_publish_transactions(self):
-        # TODO implement
-        pass
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        input_hash = 'A' * 64
+        c1 = create_currency_tx('davis', 'stu', 14)
+        c2 = MockPublishTransaction(sender='davis', contract_name='test', contract_code=TEST_CONTRACT)
+        expected_sbb_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
+                            (c2, "SUCC", "")]
+
+        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client._start_sb(input_hash)
+
+        client.run_contract(c1)
+        client.run_contract(c2)
+
+        client._end_sb(self.assert_completion(expected_sbb_rep, input_hash))
+        self.assertTrue(input_hash in client.pending_futures)
+
+        # We must run the future manually, since the event loop is not currently running
+        loop.run_until_complete(client.pending_futures[input_hash]['fut'])
+
+        loop.close()
 
     def test_end_subblock_1_sbb(self):
         loop = asyncio.new_event_loop()

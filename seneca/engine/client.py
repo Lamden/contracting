@@ -151,20 +151,19 @@ class SenecaClient(SenecaInterface):
         BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data)
         contract_name = contract.contract_name
 
-        # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
-        if hasattr(contract, 'contract_code'):
-            author = contract.sender
-            execute_fn = lambda: self.publish_code_str(fullname=contract.contract_name, author=author,
-                                                       code_str=contract.contract_code, keep_original=True)
-        else:
-            author = self.get_contract_meta(contract_name)['author']
-            mod_path = module_path_for_contract(contract)
-            execute_fn = lambda: self.execute_function(module_path=mod_path, author=author, sender=contract.sender,
-                                                       stamps=contract.stamps, **contract.kwargs)
-
         try:
-            execute_fn()
+            # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
+            if hasattr(contract, 'contract_code'):
+                author = contract.sender
+                self.publish_code_str(fullname=contract.contract_name, author=author,
+                                      code_str=contract.contract_code, keep_original=True)
+            else:
+                author = self.get_contract_meta(contract_name)['author']
+                mod_path = module_path_for_contract(contract)
+                self.execute_function(module_path=mod_path, author=author, sender=contract.sender,
+                                      stamps=contract.stamps, **contract.kwargs)
             result = SUCC_FLAG
+
         except Exception as e:
             self.log.warning("Contract failed with error: {} \ncontract obj: {}".format(e, contract))
             result = 'FAIL' + ' -- ' + str(e)
