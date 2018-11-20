@@ -61,17 +61,10 @@ Returns the representation of the complex type if it is not a primative.
 Otherwise, returns 
 '''
 def encode_type(t):
-    if isinstance(t, RObject):
+    if isinstance(t, RObject) or isinstance(t, Placeholder):
         return t.rep()
-    if isinstance(t, Placeholder):
-        return t.rep()
-    for i in range(len(primitive_types)-1):
-        if t == primitive_types[i]:
-            return primitive_tokens[i]
-    return None
+    return type_to_string.get(t)
 
-
-primitive_tokens = ['int', 'str', 'bool', 'bytes', 'float', 'float']
 complex_tokens = ['map', 'list', 'table', 'ranked']
 all_tokens = ['int', 'str', 'bool', 'bytes', 'map', 'list', 'table', 'ranked']
 # # #
@@ -85,15 +78,14 @@ def parse_representation(s):
 
 
 def parse_type_repr(s):
-    if s in complex_tokens:
+    if s in complex_tokens and s[0] == CTP:
         return parse_complex_type_repr(s)
-    elif s in primitive_tokens:
+    elif s in string_to_type.keys():
         return string_to_type.get(s)
     return None
 
 
 def parse_complex_type_repr(s):
-    assert s[0] == CTP
     s = s[1:]
     for t in complex_tokens:
         if s.startswith(t):
