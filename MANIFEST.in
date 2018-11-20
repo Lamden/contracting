@@ -1,2 +1,2 @@
 include seneca/constants/cu_costs.const
-include .version
+include seneca/.version
