@@ -7,7 +7,7 @@ major = 0
 
 def get_version_number():
     if os.getenv('CIRCLECI'):
-        minor, patch = divmod(int(os.getenv('CIRCLE_BUILD_NUM')), 360)
+        minor, patch = divmod(int(os.getenv('CIRCLE_BUILD_NUM')), 180)
         ver = '{}.{}.{}'.format(major, minor, patch)
         return ver
     else:
