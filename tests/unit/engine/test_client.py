@@ -19,15 +19,20 @@ MINT_WALLETS = {
 }
 
 
-class MockContract:
+class MockContractTransaction:
     def __init__(self, sender: str, contract_name: str, func_name: str, stamps=STAMP_AMOUNT, **kwargs):
         self.stamps, self.sender, self.func_name, self.contract_name = stamps, sender, func_name, contract_name
         self.kwargs = kwargs
 
 
+class MockPublishTransaction:
+    def __init__(self, sender: str, contract_name: str, code_str: str, stamps=STAMP_AMOUNT):
+        self.stamps, self.sender, self.code_str, self.contract_name = stamps, sender, code_str, contract_name
+
+
 def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: str='currency'):
-    contract = MockContract(sender=sender, contract_name='currency', func_name='transfer', to=receiver,
-                            amount=amount)
+    contract = MockContractTransaction(sender=sender, contract_name='currency', func_name='transfer', to=receiver,
+                                       amount=amount)
     return contract
 
 
@@ -103,6 +108,10 @@ class TestSenecaClient(TestCase):
 
         client.run_contract(c2)
         self.assertEqual(client.active_db.next_contract_idx, 2)
+
+    def test_with_publish_transactions(self):
+        # TODO implement
+        pass
 
     def test_end_subblock_1_sbb(self):
         loop = asyncio.new_event_loop()
