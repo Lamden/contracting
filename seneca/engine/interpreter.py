@@ -6,11 +6,14 @@ from seneca.libs.metering.tracer import Tracer
 import seneca, os
 from os.path import join
 
+
 class ReadOnlyException(Exception):
     pass
 
+
 class CompilationException(Exception):
     pass
+
 
 class SenecaInterpreter:
 
@@ -232,11 +235,13 @@ from {} import {}
                 cls.tracer.stop()
             else:
                 exec(code_obj, scope)
+        stamps = stamps - cls.tracer.get_stamp_used() if stamps is not None else 0
         return {
             'status': 'success',
             'output': scope.get('result'),
-            'remaining_stamps': stamps - cls.tracer.get_stamp_used()
+            'remaining_stamps': stamps
         }
+
 
 class ScopeParser:
 
@@ -251,6 +256,7 @@ class ScopeParser:
     def set_scope_during_compilation(self, fn):
         self.module = '.'.join([fn.__module__, fn.__name__])
         SenecaInterpreter.exports[self.module] = True
+
 
 class Export(ScopeParser):
     def __call__(self, fn):

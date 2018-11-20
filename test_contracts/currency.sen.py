@@ -5,14 +5,17 @@ allowed = hmap('allowed', str, hmap(value_type=int))
 market = hmap('market', str, int)
 market['stamps_to_tau'] = 1 # TODO, account for floats
 
+
 @export
 def submit_stamps(stamps):
     amount = stamps / market['stamps_to_tau'] # TODO, account for floats
     transfer('black_hole', int(amount))
 
+
 @export
 def balance_of(wallet_id):
     return balances[wallet_id]
+
 
 @export
 def transfer(to, amount):
@@ -25,6 +28,7 @@ def transfer(to, amount):
     sender_balance = balances[rt['sender']]
 
     assert sender_balance >= 0, "Sender balance must be non-negative!!!"
+
 
 @export
 def approve(spender, amount):
@@ -39,6 +43,7 @@ def transfer_from(_from, to, amount):
     allowed[_from][rt['sender']] -= amount
     balances[_from] -= amount
     balances[to] += amount
+
 
 @export
 def allowance(approver, spender):
