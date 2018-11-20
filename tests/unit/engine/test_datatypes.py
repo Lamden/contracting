@@ -520,6 +520,11 @@ class TestDatatypes(TestCase):
         _r = r.pop_min()
         self.assertEqual(_r, 'falcon')
 
+    def test_exists_hlist(self):
+        l = HList('bleh', str)
+        l.push('stu')
+        print(l.exists('stu'))
+
     def test_float_hmap(self):
         h = hmap('test', str, float)
         h.set('stu', 0.01)
@@ -530,15 +535,26 @@ class TestDatatypes(TestCase):
         self.assertEqual(Decimal('0.01'), f)
 
     def test_float_as_key_type(self):
-        h = hmap('test2', float, float)
+        h = hmap('test3', float, float)
         h.set(0.1234, 22/7)
 
         f = h.get(0.1234)
 
         _f = make_decimal(22/7)
+        print(_f)
 
-        #self.assertTrue(isinstance(f, Decimal))
-        #self.assertEqual(Decimal(str(_f)), f)
+        self.assertTrue(isinstance(f, Decimal))
+        self.assertEqual(_f, f)
+
+    def test_simple_type_reprs(self):
+        f = parse_representation('float')
+        self.assertEqual(f, Decimal)
+
+        f = parse_representation('bytes')
+        self.assertEqual(f, bytes)
+
+        f = parse_representation('bool')
+        self.assertEqual(f, bool)
 
 if __name__ == '__main__':
     unittest.main()

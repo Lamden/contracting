@@ -374,7 +374,12 @@ class RObject:
         else:
             assert type(value) == self.value_type or self.value_type is None or explicit is True, \
                 'Value is not of type "{}"'.format(self.value_type)
-            v = json.dumps(value)
+            if isinstance(value, float):
+                v = make_decimal(value)
+                v = str(v)
+                print('yee: {}'.format(v))
+            else:
+                v = json.dumps(value)
 
         v = v.encode()
         return v
@@ -388,11 +393,16 @@ class RObject:
             if value[0] == CTP:
                 return parse_complex_type_repr(value)
             else:
-                value = json.loads(value)
+                print(value)
+                try:
+                    value = Decimal(value)
+                except:
+                    value = json.loads(value)
 
                 # get fixed point precision for floats
-                if isinstance(value, float):
-                    value = Decimal(str(value))
+                # if isinstance(value, float):
+                #     print('eey: {}'.format(value))
+                #     value = make_decimal(value)
         return value
 
     def check_key_type(self, key):
