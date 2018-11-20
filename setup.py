@@ -9,11 +9,11 @@ def get_version_number():
     if os.getenv('CIRCLECI'):
         minor, patch = divmod(int(os.getenv('CIRCLE_BUILD_NUM')), 180)
         ver = '{}.{}.{}'.format(major, minor, patch)
-        with open('.version', 'w+') as f:
+        with open('seneca/version', 'w+') as f:
             f.write(ver)
         return ver
     else:
-        with open('.version') as f:
+        with open('seneca/version') as f:
             ver = f.read()
             return ver
 
