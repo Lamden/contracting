@@ -195,7 +195,7 @@ class SenecaInterpreter:
 result = {}()
         '''.format(module[1])
         code_obj = compile(code_str, '__main__', 'exec')
-        if stamps != None:
+        if stamps_supplied != None:
             import_obj = compile('''
 from seneca.contracts.currency import balance_of, submit_stamps
 submit_stamps({})
