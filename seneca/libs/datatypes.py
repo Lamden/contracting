@@ -81,14 +81,14 @@ def parse_representation(s):
     if s[0] == CTP:
         return parse_complex_type_repr(s)
     else:
-        return parse_simple_type_repr(s)
+        return string_to_type.get(s)
 
 
 def parse_type_repr(s):
     if s in complex_tokens:
         return parse_complex_type_repr(s)
     elif s in primitive_tokens:
-        return parse_simple_type_repr(s)
+        return string_to_type.get(s)
     return None
 
 
@@ -105,17 +105,6 @@ def parse_complex_type_repr(s):
                 return build_map_from_repr(s)
             elif t == 'ranked':
                 return build_ranked_from_repr(s)
-
-
-def parse_simple_type_repr(s):
-    m = {
-        'str': str,
-        'int': int,
-        'bool': bool,
-        'bytes': bytes,
-        'float': Decimal
-    }
-    return m.get(s)
 
 
 def build_table_from_repr(s):
@@ -149,7 +138,7 @@ def build_table_from_repr(s):
 
         if next_simple_type < next_complex_type:
             value = s[1:true_next_type]
-            t[key] = parse_simple_type_repr(value)
+            t[key] = string_to_type.get(value)
             s = s[1 + true_next_type:]
 
         else:
