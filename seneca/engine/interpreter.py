@@ -195,11 +195,16 @@ class SenecaInterpreter:
 result = {}()
         '''.format(module[1])
         code_obj = compile(code_str, '__main__', 'exec')
-        import_obj = compile('''
+        if stamps_supplied != None:
+            import_obj = compile('''
 from seneca.contracts.currency import balance_of, submit_stamps
 submit_stamps({})
 from {} import {}
-        '''.format(stamps_supplied, module[0], module[1]), '__main__', 'exec')
+            '''.format(stamps_supplied, module[0], module[1]), '__main__', 'exec')
+        else:
+            import_obj = compile('''
+from {} import {}
+            '''.format(module[0], module[1]), '__main__', 'exec')
         return code_obj, import_obj
 
     @classmethod
@@ -220,10 +225,13 @@ from {} import {}
         else:
             exec(import_obj, scope)
             scope.update({'__use_locals__': True})
-            cls.tracer.set_stamp(stamps)
-            cls.tracer.start()
-            exec(code_obj, scope)
-            cls.tracer.stop()
+            if stamps != None:
+                cls.tracer.set_stamp(stamps)
+                cls.tracer.start()
+                exec(code_obj, scope)
+                cls.tracer.stop()
+            else:
+                exec(code_obj, scope)
         return {
             'status': 'success',
             'output': scope.get('result'),
