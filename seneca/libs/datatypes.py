@@ -7,6 +7,10 @@ from seneca.engine.interpreter import SenecaInterpreter
 from seneca.engine.conflict_resolution import RedisProxy
 from decimal import Decimal
 from seneca.libs.decimal import make_decimal
+
+REDIS_PORT = get_redis_port()
+REDIS_PASSWORD = get_redis_password()
+
 '''
 
 Datatype serialization format:
@@ -43,10 +47,16 @@ string_to_type = {
     'float': Decimal
 }
 
-primitive_types = [int, str, bool, bytes, Decimal, float, None]
-REDIS_PORT = get_redis_port()
-REDIS_PASSWORD = get_redis_password()
+vivified_primitives = {
+    int: 0,
+    str: '',
+    bool: False,
+    float: Decimal('0'),
+    bytes: b''
+}
 
+
+primitive_types = [int, str, bool, bytes, Decimal, float, None]
 
 def extract_prefix(s):
     prefix = None
@@ -68,6 +78,8 @@ def encode_type(t):
 complex_tokens = ['map', 'list', 'table', 'ranked']
 all_tokens = ['int', 'str', 'bool', 'bytes', 'map', 'list', 'table', 'ranked']
 # # #
+
+
 
 
 def parse_representation(s):
@@ -283,13 +295,6 @@ def is_complex_type(v):
     return False
 
 
-vivified_primitives = {
-    int: 0,
-    str: '',
-    bool: False,
-    float: Decimal('0'),
-    bytes: b''
-}
 
 
 # table to be done later
