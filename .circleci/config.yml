@@ -16,9 +16,7 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "requirements.txt" }}-0
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
+          - v1-dependencies-{{ checksum "requirements.txt" }}
 
       - run:
           name: Install Dockerize v0.6.0
@@ -48,7 +46,7 @@ jobs:
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-{{ checksum "requirements.txt" }}-0
+          key: v1-dependencies-{{ checksum "requirements.txt" }}
 
       - run:
           name: Wait for Redis

@@ -433,10 +433,10 @@ class HMap(RObject):
 
     def rep(self):
         return '{}map<{}:{}>({},{})'.format(CTP,
-                                         self.contract_id,
-                                         self.prefix,
-                                         encode_type(self.key_type),
-                                         encode_type(self.value_type))
+                                            self.contract_id,
+                                            self.prefix,
+                                            encode_type(self.key_type),
+                                            encode_type(self.value_type))
 
     def exists(self, k):
         return self.driver.exists(k)

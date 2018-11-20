@@ -15,8 +15,7 @@ class TestDatatypes(TestCase):
 
     def setUp(self):
         SenecaInterpreter.concurrent_mode = False
-        if not SenecaInterpreter.loaded:
-            SenecaInterpreter.loaded = {'__main__': {'rt': {'author': 'me', 'sender': 'me', 'contract': 'seneca.contracts.currency'}}}
+        SenecaInterpreter.loaded = {'__main__': {'rt': {'author': 'me', 'sender': 'me', 'contract': 'seneca.contracts.currency'}}}
         self.r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
         self.l = HList(prefix='yo')
         self.r.flushdb()
