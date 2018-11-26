@@ -9,9 +9,13 @@ def get_version_number():
     if os.getenv('CIRCLECI'):
         minor, patch = divmod(int(os.getenv('CIRCLE_BUILD_NUM')), 180)
         ver = '{}.{}.{}'.format(major, minor, patch)
+        with open('seneca/.version', 'w+') as f:
+            f.write(ver)
         return ver
     else:
-        return '{}.3.32'.format(major)
+        with open('seneca/.version') as f:
+            ver = f.read()
+            return ver
 
 __version__ = get_version_number()
 
@@ -64,10 +68,8 @@ setup(
     classifiers=[
         'Programming Language :: Python :: 3.6',
     ],
-    zip_safe=False,
-    data_files=[
-        ('./seneca/constants', ['seneca/constants/cu_costs.const']),
-    ],
+    zip_safe=True,
+    include_package_data=True,
     ext_modules=[
         Extension('seneca.libs.metering.tracer', sources = ['seneca/libs/metering/tracer.c'])
     ],

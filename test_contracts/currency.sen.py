@@ -16,7 +16,6 @@ def submit_stamps(stamps):
 def balance_of(wallet_id):
     return balances[wallet_id]
 
-
 @export
 def transfer(to, amount):
     balances = hmap('balances', str, int)
