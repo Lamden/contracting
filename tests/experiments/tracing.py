@@ -1,4 +1,4 @@
-from tracer import Tracer
+from seneca.libs.metering.tracer import Tracer
 import seneca, os
 from os.path import join
 

@@ -46,7 +46,7 @@ v = __builtins__['__import__']('sys')
             """)
 
     def test_tracer(self):
-        from tracer import Tracer
+        from seneca.libs.metering.tracer import Tracer
         with self.assertRaises(CompilationException) as context:
             self.si.execute_code_str("""
 __tracer__.set_stamp(1000)

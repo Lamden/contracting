@@ -29,19 +29,13 @@ class SenecaInterface(SenecaInterpreter):
         return code_obj
 
     def execute_code_str(self, code_str, scope={'rt': {'sender': 'anonymous', 'author': 'anonymous', 'contract': 'arbitrary'}}):
-        try:
-            code_obj = self.compile_code(code_str, scope)
-            return self.execute(code_obj, scope)
-        except:
-            SenecaInterpreter.imports = {}
-            raise
+        SenecaInterpreter.imports = {}
+        code_obj = self.compile_code(code_str, scope)
+        return self.execute(code_obj, scope)
 
     def publish_code_str(self, fullname, author, code_str, keep_original=False, scope={}):
-        try:
-            assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
-            with SenecaInterface(False) as interface:
-                code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
-                self.set_code(fullname, code_obj, code_str, author, keep_original)
-        except:
+        assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
+        with SenecaInterface(False) as interface:
             SenecaInterpreter.imports = {}
-            raise
+            code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
+            self.set_code(fullname, code_obj, code_str, author, keep_original)

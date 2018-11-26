@@ -4,6 +4,10 @@ from collections import namedtuple
 import ast
 
 
+def module_path_for_contract(contract) -> str:
+    return "seneca.contracts.{}.{}".format(contract.contract_name, contract.func_name)
+
+
 def make_n_tup(d):
     # TODO: make sure this is good/safe
     return namedtuple('_', ' '.join(d.keys()))(**d)

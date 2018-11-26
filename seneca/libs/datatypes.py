@@ -415,12 +415,12 @@ class HMap(RObject):
 
         if type(key) in complex_types:
             key = key.rep()
-
         return self.driver.set('{}{}{}'.format(self.prefix, self.delimiter, key), v)
 
     def get(self, key):
         if type(key) in complex_types:
             key = key.rep()
+
         g = self.driver.get('{}{}{}'.format(self.prefix, self.delimiter, key))
         g = self.decode_value(g)
         return g
@@ -436,10 +436,10 @@ class HMap(RObject):
 
     def rep(self):
         return '{}map<{}:{}>({},{})'.format(CTP,
-                                         self.contract_id,
-                                         self.prefix,
-                                         encode_type(self.key_type),
-                                         encode_type(self.value_type))
+                                            self.contract_id,
+                                            self.prefix,
+                                            encode_type(self.key_type),
+                                            encode_type(self.value_type))
 
     def exists(self, k):
         return self.driver.exists(k)
