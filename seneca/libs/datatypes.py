@@ -58,8 +58,8 @@ vivified_primitives = {
 
 primitive_types = [int, str, bool, bytes, Decimal, float, None]
 
+
 def extract_prefix(s):
-    prefix = None
     if s[0] == '<':
         prefix_idx_end = s.find('>')
         prefix_s = s[:prefix_idx_end]
@@ -70,10 +70,13 @@ def extract_prefix(s):
 Returns the representation of the complex type if it is not a primative.
 Otherwise, returns 
 '''
+
+
 def encode_type(t):
     if isinstance(t, RObject) or isinstance(t, Placeholder):
         return t.rep()
     return type_to_string.get(t)
+
 
 complex_tokens = ['map', 'list', 'table', 'ranked']
 all_tokens = ['int', 'str', 'bool', 'bytes', 'float', 'map', 'list', 'table', 'ranked']
@@ -203,9 +206,7 @@ def build_ranked_from_repr(s):
     key_type = parse_type_repr(types[0][1:])
     value_type = parse_type_repr(types[1][:-1])
 
-    if prefix is not None:
-        return ranked(prefix=prefix, key_type=key_type, value_type=value_type)
-    return Placeholder(key_type=key_type, value_type=value_type, placeholder_type=Ranked)
+    return ranked(prefix=prefix, key_type=key_type, value_type=value_type)
 
 
 class Placeholder:
@@ -269,7 +270,7 @@ class TablePlaceholder(Placeholder):
 
 
 class RankedPlaceholder(Placeholder):
-    def __init__(self, key_type=str, value_type=int):
+    def __init__(self, value_type=int):
         self.key_type = str
         self.value_type = value_type
         self.placeholder_type = Ranked

@@ -556,10 +556,18 @@ class TestDatatypes(TestCase):
         self.assertEqual(f, bool)
 
     def test_build_placeholder_list_from_repr(self):
-        r = ':list(int)'
+        r = '*list(int)'
         l = build_list_from_repr(r)
         self.assertTrue(isinstance(l, ListPlaceholder))
         self.assertEqual(l.value_type, int)
+        self.assertEqual(l.rep(), r)
+
+    def test_build_placeholder_ranked_from_repr(self):
+        r = '*ranked(int,str)'
+        _r = build_ranked_from_repr(r)
+        print(_r)
+        self.assertTrue(isinstance(_r, RankedPlaceholder))
+        self.assertEqual(_r.value_type, str)
 
 if __name__ == '__main__':
     unittest.main()
