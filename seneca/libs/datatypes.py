@@ -344,7 +344,7 @@ class RObject:
             info = BookKeeper.get_info()
             self.driver = RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
 
-    def encode_value(self, value, explicit=None):
+    def encode_value(self, value, explicit=False):
         v = None
 
         if issubclass(type(self.value_type), Placeholder):
@@ -353,6 +353,16 @@ class RObject:
             v = value.rep()
 
         else:
+            print(type(value), self.value_type)
+
+            # due to the naive nature of fixed point precision casting, we try to cast decimals into ints when there
+            # is no loss of precision
+
+            if isinstance(value, Decimal) and \
+               self.value_type == int and \
+               value.quantize(Decimal(1)) == value:
+                value = int(value)
+
             assert type(value) == self.value_type or self.value_type is None or explicit is True, \
                 'Value is not of type "{}"'.format(self.value_type)
             if isinstance(value, float):
