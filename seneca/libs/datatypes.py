@@ -76,10 +76,8 @@ def encode_type(t):
     return type_to_string.get(t)
 
 complex_tokens = ['map', 'list', 'table', 'ranked']
-all_tokens = ['int', 'str', 'bool', 'bytes', 'map', 'list', 'table', 'ranked']
+all_tokens = ['int', 'str', 'bool', 'bytes', 'float', 'map', 'list', 'table', 'ranked']
 # # #
-
-
 
 
 def parse_representation(s):
@@ -295,8 +293,6 @@ def is_complex_type(v):
     return False
 
 
-
-
 # table to be done later
 def vivify(potential_prefix, t):
     if t in primitive_types:
@@ -381,10 +377,6 @@ class RObject:
                 except:
                     value = json.loads(value)
 
-                # get fixed point precision for floats
-                # if isinstance(value, float):
-                #     print('eey: {}'.format(value))
-                #     value = make_decimal(value)
         return value
 
     def check_key_type(self, key):

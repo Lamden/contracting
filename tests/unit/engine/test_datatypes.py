@@ -555,5 +555,11 @@ class TestDatatypes(TestCase):
         f = parse_representation('bool')
         self.assertEqual(f, bool)
 
+    def test_build_placeholder_list_from_repr(self):
+        r = ':list(int)'
+        l = build_list_from_repr(r)
+        self.assertTrue(isinstance(l, ListPlaceholder))
+        self.assertEqual(l.value_type, int)
+
 if __name__ == '__main__':
     unittest.main()
