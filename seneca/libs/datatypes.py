@@ -5,6 +5,11 @@ from seneca.libs.logger import get_logger
 from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.engine.conflict_resolution import RedisProxy
+from decimal import Decimal
+from seneca.libs.decimal import make_decimal
+
+REDIS_PORT = get_redis_port()
+REDIS_PASSWORD = get_redis_password()
 
 '''
 
@@ -28,7 +33,9 @@ type_to_string = {
     str: 'str',
     int: 'int',
     bool: 'bool',
-    bytes: 'bytes'
+    bytes: 'bytes',
+    float: 'float',
+    Decimal: 'float'
 }
 
 
@@ -36,54 +43,62 @@ string_to_type = {
     'str': str,
     'int': int,
     'bool': bool,
-    'bytes': bytes
+    'bytes': bytes,
+    'float': Decimal
 }
 
-primitive_types = [int, str, bool, bytes, None]
-REDIS_PORT = get_redis_port()
-REDIS_PASSWORD = get_redis_password()
+vivified_primitives = {
+    int: 0,
+    str: '',
+    bool: False,
+    float: Decimal('0'),
+    bytes: b''
+}
+
+
+primitive_types = [int, str, bool, bytes, Decimal, float, None]
+
 
 def extract_prefix(s):
-    prefix = None
     if s[0] == '<':
         prefix_idx_end = s.find('>')
         prefix_s = s[:prefix_idx_end]
         return prefix_s.split(':')[-1], s[1+prefix_idx_end:]
     return None, s
 
+'''
+Returns the representation of the complex type if it is not a primative.
+Otherwise, returns 
+'''
+
+
 def encode_type(t):
-    if isinstance(t, RObject):
+    if isinstance(t, RObject) or isinstance(t, Placeholder):
         return t.rep()
-    if isinstance(t, Placeholder):
-        return t.rep()
-    for i in range(len(primitive_types)-1):
-        if t == primitive_types[i]:
-            return primitive_tokens[i]
-    return None
+    return type_to_string.get(t)
 
 
-primitive_tokens = ['int', 'str', 'bool', 'bytes']
 complex_tokens = ['map', 'list', 'table', 'ranked']
-all_tokens = ['int', 'str', 'bool', 'bytes', 'map', 'list', 'table', 'ranked']
+all_tokens = ['int', 'str', 'bool', 'bytes', 'float', 'map', 'list', 'table', 'ranked']
 # # #
+
 
 def parse_representation(s):
     if s[0] == CTP:
         return parse_complex_type_repr(s)
     else:
-        return parse_simple_type_repr(s)
+        return string_to_type.get(s)
 
 
 def parse_type_repr(s):
-    if s in complex_tokens:
+    if s in complex_tokens and s[0] == CTP:
         return parse_complex_type_repr(s)
-    elif s in primitive_tokens:
-        return parse_simple_type_repr(s)
+    elif s in string_to_type.keys():
+        return string_to_type.get(s)
     return None
 
 
 def parse_complex_type_repr(s):
-    assert s[0] == CTP
     s = s[1:]
     for t in complex_tokens:
         if s.startswith(t):
@@ -95,17 +110,6 @@ def parse_complex_type_repr(s):
                 return build_map_from_repr(s)
             elif t == 'ranked':
                 return build_ranked_from_repr(s)
-
-
-def parse_simple_type_repr(s):
-    if s == 'str':
-        return str
-    if s == 'int':
-        return int
-    if s == 'bool':
-        return bool
-    if s == 'bytes':
-        return bytes
 
 
 def build_table_from_repr(s):
@@ -139,7 +143,7 @@ def build_table_from_repr(s):
 
         if next_simple_type < next_complex_type:
             value = s[1:true_next_type]
-            t[key] = parse_simple_type_repr(value)
+            t[key] = string_to_type.get(value)
             s = s[1 + true_next_type:]
 
         else:
@@ -202,9 +206,7 @@ def build_ranked_from_repr(s):
     key_type = parse_type_repr(types[0][1:])
     value_type = parse_type_repr(types[1][:-1])
 
-    if prefix is not None:
-        return ranked(prefix=prefix, key_type=key_type, value_type=value_type)
-    return Placeholder(key_type=key_type, value_type=value_type, placeholder_type=Ranked)
+    return ranked(prefix=prefix, key_type=key_type, value_type=value_type)
 
 
 class Placeholder:
@@ -292,13 +294,6 @@ def is_complex_type(v):
     return False
 
 
-vivified_primitives = {
-    int: 0,
-    str: '',
-    bool: False
-}
-
-
 # table to be done later
 def vivify(potential_prefix, t):
     if t in primitive_types:
@@ -349,7 +344,7 @@ class RObject:
             info = BookKeeper.get_info()
             self.driver = RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
 
-    def encode_value(self, value):
+    def encode_value(self, value, explicit=False):
         v = None
 
         if issubclass(type(self.value_type), Placeholder):
@@ -358,9 +353,23 @@ class RObject:
             v = value.rep()
 
         else:
-            assert type(value) == self.value_type or self.value_type is None, \
+            print(type(value), self.value_type)
+
+            # due to the naive nature of fixed point precision casting, we try to cast decimals into ints when there
+            # is no loss of precision
+
+            if isinstance(value, Decimal) and \
+               self.value_type == int and \
+               value.quantize(Decimal(1)) == value:
+                value = int(value)
+
+            assert type(value) == self.value_type or self.value_type is None or explicit is True, \
                 'Value is not of type "{}"'.format(self.value_type)
-            v = json.dumps(value)
+            if isinstance(value, float):
+                v = make_decimal(value)
+                v = str(v)
+            else:
+                v = json.dumps(value)
 
         v = v.encode()
         return v
@@ -374,7 +383,11 @@ class RObject:
             if value[0] == CTP:
                 return parse_complex_type_repr(value)
             else:
-                value = json.loads(value)
+                try:
+                    value = Decimal(value)
+                except:
+                    value = json.loads(value)
+
         return value
 
     def check_key_type(self, key):
@@ -630,11 +643,11 @@ class Ranked(RObject):
                          rep_str='ranked')
 
     def add(self, member, score: int):
-        m = self.encode_value(member)
+        m = self.encode_value(member, explicit=True)
         return self.driver.zadd(self.prefix, score, m)
 
     def delete(self, member):
-        m = self.encode_value(member)
+        m = self.encode_value(member, explicit=True)
         return self.driver.zrem(self.prefix, m)
 
     def get_max(self):
@@ -651,11 +664,13 @@ class Ranked(RObject):
 
     def pop_max(self):
         m = self.get_max()
-        return self.delete(m)
+        self.delete(m)
+        return m
 
     def pop_min(self):
         m = self.get_min()
-        return self.delete(m)
+        self.delete(m)
+        return m
 
     def score(self, member):
         m = self.encode_value(member)
