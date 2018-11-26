@@ -270,7 +270,7 @@ class TablePlaceholder(Placeholder):
 
 
 class RankedPlaceholder(Placeholder):
-    def __init__(self, value_type=int):
+    def __init__(self, key_type=str, value_type=int):
         self.key_type = str
         self.value_type = value_type
         self.placeholder_type = Ranked

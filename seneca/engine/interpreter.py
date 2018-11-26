@@ -126,6 +126,10 @@ class SenecaInterpreter:
         prevalidated.body = []
 
         class SenecaNodeTransformer(ast.NodeTransformer):
+            def generic_visit(self, node):
+                current_ast_types.add(type(node))
+                super(SenecaNodeTransformer, self).generic_visit(node)
+
             def visit_Name(self, node):
                 if SenecaInterpreter.is_system_variable(node.id):
                     raise CompilationException('Not allowed to read "{}"'.format(node.id))
@@ -173,7 +177,7 @@ class SenecaInterpreter:
                 return node
 
         tree = SenecaNodeTransformer().visit(tree)
-        ast.fix_missing_locations(tree)
+        #ast.fix_missing_locations(tree)
 
         illegal_ast_nodes = current_ast_types - ALLOWED_AST_TYPES
         assert not illegal_ast_nodes, 'Illegal AST node(s) in module: {}'.format(

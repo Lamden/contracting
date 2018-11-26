@@ -18,8 +18,8 @@ def balance_of(wallet_id):
 
 @export
 def transfer(to, amount):
-    #balances = hmap('balances', str, int)
-    #allowed = hmap('allowed', str, hmap(value_type=int))
+    balances = hmap('balances', str, int)
+    allowed = hmap('allowed', str, hmap(value_type=int))
 
     # print("transfering from {} to {} with amount {}".format(rt['sender, to, amount))
     balances[rt['sender']] -= amount
