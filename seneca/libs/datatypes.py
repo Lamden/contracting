@@ -363,7 +363,10 @@ class RObject:
                value.quantize(Decimal(1)) == value:
                 value = int(value)
 
-            assert type(value) == self.value_type or self.value_type is None or explicit is True, \
+            assert type(value) == self.value_type or \
+                   self.value_type is None or \
+                   explicit is True or \
+                   (isinstance(value, Decimal) and self.value_type == float), \
                 'Value is not of type "{}"'.format(self.value_type)
             if isinstance(value, float):
                 v = make_decimal(value)
