@@ -2,7 +2,7 @@ import unittest, os, sys, importlib
 from os import getenv as env
 
 testmodules = [
-    'tests.unit.interface',
+    'tests.unit.tooling',
     'tests.unit.engine',
     'tests.unit.security'
 ]
