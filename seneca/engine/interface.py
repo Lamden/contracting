@@ -28,14 +28,14 @@ class SenecaInterface(SenecaInterpreter):
         code_obj = compile(tree, filename='__main__', mode="exec")
         return code_obj
 
-    def execute_code_str(self, code_str, scope={'rt': {'sender': 'anonymous', 'author': 'anonymous', 'contract': 'arbitrary'}}):
+    def execute_code_str(self, code_str, scope={'rt': {'sender': 'anonymous', 'contract': 'arbitrary'}}):
         SenecaInterpreter.imports = {}
         code_obj = self.compile_code(code_str, scope)
         return self.execute(code_obj, scope)
 
-    def publish_code_str(self, fullname, author, code_str, keep_original=False, scope={}):
+    def publish_code_str(self, fullname, author, code_str, scope={}):
         assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
         with SenecaInterface(False) as interface:
             SenecaInterpreter.imports = {}
             code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
-            self.set_code(fullname, code_obj, code_str, author, keep_original)
+            self.set_code(fullname, code_obj, code_str, author)

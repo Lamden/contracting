@@ -3,14 +3,16 @@ from seneca.libs.datatypes import hmap
 balances = hmap('balances', str, int)
 allowed = hmap('allowed', str, hmap(value_type=int))
 market = hmap('market', str, int)
-market['stamps_to_tau'] = 1
 
+@seed
+def deposit_to_all_wallets():
+    market['stamps_to_tau'] = 1
+    balances['lorde'] = 666
 
 @export
 def submit_stamps(stamps):
     amount = stamps / market['stamps_to_tau']
     transfer('black_hole', int(amount))
-
 
 @export
 def balance_of(wallet_id):
@@ -18,9 +20,6 @@ def balance_of(wallet_id):
 
 @export
 def transfer(to, amount):
-    balances = hmap('balances', str, int)
-    allowed = hmap('allowed', str, hmap(value_type=int))
-
     # print("transfering from {} to {} with amount {}".format(rt['sender, to, amount))
     balances[rt['sender']] -= amount
     balances[to] += amount

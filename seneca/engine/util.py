@@ -110,7 +110,6 @@ class add_method_as(object):
 
     def __call__(self, cls):
         if hasattr(cls, self.as_name):
-            print(dir(cls))
             raise TypeError("name collision ({})".format(self.as_name))
         else:
             setattr(cls, self.as_name, self.attr)

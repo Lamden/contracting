@@ -82,7 +82,7 @@ class TestSenecaClient(TestCase):
             for contract_name, file_name in self.CONTRACTS_TO_STORE.items():
                 with open(test_contracts_path + file_name) as f:
                     code_str = f.read()
-                    interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
+                    interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
 
             rt = {
                 'sender': GENESIS_AUTHOR,

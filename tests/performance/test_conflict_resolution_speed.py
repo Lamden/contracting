@@ -45,7 +45,7 @@ def setup():
         for contract_name, file_name in CONTRACTS_TO_STORE.items():
             with open(test_contracts_path + file_name) as f:
                 code_str = f.read()
-                interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
+                interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
 
         start = time.time()
         print("------ MINTING -------")
@@ -105,7 +105,7 @@ if __name__ == '__main__':
 #             for contract_name, file_name in self.CONTRACTS_TO_STORE.items():
 #                 with open(test_contracts_path + file_name) as f:
 #                     code_str = f.read()
-#                     interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
+#                     interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
 #
 #             rt = make_n_tup({
 #                 'author': GENESIS_AUTHOR,

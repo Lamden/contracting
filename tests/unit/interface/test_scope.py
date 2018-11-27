@@ -42,7 +42,7 @@ print(reasonable_call())
         rt_info = {'rt': {'sender': 'davis', 'author': 'davis'}}
         all_info = {**bk_info, **rt_info}
         with open(join(test_contracts_path, 'sample.sen.py')) as f:
-            self.si.publish_code_str('sample', 'davis', f.read(), keep_original=True)
+            self.si.publish_code_str('sample', 'davis', f.read())
         with captured_output() as (out, err):
             self.si.execute_code_str("""
 from seneca.contracts.sample import do_that_thing
@@ -52,7 +52,7 @@ print(do_that_thing())
 
     def test_execute_function(self):
         with open('{}/currency.sen.py'.format(test_contracts_path)) as f:
-            self.si.publish_code_str('currency', 'anonymoose', f.read(), keep_original=True)
+            self.si.publish_code_str('currency', 'anonymoose', f.read())
         self.si.execute_function('seneca.contracts.currency.mint',
             'anonymoose', stamps=None, to='anonymoose', amount=10000)
         result = self.si.execute_function('test_contracts.reasonable.call_with_args',
@@ -61,7 +61,7 @@ print(do_that_thing())
 
     def test_execute_function_invalid(self):
         with open('{}/currency.sen.py'.format(test_contracts_path)) as f:
-            self.si.publish_code_str('currency', 'anonymoose', f.read(), keep_original=True)
+            self.si.publish_code_str('currency', 'anonymoose', f.read())
         with self.assertRaises(ImportError) as context:
             result = self.si.execute_function('seneca.engine.util.make_n_tup',
                 'also_me', 10000, {'x': 'y'})
@@ -69,7 +69,7 @@ print(do_that_thing())
 
     def test_execute_function_out_of_gas(self):
         with open('{}/currency.sen.py'.format(test_contracts_path)) as f:
-            self.si.publish_code_str('currency', 'anonymoose', f.read(), keep_original=True)
+            self.si.publish_code_str('currency', 'anonymoose', f.read())
         self.si.execute_function('seneca.contracts.currency.mint',
             'anonymoose', stamps=None, to='anonymoose', amount=10000)
         with self.assertRaises(AssertionError) as context:

@@ -43,7 +43,7 @@ transfer('ass', 1)
 
     def publish_contract(self):
         with open(join(test_contracts_path, 'kv_currency.sen.py')) as f:
-            self.si.publish_code_str('kv_currency', 'falcon', f.read(), keep_original=True)
+            self.si.publish_code_str('kv_currency', 'falcon', f.read())
 
     def mint_account(self):
         self.si.execute_code_str("""
