@@ -1,0 +1,2 @@
+include seneca/constants/cu_costs.const
+include seneca/.version

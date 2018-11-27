@@ -1,13 +1,13 @@
-from collections import deque
 import time, asyncio, ujson as json, redis
 from seneca.libs.logger import get_logger
 from seneca.engine.interface import SenecaInterface
-from seneca.engine.interpreter import SenecaInterpreter
 from seneca.constants.config import *
 from seneca.engine.conflict_resolution import CRContext
 from seneca.engine.book_keeper import BookKeeper
+from seneca.engine.util import module_path_for_contract
 from collections import deque, defaultdict
 from typing import Callable, List
+
 
 SUCC_FLAG = 'SUCC'
 
@@ -133,7 +133,8 @@ class SenecaClient(SenecaInterface):
         self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
             'rt': {
                 'author': contract.sender,
-                'sender': contract.sender
+                'sender': contract.sender,
+                'contract': contract.contract_name
             }
         })
 
@@ -149,17 +150,20 @@ class SenecaClient(SenecaInterface):
         Note: Assumes the BookKeeping info has already been set. """
         BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data)
         contract_name = contract.contract_name
-        metadata = self.get_contract_meta(contract_name)
 
         try:
-            self.execute_code_str(contract.code, scope={
-                'rt': {
-                    'author': metadata['author'],
-                    'sender': contract.sender
-                },
-                '__contract__': contract_name
-            })
+            # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
+            if hasattr(contract, 'contract_code'):
+                author = contract.sender
+                self.publish_code_str(fullname=contract.contract_name, author=author,
+                                      code_str=contract.contract_code, keep_original=True)
+            else:
+                author = self.get_contract_meta(contract_name)['author']
+                mod_path = module_path_for_contract(contract)
+                self.execute_function(module_path=mod_path, author=author, sender=contract.sender,
+                                      stamps=contract.stamps, **contract.kwargs)
             result = SUCC_FLAG
+
         except Exception as e:
             self.log.warning("Contract failed with error: {} \ncontract obj: {}".format(e, contract))
             result = 'FAIL' + ' -- ' + str(e)

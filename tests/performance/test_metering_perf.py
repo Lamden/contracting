@@ -16,7 +16,7 @@ print('Raw execution.')
 ''', setup=setup, number=10, timer=time.clock)
 
 tracing_setup = '''
-from tracer import Tracer
+from seneca.libs.metering.tracer import Tracer
 import seneca, os
 from os.path import join
 

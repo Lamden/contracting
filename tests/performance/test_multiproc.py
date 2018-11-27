@@ -46,7 +46,7 @@ transfer('tej', 1)
         self.si.execute_code_str("""
 from test_contracts.kv_currency import mint
 mint('{}', {})
-        """.format(user, CONTRACT_COUNT), {'rt': {'sender': user, 'author': user}})
+        """.format(user, CONTRACT_COUNT), {'rt': {'sender': user, 'author': user, 'contract': 'test'}})
 
     def print_balance(self):
         self.si.execute_code_str("""

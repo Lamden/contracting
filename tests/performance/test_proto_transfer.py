@@ -17,7 +17,7 @@ class TestProtoTransfer(TestCase):
         self.si = SenecaInterface(False)
         self.author = 'stu'
         self.sender = 'stu'
-        self.rt = {'rt': {'sender': self.author, 'author': self.sender}}
+        self.rt = {'rt': {'sender': self.author, 'author': self.sender, 'contract': 'test'}}
         print('''
 ################################################################################
 {}

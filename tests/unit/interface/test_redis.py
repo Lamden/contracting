@@ -1,6 +1,6 @@
 from unittest import TestCase
 from seneca.engine.interface import SenecaInterface
-from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException
+from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException, CompilationException
 from os.path import join
 from tests.utils import captured_output, TestInterface
 import redis, unittest, seneca
@@ -10,7 +10,7 @@ test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 class TestRedis(TestInterface):
 
     def test_read_only_variables(self):
-        with self.assertRaises(ReadOnlyException) as context:
+        with self.assertRaises(CompilationException) as context:
             self.si.execute_code_str("""
 __contract__ = 'hacks'
             """)

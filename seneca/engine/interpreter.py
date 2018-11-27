@@ -2,15 +2,18 @@ import redis, ast, marshal, array, copy, inspect, types, uuid, copy, ujson as js
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
 from seneca.constants.config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET, CODE_OBJ_MAX_CACHE
 from functools import lru_cache
-from tracer import Tracer
+from seneca.libs.metering.tracer import Tracer
 import seneca, os
 from os.path import join
+
 
 class ReadOnlyException(Exception):
     pass
 
+
 class CompilationException(Exception):
     pass
+
 
 class SenecaInterpreter:
 
@@ -111,40 +114,70 @@ class SenecaInterpreter:
     @classmethod
     def parse_ast(cls, code_str, protected_variables=[]):
 
+        # crude but effective way to force fixed precision without developer behavior change
+        decimal_addon = 'from seneca.libs.decimal import make_decimal'
+
+        code_str = decimal_addon + '\n' + code_str
+
         tree = ast.parse(code_str)
         protected_variables += ['export']
         current_ast_types = set()
         prevalidated = copy.deepcopy(tree)
         prevalidated.body = []
 
-        for idx, item in enumerate(ast.walk(tree)):
+        class SenecaNodeTransformer(ast.NodeTransformer):
+            def generic_visit(self, node):
+                current_ast_types.add(type(node))
+                return super().generic_visit(node)
 
-            # Restrict protected_imports to ones in ALLOWED_IMPORT_PATHS
-            if isinstance(item, ast.Import):
-                module_name = item.names[0].name
-                cls.assert_import_path(module_name)
-                prevalidated.body.append(item)
+            def visit_Name(self, node):
+                if SenecaInterpreter.is_system_variable(node.id):
+                    raise CompilationException('Not allowed to read "{}"'.format(node.id))
+                self.generic_visit(node)
+                return node
 
-            elif isinstance(item, ast.ImportFrom):
-                module_name = item.names[0].name
-                cls.assert_import_path(item.module, module_name=module_name)
-                prevalidated.body.append(item)
+            def visit_Attribute(self, node):
+                if SenecaInterpreter.is_system_variable(node.attr):
+                    raise CompilationException('Not allowed to read "{}"'.format(node.attr))
+                self.generic_visit(node)
+                return node
 
-            # Restrict variable assignment
-            elif isinstance(item, ast.Assign):
-                for target in item.targets:
-                    cls.check_protected(target, protected_variables)
+            def visit_Import(self, node):
+                module_name = node.names[0].name
+                SenecaInterpreter.assert_import_path(module_name)
+                prevalidated.body.append(node)
+                self.generic_visit(node)
+                return node
 
-            elif isinstance(item, ast.AugAssign):
-                cls.check_protected(item.target, protected_variables)
+            def visit_ImportFrom(self, node):
+                module_name = node.names[0].name
+                SenecaInterpreter.assert_import_path(node.module, module_name=module_name)
+                prevalidated.body.append(node)
+                self.generic_visit(node)
+                return node
 
-            elif isinstance(item, ast.FunctionDef):
-                for fn_item in item.body:
-                    if isinstance(fn_item, (ast.Import, ast.ImportFrom)):
-                        raise ImportError('Cannot import modules inside a function!')
+            def visit_Assign(self, node):
+                for target in node.targets:
+                    SenecaInterpreter.check_protected(target, protected_variables)
 
-                prevalidated.body.append(item)
-            current_ast_types.add(type(item))
+                self.generic_visit(node)
+                return node
+
+            def visit_AugAssign(self, node):
+                SenecaInterpreter.check_protected(node.target, protected_variables)
+                self.generic_visit(node)
+                return node
+
+            def visit_Num(self, node):
+                if isinstance(node.n, float) or isinstance(node.n, int):
+                    print('holla')
+                    return ast.Call(func=ast.Name(id='make_decimal', ctx=ast.Load()),
+                                    args=[node], keywords=[])
+                self.generic_visit(node)
+                return node
+
+        tree = SenecaNodeTransformer().visit(tree)
+        ast.fix_missing_locations(tree)
 
         illegal_ast_nodes = current_ast_types - ALLOWED_AST_TYPES
         assert not illegal_ast_nodes, 'Illegal AST node(s) in module: {}'.format(
@@ -153,11 +186,15 @@ class SenecaInterpreter:
         return tree, prevalidated
 
     @staticmethod
-    def check_protected(target, protected_variables):
+    def is_system_variable(v):
+        return v.startswith('__') and v.endswith('__')
+
+    @classmethod
+    def check_protected(cls, target, protected_variables):
         if isinstance(target, ast.Subscript):
             return
-        if target.id.startswith('__') and target.id.endswith('__') \
-            or target.id in protected_variables:
+        if target.id in protected_variables \
+            or target.id in [k.rsplit('.', 1)[-1] for k in cls.imports.keys()]:
             raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
 
     @classmethod
@@ -175,44 +212,60 @@ class SenecaInterpreter:
 
     @classmethod
     @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
-    def get_cached_code_obj(cls, module_path):
+    def get_cached_code_obj(cls, module_path, stamps_supplied):
         cls.assert_import_path(module_path)
         module = module_path.rsplit('.', 1)
         code_str = '''
-__tracer__.set_stamp(__stamps_supplied__)
-__tracer__.start()
-from {} import {}
 result = {}()
-__tracer__.stop()
-        '''.format(module[0], module[1], module[1])
+        '''.format(module[1])
         code_obj = compile(code_str, '__main__', 'exec')
-        return code_obj
+        if stamps_supplied != None:
+            import_obj = compile('''
+from seneca.contracts.currency import balance_of, submit_stamps
+submit_stamps({})
+from {} import {}
+            '''.format(stamps_supplied, module[0], module[1]), '__main__', 'exec')
+        else:
+            import_obj = compile('''
+from {} import {}
+            '''.format(module[0], module[1]), '__main__', 'exec')
+        return code_obj, import_obj
 
     @classmethod
     def execute_function(cls, module_path, author, sender, stamps, *args, **kwargs):
-        code_obj = cls.get_cached_code_obj(module_path)
         scope = {
-            'rt': { 'author': author, 'sender': sender, 'contract': module_path },
+            'rt': { 'author': author, 'sender': sender, 'contract': module_path.rsplit('.', 1)[0] },
             '__builtins__': SAFE_BUILTINS,
             '__args__': args,
             '__kwargs__': kwargs,
-            '__use_locals__': True,
-            '__tracer__': cls.tracer,
-            '__stamps_supplied__': stamps
+            '__use_locals__': False
         }
+        code_obj, import_obj = cls.get_cached_code_obj(module_path, stamps)
         cls.loaded['__main__'] = scope
-        try:
+        if module_path == 'seneca.contracts.currency.mint':
+            exec('from seneca.contracts.currency import mint', scope)
+            scope.update({'__use_locals__': True})
             exec(code_obj, scope)
-        except SystemError:
-            return { 'status': 'out_of_stamps' }
+        else:
+            exec(import_obj, scope)
+            scope.update({'__use_locals__': True})
+            if stamps != None:
+                cls.tracer.set_stamp(stamps)
+                cls.tracer.start()
+                exec(code_obj, scope)
+                cls.tracer.stop()
+            else:
+                exec(code_obj, scope)
+        stamps = stamps - cls.tracer.get_stamp_used() if stamps is not None else 0
         return {
             'status': 'success',
             'output': scope.get('result'),
-            'remaining_stamps': stamps - cls.tracer.get_stamp_used()
+            'remaining_stamps': stamps
         }
 
-class ScopeParser:
 
+
+class ScopeParser:
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(SenecaInterpreter.loaded['__main__'])
         fn.__globals__['rt']['contract'] = fn.__module__
@@ -224,6 +277,7 @@ class ScopeParser:
     def set_scope_during_compilation(self, fn):
         self.module = '.'.join([fn.__module__, fn.__name__])
         SenecaInterpreter.exports[self.module] = True
+
 
 class Export(ScopeParser):
     def __call__(self, fn):

@@ -51,15 +51,31 @@ print(do_that_thing())
             self.assertEqual(out.getvalue().strip(), 'sender: davis, author: davis')
 
     def test_execute_function(self):
+        with open('{}/currency.sen.py'.format(test_contracts_path)) as f:
+            self.si.publish_code_str('currency', 'anonymoose', f.read(), keep_original=True)
+        self.si.execute_function('seneca.contracts.currency.mint',
+            'anonymoose', 'anonymoose', stamps=0, to='anonymoose', amount=10000)
         result = self.si.execute_function('test_contracts.reasonable.call_with_args',
-            'me', 'also_me', 10000, 'it is required', not_required='it is not requried')
+            'anonymoose', 'anonymoose', 10000, 'it is required', not_required='it is not requried')
         self.assertEqual(result['status'], 'success')
 
     def test_execute_function_invalid(self):
+        with open('{}/currency.sen.py'.format(test_contracts_path)) as f:
+            self.si.publish_code_str('currency', 'anonymoose', f.read(), keep_original=True)
         with self.assertRaises(ImportError) as context:
             result = self.si.execute_function('seneca.engine.util.make_n_tup',
                 'me', 'also_me', 10000, {'x': 'y'})
             print('Should not print this: ', result)
+
+    def test_execute_function_out_of_gas(self):
+        with open('{}/currency.sen.py'.format(test_contracts_path)) as f:
+            self.si.publish_code_str('currency', 'anonymoose', f.read(), keep_original=True)
+        self.si.execute_function('seneca.contracts.currency.mint',
+            'anonymoose', 'anonymoose', stamps=0, to='anonymoose', amount=10000)
+        with self.assertRaises(AssertionError) as context:
+            result = self.si.execute_function('test_contracts.reasonable.call_with_args',
+                'anonymoose', 'anonymoose', 5, 'it is required', not_required='it is not requried')
+
 
 if __name__ == '__main__':
     unittest.main()

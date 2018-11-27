@@ -43,7 +43,7 @@ from test_contracts.good import one_you_cannot_export
 def bad_code():
     from test_contracts.good import one_you_cannot_export
         """
-        with self.assertRaises(ImportError) as context:
+        with self.assertRaises(CompilationException) as context:
             self.si.publish_code_str('incorrect', 'anonymoose', code_str, keep_original=True)
 
     def test_republish_code_str_fail(self):

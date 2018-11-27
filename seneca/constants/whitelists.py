@@ -64,7 +64,8 @@ ALLOWED_AST_TYPES = {
     # Conditonals
     ast.BoolOp,
     ast.And,
-    ast.Or
+    ast.Or,
+    ast.Mult,
 }
 
 SENECA_LIBRARY_PATH = 'seneca.libs'
@@ -76,18 +77,17 @@ ALLOWED_IMPORT_PATHS = [
 
 _SAFE_NAMES = [
     '__import__',
-    '__name__',
-    '__doc__',
-
-    'help',
-    'print',
 
     'None',
     'False',
     'True',
+
+    'callable',
+    'isinstance',
+    'issubclass',
+
     'abs',
     'bool',
-    'callable',
     'chr',
     'complex',
     'divmod',
@@ -96,8 +96,7 @@ _SAFE_NAMES = [
     'hex',
     'id',
     'int',
-    'isinstance',
-    'issubclass',
+
     'len',
     'oct',
     'ord',
@@ -111,7 +110,10 @@ _SAFE_NAMES = [
     'zip',
 
     # JUST FOR TESTING! TODO remove this irl
-    'globals'
+    'dir',
+    'help',
+    'print',
+    # 'globals'
 ]
 
 _SAFE_EXCEPTIONS = [

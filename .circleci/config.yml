@@ -17,8 +17,6 @@ jobs:
       - restore_cache:
           keys:
           - v1-dependencies-{{ checksum "requirements.txt" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
 
       - run:
           name: Install Dockerize v0.6.0
@@ -29,6 +27,12 @@ jobs:
             rm dockerize-linux-amd64-v0.6.0.tar.gz
 
       - run:
+          name: Install Twine
+          command: |
+            sudo pip3 install twine
+            sudo apt-get install rename
+
+      - run:
           name: install dependencies
           command: |
             sudo pip install -r requirements.txt
@@ -37,8 +41,7 @@ jobs:
       - run:
           name: Build C-extensions
           command: |
-            sudo python3 setup.py build
-            sudo python3 setup.py install
+            sudo -E python3 setup.py build_ext -i
 
       - save_cache:
           paths:
@@ -55,6 +58,11 @@ jobs:
           command: |
             export PYTHONPATH=$PYTHONPATH:$(pwd):~/seneca
             python3 tests/run.py
+
+      - run:
+          name: Upload to PyPI
+          command: |
+            bash scripts/upload_pip.sh
 
   test-cilantro-from-seneca:
     docker:

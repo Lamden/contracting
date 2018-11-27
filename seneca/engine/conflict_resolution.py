@@ -102,8 +102,8 @@ class CRDataGetSet(CRDataBase, dict):
         self.log.debug("Reseting contract idx {}".format(contract_idx))
         if contract_idx not in self.redo_log:
             # TODO for dev, we raise an exception, as we do not expect contracts to read only w/o writing
-            raise Exception("Contract idx {} not in redo_log!".format(contract_idx))
-            self.log.warning("Contract idx {} not in redo_log! Returning with reverting".format(contract_idx))
+            # raise Exception("Contract idx {} not in redo_log!".format(contract_idx))
+            self.log.warning("Contract idx {} not in redo_log! Returning without any reverts".format(contract_idx))
             return
 
         self.reset_contract_data(contract_idx)
