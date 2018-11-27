@@ -11,8 +11,8 @@ def read_float(s):
     return floats[s]
 
 @export
-def double_float(s):
-    print(2 * floats[s])
+def divide_float(s):
+    return floats[s] / 2
 
 @export
 def add_floats(s1, s2):

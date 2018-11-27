@@ -89,3 +89,24 @@ class TestSenecaClient(TestCase):
             )
 
         self.assertEqual(f['output'], Decimal('3.3'))
+
+    def test_divide_float(self):
+        with SenecaInterface(False) as interface:
+            interface.execute_function(
+                module_path='seneca.contracts.decimal_test.store_float',
+                author=GENESIS_AUTHOR,
+                sender=GENESIS_AUTHOR,
+                stamps=None,
+                s='floaty',
+                f=Decimal('3')
+            )
+
+            f = interface.execute_function(
+                module_path='seneca.contracts.decimal_test.divide_float',
+                author=GENESIS_AUTHOR,
+                sender=GENESIS_AUTHOR,
+                stamps=None,
+                s='floaty',
+            )
+
+        self.assertEqual(f['output'], Decimal('1.5'))
