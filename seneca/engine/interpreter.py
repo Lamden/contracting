@@ -25,12 +25,12 @@ class SenecaInterpreter:
     concurrent_mode = True
 
     @classmethod
-    def setup(cls, concurrent_mode=True, development_env=False, port=None, password=None):
+    def setup(cls, concurrent_mode=True, development_mode=False, port=None, password=None):
         if not cls._is_setup:
             cls.r = redis.StrictRedis(host='localhost',
-                                      port=get_redis_port(development_env=development_env, port=port),
+                                      port=get_redis_port(development_mode=development_mode, port=port),
                                       db=MASTER_DB,
-                                      password=get_redis_password(development_env=development_env, password=password)
+                                      password=get_redis_password(development_mode=development_mode, password=password)
                                       )
             cls._is_setup = True
             cls.setup_tracer()
