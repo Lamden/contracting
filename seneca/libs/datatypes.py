@@ -353,8 +353,6 @@ class RObject:
             v = value.rep()
 
         else:
-            print(type(value), self.value_type)
-
             # due to the naive nature of fixed point precision casting, we try to cast decimals into ints when there
             # is no loss of precision
 

@@ -176,7 +176,6 @@ class SenecaInterpreter:
 
             def visit_Num(self, node):
                 if isinstance(node.n, float) or isinstance(node.n, int):
-                    print('holla')
                     return ast.Call(func=ast.Name(id='make_decimal', ctx=ast.Load()),
                                     args=[node], keywords=[])
                 self.generic_visit(node)

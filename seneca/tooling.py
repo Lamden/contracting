@@ -9,7 +9,6 @@ def default_driver():
                            password='')
 
 
-
 class SenecaFunction:
     def __init__(self, name, module_path, kwargs, author, default_sender, driver):
         self.name = name
