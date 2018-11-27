@@ -59,8 +59,6 @@ class SenecaInterpreter:
     @classmethod
     def get_contract_meta(cls, fullname):
         byte_str = cls.r.hget('contracts_meta', fullname)
-        if not byte_str:
-            return {'author': 'local'}
         meta = json.loads(byte_str)
         return meta
 
@@ -230,7 +228,7 @@ from {} import {}
             import_obj = compile('''
 from {} import {}
             '''.format(module[0], module[1]), '__main__', 'exec')
-        meta = cls.get_contract_meta(module[0].rsplit('.')[-1])
+        meta = {'author': 'test'} if module[0].startswith('test_contract') else cls.get_contract_meta(module[0].rsplit('.')[-1])
         return code_obj, import_obj, meta
 
     @classmethod
