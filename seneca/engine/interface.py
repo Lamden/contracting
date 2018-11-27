@@ -1,6 +1,7 @@
 import sys, importlib, warnings
 from seneca.engine.module import SenecaFinder, RedisFinder
 from seneca.engine.interpreter import SenecaInterpreter
+import inspect
 
 class SenecaInterface(SenecaInterpreter):
     """
@@ -42,3 +43,7 @@ class SenecaInterface(SenecaInterpreter):
             SenecaInterpreter.imports = {}
             code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
             self.set_code(fullname, code_obj, code_str, author, keep_original)
+
+    def publish_function(self, fullname, author, func, keep_original=False, scope={}):
+        code_str = inspect.getsource(func)
+        self.publish_code_str(fullname, author, code_str, keep_original=keep_original, scope=scope)
