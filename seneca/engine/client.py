@@ -160,7 +160,7 @@ class SenecaClient(SenecaInterface):
             else:
                 author = self.get_contract_meta(contract_name)['author']
                 mod_path = module_path_for_contract(contract)
-                self.execute_function(module_path=mod_path, author=author, sender=contract.sender,
+                self.execute_function(module_path=mod_path, sender=contract.sender,
                                       stamps=contract.stamps, **contract.kwargs)
             result = SUCC_FLAG
 

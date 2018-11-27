@@ -59,7 +59,8 @@ class SenecaInterpreter:
     @classmethod
     def get_contract_meta(cls, fullname):
         byte_str = cls.r.hget('contracts_meta', fullname)
-        assert byte_str, 'Contract "{}" does not exist.'.format(fullname)
+        if not byte_str:
+            return {'author': 'local'}
         meta = json.loads(byte_str)
         return meta
 
@@ -229,33 +230,31 @@ from {} import {}
             import_obj = compile('''
 from {} import {}
             '''.format(module[0], module[1]), '__main__', 'exec')
-        return code_obj, import_obj
+        meta = cls.get_contract_meta(module[0].rsplit('.')[-1])
+        return code_obj, import_obj, meta
 
     @classmethod
-    def execute_function(cls, module_path, author, sender, stamps, *args, **kwargs):
+    def execute_function(cls, module_path, sender, stamps, *args, **kwargs):
+        code_obj, import_obj, meta = cls.get_cached_code_obj(module_path, stamps)
         scope = {
-            'rt': { 'author': author, 'sender': sender, 'contract': module_path.rsplit('.', 1)[0] },
+            'rt': { 'author': meta['author'], 'sender': sender, 'contract': module_path.rsplit('.', 1)[0] },
             '__builtins__': SAFE_BUILTINS,
             '__args__': args,
             '__kwargs__': kwargs,
             '__use_locals__': False
         }
-        code_obj, import_obj = cls.get_cached_code_obj(module_path, stamps)
         cls.loaded['__main__'] = scope
-        if module_path == 'seneca.contracts.currency.mint':
-            exec('from seneca.contracts.currency import mint', scope)
+        if stamps != None:
+            exec(import_obj, scope)
             scope.update({'__use_locals__': True})
+            cls.tracer.set_stamp(stamps)
+            cls.tracer.start()
             exec(code_obj, scope)
+            cls.tracer.stop()
         else:
             exec(import_obj, scope)
             scope.update({'__use_locals__': True})
-            if stamps != None:
-                cls.tracer.set_stamp(stamps)
-                cls.tracer.start()
-                exec(code_obj, scope)
-                cls.tracer.stop()
-            else:
-                exec(code_obj, scope)
+            exec(code_obj, scope)
         stamps = stamps - cls.tracer.get_stamp_used() if stamps is not None else 0
         return {
             'status': 'success',
