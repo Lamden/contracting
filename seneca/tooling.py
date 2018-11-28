@@ -1,13 +1,6 @@
 from seneca.engine.interface import SenecaInterface
 import types
 
-
-def default_driver():
-    return SenecaInterface(concurrent_mode=False,
-                           port=6379,
-                           password='')
-
-
 class SenecaFunction:
     def __init__(self, name, module_path, kwargs, default_sender, driver):
         self.name = name
@@ -25,7 +18,6 @@ class SenecaFunction:
 
         stamps = default(None, 'stamps')
         sender = default(self.defaults.get('sender'), 'sender')
-        print(self.driver.r)
         r = self.driver.execute_function(
             module_path=self.module_path,
             stamps= stamps,
@@ -43,7 +35,6 @@ class ContractWrapper:
         self.default_sender = default_sender
         contract_code = driver.get_code_obj(contract_name)
 
-        print(contract_code)
         codes = [cd for cd in contract_code.co_consts if type(cd) == types.CodeType]
         for _c in codes:
             name = _c.co_name
@@ -53,5 +44,4 @@ class ContractWrapper:
                                                module_path=module_path,
                                                kwargs=kwargs,
                                                default_sender=self.default_sender,
-                                               driver=self.driver)
-                    )
+                                               driver=self.driver))

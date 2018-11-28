@@ -319,7 +319,7 @@ class RObject:
 
     def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj'):
 
-        self.driver = Seneca.r
+        self.driver = Seneca.interface.r
 
         self.contract_id = Seneca.loaded['__main__']['rt']['contract']
         self.prefix = prefix

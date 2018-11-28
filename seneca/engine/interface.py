@@ -61,12 +61,13 @@ class SenecaInterface(SenecaInterpreter):
 
     def publish_code_str(self, fullname, author, code_str, scope={}):
         assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
-        SenecaInterpreter.imports = {}
+        Seneca.imports = {}
         tree_obj, code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
         self.set_code(fullname, tree_obj, code_obj, code_str, author)
 
     def publish_function(self, f, contract_name, author, scope={}):
         code_str = self.function_to_code_string(f)
         assert not self.r.hexists('contracts', contract_name), 'Contract "{}" already exists!'.format(contract_name)
+        Seneca.imports = {}
         tree_obj, code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': contract_name}})
         self.set_code(contract_name, code_obj, code_str, author)
