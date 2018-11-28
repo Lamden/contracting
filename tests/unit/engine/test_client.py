@@ -201,6 +201,43 @@ class TestSenecaClient(TestCase):
 
         loop.close()
 
+    def test_execute_empty_sb(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        expected_sbb_rep = []
+        input_hash = 'A' * 64
+
+        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.execute_sb(input_hash=input_hash, contracts=[],
+                          completion_handler=self.assert_completion(expected_sbb_rep, input_hash))
+
+        loop.run_until_complete(client.pending_futures[input_hash]['fut'])
+        loop.close()
+
+    def test_two_sb_one_empty_one_not(self):
+        input_hash1 = 'A' * 64
+        input_hash2 = 'B' * 64
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        c1 = create_currency_tx('davis', 'stu', 14)
+        c2 = create_currency_tx('stu', 'davis', 40)
+        expected_sbb1_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
+                             (c2, "SUCC", "SET balances:stu 43;SET balances:davis 10026;")]
+        expected_sbb2_rep = []
+
+        client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+        client1.execute_sb(input_hash=input_hash1, contracts=[c1, c2], completion_handler=self.assert_completion(expected_sbb1_rep, input_hash1))
+        client2.execute_sb(input_hash=input_hash2, contracts=[], completion_handler=self.assert_completion(expected_sbb2_rep, input_hash2))
+
+        # We must run the future manually, since the event loop is not currently running
+        coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
+        loop.run_until_complete(asyncio.gather(*coros))
+        loop.close()
+
     def test_end_subblock_1_sbb_with_failure(self):
 
         loop = asyncio.new_event_loop()
