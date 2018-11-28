@@ -4,6 +4,7 @@ from seneca.engine.interpreter import SenecaInterpreter
 import inspect
 import autopep8
 
+
 class SenecaInterface(SenecaInterpreter):
     """
         High level API for interacting with Seneca Smart Contracts
@@ -41,6 +42,8 @@ class SenecaInterface(SenecaInterpreter):
             if line.startswith('    '):
                 final_code += line[4:] + '\n'
 
+        final_code = autopep8.fix_code(final_code)
+
         return final_code
 
     def compile_code(self, code_str, scope={}):
@@ -62,8 +65,8 @@ class SenecaInterface(SenecaInterpreter):
             code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
             self.set_code(fullname, code_obj, code_str, author, keep_original)
 
-    def publish_function(self, fullname, author, func, keep_original=False, scope={}):
-        code_str = self.function_to_code_string(func)
-        assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
-        code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
-        self.set_code(fullname, code_obj, code_str, author, keep_original)
+    def publish_function(self, f, contract_name, author, keep_original=False, scope={}):
+        code_str = self.function_to_code_string(f)
+        assert not self.r.hexists('contracts', contract_name), 'Contract "{}" already exists!'.format(contract_name)
+        code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': contract_name}})
+        self.set_code(contract_name, code_obj, code_str, author, keep_original)
