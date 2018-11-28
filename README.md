@@ -27,7 +27,11 @@ def token_contract():
 ### Installing
 
 ```
-pip3 install seneca
+git clone https://github.com/Lamden/seneca.git
+cd seneca
+git pull origin dev
+python3 setup.py develop
+
 brew install redis
 brew services start redis
 ```
