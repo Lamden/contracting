@@ -2,11 +2,10 @@ import unittest, os, sys, importlib
 from os import getenv as env
 
 testmodules = [
-    #'tests.unit.tooling',
+    'tests.unit.interface',
     'tests.unit.engine',
     'tests.unit.security',
     'tests.unit.contracts',
-    'tests.unit.interface'
 ]
 
 loader = unittest.TestLoader()
