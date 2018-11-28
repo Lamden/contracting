@@ -106,7 +106,7 @@ if __name__ == '__main__':
 #                 with open(test_contracts_path + file_name) as f:
 #                     code_str = f.read()
 #                     interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
-#                     tooling.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
+#                     tooling.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
 #
 #             rt = make_n_tup({
 #                 'author': GENESIS_AUTHOR,

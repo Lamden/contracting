@@ -10,12 +10,11 @@ class SenecaInterface(SenecaInterpreter):
         High level API for interacting with Seneca Smart Contracts
     """
 
-    def __init__(self, concurrent_mode=True, development_mode=False, port=None, password=None):
+    def __init__(self, concurrent_mode=True, port=None, password=None):
         if not isinstance(sys.meta_path[2], RedisFinder):
             self.old_sys_path = sys.meta_path
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
         SenecaInterpreter.setup(concurrent_mode=concurrent_mode,
-                                development_mode=development_mode,
                                 port=port,
                                 password=password)
 
@@ -68,8 +67,8 @@ class SenecaInterface(SenecaInterpreter):
             tree_obj, code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
             self.set_code(fullname, tree_obj, code_obj, code_str, author)
 
-    def publish_function(self, f, contract_name, author, keep_original=False, scope={}):
+    def publish_function(self, f, contract_name, author, scope={}):
         code_str = self.function_to_code_string(f)
         assert not self.r.hexists('contracts', contract_name), 'Contract "{}" already exists!'.format(contract_name)
         code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': contract_name}})
-        self.set_code(contract_name, code_obj, code_str, author, keep_original)
+        self.set_code(contract_name, code_obj, code_str, author)

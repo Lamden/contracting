@@ -7,12 +7,7 @@ def load_env():
     load_dotenv(dotenv_path='{}/../docker/redis.env'.format(path), override=True)
 
 
-def get_redis_port(development_mode=False, port=None):
-    if development_mode:
-        if port is None:
-            return 6379
-        else:
-            return port
+def get_redis_port(port=None):
 
     if env('CIRCLECI'):
         return 6379
@@ -20,13 +15,7 @@ def get_redis_port(development_mode=False, port=None):
     return env('REDIS_PORT', 6379)
 
 
-def get_redis_password(development_mode=False, password=None):
-    if development_mode:
-        if password is None:
-            return ''
-        else:
-            return password
-
+def get_redis_password(password=None):
     if env('CIRCLECI'):
         return ''
 

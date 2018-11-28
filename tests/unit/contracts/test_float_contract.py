@@ -30,7 +30,7 @@ class TestSenecaClient(TestCase):
             for contract_name, file_name in self.CONTRACTS_TO_STORE.items():
                 with open(test_contracts_path + file_name) as f:
                     code_str = f.read()
-                    interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
+                    interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
 
             rt = {
                 'author': GENESIS_AUTHOR,
@@ -42,7 +42,6 @@ class TestSenecaClient(TestCase):
         with SenecaInterface(False) as interface:
             interface.execute_function(
                 module_path='seneca.contracts.decimal_test.store_float',
-                author=GENESIS_AUTHOR,
                 sender=GENESIS_AUTHOR,
                 stamps=None,
                 s='floaty',
@@ -51,7 +50,6 @@ class TestSenecaClient(TestCase):
 
             f = interface.execute_function(
                 module_path='seneca.contracts.decimal_test.read_float',
-                author=GENESIS_AUTHOR,
                 sender=GENESIS_AUTHOR,
                 stamps=None,
                 s='floaty'
@@ -63,7 +61,6 @@ class TestSenecaClient(TestCase):
         with SenecaInterface(False) as interface:
             interface.execute_function(
                 module_path='seneca.contracts.decimal_test.store_float',
-                author=GENESIS_AUTHOR,
                 sender=GENESIS_AUTHOR,
                 stamps=None,
                 s='floaty',
@@ -72,7 +69,6 @@ class TestSenecaClient(TestCase):
 
             interface.execute_function(
                 module_path='seneca.contracts.decimal_test.store_float',
-                author=GENESIS_AUTHOR,
                 sender=GENESIS_AUTHOR,
                 stamps=None,
                 s='floaty2',
@@ -81,7 +77,6 @@ class TestSenecaClient(TestCase):
 
             f = interface.execute_function(
                 module_path='seneca.contracts.decimal_test.add_floats',
-                author=GENESIS_AUTHOR,
                 sender=GENESIS_AUTHOR,
                 stamps=None,
                 s1='floaty',
@@ -94,7 +89,6 @@ class TestSenecaClient(TestCase):
         with SenecaInterface(False) as interface:
             interface.execute_function(
                 module_path='seneca.contracts.decimal_test.store_float',
-                author=GENESIS_AUTHOR,
                 sender=GENESIS_AUTHOR,
                 stamps=None,
                 s='floaty',
@@ -103,7 +97,6 @@ class TestSenecaClient(TestCase):
 
             f = interface.execute_function(
                 module_path='seneca.contracts.decimal_test.divide_float',
-                author=GENESIS_AUTHOR,
                 sender=GENESIS_AUTHOR,
                 stamps=None,
                 s='floaty',

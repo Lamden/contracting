@@ -4,7 +4,6 @@ import types
 
 def default_driver():
     return SenecaInterface(concurrent_mode=False,
-                           development_mode=True,
                            port=6379,
                            password='')
 
