@@ -68,7 +68,7 @@ def extract_prefix(s):
 
 '''
 Returns the representation of the complex type if it is not a primative.
-Otherwise, returns 
+Otherwise, returns
 '''
 
 
@@ -321,10 +321,11 @@ class RObject:
                  ):
         assert driver is not None, 'Provide a Redis driver.'
         self.contract_id = SenecaInterpreter.loaded['__main__']['rt']['contract']
-        self.driver = driver
         self.prefix = prefix
         self.concurrent_mode = SenecaInterpreter.concurrent_mode
         self.key_type = key_type
+
+        self.driver = driver
 
         assert key_type is not None, 'Key type cannot be None'
         assert key_type in primitive_types or is_complex_type(key_type)
@@ -353,8 +354,6 @@ class RObject:
             v = value.rep()
 
         else:
-            print(type(value), self.value_type)
-
             # due to the naive nature of fixed point precision casting, we try to cast decimals into ints when there
             # is no loss of precision
 
@@ -363,7 +362,10 @@ class RObject:
                value.quantize(Decimal(1)) == value:
                 value = int(value)
 
-            assert type(value) == self.value_type or self.value_type is None or explicit is True, \
+            assert type(value) == self.value_type or \
+                   self.value_type is None or \
+                   explicit is True or \
+                   (isinstance(value, Decimal) and self.value_type == float), \
                 'Value is not of type "{}"'.format(self.value_type)
             if isinstance(value, float):
                 v = make_decimal(value)

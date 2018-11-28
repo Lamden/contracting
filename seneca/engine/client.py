@@ -136,7 +136,7 @@ class SenecaClient(SenecaInterface):
 
 
     def submit_contract(self, contract):
-        self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
+        self.publish_code_str(contract.contract_name, contract.sender, contract.code, scope={
             'rt': {
                 'author': contract.sender,
                 'sender': contract.sender,
@@ -162,11 +162,11 @@ class SenecaClient(SenecaInterface):
             if hasattr(contract, 'contract_code'):
                 author = contract.sender
                 self.publish_code_str(fullname=contract.contract_name, author=author,
-                                      code_str=contract.contract_code, keep_original=True)
+                                      code_str=contract.contract_code)
             else:
                 author = self.get_contract_meta(contract_name)['author']
                 mod_path = module_path_for_contract(contract)
-                self.execute_function(module_path=mod_path, author=author, sender=contract.sender,
+                self.execute_function(module_path=mod_path, sender=contract.sender,
                                       stamps=contract.stamps, **contract.kwargs)
             result = SUCC_FLAG
 

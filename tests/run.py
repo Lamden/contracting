@@ -4,7 +4,8 @@ from os import getenv as env
 testmodules = [
     'tests.unit.interface',
     'tests.unit.engine',
-    'tests.unit.security'
+    'tests.unit.security',
+    'tests.unit.contracts',
 ]
 
 loader = unittest.TestLoader()

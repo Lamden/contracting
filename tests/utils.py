@@ -22,12 +22,15 @@ def captured_output():
     finally:
         sys.stdout, sys.stderr = old_out, old_err
 
+
 class TestInterface(TestCase):
     r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
     def setUp(self):
         try: v = self.r.get('market:stamps_to_tau')
         except: v = 1
         self.r.flushdb()
+        SenecaInterpreter.r.flushdb()
+        SenecaInterface.r.flushdb()
         self.r.set('market:stamps_to_tau', v)
         # Only do this once in each process!
         self.si = SenecaInterface(False)

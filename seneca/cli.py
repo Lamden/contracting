@@ -55,7 +55,7 @@ def run_by_file(si, code_str, *args, **kwargs):
 @cli
 def publish(si, code_str, fullname, *args, **kwargs):
     scope = kwargs.get('scope', {})
-    si.publish_code_str(fullname, code_str, keep_original=True, scope=scope)
+    si.publish_code_str(fullname, code_str, scope=scope)
     print('"{}" is PUBLISHED'.format(fullname))
 
 @cli

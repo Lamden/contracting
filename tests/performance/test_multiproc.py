@@ -64,7 +64,7 @@ print('tej has a balance of: ' + str(balance_of('tej')))
             SenecaInterpreter.setup(False)
             for i in range(CONTRACT_COUNT):
                 si.execute_function('test_contracts.kv_currency.transfer',
-                    user, user, 10000, 'tej', 1)
+                    user, 10000, 'tej', 1)
         processes = [
             Process(target=run_code_obj, args=(user,)) \
             for user in users

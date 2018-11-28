@@ -7,7 +7,7 @@ from functools import partial
     sha3_256, sha3_512, sha384
 
     Shake functions aren't available because they are obscure and add complexity to hashing which should be as easy
-    as possible to interface with.
+    as possible to tooling with.
 '''
 
 supported_hashing_functions = hashlib.algorithms_guaranteed

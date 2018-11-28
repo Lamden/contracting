@@ -7,10 +7,10 @@ from seneca.libs.logger import overwrite_logger_level
 from decimal import Decimal
 
 
-GENESIS_AUTHOR = 'davis'
+GENESIS_AUTHOR = 'anonymoose'
 STAMP_AMOUNT = None
 MINT_WALLETS = {
-    'davis': 10000,
+    'anonymoose': 10000,
     'stu': 69,
     'birb': 8000,
     'ghu': 9000,
@@ -82,17 +82,16 @@ class TestSenecaClient(TestCase):
             for contract_name, file_name in self.CONTRACTS_TO_STORE.items():
                 with open(test_contracts_path + file_name) as f:
                     code_str = f.read()
-                    interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
+                    interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
 
             rt = {
-                'author': GENESIS_AUTHOR,
                 'sender': GENESIS_AUTHOR,
                 'contract': 'minter'
             }
-            # interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
+            # tooling.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
             for wallet, amount in MINT_WALLETS.items():
-                interface.execute_function(module_path='seneca.contracts.currency.mint', author=GENESIS_AUTHOR,
-                                           sender=GENESIS_AUTHOR, stamps=STAMP_AMOUNT, to=wallet, amount=amount)
+                interface.execute_function(module_path='seneca.contracts.currency.mint', sender=GENESIS_AUTHOR,
+                                           stamps=STAMP_AMOUNT, to=wallet, amount=amount)
 
     def test_setup_dbs(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
@@ -105,8 +104,8 @@ class TestSenecaClient(TestCase):
     def test_flush(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
 
-        c1 = create_currency_tx('davis', 'stu', 14)
-        c2 = create_currency_tx('stu', 'davis', 40)
+        c1 = create_currency_tx('anonymoose', 'stu', 14)
+        c2 = create_currency_tx('stu', 'anonymoose', 40)
 
         client._start_sb('A' * 64)
         client.run_contract(c1)
@@ -123,8 +122,8 @@ class TestSenecaClient(TestCase):
 
         self.assertEqual(client.active_db.next_contract_idx, 0)
 
-        c1 = create_currency_tx('davis', 'stu', 14)
-        c2 = create_currency_tx('stu', 'davis', 40)
+        c1 = create_currency_tx('anonymoose', 'stu', 14)
+        c2 = create_currency_tx('stu', 'anonymoose', 40)
 
         client.run_contract(c1)
         self.assertEqual(client.active_db.next_contract_idx, 1)
@@ -137,9 +136,9 @@ class TestSenecaClient(TestCase):
         asyncio.set_event_loop(loop)
 
         input_hash = 'A' * 64
-        c1 = create_currency_tx('davis', 'stu', 14)
-        c2 = MockPublishTransaction(sender='davis', contract_name='test', contract_code=TEST_CONTRACT)
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
+        c1 = create_currency_tx('anonymoose', 'stu', 14)
+        c2 = MockPublishTransaction(sender='anonymoose', contract_name='test', contract_code=TEST_CONTRACT)
+        expected_sbb_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
                             (c2, "SUCC", "")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
@@ -161,10 +160,10 @@ class TestSenecaClient(TestCase):
         asyncio.set_event_loop(loop)
 
         input_hash = 'A' * 64
-        c1 = create_currency_tx('davis', 'stu', 14)
-        c2 = create_currency_tx('stu', 'davis', 40)
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
-                            (c2, "SUCC", "SET balances:stu 43;SET balances:davis 10026;")]
+        c1 = create_currency_tx('anonymoose', 'stu', 14)
+        c2 = create_currency_tx('stu', 'anonymoose', 40)
+        expected_sbb_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
+                            (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
         client._start_sb(input_hash)
@@ -185,10 +184,10 @@ class TestSenecaClient(TestCase):
         asyncio.set_event_loop(loop)
 
         input_hash = 'A' * 64
-        c1 = create_currency_tx('davis', 'stu', 14)
-        c2 = create_currency_tx('stu', 'davis', 40)
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
-                            (c2, "SUCC", "SET balances:stu 43;SET balances:davis 10026;")]
+        c1 = create_currency_tx('anonymoose', 'stu', 14)
+        c2 = create_currency_tx('stu', 'anonymoose', 40)
+        expected_sbb_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
+                            (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
 
@@ -201,18 +200,55 @@ class TestSenecaClient(TestCase):
 
         loop.close()
 
+    def test_execute_empty_sb(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        expected_sbb_rep = []
+        input_hash = 'A' * 64
+
+        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.execute_sb(input_hash=input_hash, contracts=[],
+                          completion_handler=self.assert_completion(expected_sbb_rep, input_hash))
+
+        loop.run_until_complete(client.pending_futures[input_hash]['fut'])
+        loop.close()
+
+    def test_two_sb_one_empty_one_not(self):
+        input_hash1 = 'A' * 64
+        input_hash2 = 'B' * 64
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        c1 = create_currency_tx('anonymoose', 'stu', 14)
+        c2 = create_currency_tx('stu', 'anonymoose', 40)
+        expected_sbb1_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
+                             (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
+        expected_sbb2_rep = []
+
+        client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+        client1.execute_sb(input_hash=input_hash1, contracts=[c1, c2], completion_handler=self.assert_completion(expected_sbb1_rep, input_hash1))
+        client2.execute_sb(input_hash=input_hash2, contracts=[], completion_handler=self.assert_completion(expected_sbb2_rep, input_hash2))
+
+        # We must run the future manually, since the event loop is not currently running
+        coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
+        loop.run_until_complete(asyncio.gather(*coros))
+        loop.close()
+
     def test_end_subblock_1_sbb_with_failure(self):
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
         input_hash = 'A' * 64
-        c1 = create_currency_tx('davis', 'stu', 14)
-        c2 = create_currency_tx('stu', 'davis', 9000)
-        c3 = create_currency_tx('stu', 'davis', 40)
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
+        c1 = create_currency_tx('anonymoose', 'stu', 14)
+        c2 = create_currency_tx('stu', 'anonymoose', 9000)
+        c3 = create_currency_tx('stu', 'anonymoose', 40)
+        expected_sbb_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
                             (c2, "FAIL -- Sender balance must be non-negative!!!", ""),
-                            (c3, "SUCC", "SET balances:stu 43;SET balances:davis 10026;")]
+                            (c3, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
         client._start_sb(input_hash)
@@ -236,13 +272,13 @@ class TestSenecaClient(TestCase):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        c1 = create_currency_tx('davis', 'stu', 14)
-        c2 = create_currency_tx('stu', 'davis', 40)
-        c3 = create_currency_tx('ghu', 'davis', 15)
+        c1 = create_currency_tx('anonymoose', 'stu', 14)
+        c2 = create_currency_tx('stu', 'anonymoose', 40)
+        c3 = create_currency_tx('ghu', 'anonymoose', 15)
         c4 = create_currency_tx('tj', 'birb', 90)
-        expected_sbb1_rep = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
-                             (c2, "SUCC", "SET balances:stu 43;SET balances:davis 10026;")]
-        expected_sbb2_rep = [(c3, "SUCC", "SET balances:ghu 8985;SET balances:davis 10041;"),
+        expected_sbb1_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
+                             (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
+        expected_sbb2_rep = [(c3, "SUCC", "SET balances:ghu 8985;SET balances:anonymoose 10041;"),
                              (c4, "SUCC", "SET balances:tj 7910;SET balances:birb 8090;")]
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
@@ -272,22 +308,22 @@ class TestSenecaClient(TestCase):
         input_hash3 = 'C' * 64
         input_hash4 = 'D' * 64
 
-        c1 = create_currency_tx('davis', 'stu', 14)
-        c2 = create_currency_tx('stu', 'davis', 40)
-        c3 = create_currency_tx('ghu', 'davis', 15)
+        c1 = create_currency_tx('anonymoose', 'stu', 14)
+        c2 = create_currency_tx('stu', 'anonymoose', 40)
+        c3 = create_currency_tx('ghu', 'anonymoose', 15)
         c4 = create_currency_tx('tj', 'birb', 90)
         c5 = create_currency_tx('ethan', 'birb', 60)
-        c6 = create_currency_tx('stu', 'davis', 10)
+        c6 = create_currency_tx('stu', 'anonymoose', 10)
         c7 = create_currency_tx('ghu', 'tj', 50)
-        c8 = create_currency_tx('birb', 'davis', 100)
-        expected_sbb1_1 = [(c1, "SUCC", "SET balances:davis 9986;SET balances:stu 83;"),
-                           (c2, "SUCC", "SET balances:stu 43;SET balances:davis 10026;")]
-        expected_sbb2_1 = [(c3, "SUCC", "SET balances:ghu 8985;SET balances:davis 10041;"),
+        c8 = create_currency_tx('birb', 'anonymoose', 100)
+        expected_sbb1_1 = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
+                           (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
+        expected_sbb2_1 = [(c3, "SUCC", "SET balances:ghu 8985;SET balances:anonymoose 10041;"),
                            (c4, "SUCC", "SET balances:tj 7910;SET balances:birb 8090;")]
         expected_sbb1_2 = [(c5, "SUCC", "SET balances:ethan 7940;SET balances:birb 8150;"),
-                           (c6, "SUCC", "SET balances:stu 33;SET balances:davis 10051;")]
+                           (c6, "SUCC", "SET balances:stu 33;SET balances:anonymoose 10051;")]
         expected_sbb2_2 = [(c7, "SUCC", "SET balances:ghu 8935;SET balances:tj 7960;"),
-                           (c8, "SUCC", "SET balances:birb 8050;SET balances:davis 10151;")]
+                           (c8, "SUCC", "SET balances:birb 8050;SET balances:anonymoose 10151;")]
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -340,14 +376,14 @@ class TestSenecaClient(TestCase):
         input_hash3 = 'C' * 64
         input_hash4 = 'D' * 64
 
-        c1 = create_currency_tx('davis', 'stu', 14)
-        c2 = create_currency_tx('stu', 'davis', 40)
-        c3 = create_currency_tx('ghu', 'davis', 15)
+        c1 = create_currency_tx('anonymoose', 'stu', 14)
+        c2 = create_currency_tx('stu', 'anonymoose', 40)
+        c3 = create_currency_tx('ghu', 'anonymoose', 15)
         c4 = create_currency_tx('tj', 'birb', 90)
         c5 = create_currency_tx('ethan', 'birb', 60)
-        c6 = create_currency_tx('stu', 'davis', 10)
+        c6 = create_currency_tx('stu', 'anonymoose', 10)
         c7 = create_currency_tx('ghu', 'tj', 50)
-        c8 = create_currency_tx('birb', 'davis', 100)
+        c8 = create_currency_tx('birb', 'anonymoose', 100)
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -402,3 +438,7 @@ class TestSenecaClient(TestCase):
     # Test starting a new sub block before the last sub block finishes
 
     # Test with multiple sb's where stuff in SB 2 will pass the first time and fail the second time (cause some og read was modified)
+
+if __name__ == "__main__":
+    import unittest
+    unittest.main()
