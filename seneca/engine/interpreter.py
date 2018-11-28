@@ -269,7 +269,6 @@ from {} import {}
         }
 
 
-
 class ScopeParser:
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(SenecaInterpreter.loaded['__main__'])

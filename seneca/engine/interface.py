@@ -2,6 +2,7 @@ import sys, importlib, warnings
 from seneca.engine.module import SenecaFinder, RedisFinder
 from seneca.engine.interpreter import SenecaInterpreter
 import inspect
+import autopep8
 
 class SenecaInterface(SenecaInterpreter):
     """
@@ -25,6 +26,23 @@ class SenecaInterface(SenecaInterpreter):
         SenecaInterpreter.concurrent_mode = self.old_concurrent_mode
         return False
 
+    @staticmethod
+    def function_to_code_string(f):
+        _code = inspect.getsourcelines(f)[0]
+        _code = _code[1:]
+        code_str = ''
+        for c in _code:
+            code_str += c
+
+        standard_indented_code = autopep8.fix_code(code_str, options={'select': ['E101']})
+
+        final_code = ''
+        for line in standard_indented_code.split('\n'):
+            if line.startswith('    '):
+                final_code += line[4:] + '\n'
+
+        return final_code
+
     def compile_code(self, code_str, scope={}):
         tree, prevalidated = self.parse_ast(code_str, protected_variables=list(scope.keys()))
         prevalidated_obj = compile(prevalidated, filename='__main__', mode="exec")
@@ -45,5 +63,7 @@ class SenecaInterface(SenecaInterpreter):
             self.set_code(fullname, code_obj, code_str, author, keep_original)
 
     def publish_function(self, fullname, author, func, keep_original=False, scope={}):
-        code_str = inspect.getsource(func)
-        self.publish_code_str(fullname, author, code_str, keep_original=keep_original, scope=scope)
+        code_str = self.function_to_code_string(func)
+        assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
+        code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
+        self.set_code(fullname, code_obj, code_str, author, keep_original)
