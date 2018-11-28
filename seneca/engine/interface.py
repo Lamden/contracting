@@ -17,6 +17,7 @@ class SenecaInterface(SenecaInterpreter):
         SenecaInterpreter.setup(concurrent_mode=concurrent_mode,
                                 port=port,
                                 password=password)
+        self.r = SenecaInterpreter.r
 
     def __enter__(self, *args, **kwargs):
         self.old_concurrent_mode = SenecaInterpreter.concurrent_mode
@@ -62,10 +63,9 @@ class SenecaInterface(SenecaInterpreter):
 
     def publish_code_str(self, fullname, author, code_str, scope={}):
         assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
-        with SenecaInterface(False) as interface:
-            SenecaInterpreter.imports = {}
-            tree_obj, code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
-            self.set_code(fullname, tree_obj, code_obj, code_str, author)
+        SenecaInterpreter.imports = {}
+        tree_obj, code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
+        self.set_code(fullname, tree_obj, code_obj, code_str, author)
 
     def publish_function(self, f, contract_name, author, scope={}):
         code_str = self.function_to_code_string(f)
