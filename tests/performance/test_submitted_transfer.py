@@ -43,7 +43,7 @@ transfer('ass', 1)
 
     def publish_contract(self):
         with open(join(test_contracts_path, 'kv_currency.sen.py')) as f:
-            self.si.publish_code_str('kv_currency', 'falcon', f.read(), keep_original=True)
+            self.si.publish_code_str('kv_currency', 'falcon', f.read())
 
     def mint_account(self):
         self.si.execute_code_str("""
@@ -61,7 +61,7 @@ print('ass has a balance of: ' + str(balance_of('ass')))
     def test_transfer_template_with_metering(self):
         for i in range(CONTRACT_COUNT):
             self.si.execute_function('test_contracts.kv_currency.transfer',
-                self.author, self.sender, 100000, 'ass', amount=1)
+                self.sender, 100000, 'ass', amount=1)
 
 if __name__ == '__main__':
     unittest.main()

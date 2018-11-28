@@ -45,16 +45,16 @@ def setup():
         for contract_name, file_name in CONTRACTS_TO_STORE.items():
             with open(test_contracts_path + file_name) as f:
                 code_str = f.read()
-                interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
+                interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
 
         start = time.time()
         print("------ MINTING -------")
         print("Minting {} wallets...".format(NUM_WALLETS))
         for i in range(NUM_WALLETS):
-            interface.execute_function(module_path='seneca.contracts.currency.mint', author=GENESIS_AUTHOR,
+            interface.execute_function(module_path='seneca.contracts.currency.mint',
                                        sender=GENESIS_AUTHOR, to=str(i), amount=SEED_AMOUNT, stamps=1000)
         for w in (PERSON_A, PERSON_B):
-            interface.execute_function(module_path='seneca.contracts.currency.mint', author=GENESIS_AUTHOR,
+            interface.execute_function(module_path='seneca.contracts.currency.mint',
                                        sender=GENESIS_AUTHOR, to=w, amount=SEED_AMOUNT, stamps=1000)
         print("Finished minting wallet in {} seconds".format(round(time.time()-start, 2)))
         print("----------------------")
@@ -74,7 +74,7 @@ def test_baseline(num_contracts: int=30000):
         for i in range(num_contracts):
             amount = 1
             sender, receiver = random.sample(range(NUM_WALLETS), 2)
-            interface.execute_function(module_path='seneca.contracts.currency.transfer', author=GENESIS_AUTHOR,
+            interface.execute_function(module_path='seneca.contracts.currency.transfer',
                                        sender=str(sender), to=str(receiver), amount=amount, stamps=1000)
     dur = time.time()-start
     print("Finished running baseline contracts in {} seconds ".format(round(dur, 2)))
@@ -105,7 +105,7 @@ if __name__ == '__main__':
 #             for contract_name, file_name in self.CONTRACTS_TO_STORE.items():
 #                 with open(test_contracts_path + file_name) as f:
 #                     code_str = f.read()
-#                     interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str, keep_original=True)
+#                     interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
 #
 #             rt = make_n_tup({
 #                 'author': GENESIS_AUTHOR,
