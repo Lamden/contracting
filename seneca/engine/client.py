@@ -94,6 +94,7 @@ class SenecaClient(SenecaInterface):
             self.pending_futures[input_hash]['fut'].cancel()
         self.pending_futures.clear()
 
+        # does it leak some dbs
         self._setup_dbs()
 
     def _update_master_db(self):
@@ -116,11 +117,15 @@ class SenecaClient(SenecaInterface):
 
         self.available_dbs.append(cr_data)
 
-    def update_master_db(self, input_hash: str):
-        assert len(self.pending_dbs) > 0, "No pending dbs to update to master!"
+    def update_master_db(self):
+        # if no pending dbs to sync to master db, return
+        if len(self.pending_dbs) == 0:
+            return
+
+        cr_data = self.pending_dbs.popleft()
+        input_hash = cr_data.input_hash
         assert input_hash in self.pending_futures, "Input hash {} not in pending_futures {}".format(input_hash, self.pending_futures)
-        cr_data = self.pending_futures[input_hash]['data']
-        assert cr_data in self.pending_dbs, "you done shit the bed again davis"
+        assert cr_data == self.pending_futures[input_hash]['data'], "you done shit the bed again davis"
 
         cr_finished = Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders
         if not cr_data.merged_to_common or (self.sbb_idx == 0 and cr_finished):
@@ -128,6 +133,7 @@ class SenecaClient(SenecaInterface):
             self.pending_futures[cr_data.input_hash]['merge'] = True
         else:
             self._update_master_db()
+
 
     def submit_contract(self, contract):
         self.publish_code_str(contract.contract_name, contract.sender, contract.code, keep_original=True, scope={
@@ -181,8 +187,8 @@ class SenecaClient(SenecaInterface):
     def catchup(self):
         raise NotImplementedError('code this up if ur tryna use it u lazy bum')
 
-    def has_available_db(self) -> bool:
-        return len(self.available_dbs) > 0
+    def can_start_next_sb(self) -> bool:
+        return not self.active_db and len(self.available_dbs) > 0
 
     def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
         # TODO -- wait until we have an available DB. If we do not have any available db's put this call in a queue
@@ -196,7 +202,7 @@ class SenecaClient(SenecaInterface):
     def _start_sb(self, input_hash: str):
         assert self.active_db is None, "Attempted to _start_sb, but active_db is already set! Did you end the " \
                                        "previous subblock with _end_sb?"
-        if not self.has_available_db():
+        if not self.can_start_next_sb():
             raise Exception("Attempted to start a new sub block, but there are no available DBs!")
 
         self.active_db = self.available_dbs.popleft()
