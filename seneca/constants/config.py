@@ -2,17 +2,23 @@ import random, seneca
 from os import getenv as env
 from dotenv import load_dotenv
 
+
 def load_env():
     load_dotenv(dotenv_path='{}/../docker/redis.env'.format(path), override=True)
 
-def get_redis_port():
+
+def get_redis_port(port=None):
+
     if env('CIRCLECI'):
         return 6379
+
     return env('REDIS_PORT', 6379)
 
-def get_redis_password():
+
+def get_redis_password(password=None):
     if env('CIRCLECI'):
         return ''
+
     return env('REDIS_PASSWORD', '')
 
 path = seneca.__path__[0]

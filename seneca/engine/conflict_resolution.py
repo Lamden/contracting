@@ -53,7 +53,7 @@ class CRDataBase(metaclass=CRDataMeta):
         self.reads[contract_idx].clear()
         self.outputs[contract_idx] = ''
 
-    # TODO better interface
+    # TODO better tooling
     # Abstraction for get_modified_keys/reset_keys is very weak. I don't think they will work with complex data types
     def get_modified_keys(self) -> set:
         return set()

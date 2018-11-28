@@ -64,7 +64,8 @@ ALLOWED_AST_TYPES = {
     # Conditonals
     ast.BoolOp,
     ast.And,
-    ast.Or
+    ast.Or,
+    ast.Mult,
 }
 
 SENECA_LIBRARY_PATH = 'seneca.libs'

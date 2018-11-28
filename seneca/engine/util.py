@@ -80,7 +80,7 @@ class add_methods(object):
     '''Add the public attributes of a mixin to another class.
     Attribute name collisions result in a TypeError if force is False.
     If a mixin is an ABC, the decorated class is registered to it,
-    indicating that the class implements the mixin's interface.
+    indicating that the class implements the mixin's tooling.
     '''
     @auto_set_fields
     def __init__(self, *attrs):
@@ -102,7 +102,7 @@ class add_method_as(object):
     Add the public attributes of a mixin to another class.
     Attribute name collisions result in a TypeError if force is False.
     If a mixin is an ABC, the decorated class is registered to it,
-    indicating that the class implements the mixin's interface.
+    indicating that the class implements the mixin's tooling.
     '''
     @auto_set_fields
     def __init__(self, attr, as_name):

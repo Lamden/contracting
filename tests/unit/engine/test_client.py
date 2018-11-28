@@ -88,6 +88,7 @@ class TestSenecaClient(TestCase):
                 'sender': GENESIS_AUTHOR,
                 'contract': 'minter'
             }
+            # tooling.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
             for wallet, amount in MINT_WALLETS.items():
                 interface.execute_function(module_path='seneca.contracts.currency.mint', sender=GENESIS_AUTHOR,
                                            stamps=STAMP_AMOUNT, to=wallet, amount=amount)

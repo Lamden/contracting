@@ -7,6 +7,7 @@ import redis, unittest, seneca
 
 test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
 
+
 class TestScope(TestInterface):
 
     def test_scope(self):

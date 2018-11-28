@@ -545,7 +545,7 @@ class RunnableISQL(object):
 
 def run_tests(deps_provider):
     '''
-    TODO: Tests to validate interface of return values from update, select, etc.
+    TODO: Tests to validate tooling of return values from update, select, etc.
     TODO: Decide whether or not object properties can be passed to select like strings
 
     >>> u = Table('users', AutoIncrementColumn('id'),[

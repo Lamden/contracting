@@ -95,8 +95,8 @@ if __name__ == '__main__':
 #
 #     def setUp(self):
 #         overwrite_logger_level(0)
-#         with SenecaInterface(False) as interface:
-#             interface.r.flushall()
+#         with SenecaInterface(False) as tooling:
+#             tooling.r.flushall()
 #
 #             # Store all smart contracts in CONTRACTS_TO_STORE
 #             import seneca
@@ -106,12 +106,13 @@ if __name__ == '__main__':
 #                 with open(test_contracts_path + file_name) as f:
 #                     code_str = f.read()
 #                     interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
+#                     tooling.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
 #
 #             rt = make_n_tup({
 #                 'author': GENESIS_AUTHOR,
 #                 'sender': GENESIS_AUTHOR,
 #             })
-#             interface.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
+#             tooling.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
 #
 #     def test_setup_dbs(self):
 #         client = SenecaClient(sbb_idx=0, num_sbb=1)
