@@ -316,16 +316,17 @@ def vivify(potential_prefix, t):
 
 
 class RObject:
-    def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj',
-                 driver=redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB, password=REDIS_PASSWORD)
-                 ):
-        assert driver is not None, 'Provide a Redis driver.'
+
+    def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj'):
+
+        self.driver = SenecaInterpreter.r
+
         self.contract_id = SenecaInterpreter.loaded['__main__']['rt']['contract']
         self.prefix = prefix
         self.concurrent_mode = SenecaInterpreter.concurrent_mode
         self.key_type = key_type
 
-        self.driver = driver
+        #self.driver = driver
 
         assert key_type is not None, 'Key type cannot be None'
         assert key_type in primitive_types or is_complex_type(key_type)

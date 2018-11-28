@@ -8,6 +8,8 @@ def load_env():
 
 
 def get_redis_port(port=None):
+    if port is not None:
+        return port
 
     if env('CIRCLECI'):
         return 6379
@@ -16,6 +18,9 @@ def get_redis_port(port=None):
 
 
 def get_redis_password(password=None):
+    if password is not None:
+        return password
+
     if env('CIRCLECI'):
         return ''
 
