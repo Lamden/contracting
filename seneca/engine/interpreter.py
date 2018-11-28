@@ -23,6 +23,7 @@ class SenecaInterpreter:
     cache = {}
     _is_setup = False
     concurrent_mode = True
+    development_mode = False
 
     @classmethod
     def setup(cls, concurrent_mode=True, development_mode=False, port=None, password=None):
@@ -37,6 +38,7 @@ class SenecaInterpreter:
             cls._is_setup = True
             cls.setup_tracer()
         cls.concurrent_mode = concurrent_mode
+        cls.development_mode = development_mode
 
     @classmethod
     def setup_tracer(cls):

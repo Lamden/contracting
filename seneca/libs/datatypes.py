@@ -321,10 +321,14 @@ class RObject:
                  ):
         assert driver is not None, 'Provide a Redis driver.'
         self.contract_id = SenecaInterpreter.loaded['__main__']['rt']['contract']
-        self.driver = driver
         self.prefix = prefix
         self.concurrent_mode = SenecaInterpreter.concurrent_mode
         self.key_type = key_type
+
+        if SenecaInterpreter.development_mode:
+            self.driver = SenecaInterpreter.r
+        else:
+            self.driver = driver
 
         assert key_type is not None, 'Key type cannot be None'
         assert key_type in primitive_types or is_complex_type(key_type)
