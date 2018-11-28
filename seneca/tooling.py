@@ -25,7 +25,7 @@ class SenecaFunction:
 
         stamps = default(None, 'stamps')
         sender = default(self.defaults.get('sender'), 'sender')
-
+        print(self.driver.r)
         r = self.driver.execute_function(
             module_path=self.module_path,
             stamps= stamps,
@@ -37,11 +37,13 @@ class SenecaFunction:
 
 
 class ContractWrapper:
-    def __init__(self, contract_name=None, driver=default_driver(), default_sender=None):
+    def __init__(self, contract_name=None, driver=None, default_sender=None):
         self.driver = driver
         self.author = driver.get_contract_meta(contract_name)['author']
         self.default_sender = default_sender
         contract_code = driver.get_code_obj(contract_name)
+
+        print(contract_code)
         codes = [cd for cd in contract_code.co_consts if type(cd) == types.CodeType]
         for _c in codes:
             name = _c.co_name

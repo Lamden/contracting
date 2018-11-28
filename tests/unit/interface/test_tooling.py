@@ -27,37 +27,40 @@ def add_floats(s1, s2):
 
 class TestSenecaTooling(TestCase):
     def setUp(self):
-        default_driver().r.flushdb()
+        self.driver = SenecaInterface(concurrent_mode=False,
+                           port=6379,
+                           password='')
+        self.driver.r.flushdb()
 
     def test_submission(self):
-        default_driver().publish_code_str(
+        self.driver.publish_code_str(
             'example_code',
             author='stuart',
             code_str=example_code,
         )
 
-        self.assertEqual(example_code, default_driver().get_contract_meta('example_code')['code_str'])
+        self.assertEqual(example_code, self.driver.get_contract_meta('example_code')['code_str'])
 
     def test_wrapper(self):
-        default_driver().publish_code_str(
+        self.driver.publish_code_str(
             'example_code',
             author='stuart',
             code_str=example_code,
         )
 
-        wrapper = ContractWrapper('example_code', default_sender='stuart')
+        wrapper = ContractWrapper('example_code', driver=self.driver, default_sender='stuart')
         expected_functions = {'store_float', 'read_float', 'divide_float', 'add_floats'}
 
         self.assertEqual(expected_functions - set(dir(wrapper)), set())
 
     def test_call_function(self):
-        default_driver().publish_code_str(
+        self.driver.publish_code_str(
             'example_code',
             author='stuart',
             code_str=example_code,
         )
 
-        wrapper = ContractWrapper('example_code', default_sender='stuart')
+        wrapper = ContractWrapper('example_code', driver=self.driver, default_sender='stuart')
 
         wrapper.store_float(s='stu', f=0.1234)
         f = wrapper.read_float(s='stu')
