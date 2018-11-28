@@ -10,12 +10,11 @@ def default_driver():
 
 
 class SenecaFunction:
-    def __init__(self, name, module_path, kwargs, author, default_sender, driver):
+    def __init__(self, name, module_path, kwargs, default_sender, driver):
         self.name = name
         self.module_path = module_path
         self.kwargs = kwargs
         self.defaults = {
-            'author': author,
             'sender': default_sender
         }
         self.driver = driver
@@ -26,13 +25,11 @@ class SenecaFunction:
             return d if kwargs.get(k) is None else kwargs.get(k)
 
         stamps = default(None, 'stamps')
-        author = default(self.defaults.get('author'), 'author')
         sender = default(self.defaults.get('sender'), 'sender')
 
         r = self.driver.execute_function(
             module_path=self.module_path,
             stamps= stamps,
-            author= author,
             sender= sender,
             **kwargs
         )
@@ -54,7 +51,6 @@ class ContractWrapper:
             setattr(self, name, SenecaFunction(name=name,
                                                module_path=module_path,
                                                kwargs=kwargs,
-                                               author=self.author,
                                                default_sender=self.default_sender,
                                                driver=self.driver)
                     )

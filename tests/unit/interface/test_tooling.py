@@ -34,7 +34,6 @@ class TestSenecaTooling(TestCase):
             'example_code',
             author='stuart',
             code_str=example_code,
-            keep_original=True
         )
 
         self.assertEqual(example_code, default_driver().get_contract_meta('example_code')['code_str'])
@@ -44,7 +43,6 @@ class TestSenecaTooling(TestCase):
             'example_code',
             author='stuart',
             code_str=example_code,
-            keep_original=True
         )
 
         wrapper = ContractWrapper('example_code', default_sender='stuart')
@@ -57,7 +55,6 @@ class TestSenecaTooling(TestCase):
             'example_code',
             author='stuart',
             code_str=example_code,
-            keep_original=True
         )
 
         wrapper = ContractWrapper('example_code', default_sender='stuart')
