@@ -23,3 +23,11 @@ def token_contract():
         assert rt['sender'] == rt['author'], 'Only the original contract author can mint!'
         balances[to] += amount
 ```
+
+### Installing
+
+```
+pip3 install seneca
+brew install redis
+brew services start redis
+```
