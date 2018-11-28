@@ -68,7 +68,7 @@ def extract_prefix(s):
 
 '''
 Returns the representation of the complex type if it is not a primative.
-Otherwise, returns 
+Otherwise, returns
 '''
 
 
