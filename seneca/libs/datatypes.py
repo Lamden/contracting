@@ -3,7 +3,7 @@ import ujson as json
 from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 from seneca.libs.logger import get_logger
 from seneca.engine.book_keeper import BookKeeper
-from seneca.engine.interpreter import SenecaInterpreter
+from seneca.engine.interpreter import SenecaInterpreter, Seneca
 from seneca.engine.conflict_resolution import RedisProxy
 from decimal import Decimal
 from seneca.libs.decimal import make_decimal
@@ -320,9 +320,9 @@ class RObject:
                  driver=redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB, password=REDIS_PASSWORD)
                  ):
         assert driver is not None, 'Provide a Redis driver.'
-        self.contract_id = SenecaInterpreter.loaded['__main__']['rt']['contract']
+        self.contract_id = Seneca.loaded['__main__']['rt']['contract']
         self.prefix = prefix
-        self.concurrent_mode = SenecaInterpreter.concurrent_mode
+        self.concurrent_mode = Seneca.concurrent_mode
         self.key_type = key_type
 
         self.driver = driver

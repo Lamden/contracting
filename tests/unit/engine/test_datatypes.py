@@ -1,7 +1,7 @@
 import unittest
 
 from unittest import TestCase
-from seneca.engine.interpreter import SenecaInterpreter
+from seneca.engine.interpreter import SenecaInterpreter, Seneca
 from seneca.libs.datatypes import *
 from seneca.libs.decimal import make_decimal
 from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
@@ -15,8 +15,8 @@ test more failure cases
 class TestDatatypes(TestCase):
 
     def setUp(self):
-        SenecaInterpreter.concurrent_mode = False
-        SenecaInterpreter.loaded = {'__main__': {'rt': {'author': 'me', 'sender': 'me', 'contract': 'seneca.contracts.currency'}}}
+        Seneca.concurrent_mode = False
+        Seneca.loaded = {'__main__': {'rt': {'author': 'me', 'sender': 'me', 'contract': 'seneca.contracts.currency'}}}
         self.r = redis.StrictRedis(host='localhost', port=get_redis_port(), db=MASTER_DB, password=get_redis_password())
         self.l = HList(prefix='yo')
         self.r.flushdb()
