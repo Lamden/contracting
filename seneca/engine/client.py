@@ -102,6 +102,7 @@ class SenecaClient(SenecaInterface):
 
         cr_data = self.pending_dbs.popleft()
         assert cr_data.merged_to_common, "CRData not merged to common yet!"
+        self.log.important("Updating master db for input_hash {}".format(cr_data.input_hash))
 
         if self.sbb_idx == 0:
             assert Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION) == self.num_sb_builders, \
@@ -122,8 +123,9 @@ class SenecaClient(SenecaInterface):
         if len(self.pending_dbs) == 0:
             return
 
-        cr_data = self.pending_dbs.popleft()
+        cr_data = self.pending_dbs[0]
         input_hash = cr_data.input_hash
+        self.log.critical("updating master db for input_hash {}".format(input_hash))
         assert input_hash in self.pending_futures, "Input hash {} not in pending_futures {}".format(input_hash, self.pending_futures)
         assert cr_data == self.pending_futures[input_hash]['data'], "you done shit the bed again davis"
 

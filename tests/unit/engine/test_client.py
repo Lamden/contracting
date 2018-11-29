@@ -5,6 +5,7 @@ from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.libs.logger import overwrite_logger_level
 from decimal import Decimal
+import time
 
 
 GENESIS_AUTHOR = 'anonymoose'
@@ -358,8 +359,8 @@ class TestSenecaClient(TestCase):
         self.assertTrue(input_hash2 in client2.pending_futures)
         self.assertTrue(input_hash4 in client2.pending_futures)
 
-        client1.update_master_db(input_hash1)
-        client2.update_master_db(input_hash2)
+        client1.update_master_db()
+        client2.update_master_db()
 
         # We must run the future manually, since the event loop is not currently running
         coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
@@ -413,20 +414,27 @@ class TestSenecaClient(TestCase):
         client1._end_sb(self.assert_completion(None, input_hash3))
         client2._end_sb(self.assert_completion(None, input_hash4))
 
-        client1.update_master_db(input_hash1)
-        client2.update_master_db(input_hash2)
-        client1.update_master_db(input_hash3)
-        client2.update_master_db(input_hash4)
-
         self.assertTrue(input_hash1 in client1.pending_futures)
         self.assertTrue(input_hash3 in client1.pending_futures)
         self.assertTrue(input_hash2 in client2.pending_futures)
         self.assertTrue(input_hash4 in client2.pending_futures)
 
+        client1.update_master_db()
+        client2.update_master_db()
+
         # We must run the future manually, since the event loop is not currently running
-        coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'],
-                 client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
+        coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
         loop.run_until_complete(asyncio.gather(*coros))
+
+        time.sleep(5)
+
+        client1.update_master_db()
+        client2.update_master_db()
+
+        coros = (client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
+        loop.run_until_complete(asyncio.gather(*coros))
+
+        time.sleep(5)
 
         for c in (client1, client2):
             self.assertEqual(len(c.pending_dbs), 0)
