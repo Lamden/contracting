@@ -330,7 +330,7 @@ class CRContext:
         # TODO this only works for set/get
         self.cr_data['getset'].rollback_contract(contract_idx)
 
-    def reset(self, reset_db=True):
+    def reset(self, reset_db=False):
         """ Resets all state held by this container. """
         # TODO i think this would be a lot easier if we just scrapped this whole CRContext object and made a new
         # one, but then would we have to worry about memory leaks? idk but either way screw python
