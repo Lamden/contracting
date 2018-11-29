@@ -457,6 +457,10 @@ class TestSenecaClient(TestCase):
 
         loop.close()
 
+    def test_execute_with_multiple_sb_and_empty_sb_and_failed_txs_and_reruns(self):
+        # TODO implement
+        pass
+
     # Test that pending_db/active_db/working_db get updated as we go thru the flow
 
     # Test starting a new sub block before the last sub block finishes
