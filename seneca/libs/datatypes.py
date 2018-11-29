@@ -3,7 +3,7 @@ import ujson as json
 from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 from seneca.libs.logger import get_logger
 from seneca.engine.book_keeper import BookKeeper
-from seneca.engine.interpreter import SenecaInterpreter
+from seneca.engine.interpreter import SenecaInterpreter, Seneca
 from seneca.engine.conflict_resolution import RedisProxy
 from decimal import Decimal
 from seneca.libs.decimal import make_decimal
@@ -319,11 +319,11 @@ class RObject:
 
     def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj'):
 
-        self.driver = SenecaInterpreter.r
+        self.driver = Seneca.interface.r
 
-        self.contract_id = SenecaInterpreter.loaded['__main__']['rt']['contract']
+        self.contract_id = Seneca.loaded['__main__']['rt']['contract']
         self.prefix = prefix
-        self.concurrent_mode = SenecaInterpreter.concurrent_mode
+        self.concurrent_mode = Seneca.concurrent_mode
         self.key_type = key_type
 
         #self.driver = driver

@@ -50,8 +50,10 @@ void read_cu_costs(char *fname, int cu_costs[]) {
     ssize_t read_bytes;
 
     fp = fopen(fname, "r");
-    if (fp == NULL)
+    if (fp == NULL) {
+        PyErr_SetString(PyExc_AssertionError, "Computational Costs file is not found due to unsuccessful install.\n");
         exit(EXIT_FAILURE);
+    }
 
     while ((read_bytes = getline(&line, &len, fp)) != -1) {
         int opcode = strtol(strtok(line, ","), NULL, 10);
