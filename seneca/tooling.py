@@ -1,6 +1,13 @@
 from seneca.engine.interface import SenecaInterface
 import types
 
+
+def default_driver():
+    return SenecaInterface(concurrent_mode=False,
+                           port=6379,
+                           password='')
+
+
 class SenecaFunction:
     def __init__(self, name, module_path, kwargs, default_sender, driver):
         self.name = name
