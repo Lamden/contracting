@@ -8,7 +8,7 @@ do
 		break
 	else
 		count=$((count+1))
-		echo "Test passed ($count consecutive succs)"
+		echo "Test passed (succ #$count)"
 	fi
 done
 

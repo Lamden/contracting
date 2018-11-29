@@ -330,7 +330,7 @@ class CRContext:
         # TODO this only works for set/get
         self.cr_data['getset'].rollback_contract(contract_idx)
 
-    def reset(self, reset_db=False):
+    def reset(self, hard_reset=False):
         """ Resets all state held by this container. """
         # TODO i think this would be a lot easier if we just scrapped this whole CRContext object and made a new
         # one, but then would we have to worry about memory leaks? idk but either way screw python
@@ -340,13 +340,13 @@ class CRContext:
                 if issubclass(type(obj), s): return True
             return False
 
-        self.log.debug("Reseting CRData with reset_db={}".format(reset_db))
-        if reset_db:
+        self.log.debug("Resetting CRData with input hash {} (hard_reset={})".format(self.input_hash, hard_reset))
+        if hard_reset:
             self.working_db.flushdb()
+            self.merged_to_common = False
+            self.input_hash = None
 
         # Reset this object's state
-        self.merged_to_common = False
-        self.input_hash = None
         self.run_results.clear()
         self.contracts.clear()
         # TODO is this ok resetting all the CRData's like this? Should we worry about memory leaks? --davis

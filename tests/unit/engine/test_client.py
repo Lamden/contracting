@@ -72,6 +72,16 @@ class TestSenecaClient(TestCase):
 
         return _completion_handler
 
+    def get_futures(self, input_hash_client_dict: dict) -> list:
+        futs = []
+        for input_hash, client in input_hash_client_dict.items():
+            d = client.pending_futures[input_hash]
+            futs.append(d['fut'])
+            if d['merge_fut']:
+                futs.append(d['merge_fut'])
+
+        return futs
+
     def setUp(self):
         # overwrite_logger_level(0)
         with SenecaInterface(False) as interface:
@@ -234,6 +244,7 @@ class TestSenecaClient(TestCase):
         client2.execute_sb(input_hash=input_hash2, contracts=[], completion_handler=self.assert_completion(expected_sbb2_rep, input_hash2))
 
         # We must run the future manually, since the event loop is not currently running
+        print("\n\n starting event loop \n\n")
         coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
         loop.run_until_complete(asyncio.gather(*coros))
         loop.close()
@@ -298,7 +309,7 @@ class TestSenecaClient(TestCase):
         self.assertTrue(input_hash2 in client2.pending_futures)
 
         # We must run the future manually, since the event loop is not currently running
-        coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
+        coros = self.get_futures({input_hash1: client1, input_hash2: client2})
         loop.run_until_complete(asyncio.gather(*coros))
 
         loop.close()
@@ -363,10 +374,10 @@ class TestSenecaClient(TestCase):
         client2.update_master_db()
 
         # We must run the future manually, since the event loop is not currently running
-        coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
+        coros = self.get_futures({input_hash1: client1, input_hash2: client2})
         loop.run_until_complete(asyncio.gather(*coros))
 
-        coros = (client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
+        coros = self.get_futures({input_hash3: client1, input_hash4: client2})
         loop.run_until_complete(asyncio.gather(*coros))
 
         loop.close()
@@ -423,18 +434,20 @@ class TestSenecaClient(TestCase):
         client2.update_master_db()
 
         # We must run the future manually, since the event loop is not currently running
-        coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
-        # coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'],
+        # coros1 = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
+        coros1 = self.get_futures({input_hash1: client1, input_hash2: client2})
+        # coros1 = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'],
         #          client1.pending_futures[input_hash3]['fut'])
-        loop.run_until_complete(asyncio.gather(*coros))
+        loop.run_until_complete(asyncio.gather(*coros1))
 
         print("\n\n\n DONE WITH FIRST ROUND \n\n\n")
 
         client2.update_master_db()
         client1.update_master_db()
 
-        coros = (client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
-        loop.run_until_complete(asyncio.gather(*coros))
+        # coros2 = (client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
+        coros2 = self.get_futures({input_hash3: client1, input_hash4: client2})
+        loop.run_until_complete(asyncio.gather(*coros2))
 
         print("\n\n\n DONE WITH SECOND ROUND \n\n\n")
 
