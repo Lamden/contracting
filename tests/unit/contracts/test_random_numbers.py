@@ -16,7 +16,8 @@ MINT_WALLETS = {
 
 
 class TestSenecaClient(TestCase):
-    CONTRACTS_TO_STORE = {'random_nums': 'random_nums_test.sen.py'}
+    CONTRACTS_TO_STORE = {'random_nums': 'random_nums_test.sen.py',
+                          'importing_randoms': 'importing_randoms.sen.py'}
 
     def setUp(self):
         context = {
