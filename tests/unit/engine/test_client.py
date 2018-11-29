@@ -72,6 +72,9 @@ class TestSenecaClient(TestCase):
 
         return _completion_handler
 
+    def mock_completion(self, cr_data: CRContext):
+        pass
+
     def get_futures(self, input_hash_client_dict: dict) -> list:
         futs = []
         for input_hash, client in input_hash_client_dict.items():
@@ -79,6 +82,8 @@ class TestSenecaClient(TestCase):
             futs.append(d['fut'])
             if d['merge_fut']:
                 futs.append(d['merge_fut'])
+            if input_hash in client.queued_futures:
+                futs.append(client.queued_futures[input_hash])
 
         return futs
 
@@ -109,23 +114,31 @@ class TestSenecaClient(TestCase):
 
         self.assertTrue(client.master_db is not None)
         self.assertTrue(client.active_db is None)
-
         self.assertEqual(len(client.available_dbs), NUM_CACHES)
 
     def test_flush(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        # We need to flush in a coro so that the end loops runs, so any futures can be properly canceled.
+        async def _flush(client):
+            client.flush_all()
+
         client = SenecaClient(sbb_idx=0, num_sbb=1)
 
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
 
-        client._start_sb('A' * 64)
-        client.run_contract(c1)
-        client.run_contract(c2)
+        for input_hash in ('A' * 64, 'B' * 64, 'C' * 64, 'D' * 64, 'E' * 64, 'F' * 64, '0' * 64, '1' * 64):
+            client.execute_sb(input_hash=input_hash, contracts=[c1, c2], completion_handler=self.mock_completion)
 
-        client.flush_all()
+        loop.run_until_complete(_flush(client))
+        loop.close()
 
         self.assertEqual(len(client.pending_dbs), 0)
         self.assertEqual(client.active_db, None)
+        self.assertEqual(len(client.pending_futures), 0)
+        self.assertEqual(len(client.queued_futures), 0)
 
     def test_run_tx_increments_contract_idx(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
@@ -244,7 +257,7 @@ class TestSenecaClient(TestCase):
         client2.execute_sb(input_hash=input_hash2, contracts=[], completion_handler=self.assert_completion(expected_sbb2_rep, input_hash2))
 
         # We must run the future manually, since the event loop is not currently running
-        print("\n\n starting event loop \n\n")
+        print("\n\n starting event loop \n\n")  # TODO remove
         coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
         loop.run_until_complete(asyncio.gather(*coros))
         loop.close()

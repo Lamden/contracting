@@ -332,8 +332,8 @@ class CRContext:
 
     def reset(self, hard_reset=False):
         """ Resets all state held by this container. """
-        # TODO i think this would be a lot easier if we just scrapped this whole CRContext object and made a new
-        # one, but then would we have to worry about memory leaks? idk but either way screw python
+        # TODO this is likely very sketch in terms of memory leaks but YOLO this is python bro whats a memory leak
+        # TODO -- we should if hard_reset=False, we should also reset all redis keys EXCLUDING phase variables
         def _is_subclass(obj, subs: tuple):
             """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
             for s in subs:
