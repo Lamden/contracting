@@ -70,4 +70,4 @@ class SenecaInterface(SenecaInterpreter):
         assert not self.r.hexists('contracts', contract_name), 'Contract "{}" already exists!'.format(contract_name)
         Seneca.imports = {}
         tree_obj, code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': contract_name}})
-        self.set_code(contract_name, code_obj, code_str, author)
+        self.set_code(fullname=contract_name, tree_obj=tree_obj, code_obj=code_obj, code_str=code_str, author=author)
