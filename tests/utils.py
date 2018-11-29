@@ -30,11 +30,6 @@ class TestInterface(TestCase):
         except: v = 1
         self.si.r.flushdb()
         self.si.r.set('market:stamps_to_tau', v)
-        TestInterface.r = self.si.r
         print('\n{}'.format('#' * 128))
         print(self.id)
         print('{}\n'.format('#' * 128))
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.r.flushdb()

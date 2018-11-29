@@ -61,8 +61,11 @@ class TestSenecaTooling(TestCase):
         )
 
         wrapper = ContractWrapper('example_code', driver=self.driver, default_sender='stuart')
-
         wrapper.store_float(s='stu', f=0.1234)
         f = wrapper.read_float(s='stu')
 
         self.assertEqual(f['output'], Decimal('0.1234'))
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main()

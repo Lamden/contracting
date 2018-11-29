@@ -26,7 +26,8 @@ print('#' * 128)
 requirements = [
     'redis==2.10.6',
     'python-dotenv==0.9.1',
-    'ujson==1.35'
+    'ujson==1.35',
+    'autopep8==1.4.3'
 ]
 
 class ve_build_ext(build_ext):
@@ -57,9 +58,6 @@ setup(
     name='seneca',
     version=__version__,
     description='Python-based smart contract language and interpreter.',
-    entry_points={
-        'console_scripts': ['seneca=seneca.cli:main'],
-    },
     packages=find_packages(),
     install_requires=requirements,
     url='https://github.com/Lamden/seneca',

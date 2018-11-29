@@ -18,6 +18,7 @@ class SenecaFunction:
 
         stamps = default(None, 'stamps')
         sender = default(self.defaults.get('sender'), 'sender')
+
         r = self.driver.execute_function(
             module_path=self.module_path,
             stamps= stamps,

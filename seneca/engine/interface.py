@@ -12,9 +12,9 @@ class SenecaInterface(SenecaInterpreter):
 
     def __init__(self, *args, **kwargs):
         if not isinstance(sys.meta_path[2], RedisFinder):
-            Seneca.interface = self
             self.old_sys_path = sys.meta_path
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
+        Seneca.interface = self
         super().__init__(*args, **kwargs)
 
     def __enter__(self, *args, **kwargs):
