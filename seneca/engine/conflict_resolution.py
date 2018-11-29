@@ -330,6 +330,25 @@ class CRContext:
         # TODO this only works for set/get
         self.cr_data['getset'].rollback_contract(contract_idx)
 
+    def reset_run_data(self):
+        """ Resets all state held by this container. """
+        # TODO i think this would be a lot easier if we just scrapped this whole CRContext object and made a new
+        # one, but then would we have to worry about memory leaks? idk but either way screw python
+        def _is_subclass(obj, subs: tuple):
+            """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
+            for s in subs:
+                if issubclass(type(obj), s): return True
+            return False
+
+        self.log.debug("Soft resetting CRData with input hash {}".format(self.input_hash))
+
+        # Reset this object's state
+        self.run_results.clear()
+        self.contracts.clear()
+        # TODO is this ok resetting all the CRData's like this? Should we worry about memory leaks? --davis
+        self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
+                        CRDataBase.registry.items()}
+
     def reset(self, hard_reset=False):
         """ Resets all state held by this container. """
         # TODO i think this would be a lot easier if we just scrapped this whole CRContext object and made a new
@@ -343,15 +362,9 @@ class CRContext:
         self.log.debug("Resetting CRData with input hash {} (hard_reset={})".format(self.input_hash, hard_reset))
         if hard_reset:
             self.working_db.flushdb()
-            self.merged_to_common = False
-            self.input_hash = None
+        self.merged_to_common = False
+        self.input_hash = None
 
-        # Reset this object's state
-        self.run_results.clear()
-        self.contracts.clear()
-        # TODO is this ok resetting all the CRData's like this? Should we worry about memory leaks? --davis
-        self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
-                        CRDataBase.registry.items()}
 
     def get_state_for_idx(self, contract_idx: int) -> str:
         """

@@ -117,7 +117,7 @@ class SenecaClient(SenecaInterface):
             # TODO reset everything but phase variables here for cr_data
 
         self.log.debugv("Soft resetting CRContext with input hash {}".format(cr_data.input_hash))
-        cr_data.reset(hard_reset=False)
+        cr_data.reset_run_data()
 
         self.available_dbs.append(cr_data)
 
@@ -200,6 +200,7 @@ class SenecaClient(SenecaInterface):
 
     def can_start_next_sb(self) -> bool:
         return not self.active_db and len(self.available_dbs) > 0
+        # and Phase.get_phase_variable(self.active_db.working_db, Macros.XXX) == 0
 
     def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
         # TODO -- wait until we have an available DB. If we do not have any available db's put this call in a queue
@@ -218,8 +219,11 @@ class SenecaClient(SenecaInterface):
 
         self.log.debug("Starting subblock with input hash {}".format(input_hash))
         self.active_db = self.available_dbs.popleft()
-        self.log.critical("hard reseting active db {} before starting next sb".format(self.active_db.input_hash))  # TODO delete
-        self.active_db.reset(hard_reset=True)
+        if Phase.get_phase_variable(self.active_db.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders:
+            self.log.critical("hard reseting active db {} before starting next sb".format(self.active_db.input_hash))  # TODO delete
+            self.active_db.reset(hard_reset=True)
+        else:
+            self.active_db.reset(hard_reset=False)
         self.active_db.input_hash = input_hash
 
     def _end_sb(self, completion_handler: Callable[[CRContext], None]):
@@ -261,6 +265,8 @@ class SenecaClient(SenecaInterface):
 
         self.log.notice("Invoking completion handler for sub block with input hash {}".format(cr_data.input_hash))
         completion_handler(cr_data)
+        # if self.sbb_idx != 0:
+            # await asyncio.sleep(3)
 
         # Dev sanity check
         assert cr_data.input_hash in self.pending_futures, "Input hash {} removed from pending futures {}!"\
