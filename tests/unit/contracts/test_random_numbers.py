@@ -98,3 +98,35 @@ class TestSenecaClient(TestCase):
             )
 
         self.assertEqual(f['output'], 386311)
+
+    def test_random_range_int(self):
+        with SenecaInterface(False) as interface:
+            f = interface.execute_function(
+                module_path='seneca.contracts.random_nums.int_in_range',
+                sender=GENESIS_AUTHOR,
+                stamps=None,
+                a=100,
+                b=50000
+            )
+
+            f2 = interface.execute_function(
+                module_path='seneca.contracts.random_nums.int_in_range',
+                sender=GENESIS_AUTHOR,
+                stamps=None,
+                a=100,
+                b=50000
+            )
+
+        self.assertEqual(f['output'], 17977)
+        self.assertEqual(f2['output'], 22879)
+
+    def test_random_choice(self):
+        with SenecaInterface(False) as interface:
+            f = interface.execute_function(
+                module_path='seneca.contracts.random_nums.pick_cities',
+                sender=GENESIS_AUTHOR,
+                stamps=None,
+                k=2
+            )
+
+        self.assertEqual(f['output'], ['New York', 'Chicago'])
