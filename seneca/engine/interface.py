@@ -1,6 +1,6 @@
 import sys, importlib, warnings
 from seneca.engine.module import SenecaFinder, RedisFinder
-from seneca.engine.interpreter import SenecaInterpreter
+from seneca.engine.interpreter import SenecaInterpreter, Seneca
 import inspect
 import autopep8
 
@@ -10,21 +10,19 @@ class SenecaInterface(SenecaInterpreter):
         High level API for interacting with Seneca Smart Contracts
     """
 
-    def __init__(self, concurrent_mode=True, port=None, password=None):
+    def __init__(self, *args, **kwargs):
         if not isinstance(sys.meta_path[2], RedisFinder):
             self.old_sys_path = sys.meta_path
             sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
-        SenecaInterpreter.setup(concurrent_mode=concurrent_mode,
-                                port=port,
-                                password=password)
-        self.r = SenecaInterpreter.r
+        Seneca.interface = self
+        super().__init__(*args, **kwargs)
 
     def __enter__(self, *args, **kwargs):
-        self.old_concurrent_mode = SenecaInterpreter.concurrent_mode
+        self.old_concurrent_mode = Seneca.concurrent_mode
         return self
 
     def __exit__(self, type, value, traceback):
-        SenecaInterpreter.concurrent_mode = self.old_concurrent_mode
+        Seneca.concurrent_mode = self.old_concurrent_mode
         return False
 
     @staticmethod
@@ -57,18 +55,19 @@ class SenecaInterface(SenecaInterpreter):
         return tree_obj, code_obj
 
     def execute_code_str(self, code_str, scope={'rt': {'sender': 'anonymous', 'contract': 'arbitrary'}}):
-        SenecaInterpreter.imports = {}
+        Seneca.imports = {}
         tree_obj, code_obj = self.compile_code(code_str, scope)
         return self.execute(tree_obj, scope)
 
     def publish_code_str(self, fullname, author, code_str, scope={}):
         assert not self.r.hexists('contracts', fullname), 'Contract "{}" already exists!'.format(fullname)
-        SenecaInterpreter.imports = {}
+        Seneca.imports = {}
         tree_obj, code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': fullname}})
         self.set_code(fullname, tree_obj, code_obj, code_str, author)
 
     def publish_function(self, f, contract_name, author, scope={}):
         code_str = self.function_to_code_string(f)
         assert not self.r.hexists('contracts', contract_name), 'Contract "{}" already exists!'.format(contract_name)
-        code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': contract_name}})
-        self.set_code(contract_name, code_obj, code_str, author)
+        Seneca.imports = {}
+        tree_obj, code_obj = self.compile_code(code_str, scope={'rt': {'author': author, 'contract': contract_name}})
+        self.set_code(fullname=contract_name, tree_obj=tree_obj, code_obj=code_obj, code_str=code_str, author=author)
