@@ -85,3 +85,4 @@ Seneca uses Redis to store the state of the blockchain. Thus, you can use any Re
 
 You can also use a GUI like Medis without any issue.
 
+![Medis](medis.png)
