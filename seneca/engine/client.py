@@ -114,7 +114,7 @@ class SenecaClient(SenecaInterface):
         assert input_hash is not None, "Input hash is None! Dev error this should not happen"
         assert cr_data.merged_to_common, "CRData not merged to common yet!"
 
-        self.log.important("Updating master db for input_hash {}".format(cr_data.input_hash))  # TODO change log lvl
+        self.log.notice("Updating master db for input_hash {}".format(cr_data.input_hash))  # TODO change log lvl
 
         if self.sbb_idx == 0:
             assert Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION) == self.num_sb_builders, \
@@ -122,7 +122,7 @@ class SenecaClient(SenecaInterface):
             assert Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders, \
                 "Conflict resolution stage incomplete!"
 
-            self.log.notice("Merging common layer to master db")
+            self.log.important("Merging common layer to master db")
             CRContext.merge_to_master(working_db=cr_data.working_db, master_db=self.master_db)
 
         self.log.debugv("Resetting run data for input hash {}".format(cr_data.input_hash))
@@ -131,7 +131,7 @@ class SenecaClient(SenecaInterface):
 
         # Only hard reset (meaning flush redis data) if all other SBBs have finished updating to master db
         if Phase.get_phase_variable(cr_data.working_db, Macros.RESET) == self.num_sb_builders:
-            self.log.info("RESET phase finished. Hard resetting db for input hash {}".format(input_hash))
+            self.log.debug("RESET phase finished. Hard resetting db for input hash {}".format(input_hash))
             cr_data.reset(hard_reset=True)
         else:
             self.log.debugv("Soft resetting db for input hash {}".format(input_hash))
@@ -281,7 +281,7 @@ class SenecaClient(SenecaInterface):
          - Once the _wait_and_merge_to_common future is done, the callback is trigger
         """
         assert self.active_db, "Active db not set! Did you call _start_sb?"
-        self.log.notice("Ending sub block {} which has input hash {}".format(self.sbb_idx, self.active_db.input_hash))
+        self.log.info("Ending sub block {} which has input hash {}".format(self.sbb_idx, self.active_db.input_hash))
 
         Phase.incr_phase_variable(self.active_db.working_db, Macros.EXECUTION)
 
