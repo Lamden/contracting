@@ -44,7 +44,7 @@ class SenecaInterface(SenecaInterpreter):
 
         return final_code
 
-    def compile_code(self, code_str, scope={}):
+    def compile_code(self, code_str, scope={'rt': {'sender': 'anonymous', 'contract': 'arbitrary'}}):
         tree, code, prevalidated = self.parse_ast(code_str, protected_variables=list(scope.keys()))
         prevalidated_obj = compile(prevalidated, filename='__main__', mode="exec")
         self.execute(prevalidated_obj, scope)
