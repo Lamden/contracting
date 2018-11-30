@@ -17,10 +17,10 @@ Datatype serialization format:
 
 type<prefix>(declaration)
 
-:map(str, int)
-:map<coins>(str, int)
+*hmap(str, int)
+*hmap<coins>(str, int)
 
-:list<todo>(:map(str, int))
+*hlist<todo>(:map(str, int))
 
 
 '''
@@ -78,8 +78,9 @@ def encode_type(t):
     return type_to_string.get(t)
 
 
-complex_tokens = ['map', 'list', 'table', 'ranked']
-all_tokens = ['int', 'str', 'bool', 'bytes', 'float', 'map', 'list', 'table', 'ranked']
+complex_tokens = ['hmap', 'hlist', 'table', 'ranked']
+DATATYPES = complex_tokens
+all_tokens = ['int', 'str', 'bool', 'bytes', 'float', 'hmap', 'hlist', 'table', 'ranked']
 # # #
 
 
@@ -104,9 +105,9 @@ def parse_complex_type_repr(s):
         if s.startswith(t):
             if t == 'table':
                 return build_table_from_repr(s)
-            elif t == 'list':
+            elif t == 'hlist':
                 return build_list_from_repr(s)
-            elif t == 'map':
+            elif t == 'hmap':
                 return build_map_from_repr(s)
             elif t == 'ranked':
                 return build_ranked_from_repr(s)
@@ -158,7 +159,7 @@ def build_table_from_repr(s):
 
 
 def build_list_from_repr(s):
-    slice_idx = s.find('list') + len('list')
+    slice_idx = s.find('hlist') + len('hlist')
     s = s[slice_idx:]
 
     # check if the prefix has been defined
@@ -174,7 +175,7 @@ def build_list_from_repr(s):
 
 
 def build_map_from_repr(s):
-    slice_idx = s.find('map') + len('map')
+    slice_idx = s.find('hmap') + len('hmap')
     s = s[slice_idx:]
 
     # check if the prefix has been defined
@@ -224,7 +225,7 @@ class Placeholder:
         return False
 
     def rep(self):
-        return CTP + 'map' + '(' + encode_type(self.key_type) + ',' + encode_type(self.value_type) + ')'
+        return CTP + 'hmap' + '(' + encode_type(self.key_type) + ',' + encode_type(self.value_type) + ')'
 
 
 class ListPlaceholder(Placeholder):
@@ -239,7 +240,7 @@ class ListPlaceholder(Placeholder):
         return False
 
     def rep(self):
-        return CTP + 'list' + '(' + encode_type(self.value_type) + ')'
+        return CTP + 'hlist' + '(' + encode_type(self.value_type) + ')'
 
 
 class TablePlaceholder(Placeholder):
@@ -418,7 +419,7 @@ class HMap(RObject):
         super().__init__(prefix=prefix,
                          key_type=key_type,
                          value_type=value_type,
-                         rep_str='map')
+                         rep_str='hmap')
 
         self.vivification_idx = 0
 
@@ -448,7 +449,7 @@ class HMap(RObject):
         return self.set(k, v)
 
     def rep(self):
-        return '{}map<{}:{}>({},{})'.format(CTP,
+        return '{}hmap<{}:{}>({},{})'.format(CTP,
                                             self.contract_id,
                                             self.prefix,
                                             encode_type(self.key_type),
@@ -472,7 +473,7 @@ class HList(RObject):
         super().__init__(prefix=prefix,
                          key_type=str,
                          value_type=value_type,
-                         rep_str='list')
+                         rep_str='hlist')
 
     def get(self, i):
         g = self.driver.lindex(self.prefix, i)
@@ -516,7 +517,7 @@ class HList(RObject):
         return self.set(i, v)
 
     def rep(self):
-        return '{}list<{}:{}>({})'.format(CTP, self.contract_id, self.prefix, encode_type(self.value_type))
+        return '{}hlist<{}:{}>({})'.format(CTP, self.contract_id, self.prefix, encode_type(self.value_type))
 
     def exists(self, k):
         return self.driver.exists(k)
