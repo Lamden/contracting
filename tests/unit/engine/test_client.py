@@ -258,7 +258,6 @@ class TestSenecaClient(TestCase):
         client2.execute_sb(input_hash=input_hash2, contracts=[], completion_handler=self.assert_completion(expected_sbb2_rep, input_hash2))
 
         # We must run the future manually, since the event loop is not currently running
-        print("\n\n starting event loop \n\n")  # TODO remove
         coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
         loop.run_until_complete(asyncio.gather(*coros))
         loop.close()
@@ -305,27 +304,20 @@ class TestSenecaClient(TestCase):
 
         client1.update_master_db()
 
-        # We must run the future manually, since the event loop is not currently running
         coros = self.get_futures({input_hash1: client1})
         loop.run_until_complete(asyncio.gather(*coros))
-        print("\n\nloop 1 done")
 
         client1.execute_sb(input_hash=input_hash3, contracts=[c5, c6], completion_handler=self.assert_completion(expected_sbb1_2, input_hash3))
-
 
         client2.update_master_db()
 
         self.assertTrue(input_hash3 in client1.queued_futures)
 
-
-        # We must run the future manually, since the event loop is not currently running
         coros = self.get_futures({input_hash3: client1})
         if input_hash2 in client2.pending_futures:
             coros.extend(self.get_futures({input_hash2: client2}))
 
         loop.run_until_complete(asyncio.gather(*coros))
-
-        print("\n\nloop 2 done")
 
         client1.update_master_db()
         client2.execute_sb(input_hash=input_hash4, contracts=[c7, c8], completion_handler=self.assert_completion(expected_sbb2_2, input_hash4))
@@ -334,19 +326,11 @@ class TestSenecaClient(TestCase):
 
         self.assertTrue(input_hash4 in client2.pending_futures)
 
-
-        print("\n\n starting event loop \n\n")
         # We must run the future manually, since the event loop is not currently running
         coros = self.get_futures({input_hash3: client1, input_hash4: client2})
-        # coros = self.get_futures({input_hash4: client2})
         loop.run_until_complete(asyncio.gather(*coros))
 
         loop.close()
-        print("\n\nloop 3 done")
-
-        # client1.execute_sb(input_hash=input_hash1, contracts=[c1, c2], completion_handler=self.assert_completion(expected_sbb1_rep, input_hash1))
-        # client2.execute_sb(input_hash=input_hash2, contracts=[c3, c4], completion_handler=self.assert_completion(expected_sbb2_rep, input_hash2))
-
 
     def test_end_subblock_1_sbb_with_failure(self):
 
@@ -539,16 +523,12 @@ class TestSenecaClient(TestCase):
         #          client1.pending_futures[input_hash3]['fut'])
         loop.run_until_complete(asyncio.gather(*coros1))
 
-        print("\n\n\n DONE WITH FIRST ROUND \n\n\n")
-
         client2.update_master_db()
         client1.update_master_db()
 
         # coros2 = (client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
         coros2 = self.get_futures({input_hash3: client1, input_hash4: client2})
         loop.run_until_complete(asyncio.gather(*coros2))
-
-        print("\n\n\n DONE WITH SECOND ROUND \n\n\n")
 
         for c in (client1, client2):
             all_input_hashes = [cr.input_hash for cr in c.pending_dbs]
