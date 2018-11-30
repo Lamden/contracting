@@ -14,8 +14,8 @@ class ReadOnlyException(Exception):
 class CompilationException(Exception):
     pass
 
-class Seneca:
 
+class Seneca:
     current_ast_types = None
     prevalidated = None
     postvalidated = None
@@ -30,6 +30,7 @@ class Seneca:
 
     basic_scope = {}
 
+
 class ScopeParser:
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(Seneca.loaded['__main__'])
@@ -43,14 +44,17 @@ class ScopeParser:
         self.module = '.'.join([fn.__module__, fn.__name__])
         Seneca.exports[self.module] = True
 
+
 class Export(ScopeParser):
     def __call__(self, fn):
         if not fn.__module__: return
         self.set_scope_during_compilation(fn)
+
         def _fn(*args, **kwargs):
             args, kwargs = self.set_scope(fn, args, kwargs)
             return fn(*args, **kwargs)
         return _fn
+
 
 class Seed(ScopeParser):
     def __call__(self, fn):
@@ -60,6 +64,7 @@ class Seed(ScopeParser):
             fn()
             Seneca.concurrent_mode = old_concurrent_mode
 
+
 Seneca.basic_scope = {
     'export': Export(),
     'seed': Seed(),
@@ -67,8 +72,8 @@ Seneca.basic_scope = {
     '__use_locals__': False
 }
 
-class SenecaNodeTransformer(ast.NodeTransformer):
 
+class SenecaNodeTransformer(ast.NodeTransformer):
     def generic_visit(self, node):
         Seneca.current_ast_types.add(type(node))
         return super().generic_visit(node)
@@ -127,8 +132,8 @@ class SenecaNodeTransformer(ast.NodeTransformer):
                 raise CompilationException('Not allowed to import inside a function definition')
         return node
 
-class SenecaInterpreter:
 
+class SenecaInterpreter:
     def __init__(self, concurrent_mode=True, port=None, password=None):
         self.r = redis.StrictRedis(host='localhost',
                                   port=get_redis_port(port=port),

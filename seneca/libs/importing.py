@@ -1,7 +1,6 @@
 import importlib
+from seneca.engine.interpreter import Seneca
 
 
 def import_contract(n):
-    print('assert this sucker is in the state')
-
-    contract = importlib.import_module(n)
+    return Seneca.interface.get_code_obj(n)

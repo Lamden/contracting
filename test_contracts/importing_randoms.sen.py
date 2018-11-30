@@ -1,4 +1,4 @@
-import random_nums
+from seneca.contracts.random_nums import shuffle_cards
 
 def yo():
-    return random_nums.shuffle_cards()
+    return shuffle_cards()

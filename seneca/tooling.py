@@ -28,8 +28,8 @@ class SenecaFunction:
 
         r = self.driver.execute_function(
             module_path=self.module_path,
-            stamps= stamps,
-            sender= sender,
+            stamps=stamps,
+            sender=sender,
             **kwargs
         )
 

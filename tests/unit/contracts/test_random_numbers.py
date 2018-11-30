@@ -60,3 +60,12 @@ class TestSenecaClient(TestCase):
                 stamps=None,
             )
         print(f, f2)
+
+    def test_random_num_imports(self):
+        with SenecaInterface(False) as interface:
+            f = interface.execute_function(
+                module_path='seneca.contracts.importing_randoms.yo',
+                sender=GENESIS_AUTHOR,
+                stamps=None,
+            )
+        print(f)
