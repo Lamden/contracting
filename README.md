@@ -1,78 +1,88 @@
 # Seneca - Smart Contracts with Python
 
-<img src="https://github.com/Lamden/seneca/raw/master/seneca.jpg" align="right"
-     title="Seneca" width="300" height="450">
+```python
+def token_contract():
+    from seneca.libs.datatypes import hmap
 
-Smart contracts allow people to develop open agreements to do business in a way that is completely transparent, auditable, and automatable. Traditionally, smart contracting languages have been difficult for people to pick up. This is because early smart contract systems expose the differences between themselves and general programming languages through the development experience.
+    balances = hmap('balances', str, int)
 
-Seneca is different because it focuses on the developer's point of view to provide an interface that feels as close to coding traditional systems as possible.
+    @export
+    def balance_of(wallet_id):
+        return balances[wallet_id]
 
-## Install and Get Started
+    @export
+    def transfer(to, amount):
+        balances[rt['sender']] -= amount
+        balances[to] += amount
+        sender_balance = balances[rt['sender']]
 
-`coming soon`
+        assert sender_balance >= 0, "Sender balance must be non-negative!!!"
 
-## Data Driven Model
-
-Most web based applications are driven by data: usernames, passwords, email addresses, profile pictures, etc. etc. However, smart contracts today do not provide clear interfaces to storing these complex data models.
-
-Seneca treats data like a tabular SQL table and smart contracts as a group of methods that creates, reads, updates, and deletes that data. This provides a very smooth development experience and a shallow learning curve to smart contracting.
-
-```
-ledger = st.create_table('ledger', [
-    ('wallet_id', st.str_len(200), True),
-    ('balance', int),
-])
-
-ledger.insert([{'wallet_id': 'carl', 'balance': 1000000}]).run()
+    @export
+    def mint(to, amount):
+        assert rt['sender'] == rt['author'], 'Only the original contract author can mint!'
+        balances[to] += amount
 ```
 
-## Clear Syntax
-
-Seneca is Python. We restrict a lot of functionality, such as infinite loops, random number generation, etc., because it does not play well with the concepts found in the blockchain realm. But, the core syntax is 100% valid Python. You can run Seneca code on a plain MySQL database instance with the standard Python interpreter and it will function exactly as it will on the blockchain.
-
-## Straightforward Extendability
-
-Users (people like you!) are assigned a namespace which their smart contracts live on the blockchain based on their public key. This means that publishing smart contracts live in an open namespace that others can link to from their own smart contracts.
+### Installing
 
 ```
-from carls_public_key import token
+git clone https://github.com/Lamden/seneca.git
+cd seneca
+git pull origin dev
+python3 setup.py develop
 
-token.transfer_coins('carl', 100)
+brew install redis
+brew services start redis
 ```
 
-If you want to keep your smart contracts off limits, you can use our easy to use permissioning systems or simply not export the methods of your smart contract to the world. Methods on smart contracts are private by default so that permissioning hacks, [like the ones that Parity suffered](https://medium.com/@rtaylor30/how-i-snatched-your-153-037-eth-after-a-bad-tinder-date-d1d84422a50b), are less likely to occur.
+### Using Seneca in a Development Enviroment
+With Seneca now installed, you can develop smart contracts without an instance of the blockchain. This is to improve the speed of development. Unlike Solidity that requires a 3rd party service such as Truffle or TestRPC, we leverage existing Python tooling and provide the APIs to allow people to develop smart contracts with ease out of the box. Here is how you would go about testing a token contract in a Jupyter notebook / IPython console:
 
+```python
+In [1]: from seneca.tooling import *
+
+In [2]: def token_contract():
+   ...:     from seneca.libs.datatypes import hmap
+   ...:
+   ...:     balances = hmap('balances', str, int)
+   ...:
+   ...:     @export
+   ...:     def balance_of(wallet_id):
+   ...:         return balances[wallet_id]
+   ...:
+   ...:     @export
+   ...:     def transfer(to, amount):
+   ...:         balances[rt['sender']] -= amount
+   ...:         balances[to] += amount
+   ...:         sender_balance = balances[rt['sender']]
+   ...:
+   ...:         assert sender_balance >= 0, "Sender balance must be non-negative!!!"
+   ...:
+   ...:     @export
+   ...:     def mint(to, amount):
+   ...:         assert rt['sender'] == rt['author'], 'Only the original contract author can mint!'
+   ...:         balances[to] += amount
+   ...:
+
+In [3]: d = default_driver()
+   ...: d.r.flushdb()
+Out[3]: True
+
+In [4]: d.publish_function(token_contract, contract_name='token', author='stu')
+
+In [5]: token = ContractWrapper('token', default_sender='stu')
+
+In [6]: token.mint(to='stu', amount=100000)
+Out[6]: {'status': 'success', 'output': None, 'remaining_stamps': 0}
+
+In [7]: token.balance_of(wallet_id='stu')
+Out[7]: {'status': 'success', 'output': Decimal('100000'), 'remaining_stamps': 0}
 ```
-...
 
-def add_coins(wallet_id, amount_to_add):
-    assert amount_to_add >= 0, "It's not possible to 'add' a negative balance"
+### Storage Model
+Seneca uses Redis to store the state of the blockchain. Thus, you can use any Redis tooling to inspect the storage and retrieval of information to and from your smart contracts.
 
-    if not wallet_exists(wallet_id):
-        create_wallet(wallet_id)
+You can also use a GUI like Medis without any issue.
 
-    old_balance = get_balance(wallet_id)
-    ledger.update({'balance': old_balance + amount_to_add}) \
-        .where(ledger.wallet_id == wallet_id).run()
-
-
-def remove_coins(wallet_id, amount_to_remove):
-    assert wallet_exists(wallet_id), "Wallet id is not present in ledger"
-    assert amount_to_remove >= 0, "Removing negative balances not permitted"
-
-    old_balance = get_balance(wallet_id)
-    assert old_balance - amount_to_remove >= 0, "No negative balances allowed"
-    ledger.update({'balance': old_balance - amount_to_remove}) \
-        .where(ledger.wallet_id == wallet_id).run()
-
-@export
-def transfer_coins(receiver_id, amount):
-    sender_id = rt.global_run_data.author
-    _transfer_coins(sender_id, receiver_id, amount)
-    
-...
-```
-
-## Why the name Seneca?
-
-Seneca was a Roman Stoic philosopher. The Stoics practiced logic, level-headedness, pragmatism, and critical thinking over emotion. We wanted to create a smart contracting language that was straightforward, made logical sense, and took few ideological stances.
+![Medis](medis.png)
