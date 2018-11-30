@@ -1,11 +1,51 @@
 from unittest import TestCase
 from seneca.engine.interface import SenecaInterface
-from seneca.libs.importing import import_contract
+from decimal import *
+
+GENESIS_AUTHOR = 'davis'
+STAMP_AMOUNT = None
+MINT_WALLETS = {
+    'davis': 10000,
+    'stu': 69,
+    'birb': 8000,
+    'ghu': 9000,
+    'tj': 8000,
+    'ethan': 8000
+}
 
 
-class TestImporting(TestCase):
+class TestSenecaClient(TestCase):
+    CONTRACTS_TO_STORE = {
+        'birb_bucks': 'birb_bucks.sen.py',
+        'cat_cash': 'cat_cash.sen.py',
+        'dynamic_imports': 'dynamic_imports.sen.py'
+    }
 
-    def test_setup(self):
-        with SenecaInterface(concurrent_mode=False, port=6379, password='') as interface:
-            t = import_contract('token')
-            t.balance_of('stu')
+    def setUp(self):
+        # overwrite_logger_level(0)
+        with SenecaInterface(False) as interface:
+            interface.r.flushall()
+            # Store all smart contracts in CONTRACTS_TO_STORE
+            import seneca
+            test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
+
+            for contract_name, file_name in self.CONTRACTS_TO_STORE.items():
+                with open(test_contracts_path + file_name) as f:
+                    code_str = f.read()
+                    interface.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
+
+            rt = {
+                'author': GENESIS_AUTHOR,
+                'sender': GENESIS_AUTHOR,
+                'contract': 'minter'
+            }
+
+    def test_import(self):
+        with SenecaInterface(False) as interface:
+            f = interface.execute_function(
+                module_path='seneca.contracts.dynamic_imports.import_stuff',
+                sender=GENESIS_AUTHOR,
+                stamps=None,
+            )
+
+            print(f)
