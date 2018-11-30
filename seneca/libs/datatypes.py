@@ -3,7 +3,7 @@ import ujson as json
 from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 from seneca.libs.logger import get_logger
 from seneca.engine.book_keeper import BookKeeper
-from seneca.engine.interpreter import SenecaInterpreter
+from seneca.engine.interpreter import SenecaInterpreter, Seneca
 from seneca.engine.conflict_resolution import RedisProxy
 from decimal import Decimal
 from seneca.libs.decimal import make_decimal
@@ -68,7 +68,7 @@ def extract_prefix(s):
 
 '''
 Returns the representation of the complex type if it is not a primative.
-Otherwise, returns 
+Otherwise, returns
 '''
 
 
@@ -316,15 +316,17 @@ def vivify(potential_prefix, t):
 
 
 class RObject:
-    def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj',
-                 driver=redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB, password=REDIS_PASSWORD)
-                 ):
-        assert driver is not None, 'Provide a Redis driver.'
-        self.contract_id = SenecaInterpreter.loaded['__main__']['rt']['contract']
-        self.driver = driver
+
+    def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj'):
+
+        self.driver = Seneca.interface.r
+
+        self.contract_id = Seneca.loaded['__main__']['rt']['contract']
         self.prefix = prefix
-        self.concurrent_mode = SenecaInterpreter.concurrent_mode
+        self.concurrent_mode = Seneca.concurrent_mode
         self.key_type = key_type
+
+        #self.driver = driver
 
         assert key_type is not None, 'Key type cannot be None'
         assert key_type in primitive_types or is_complex_type(key_type)
@@ -353,8 +355,6 @@ class RObject:
             v = value.rep()
 
         else:
-            print(type(value), self.value_type)
-
             # due to the naive nature of fixed point precision casting, we try to cast decimals into ints when there
             # is no loss of precision
 

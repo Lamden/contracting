@@ -3,7 +3,7 @@ import encodings.idna
 from os.path import join, exists, isdir, basename
 from importlib.abc import Loader, MetaPathFinder
 from importlib.util import spec_from_file_location
-from seneca.engine.interpreter import SenecaInterpreter
+from seneca.engine.interpreter import SenecaInterpreter, Seneca
 
 
 class SenecaFinder(MetaPathFinder):
@@ -48,11 +48,11 @@ class SenecaLoader(Loader):
             if 'seneca/libs' in self.filename:
                 self.code_obj = compile(code_str, filename=self.filename, mode="exec")
             else:
-                self.tree, self.prevalidated = SenecaInterpreter.parse_ast(code_str)
+                self.tree, self.postvalidated, self.prevalidated = Seneca.interface.parse_ast(code_str)
                 self.code_obj = compile(self.tree, filename=self.filename, mode="exec")
 
     def exec_module(self, module):
-        SenecaInterpreter.execute(
+        Seneca.interface.execute(
             self.code_obj, vars(module), is_main=False
         )
         return module
@@ -69,14 +69,14 @@ class RedisLoader:
 
     def load_module(self, fullname):
         self.module_name = module_name = fullname.split('.')[-1]
-        code = SenecaInterpreter.get_code_obj(module_name)
+        code = Seneca.interface.get_code_obj(module_name)
         mod = sys.modules.setdefault(fullname, imp.new_module(fullname))
         mod.__file__ = "<%s>" % self.__class__.__name__
         mod.__loader__ = self
         mod.__path__ = []
         mod.__package__ = fullname
 
-        SenecaInterpreter.execute(
+        Seneca.interface.execute(
             code, mod.__dict__, is_main=False
         )
         return mod
