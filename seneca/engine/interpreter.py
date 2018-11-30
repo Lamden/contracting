@@ -30,6 +30,7 @@ class Seneca:
 
     basic_scope = {}
 
+
 class ScopeParser:
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(Seneca.loaded['__main__'])
@@ -125,6 +126,9 @@ class SenecaNodeTransformer(ast.NodeTransformer):
         for item in node.body:
             if type(item) in [ast.ImportFrom, ast.Import]:
                 raise CompilationException('Not allowed to import inside a function definition')
+        for item in node.decorator_list:
+            if item.id == 'export':
+                Seneca.exports[node.name] = True
         return node
 
 class SenecaInterpreter:
