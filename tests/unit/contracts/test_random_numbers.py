@@ -59,7 +59,8 @@ class TestSenecaClient(TestCase):
                 sender=GENESIS_AUTHOR,
                 stamps=None,
             )
-        print(f, f2)
+
+        self.assertEqual(f['output'], f2['output'])
 
     def test_random_num_imports(self):
         with SenecaInterface(False) as interface:
@@ -68,4 +69,32 @@ class TestSenecaClient(TestCase):
                 sender=GENESIS_AUTHOR,
                 stamps=None,
             )
-        print(f)
+
+    def test_random_num_one_vs_two(self):
+        with SenecaInterface(False) as interface:
+            f = interface.execute_function(
+                module_path='seneca.contracts.random_nums.random_number',
+                sender=GENESIS_AUTHOR,
+                stamps=None,
+                k=1000
+            )
+
+            f2 = interface.execute_function(
+                module_path='seneca.contracts.random_nums.random_number_2',
+                sender=GENESIS_AUTHOR,
+                stamps=None,
+                k=1000
+            )
+        self.assertEqual(f['output'], 790)
+        self.assertEqual(f2['output'], 220)
+
+    def test_random_getrandbits(self):
+        with SenecaInterface(False) as interface:
+            f = interface.execute_function(
+                module_path='seneca.contracts.random_nums.random_bits',
+                sender=GENESIS_AUTHOR,
+                stamps=None,
+                k=20
+            )
+
+        self.assertEqual(f['output'], 386311)
