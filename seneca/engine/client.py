@@ -125,7 +125,7 @@ class SenecaClient(SenecaInterface):
             self.log.notice("Merging common layer to master db")
             CRContext.merge_to_master(working_db=cr_data.working_db, master_db=self.master_db)
 
-        self.log.debugv("Soft resetting CRContext with input hash {}".format(cr_data.input_hash))
+        self.log.debugv("Resetting run data for input hash {}".format(cr_data.input_hash))
         cr_data.reset_run_data()
         Phase.incr_phase_variable(cr_data.working_db, Macros.RESET)
 
@@ -137,7 +137,6 @@ class SenecaClient(SenecaInterface):
             self.log.debugv("Soft resetting db for input hash {}".format(input_hash))
             cr_data.reset(hard_reset=False)
 
-        self.log.critical(("DELETING PENDING FUTURES {}".format(input_hash)))
         self.pending_futures.pop(input_hash)
         self.available_dbs.append(cr_data)
 
@@ -188,16 +187,15 @@ class SenecaClient(SenecaInterface):
         """ Runs the contract object, and retuns a string representing the result (succ/fail).
         Note: Assumes the BookKeeping info has already been set. """
         BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data)
-        contract_name = contract.contract_name
 
         try:
             # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
+            # TODO not this pls
             if hasattr(contract, 'contract_code'):
                 author = contract.sender
                 self.publish_code_str(fullname=contract.contract_name, author=author,
                                       code_str=contract.contract_code)
             else:
-                author = self.get_contract_meta(contract_name)['author']
                 mod_path = module_path_for_contract(contract)
                 self.execute_function(module_path=mod_path, sender=contract.sender,
                                       stamps=contract.stamps, **contract.kwargs)
@@ -228,16 +226,33 @@ class SenecaClient(SenecaInterface):
                (Phase.get_phase_variable(self.available_dbs[0].working_db, Macros.RESET) == 0)
 
     def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
+        """
+        Begins execution of a sub-block with the given list of contracts and the input hash. Once execution
+        and conflict resolution is finished, completion_handler is called with a CRContext instance as the only arg.
+
+        If there are no available db's, AND the we have exceeded the allowed nubmer of queued db's, this will return
+        False. Otherwise, if a DB is immediately available, or if there is room in the queue, this method will return
+        True.
+        """
         assert input_hash not in self.pending_futures, "SB with input hash {} is already pending!".format(input_hash)
         assert input_hash not in self.queued_futures, "SB with input hash {} is already queued!".format(input_hash)
         assert input_hash is not None, "Input hash cannot be None!"
 
         if self._can_start_next_sb():
             self._execute_sb(input_hash, contracts, completion_handler)
+
         else:
+            if len(self.queued_futures) >= MAX_SB_QUEUE_SIZE:
+                self.log.warning("Maximum number ({}) of queueud sub-blocks has been reached! Not scheduling sub-block "
+                                 "execution for input hash {}. All queued futures: {}"
+                                 .format(MAX_SB_QUEUE_SIZE, input_hash, self.queued_futures))
+                return False
+
             self.log.debugv("No available dbs. Queueing up future to execute sb for input hash {}".format(input_hash))
             fut = asyncio.ensure_future(self._wait_and_execute_sb(input_hash, contracts, completion_handler))
             self.queued_futures[input_hash] = fut
+
+        return True
 
     def _execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
         # TODO -- wait until we have an available DB. If we do not have any available db's put this call in a queue
@@ -253,10 +268,9 @@ class SenecaClient(SenecaInterface):
     def _start_sb(self, input_hash: str):
         assert self.active_db is None, "Attempted to _start_sb, but active_db is already set! Did you end the " \
                                        "previous subblock with _end_sb?"
-        if not self._can_start_next_sb():
-            raise Exception("Attempted to start a new sub block, but there are no available DBs!")
+        assert self._can_start_next_sb(), "Attempted to start a new sub block, but cannot start next sb!!! Dev error!"
 
-        self.log.debug("Starting subblock with input hash {}".format(input_hash))
+        self.log.debug("Starting sb with input hash {}".format(input_hash))
         self.active_db = self.available_dbs.popleft()
         self.active_db.input_hash = input_hash
 
@@ -303,8 +317,6 @@ class SenecaClient(SenecaInterface):
 
         self.log.notice("Invoking completion handler for sub block with input hash {}".format(cr_data.input_hash))
         completion_handler(cr_data)
-        # if self.sbb_idx != 0:
-            # await asyncio.sleep(3)
 
         # Dev sanity check
         assert cr_data.input_hash in self.pending_futures, "Input hash {} removed from pending futures {}!"\
