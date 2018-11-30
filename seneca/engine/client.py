@@ -255,8 +255,6 @@ class SenecaClient(SenecaInterface):
         return True
 
     def _execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
-        # TODO -- wait until we have an available DB. If we do not have any available db's put this call in a queue
-        # and pull it off the queue once we pop a pending_db and gain another available_db
         self.log.debug("Executing sub block for input hash {}".format(input_hash))
         self.queued_futures.pop(input_hash, None)
 
