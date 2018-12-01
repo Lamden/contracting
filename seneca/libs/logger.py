@@ -25,7 +25,7 @@ def get_main_log_path():
 
     # Create log directory if it does not exist
     log_dir = os.path.dirname(log_path)
-    if not os.path.exists(log_dir):
+    if not os.path.isdir(log_dir):
         os.makedirs(log_dir)
 
     return log_path
