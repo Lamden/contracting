@@ -325,6 +325,7 @@ class RObject:
 
         self.contract_id = Seneca.loaded['__main__']['rt']['contract']
         self.prefix = '{}{}{}'.format(self.contract_id, delimiter, prefix)
+
         self.concurrent_mode = Seneca.concurrent_mode
         self.key_type = key_type
 
@@ -451,7 +452,7 @@ class HMap(RObject):
         return self.set(k, v)
 
     def rep(self):
-        return '{}map<{}>({},{})'.format(CTP,
+        return '{}hmap<{}>({},{})'.format(CTP,
                                             self.prefix,
                                             encode_type(self.key_type),
                                             encode_type(self.value_type))
@@ -518,7 +519,7 @@ class HList(RObject):
         return self.set(i, v)
 
     def rep(self):
-        return '{}list<{}>({})'.format(CTP, self.prefix, encode_type(self.value_type))
+        return '{}hlist<{}>({})'.format(CTP, self.prefix, encode_type(self.value_type))
 
     def exists(self, k):
         return self.driver.exists(k)
