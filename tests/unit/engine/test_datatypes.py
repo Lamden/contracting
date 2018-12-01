@@ -33,7 +33,7 @@ class TestDatatypes(TestCase):
         self.assertTrue(string_to_type['bool'] == bool)
 
     def test_parse_representation_map(self):
-        repr_str = '*map<currency:test>(int,str)'
+        repr_str = '*hmap<seneca.contracts.currency:test>(int,str)'
         m = parse_representation(repr_str)
 
         self.assertTrue(type(m) == HMap)
@@ -354,7 +354,7 @@ class TestDatatypes(TestCase):
         t = table(prefix='something', schema={'blah': int, 'blerg': str})
 
     def test_complex_type_repr(self):
-        s = '*table({howdy:int,boiii:*map(str,int)})'
+        s = '*table({howdy:int,boiii:*hmap(str,int)})'
         t = parse_complex_type_repr(s)
 
         self.assertTrue(t.key_type == str)
@@ -412,7 +412,7 @@ class TestDatatypes(TestCase):
         self.assertEqual(s, _s.rep())
 
     def test_table_placeholder_rep(self):
-        s = '*table({howdy:int,boiii:*map(str,int)})'
+        s = '*table({howdy:int,boiii:*hmap(str,int)})'
         _s = table(schema={'howdy': int, 'boiii': hmap()})
         self.assertEqual(s, _s.rep())
 
@@ -558,7 +558,7 @@ class TestDatatypes(TestCase):
         self.assertEqual(f, bool)
 
     def test_build_placeholder_list_from_repr(self):
-        r = '*list(int)'
+        r = '*hlist(int)'
         l = build_list_from_repr(r)
         self.assertTrue(isinstance(l, ListPlaceholder))
         self.assertEqual(l.value_type, int)

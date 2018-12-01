@@ -31,5 +31,11 @@ load_env()
 
 MASTER_DB = 0
 DB_OFFSET = 1
-NUM_CACHES = 2
 CODE_OBJ_MAX_CACHE = 64
+
+# Number of available db's SenecaClients have available to get ahead on the next sub block while other sb's are
+# awaiting a merge confirmation
+NUM_CACHES = 2
+
+# Number of sb's to queue up if we run out of caches
+MAX_SB_QUEUE_SIZE = 8
