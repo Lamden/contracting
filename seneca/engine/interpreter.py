@@ -251,6 +251,8 @@ class SenecaInterpreter:
         scope.update(Seneca.basic_scope)
         if is_main:
             Seneca.loaded['__main__'] = scope
+        Seneca.loaded['__main__'].update(scope)
+
         exec(code, scope)
         if is_main:
             self.validate()

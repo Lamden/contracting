@@ -23,7 +23,7 @@ class TestSenecaClient(TestCase):
 
     def setUp(self):
         # overwrite_logger_level(0)
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, 6379, '') as interface:
             interface.r.flushall()
             # Store all smart contracts in CONTRACTS_TO_STORE
             import seneca
@@ -41,11 +41,37 @@ class TestSenecaClient(TestCase):
             }
 
     def test_import(self):
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, 6379, '') as interface:
             f = interface.execute_function(
-                module_path='seneca.contracts.dynamic_imports.import_stuff',
+                module_path='seneca.contracts.dynamic_imports.get_token_balance',
                 sender=GENESIS_AUTHOR,
                 stamps=None,
+                token_name='birb_bucks',
+                account='birb'
             )
 
-            print(f)
+            self.assertEqual(f['output'], 1000000)
+
+            f = interface.execute_function(
+                module_path='seneca.contracts.dynamic_imports.get_token_balance',
+                sender=GENESIS_AUTHOR,
+                stamps=None,
+                token_name='cat_cash',
+                account='cat'
+            )
+
+            self.assertEqual(f['output'], 1000000)
+
+            f4 = interface.execute_function(
+                module_path='seneca.contracts.dynamic_imports.get_token_balance',
+                sender=GENESIS_AUTHOR,
+                stamps=None,
+                token_name='cat_cash',
+                account='birb'
+            )
+
+            print(f4)
+
+            self.assertEqual(f4['output'], 0)
+
+            print(f4)
