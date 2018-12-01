@@ -25,10 +25,14 @@ def get_main_log_path():
 
     # Create log directory if it does not exist
     log_dir = os.path.dirname(log_path)
-    if not os.path.isdir(log_dir):
-        os.makedirs(log_dir)
+    try:
+        if not os.path.isdir(log_dir):
+            os.makedirs(log_dir)
+    except Exception as e:
+        print("Possible error creating log file: {}".format(e))
 
     return log_path
+
 
 format = '%(asctime)s.%(msecs)03d %(name)s[%(process)d][%(processName)s] <{}> %(levelname)-2s %(message)s'.format(os.getenv('HOST_NAME', 'Node'))
 
