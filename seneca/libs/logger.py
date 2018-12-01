@@ -135,8 +135,11 @@ def get_logger(name=''):
     filedir = "logs/{}".format(os.getenv('TEST_NAME', 'test'))
     filename = "{}/{}.log".format(filedir, os.getenv('HOST_NAME', name))
 
-    if not os.path.exists(filedir):
-        os.makedirs(filedir, exist_ok=True)
+    try:
+        if not os.path.isdir(filedir):
+            os.makedirs(filedir, exist_ok=True)
+    except Exception as e:
+        print("Possible error creating log file: {}".format(e))
 
     filehandlers = [
         logging.FileHandler(get_main_log_path(), delay=True),
