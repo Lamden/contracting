@@ -14,8 +14,8 @@ class ReadOnlyException(Exception):
 class CompilationException(Exception):
     pass
 
-class Seneca:
 
+class Seneca:
     current_ast_types = None
     prevalidated = None
     postvalidated = None
@@ -44,14 +44,17 @@ class ScopeParser:
         self.module = '.'.join([fn.__module__, fn.__name__])
         Seneca.exports[self.module] = True
 
+
 class Export(ScopeParser):
     def __call__(self, fn):
         if not fn.__module__: return
         self.set_scope_during_compilation(fn)
+
         def _fn(*args, **kwargs):
             args, kwargs = self.set_scope(fn, args, kwargs)
             return fn(*args, **kwargs)
         return _fn
+
 
 class Seed(ScopeParser):
     def __call__(self, fn):
@@ -61,6 +64,7 @@ class Seed(ScopeParser):
             fn()
             Seneca.concurrent_mode = old_concurrent_mode
 
+
 Seneca.basic_scope = {
     'export': Export(),
     'seed': Seed(),
@@ -68,8 +72,8 @@ Seneca.basic_scope = {
     '__use_locals__': False
 }
 
-class SenecaNodeTransformer(ast.NodeTransformer):
 
+class SenecaNodeTransformer(ast.NodeTransformer):
     def generic_visit(self, node):
         Seneca.current_ast_types.add(type(node))
         return super().generic_visit(node)
@@ -131,8 +135,8 @@ class SenecaNodeTransformer(ast.NodeTransformer):
                 Seneca.exports[node.name] = True
         return node
 
-class SenecaInterpreter:
 
+class SenecaInterpreter:
     def __init__(self, concurrent_mode=True, port=None, password=None):
         self.r = redis.StrictRedis(host='localhost',
                                   port=get_redis_port(port=port),
@@ -250,6 +254,8 @@ class SenecaInterpreter:
         scope.update(Seneca.basic_scope)
         if is_main:
             Seneca.loaded['__main__'] = scope
+        Seneca.loaded['__main__'].update(scope)
+
         exec(code, scope)
         if is_main:
             self.validate()
@@ -279,16 +285,17 @@ result = {}()
 
     def execute_function(self, module_path, sender, stamps, *args, **kwargs):
         module_name = module_path.rsplit('.', 1)[0]
+        contract_name = module_name.rsplit('.', 1)[-1]
         fn_call_obj, import_obj, meta = self.get_cached_code_obj(module_path, stamps)
         scope = {
-            'rt': { 'author': meta['author'], 'sender': sender, 'contract': module_name },
+            'rt': { 'author': meta['author'], 'sender': sender, 'contract': contract_name },
             '__args__': args,
             '__kwargs__': kwargs,
         }
         scope.update(Seneca.basic_scope)
         Seneca.loaded['__main__'] = scope
         exec(import_obj, scope)
-        _obj = marshal.loads(self.r.hget('contracts_code', module_name.rsplit('.', 1)[-1]))
+        _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
         exec(_obj, scope)
         scope.update({'__use_locals__': True})
         if stamps != None:

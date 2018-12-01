@@ -41,7 +41,6 @@ class Phase:
 
 
 class SenecaClient(SenecaInterface):
-
     def __init__(self, sbb_idx, num_sbb, concurrent_mode=True, loop=None):
         # TODO do we even need to bother with the concurrent_mode flag? We are treating that its always true --davis
         super().__init__()

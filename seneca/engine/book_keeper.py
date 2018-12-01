@@ -18,7 +18,7 @@ class BookKeeper:
         return key
 
     @classmethod
-    def set_info(cls, sbb_idx: int, contract_idx: int, data: CRContext) -> None:
+    def set_info(cls, sbb_idx: int, contract_idx: int, data: CRContext, **kwargs) -> None:
         """
         Sets the info (subblock builder index and contract index) for the current thread.
         """
@@ -26,7 +26,7 @@ class BookKeeper:
         # print("\nSetting key {} with info sbb_idx: {} and contract_idx: {}".format(key, sbb_idx, contract_idx))  # TODO remove
 
         with cls._lock:
-            cls._shared_state[key] = {'sbb_idx': sbb_idx, 'contract_idx': contract_idx, 'data': data}
+            cls._shared_state[key] = {'sbb_idx': sbb_idx, 'contract_idx': contract_idx, 'data': data, **kwargs}
 
     @classmethod
     def get_info(cls) -> dict:
