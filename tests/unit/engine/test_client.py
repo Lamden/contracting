@@ -138,7 +138,7 @@ class TestSenecaClient(TestCase):
         input_hash = 'A' * 64
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = MockPublishTransaction(sender='anonymoose', contract_name='test', contract_code=TEST_CONTRACT)
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
+        expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
                             (c2, "SUCC", "")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
@@ -162,8 +162,8 @@ class TestSenecaClient(TestCase):
         input_hash = 'A' * 64
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
-                            (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
+        expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
+                            (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
         client._start_sb(input_hash)
@@ -186,8 +186,8 @@ class TestSenecaClient(TestCase):
         input_hash = 'A' * 64
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
-                            (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
+        expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
+                            (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
 
@@ -223,8 +223,8 @@ class TestSenecaClient(TestCase):
 
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
-        expected_sbb1_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
-                             (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
+        expected_sbb1_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
+                             (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
         expected_sbb2_rep = []
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
@@ -246,9 +246,9 @@ class TestSenecaClient(TestCase):
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 9000)
         c3 = create_currency_tx('stu', 'anonymoose', 40)
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
+        expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
                             (c2, "FAIL -- Sender balance must be non-negative!!!", ""),
-                            (c3, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
+                            (c3, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
         client._start_sb(input_hash)
@@ -276,10 +276,10 @@ class TestSenecaClient(TestCase):
         c2 = create_currency_tx('stu', 'anonymoose', 40)
         c3 = create_currency_tx('ghu', 'anonymoose', 15)
         c4 = create_currency_tx('tj', 'birb', 90)
-        expected_sbb1_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
-                             (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
-        expected_sbb2_rep = [(c3, "SUCC", "SET balances:ghu 8985;SET balances:anonymoose 10041;"),
-                             (c4, "SUCC", "SET balances:tj 7910;SET balances:birb 8090;")]
+        expected_sbb1_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
+                             (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
+        expected_sbb2_rep = [(c3, "SUCC", "SET currency:balances:ghu 8985;SET currency:balances:anonymoose 10041;"),
+                             (c4, "SUCC", "SET currency:balances:tj 7910;SET currency:balances:birb 8090;")]
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
@@ -316,14 +316,14 @@ class TestSenecaClient(TestCase):
         c6 = create_currency_tx('stu', 'anonymoose', 10)
         c7 = create_currency_tx('ghu', 'tj', 50)
         c8 = create_currency_tx('birb', 'anonymoose', 100)
-        expected_sbb1_1 = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
-                           (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
-        expected_sbb2_1 = [(c3, "SUCC", "SET balances:ghu 8985;SET balances:anonymoose 10041;"),
-                           (c4, "SUCC", "SET balances:tj 7910;SET balances:birb 8090;")]
-        expected_sbb1_2 = [(c5, "SUCC", "SET balances:ethan 7940;SET balances:birb 8150;"),
-                           (c6, "SUCC", "SET balances:stu 33;SET balances:anonymoose 10051;")]
-        expected_sbb2_2 = [(c7, "SUCC", "SET balances:ghu 8935;SET balances:tj 7960;"),
-                           (c8, "SUCC", "SET balances:birb 8050;SET balances:anonymoose 10151;")]
+        expected_sbb1_1 = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
+                           (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
+        expected_sbb2_1 = [(c3, "SUCC", "SET currency:balances:ghu 8985;SET currency:balances:anonymoose 10041;"),
+                           (c4, "SUCC", "SET currency:balances:tj 7910;SET currency:balances:birb 8090;")]
+        expected_sbb1_2 = [(c5, "SUCC", "SET currency:balances:ethan 7940;SET currency:balances:birb 8150;"),
+                           (c6, "SUCC", "SET currency:balances:stu 33;SET currency:balances:anonymoose 10051;")]
+        expected_sbb2_2 = [(c7, "SUCC", "SET currency:balances:ghu 8935;SET currency:balances:tj 7960;"),
+                           (c8, "SUCC", "SET currency:balances:birb 8050;SET currency:balances:anonymoose 10151;")]
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)

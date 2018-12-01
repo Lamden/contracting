@@ -282,16 +282,17 @@ result = {}()
 
     def execute_function(self, module_path, sender, stamps, *args, **kwargs):
         module_name = module_path.rsplit('.', 1)[0]
+        contract_name = module_name.rsplit('.', 1)[-1]
         fn_call_obj, import_obj, meta = self.get_cached_code_obj(module_path, stamps)
         scope = {
-            'rt': { 'author': meta['author'], 'sender': sender, 'contract': module_name },
+            'rt': { 'author': meta['author'], 'sender': sender, 'contract': contract_name },
             '__args__': args,
             '__kwargs__': kwargs,
         }
         scope.update(Seneca.basic_scope)
         Seneca.loaded['__main__'] = scope
         exec(import_obj, scope)
-        _obj = marshal.loads(self.r.hget('contracts_code', module_name.rsplit('.', 1)[-1]))
+        _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
         exec(_obj, scope)
         scope.update({'__use_locals__': True})
         if stamps != None:

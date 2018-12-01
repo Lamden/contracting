@@ -295,7 +295,8 @@ def is_complex_type(v):
 
 
 # table to be done later
-def vivify(potential_prefix, t):
+def vivify(prefix, t, delim):
+    contract_id, potential_prefix = prefix.split(delim, 1)
     if t in primitive_types:
         return vivified_primitives[t]
     elif issubclass(type(t), Placeholder):
@@ -322,7 +323,7 @@ class RObject:
         self.driver = Seneca.interface.r
 
         self.contract_id = Seneca.loaded['__main__']['rt']['contract']
-        self.prefix = self.contract_id + delimiter + prefix
+        self.prefix = '{}{}{}'.format(self.contract_id, delimiter, prefix)
         self.concurrent_mode = Seneca.concurrent_mode
         self.key_type = key_type
 
@@ -435,8 +436,6 @@ class HMap(RObject):
         if type(key) in complex_types:
             key = key.rep()
 
-        print('{}{}{}'.format(self.prefix, self.delimiter, key))
-
         g = self.driver.get('{}{}{}'.format(self.prefix, self.delimiter, key))
         g = self.decode_value(g)
         return g
@@ -444,15 +443,14 @@ class HMap(RObject):
     def __getitem__(self, k):
         item = self.get(k)
         if item is None and self.value_type is not None:
-            return vivify('{}.{}'.format(self.prefix, k), self.value_type)
+            return vivify('{}.{}'.format(self.prefix, k), self.value_type, self.delimiter)
         return item
 
     def __setitem__(self, k, v):
         return self.set(k, v)
 
     def rep(self):
-        return '{}map<{}:{}>({},{})'.format(CTP,
-                                            self.contract_id,
+        return '{}map<{}>({},{})'.format(CTP,
                                             self.prefix,
                                             encode_type(self.key_type),
                                             encode_type(self.value_type))
@@ -512,14 +510,14 @@ class HList(RObject):
     def __getitem__(self, i):
         item = self.get(i)
         if item is None and self.value_type is not None:
-            return vivify('{}.{}'.format(self.prefix, i), self.value_type)
+            return vivify('{}.{}'.format(self.prefix, i), self.value_type, self.delimiter)
         return item
 
     def __setitem__(self, i, v):
         return self.set(i, v)
 
     def rep(self):
-        return '{}list<{}:{}>({})'.format(CTP, self.contract_id, self.prefix, encode_type(self.value_type))
+        return '{}list<{}>({})'.format(CTP, self.prefix, encode_type(self.value_type))
 
     def exists(self, k):
         return self.driver.exists(k)
@@ -614,7 +612,7 @@ class Table(RObject):
     def __getitem__(self, k):
         item = self.get(k)
         if item is None and self.value_type is not None:
-            return vivify('{}.{}'.format(self.prefix, k), self.value_type)
+            return vivify('{}.{}'.format(self.prefix, k), self.value_type, self.delimiter)
         return item
 
     def __setitem__(self, k, v):
@@ -632,7 +630,7 @@ class Table(RObject):
             d += ','
         d = d[:-1]
         d += '})'
-        return CTP + self.rep_str + '<' + self.contract_id + ':' + self.prefix + '>' + d
+        return CTP + self.rep_str + '<' + self.prefix + '>' + d
 
 
 def table(prefix=None, key_type=str, schema=None):
@@ -691,8 +689,7 @@ class Ranked(RObject):
         self.increment(member, i)
 
     def rep(self):
-        return '{}ranked<{}:{}>({},{})'.format(CTP,
-                                            self.contract_id,
+        return '{}ranked<{}>({},{})'.format(CTP,
                                             self.prefix,
                                             encode_type(self.key_type),
                                             encode_type(self.value_type))
