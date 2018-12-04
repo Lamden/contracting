@@ -89,7 +89,7 @@ You can also use a GUI like Medis without any issue.
 
 ## FAQs
 
-### `pip install seneca` does not work!
+### `pip install seneca` is not installing on my computer!
 
 If you're using a Mac, you can run into this problem where the C libraries that are required for Seneca are not being compiled and the package fails to install. This is because the proper C libraries are not installed on your Mac.
 
