@@ -1,7 +1,9 @@
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
-from distutils.command.build_ext import build_ext
+from distutils.command.build_ext import build_ext, CCompilerError, DistutilsExecError, DistutilsPlatformError
 import os
+from distutils import errors
+import sys
 
 major = 0
 
@@ -29,6 +31,14 @@ requirements = [
     'ujson==1.35',
     'autopep8==1.4.3'
 ]
+
+ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
+
+
+class BuildFailed(Exception):
+    def __init__(self):
+        self.cause = sys.exc_info()[1]  # work around py 2/3 different syntax
+
 
 class ve_build_ext(build_ext):
     """Build C extensions, but fail with a straightforward exception."""

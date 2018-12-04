@@ -290,6 +290,7 @@ result = {}()
         }
         scope.update(Seneca.basic_scope)
         Seneca.loaded['__main__'] = scope
+        print(scope)
         exec(import_obj, scope)
         _obj = marshal.loads(self.r.hget('contracts_code', module_name.rsplit('.', 1)[-1]))
         exec(_obj, scope)
