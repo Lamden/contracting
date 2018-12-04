@@ -294,6 +294,7 @@ result = {}()
         }
         scope.update(Seneca.basic_scope)
         Seneca.loaded['__main__'] = scope
+        print(scope)
         exec(import_obj, scope)
         _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
         exec(_obj, scope)
