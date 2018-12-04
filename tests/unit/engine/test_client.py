@@ -22,19 +22,15 @@ MINT_WALLETS = {
 TEST_CONTRACT = \
 """
 balances = {'hello': 'world'}
-
 @export
 def one_you_can_export():
     print('Running one_you_can_export()')
-
 @export
 def one_you_can_also_export():
     print('Running one_you_can_also_export()')
     one_you_can_export()
-
 def one_you_cannot_export(dont, do, it='wrong'):
     print('Always runs: Running one_you_cannot_export()')
-
 @export
 def one_you_can_also_also_export():
     print('Running one_you_can_also_also_export()')
@@ -70,6 +66,19 @@ class TestSenecaClient(TestCase):
                 self.assertEqual(expected_sbb_rep, cr_data.get_subblock_rep())
 
         return _completion_handler
+
+    def get_futures(self, input_hash_client_dict: dict) -> list:
+        futs = []
+        for input_hash, client in input_hash_client_dict.items():
+            if input_hash in client.pending_futures:
+                d = client.pending_futures[input_hash]
+                futs.append(d['fut'])
+                if d['merge_fut']:
+                    futs.append(d['merge_fut'])
+            if input_hash in client.queued_futures:
+                futs.append(client.queued_futures[input_hash])
+
+        return futs
 
     def setUp(self):
         # overwrite_logger_level(0)
@@ -138,7 +147,7 @@ class TestSenecaClient(TestCase):
         input_hash = 'A' * 64
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = MockPublishTransaction(sender='anonymoose', contract_name='test', contract_code=TEST_CONTRACT)
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
+        expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
                             (c2, "SUCC", "")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
@@ -162,8 +171,8 @@ class TestSenecaClient(TestCase):
         input_hash = 'A' * 64
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
-                            (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
+        expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
+                            (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
         client._start_sb(input_hash)
@@ -186,8 +195,8 @@ class TestSenecaClient(TestCase):
         input_hash = 'A' * 64
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
-                            (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
+        expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
+                            (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
 
@@ -223,8 +232,8 @@ class TestSenecaClient(TestCase):
 
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
-        expected_sbb1_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
-                             (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
+        expected_sbb1_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
+                             (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
         expected_sbb2_rep = []
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
@@ -246,9 +255,9 @@ class TestSenecaClient(TestCase):
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 9000)
         c3 = create_currency_tx('stu', 'anonymoose', 40)
-        expected_sbb_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
+        expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
                             (c2, "FAIL -- Sender balance must be non-negative!!!", ""),
-                            (c3, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
+                            (c3, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
         client._start_sb(input_hash)
@@ -276,10 +285,10 @@ class TestSenecaClient(TestCase):
         c2 = create_currency_tx('stu', 'anonymoose', 40)
         c3 = create_currency_tx('ghu', 'anonymoose', 15)
         c4 = create_currency_tx('tj', 'birb', 90)
-        expected_sbb1_rep = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
-                             (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
-        expected_sbb2_rep = [(c3, "SUCC", "SET balances:ghu 8985;SET balances:anonymoose 10041;"),
-                             (c4, "SUCC", "SET balances:tj 7910;SET balances:birb 8090;")]
+        expected_sbb1_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
+                             (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
+        expected_sbb2_rep = [(c3, "SUCC", "SET currency:balances:ghu 8985;SET currency:balances:anonymoose 10041;"),
+                             (c4, "SUCC", "SET currency:balances:tj 7910;SET currency:balances:birb 8090;")]
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
@@ -316,14 +325,14 @@ class TestSenecaClient(TestCase):
         c6 = create_currency_tx('stu', 'anonymoose', 10)
         c7 = create_currency_tx('ghu', 'tj', 50)
         c8 = create_currency_tx('birb', 'anonymoose', 100)
-        expected_sbb1_1 = [(c1, "SUCC", "SET balances:anonymoose 9986;SET balances:stu 83;"),
-                           (c2, "SUCC", "SET balances:stu 43;SET balances:anonymoose 10026;")]
-        expected_sbb2_1 = [(c3, "SUCC", "SET balances:ghu 8985;SET balances:anonymoose 10041;"),
-                           (c4, "SUCC", "SET balances:tj 7910;SET balances:birb 8090;")]
-        expected_sbb1_2 = [(c5, "SUCC", "SET balances:ethan 7940;SET balances:birb 8150;"),
-                           (c6, "SUCC", "SET balances:stu 33;SET balances:anonymoose 10051;")]
-        expected_sbb2_2 = [(c7, "SUCC", "SET balances:ghu 8935;SET balances:tj 7960;"),
-                           (c8, "SUCC", "SET balances:birb 8050;SET balances:anonymoose 10151;")]
+        expected_sbb1_1 = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
+                           (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
+        expected_sbb2_1 = [(c3, "SUCC", "SET currency:balances:ghu 8985;SET currency:balances:anonymoose 10041;"),
+                           (c4, "SUCC", "SET currency:balances:tj 7910;SET currency:balances:birb 8090;")]
+        expected_sbb1_2 = [(c5, "SUCC", "SET currency:balances:ethan 7940;SET currency:balances:birb 8150;"),
+                           (c6, "SUCC", "SET currency:balances:stu 33;SET currency:balances:anonymoose 10051;")]
+        expected_sbb2_2 = [(c7, "SUCC", "SET currency:balances:ghu 8935;SET currency:balances:tj 7960;"),
+                           (c8, "SUCC", "SET currency:balances:birb 8050;SET currency:balances:anonymoose 10151;")]
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -358,8 +367,8 @@ class TestSenecaClient(TestCase):
         self.assertTrue(input_hash2 in client2.pending_futures)
         self.assertTrue(input_hash4 in client2.pending_futures)
 
-        client1.update_master_db(input_hash1)
-        client2.update_master_db(input_hash2)
+        client1.update_master_db()
+        client2.update_master_db()
 
         # We must run the future manually, since the event loop is not currently running
         coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
@@ -413,25 +422,34 @@ class TestSenecaClient(TestCase):
         client1._end_sb(self.assert_completion(None, input_hash3))
         client2._end_sb(self.assert_completion(None, input_hash4))
 
-        client1.update_master_db(input_hash1)
-        client2.update_master_db(input_hash2)
-        client1.update_master_db(input_hash3)
-        client2.update_master_db(input_hash4)
-
         self.assertTrue(input_hash1 in client1.pending_futures)
         self.assertTrue(input_hash3 in client1.pending_futures)
         self.assertTrue(input_hash2 in client2.pending_futures)
         self.assertTrue(input_hash4 in client2.pending_futures)
 
+        client1.update_master_db()
+        client2.update_master_db()
+
         # We must run the future manually, since the event loop is not currently running
-        coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'],
-                 client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
-        loop.run_until_complete(asyncio.gather(*coros))
+        # coros1 = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
+        coros1 = self.get_futures({input_hash1: client1, input_hash2: client2})
+        # coros1 = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'],
+        #          client1.pending_futures[input_hash3]['fut'])
+        loop.run_until_complete(asyncio.gather(*coros1))
+
+        client2.update_master_db()
+        client1.update_master_db()
+
+        # coros2 = (client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
+        coros2 = self.get_futures({input_hash3: client1, input_hash4: client2})
+        loop.run_until_complete(asyncio.gather(*coros2))
 
         for c in (client1, client2):
-            self.assertEqual(len(c.pending_dbs), 0)
+            all_input_hashes = [cr.input_hash for cr in c.pending_dbs]
+            self.assertEqual(len(c.pending_dbs), 0, "Client with sbb_idx {} has pending_dbs: {}".format(c.sbb_idx, all_input_hashes))
 
         loop.close()
+
 
     # Test that pending_db/active_db/working_db get updated as we go thru the flow
 

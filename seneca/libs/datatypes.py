@@ -17,10 +17,10 @@ Datatype serialization format:
 
 type<prefix>(declaration)
 
-:map(str, int)
-:map<coins>(str, int)
+*hmap(str, int)
+*hmap<coins>(str, int)
 
-:list<todo>(:map(str, int))
+*hlist<todo>(:map(str, int))
 
 
 '''
@@ -78,8 +78,9 @@ def encode_type(t):
     return type_to_string.get(t)
 
 
-complex_tokens = ['map', 'list', 'table', 'ranked']
-all_tokens = ['int', 'str', 'bool', 'bytes', 'float', 'map', 'list', 'table', 'ranked']
+complex_tokens = ['hmap', 'hlist', 'table', 'ranked']
+DATATYPES = complex_tokens
+all_tokens = ['int', 'str', 'bool', 'bytes', 'float', 'hmap', 'hlist', 'table', 'ranked']
 # # #
 
 
@@ -104,9 +105,9 @@ def parse_complex_type_repr(s):
         if s.startswith(t):
             if t == 'table':
                 return build_table_from_repr(s)
-            elif t == 'list':
+            elif t == 'hlist':
                 return build_list_from_repr(s)
-            elif t == 'map':
+            elif t == 'hmap':
                 return build_map_from_repr(s)
             elif t == 'ranked':
                 return build_ranked_from_repr(s)
@@ -158,7 +159,7 @@ def build_table_from_repr(s):
 
 
 def build_list_from_repr(s):
-    slice_idx = s.find('list') + len('list')
+    slice_idx = s.find('hlist') + len('hlist')
     s = s[slice_idx:]
 
     # check if the prefix has been defined
@@ -174,7 +175,7 @@ def build_list_from_repr(s):
 
 
 def build_map_from_repr(s):
-    slice_idx = s.find('map') + len('map')
+    slice_idx = s.find('hmap') + len('hmap')
     s = s[slice_idx:]
 
     # check if the prefix has been defined
@@ -224,7 +225,7 @@ class Placeholder:
         return False
 
     def rep(self):
-        return CTP + 'map' + '(' + encode_type(self.key_type) + ',' + encode_type(self.value_type) + ')'
+        return CTP + 'hmap' + '(' + encode_type(self.key_type) + ',' + encode_type(self.value_type) + ')'
 
 
 class ListPlaceholder(Placeholder):
@@ -239,7 +240,7 @@ class ListPlaceholder(Placeholder):
         return False
 
     def rep(self):
-        return CTP + 'list' + '(' + encode_type(self.value_type) + ')'
+        return CTP + 'hlist' + '(' + encode_type(self.value_type) + ')'
 
 
 class TablePlaceholder(Placeholder):
@@ -295,7 +296,8 @@ def is_complex_type(v):
 
 
 # table to be done later
-def vivify(potential_prefix, t):
+def vivify(prefix, t, delim):
+    contract_id, potential_prefix = prefix.split(delim, 1)
     if t in primitive_types:
         return vivified_primitives[t]
     elif issubclass(type(t), Placeholder):
@@ -322,7 +324,8 @@ class RObject:
         self.driver = Seneca.interface.r
 
         self.contract_id = Seneca.loaded['__main__']['rt']['contract']
-        self.prefix = self.contract_id + delimiter + prefix
+        self.prefix = '{}{}{}'.format(self.contract_id, delimiter, prefix)
+
         self.concurrent_mode = Seneca.concurrent_mode
         self.key_type = key_type
 
@@ -418,7 +421,7 @@ class HMap(RObject):
         super().__init__(prefix=prefix,
                          key_type=key_type,
                          value_type=value_type,
-                         rep_str='map')
+                         rep_str='hmap')
 
         self.vivification_idx = 0
 
@@ -435,8 +438,6 @@ class HMap(RObject):
         if type(key) in complex_types:
             key = key.rep()
 
-        print('{}{}{}'.format(self.prefix, self.delimiter, key))
-
         g = self.driver.get('{}{}{}'.format(self.prefix, self.delimiter, key))
         g = self.decode_value(g)
         return g
@@ -444,15 +445,14 @@ class HMap(RObject):
     def __getitem__(self, k):
         item = self.get(k)
         if item is None and self.value_type is not None:
-            return vivify('{}.{}'.format(self.prefix, k), self.value_type)
+            return vivify('{}.{}'.format(self.prefix, k), self.value_type, self.delimiter)
         return item
 
     def __setitem__(self, k, v):
         return self.set(k, v)
 
     def rep(self):
-        return '{}map<{}:{}>({},{})'.format(CTP,
-                                            self.contract_id,
+        return '{}hmap<{}>({},{})'.format(CTP,
                                             self.prefix,
                                             encode_type(self.key_type),
                                             encode_type(self.value_type))
@@ -475,7 +475,7 @@ class HList(RObject):
         super().__init__(prefix=prefix,
                          key_type=str,
                          value_type=value_type,
-                         rep_str='list')
+                         rep_str='hlist')
 
     def get(self, i):
         g = self.driver.lindex(self.prefix, i)
@@ -512,14 +512,14 @@ class HList(RObject):
     def __getitem__(self, i):
         item = self.get(i)
         if item is None and self.value_type is not None:
-            return vivify('{}.{}'.format(self.prefix, i), self.value_type)
+            return vivify('{}.{}'.format(self.prefix, i), self.value_type, self.delimiter)
         return item
 
     def __setitem__(self, i, v):
         return self.set(i, v)
 
     def rep(self):
-        return '{}list<{}:{}>({})'.format(CTP, self.contract_id, self.prefix, encode_type(self.value_type))
+        return '{}hlist<{}>({})'.format(CTP, self.prefix, encode_type(self.value_type))
 
     def exists(self, k):
         return self.driver.exists(k)
@@ -614,7 +614,7 @@ class Table(RObject):
     def __getitem__(self, k):
         item = self.get(k)
         if item is None and self.value_type is not None:
-            return vivify('{}.{}'.format(self.prefix, k), self.value_type)
+            return vivify('{}.{}'.format(self.prefix, k), self.value_type, self.delimiter)
         return item
 
     def __setitem__(self, k, v):
@@ -632,7 +632,7 @@ class Table(RObject):
             d += ','
         d = d[:-1]
         d += '})'
-        return CTP + self.rep_str + '<' + self.contract_id + ':' + self.prefix + '>' + d
+        return CTP + self.rep_str + '<' + self.prefix + '>' + d
 
 
 def table(prefix=None, key_type=str, schema=None):
@@ -691,8 +691,7 @@ class Ranked(RObject):
         self.increment(member, i)
 
     def rep(self):
-        return '{}ranked<{}:{}>({},{})'.format(CTP,
-                                            self.contract_id,
+        return '{}ranked<{}>({},{})'.format(CTP,
                                             self.prefix,
                                             encode_type(self.key_type),
                                             encode_type(self.value_type))
