@@ -86,3 +86,18 @@ Seneca uses Redis to store the state of the blockchain. Thus, you can use any Re
 You can also use a GUI like Medis without any issue.
 
 ![Medis](medis.png)
+
+## FAQs
+
+### `pip install seneca` does not work!
+
+If you're using a Mac, you can run into this problem where the C libraries that are required for Seneca are not being compiled and the package fails to install. This is because the proper C libraries are not installed on your Mac.
+
+To fix this:
+
+1. Upgrade XCode
+2. Upgrade all software and restart your computer
+3. Run `xcode-select --install`.
+4. Run `pip install seneca` again.
+5. Run `open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg` if this does not work.
+6. Install the package and run `pip install seneca` again. It should work now.
