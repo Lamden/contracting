@@ -39,8 +39,8 @@ def one_you_can_also_also_export():
 
 
 class MockContractTransaction:
-    def __init__(self, sender: str, contract_name: str, func_name: str, stamps=STAMP_AMOUNT, **kwargs):
-        self.stamps, self.sender, self.func_name, self.contract_name = stamps, sender, func_name, contract_name
+    def __init__(self, sender: str, contract_name: str, func_name: str, gas=STAMP_AMOUNT, **kwargs):
+        self.gas_supplied, self.sender, self.func_name, self.contract_name = gas, sender, func_name, contract_name
         self.kwargs = kwargs
 
 

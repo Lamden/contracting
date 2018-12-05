@@ -1,4 +1,4 @@
-import time, asyncio, ujson as json, redis
+import time, asyncio, ujson as json, redis, traceback
 from seneca.libs.logger import get_logger
 from seneca.engine.interface import SenecaInterface
 from seneca.constants.config import *
@@ -158,7 +158,8 @@ class SenecaClient(SenecaInterface):
             self.log.info(("Deferring merge for input_hash {}".format(input_hash)))
             if self.pending_futures[cr_data.input_hash]['complete']:
                 self.log.debugv("Future already complete! Adding new future to update master db when ready")
-                fut = asyncio.ensure_future(self._wait_to_update_master_db(cr_data))
+                # fut = self._ensure_future(self._wait_to_update_master_db(cr_data))
+                fut = self._ensure_future(self._wait_to_update_master_db(cr_data))
                 self.pending_futures[cr_data.input_hash]['merge_fut'] = fut
             else:
                 self.log.debugv("CRContext future not yet complete. Setting merge flag to true.")
@@ -197,7 +198,7 @@ class SenecaClient(SenecaInterface):
             else:
                 mod_path = module_path_for_contract(contract)
                 self.execute_function(module_path=mod_path, sender=contract.sender,
-                                      stamps=contract.stamps, **contract.kwargs)
+                                      stamps=contract.gas_supplied, **contract.kwargs)
             result = SUCC_FLAG
 
         except Exception as e:
@@ -248,7 +249,7 @@ class SenecaClient(SenecaInterface):
                 return False
 
             self.log.debugv("No available dbs. Queueing up future to execute sb for input hash {}".format(input_hash))
-            fut = asyncio.ensure_future(self._wait_and_execute_sb(input_hash, contracts, completion_handler))
+            fut = self._ensure_future(self._wait_and_execute_sb(input_hash, contracts, completion_handler))
             self.queued_futures[input_hash] = fut
 
         return True
@@ -284,7 +285,7 @@ class SenecaClient(SenecaInterface):
 
         Phase.incr_phase_variable(self.active_db.working_db, Macros.EXECUTION)
 
-        future = asyncio.ensure_future(self._wait_and_merge_to_common(self.active_db, completion_handler))
+        future = self._ensure_future(self._wait_and_merge_to_common(self.active_db, completion_handler))
         self.pending_futures[self.active_db.input_hash] = {'fut': future, 'data': self.active_db, 'merge': False,
                                                            'complete': False, 'merge_fut': None}
 
@@ -406,3 +407,18 @@ class SenecaClient(SenecaInterface):
                 raise Exception(err_msg)
 
         self.log.debug("Waited a total of {} seconds for phase variable {} to reach value {}".format(elapsed, key, value))
+
+    def _ensure_future(self, coro) -> asyncio.Future:
+        """
+        A small wrapper around asyncio.ensure_future to catch any error and log them before raising them. We do this
+        because sometimes asyncio does not properly raise the exceptions, causing coroutines to sometimes fail
+        silently.
+        """
+        async def _safe_ensure_future():
+            try:
+                return await coro
+            except Exception as e:
+                self.log.fatal("\nError caught in coro {}!\n{}\n".format(coro, traceback.format_exc()))
+                raise e
+
+        return asyncio.ensure_future(_safe_ensure_future())
