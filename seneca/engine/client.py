@@ -198,7 +198,7 @@ class SenecaClient(SenecaInterface):
             else:
                 mod_path = module_path_for_contract(contract)
                 self.execute_function(module_path=mod_path, sender=contract.sender,
-                                      stamps=contract.gas_supplied, **contract.kwargs)
+                                      stamps=contract.stamps_supplied, **contract.kwargs)
             result = SUCC_FLAG
 
         except Exception as e:
