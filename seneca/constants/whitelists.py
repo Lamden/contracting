@@ -109,6 +109,9 @@ _SAFE_NAMES = [
     'tuple',
     'zip',
 
+    # Iteration
+    'map',
+
     # JUST FOR TESTING! TODO remove this irl
     'dir',
     'help',
