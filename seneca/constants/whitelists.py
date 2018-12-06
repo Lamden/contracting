@@ -111,6 +111,7 @@ _SAFE_NAMES = [
 
     # Iteration
     'map',
+    'list',
 
     # JUST FOR TESTING! TODO remove this irl
     'dir',
