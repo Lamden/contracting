@@ -70,6 +70,11 @@ class SenecaClient(SenecaInterface):
         # it is a map of input hashes -> asyncio.Future
         self.queued_futures = {}
 
+        # DEBUG -- TODO DELETE
+        self.log.important2("\n\n\n this is using the latest code \n\n\n")
+        self.log.important("num caches {}".format(NUM_CACHES))
+        # END DEBUG
+
         self._setup_dbs()
 
     def _setup_dbs(self):
@@ -82,11 +87,13 @@ class SenecaClient(SenecaInterface):
     def flush_all(self):
         """ Flushes all pending/active/available dbs. This effectively 'resets' all databases except master."""
         if self.active_db:
-            self.active_db.reset(hard_reset=True)
+            self.active_db.reset_db()
+            self.active_db.reset_run_data()
             self.active_db = None
         for s in (self.pending_dbs, self.available_dbs):
             for cr in s:
-                cr.reset(hard_reset=True)
+                cr.reset_db()
+                cr.reset_run_data()
             s.clear()
 
         for input_hash in self.pending_futures:
@@ -113,7 +120,9 @@ class SenecaClient(SenecaInterface):
         assert input_hash is not None, "Input hash is None! Dev error this should not happen"
         assert cr_data.merged_to_common, "CRData not merged to common yet!"
 
-        self.log.notice("Updating master db for input_hash {}".format(cr_data.input_hash))  # TODO change log lvl
+        self.log.notice("Updating master db for CR data {}".format(cr_data))
+
+        futs = self.pending_futures.pop(input_hash, None)
 
         if self.sbb_idx == 0:
             assert Phase.get_phase_variable(cr_data.working_db, Macros.EXECUTION) == self.num_sb_builders, \
@@ -121,22 +130,21 @@ class SenecaClient(SenecaInterface):
             assert Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders, \
                 "Conflict resolution stage incomplete!"
 
-            self.log.important("Merging common layer to master db")
+            self.log.important("Merging common layer to master db (input_hash={})".format(cr_data.input_hash))
             CRContext.merge_to_master(working_db=cr_data.working_db, master_db=self.master_db)
 
         self.log.debugv("Resetting run data for input hash {}".format(cr_data.input_hash))
         cr_data.reset_run_data()
         Phase.incr_phase_variable(cr_data.working_db, Macros.RESET)
 
-        # Only hard reset (meaning flush redis data) if all other SBBs have finished updating to master db
+        # Only hard reset_db (meaning flush redis data) if all other SBBs have finished updating to master db
         if Phase.get_phase_variable(cr_data.working_db, Macros.RESET) == self.num_sb_builders:
-            self.log.debug("RESET phase finished. Hard resetting db for input hash {}".format(input_hash))
-            cr_data.reset(hard_reset=True)
-        else:
-            self.log.debugv("Soft resetting db for input hash {}".format(input_hash))
-            cr_data.reset(hard_reset=False)
+            self.log.debug("RESET phase finished. Resetting db for input hash {}".format(input_hash))
+            cr_data.reset_db()
 
-        self.pending_futures.pop(input_hash)
+        # Dev check. Make sure cr_data has been properly reset_db
+        cr_data.assert_reset()
+
         self.available_dbs.append(cr_data)
 
     def update_master_db(self):
@@ -150,6 +158,7 @@ class SenecaClient(SenecaInterface):
         cr_data = self.pending_dbs[0]
         input_hash = cr_data.input_hash
         cr_finished = Phase.get_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION) == self.num_sb_builders
+        self.log.info("Attempting to merge to master db for input hash {}".format(input_hash))
 
         assert input_hash in self.pending_futures, "Input hash {} not in pending_futures {}".format(input_hash, self.pending_futures)
         assert cr_data == self.pending_futures[input_hash]['data'], "something has gone horribly wrong"
@@ -158,7 +167,6 @@ class SenecaClient(SenecaInterface):
             self.log.info(("Deferring merge for input_hash {}".format(input_hash)))
             if self.pending_futures[cr_data.input_hash]['complete']:
                 self.log.debugv("Future already complete! Adding new future to update master db when ready")
-                # fut = self._ensure_future(self._wait_to_update_master_db(cr_data))
                 fut = self._ensure_future(self._wait_to_update_master_db(cr_data))
                 self.pending_futures[cr_data.input_hash]['merge_fut'] = fut
             else:
@@ -180,12 +188,26 @@ class SenecaClient(SenecaInterface):
         assert self.active_db, "active_db must be set to run a contract. Did you call _start_sb?"
         assert self.active_db.input_hash, "Input hash not set...davis u done goofed again"
 
-        result = self._run_contract(contract, contract_idx=self.active_db.next_contract_idx, data=self.active_db)
+        data = self.active_db
+        contract_idx = data.next_contract_idx
+
+        result = self._run_contract(contract, contract_idx=contract_idx, data=data)
         self.active_db.add_contract_result(contract, result)
+
+        # DEBUG
+        kwargs = 'contract_name=' + contract.contract_name if hasattr(contract, 'contract_code') else contract.kwargs
+        self.log.spam("[EXEC PHASE #{}] exec from sender {} with kwargs {} resulted in state {}"
+                      .format(contract_idx, contract.sender, kwargs, data.get_state_for_idx(contract_idx)))
+        # END DEBUG
 
     def _run_contract(self, contract, contract_idx: int, data: CRContext) -> str:
         """ Runs the contract object, and retuns a string representing the result (succ/fail).
         Note: Assumes the BookKeeping info has already been set. """
+        # Development sanity checks. data passed in should either be the active_db (if we are in execution phase)
+        # or it should be next in line in pending_dbs if we are in CR phase
+        assert data is self.active_db or data is self.pending_dbs[0], \
+            "Data {} is not active db {} or next pending db {}".format(data, self.active_db, self.pending_dbs[0])
+
         BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data)
 
         try:
@@ -210,7 +232,11 @@ class SenecaClient(SenecaInterface):
 
     def _rerun_contracts_for_cr_data(self, cr_data: CRContext):
         """ Reruns any contracts in cr_data, if necessary. This should be done before we merge cr_data to common. """
-        self.log.info("Rerunning any necessary contracts for CRData with input hash {}".format(cr_data.input_hash))
+        # This cr_data should be next in line in pending_dbs if we are rerunning contracts
+        assert self.pending_dbs[0] is cr_data, "cr_data {} is not first in line in pending_dbs! First is {}"\
+                                               .format(cr_data, self.pending_dbs[0])
+
+        self.log.notice("Rerunning any necessary contracts for CRData with input hash {}".format(cr_data.input_hash))
         for i in cr_data.iter_rerun_indexes():
             result = self._run_contract(cr_data.contracts[i], contract_idx=i, data=cr_data)
             cr_data.update_contract_result(contract_idx=i, result=result)
@@ -220,7 +246,7 @@ class SenecaClient(SenecaInterface):
         Returns True if we this client can start the next subblock, and False otherwise. A client can start a sb if:
         - There is no active db set
         - There is at least 1 available_db
-        - All other SBBs are finished with that first available_db (meaning it has been hard reset and merged to master)
+        - All other SBBs are finished with that first available_db (meaning it has been hard reset_db and merged to master)
         """
         return (not self.active_db and len(self.available_dbs) > 0) and \
                (Phase.get_phase_variable(self.available_dbs[0].working_db, Macros.RESET) == 0)
@@ -248,14 +274,14 @@ class SenecaClient(SenecaInterface):
                                  .format(MAX_SB_QUEUE_SIZE, input_hash, self.queued_futures))
                 return False
 
-            self.log.debugv("No available dbs. Queueing up future to execute sb for input hash {}".format(input_hash))
+            self.log.info("No available dbs. Queueing up future to execute sb for input hash {}".format(input_hash))
             fut = self._ensure_future(self._wait_and_execute_sb(input_hash, contracts, completion_handler))
             self.queued_futures[input_hash] = fut
 
         return True
 
     def _execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
-        self.log.debug("Executing sub block for input hash {}".format(input_hash))
+        self.log.info(">>> Executing sub block for input hash {} >>>".format(input_hash))
         self.queued_futures.pop(input_hash, None)
 
         self._start_sb(input_hash)
@@ -268,9 +294,10 @@ class SenecaClient(SenecaInterface):
                                        "previous subblock with _end_sb?"
         assert self._can_start_next_sb(), "Attempted to start a new sub block, but cannot start next sb!!! Dev error!"
 
-        self.log.debug("Starting sb with input hash {}".format(input_hash))
         self.active_db = self.available_dbs.popleft()
+        self.active_db.assert_reset()  # Dev checks, make sure the CRContext has been properly reset_db
         self.active_db.input_hash = input_hash
+        self.log.important("Starting sb with CRData {}".format(self.active_db))
 
     def _end_sb(self, completion_handler: Callable[[CRContext], None]):
         """
@@ -281,13 +308,16 @@ class SenecaClient(SenecaInterface):
          - Once the _wait_and_merge_to_common future is done, the callback is trigger
         """
         assert self.active_db, "Active db not set! Did you call _start_sb?"
-        self.log.info("Ending sub block {} which has input hash {}".format(self.sbb_idx, self.active_db.input_hash))
+        # self.log.info("Ending sub block {} which has input hash {}".format(self.sbb_idx, self.active_db.input_hash))
+        self.log.important("<<< Ending sub block for input hash {} <<<".format(self.active_db.input_hash))  # TODO change log lvl to info
 
         Phase.incr_phase_variable(self.active_db.working_db, Macros.EXECUTION)
 
         future = self._ensure_future(self._wait_and_merge_to_common(self.active_db, completion_handler))
+        queued_fut = self.queued_futures.pop(self.active_db.input_hash, None)
         self.pending_futures[self.active_db.input_hash] = {'fut': future, 'data': self.active_db, 'merge': False,
-                                                           'complete': False, 'merge_fut': None}
+                                                           'complete': False, 'merge_fut': None,
+                                                           'queued_fut': queued_fut}
 
         self.pending_dbs.append(self.active_db)
         self.active_db = None  # we really don't care, but might be useful initially for error checking
@@ -313,7 +343,7 @@ class SenecaClient(SenecaInterface):
 
         await self._wait_for_cr_and_merge(cr_data)
 
-        self.log.notice("Invoking completion handler for sub block with input hash {}".format(cr_data.input_hash))
+        self.log.notice("Invoking completion handler for sub block with data {}".format(cr_data))
         completion_handler(cr_data)
 
         # Dev sanity check
@@ -321,7 +351,7 @@ class SenecaClient(SenecaInterface):
                                                            .format(cr_data.input_hash, self.pending_futures)
 
         if self.pending_futures[cr_data.input_hash]['merge']:
-            self.log.debugv("Merge flag set to true for sbb with input hash {}".format(cr_data.input_hash))
+            self.log.debugv("Merge flag set to true for {}".format(cr_data))
             await self._wait_to_update_master_db(cr_data)
         else:
             self.pending_futures[cr_data.input_hash]['complete'] = True
@@ -347,17 +377,17 @@ class SenecaClient(SenecaInterface):
         self.log.debugv("Waited a total of {} seconds for a db to become available".format(elapsed))
 
     async def _wait_for_cr_and_merge(self, cr_data: CRContext):
-        self.log.info("Waiting for other SBBs to finish conflict resolution...")
+        self.log.info("Waiting for other SBBs to finish conflict resolution ({})...".format(cr_data))
         await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.CONFLICT_RESOLUTION, value=self.sbb_idx,
                                             timeout=(len(self.pending_dbs) + 1) * Phase.CR_TIMEOUT)
-        self.log.info("Done waiting for other SBBs to finish contract resolution")
+        self.log.info("Done waiting for other SBBs to finish conflict resolution ({})".format(cr_data))
 
         self._rerun_contracts_for_cr_data(cr_data)
-        self.log.notice("Merging sbb_{} data to common layer".format(self.sbb_idx))
+        self.log.info("Merging sbb_{} data to common layer ({})".format(self.sbb_idx, cr_data))
         cr_data.merge_to_common()
-        Phase.incr_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION)
 
-        self.log.debug("Finished finalizing sub block for input hash {}!".format(cr_data.input_hash))
+        self.log.debugv("Finished merging to common layer for CR {}. Incrementing CR Phase var.".format(cr_data))
+        Phase.incr_phase_variable(cr_data.working_db, Macros.CONFLICT_RESOLUTION)
 
     async def _wait_until_top_of_pending(self, cr_data: CRContext):
         """ Waits until cr_data is at the top (first element) of self.pending_dbs """
@@ -365,32 +395,32 @@ class SenecaClient(SenecaInterface):
         # This is an optimization we can do later
         elapsed = 0
         timeout = Phase.BLOCK_TIMEOUT * len(self.pending_dbs)
-        self.log.debug("CRData with input hash {} waiting its turn until its at the top of pending_dbs..."
-                       .format(cr_data.input_hash))
+        self.log.debug("CRData {} waiting its turn until its at the top of pending_dbs..."
+                       .format(cr_data))
 
         while self.pending_dbs[0] is not cr_data:
             await asyncio.sleep(Phase.POLL_INTERVAL)
             elapsed += Phase.POLL_INTERVAL
 
             if elapsed >= timeout:
-                err_msg = "Exceeded timeout of {} waiting for db with input hash {} to reach top of pending dbs!" \
-                          .format(timeout, cr_data.input_hash)
+                err_msg = "Exceeded timeout of {} waiting for cr data {} to reach top of pending dbs!" \
+                          .format(timeout, cr_data)
                 self.log.fatal(err_msg)
                 raise Exception(err_msg)
 
-        self.log.info("CRData with input hash {} DONE waiting to be at the top of pending db!".format(cr_data.input_hash))
+        self.log.info("CRData {} DONE waiting to be at the top of pending db!".format(cr_data))
 
     async def _wait_for_execution_stage(self, cr_data: CRContext):
-        self.log.info("Waiting for other SBBs to finish execution (input_hash={})".format(cr_data.input_hash))
+        self.log.info("Waiting for other SBBs to finish execution ({})".format(cr_data))
         await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.EXECUTION, value=self.num_sb_builders,
                                             timeout=(len(self.pending_dbs) + 1) * Phase.EXEC_TIMEOUT)
-        self.log.info("Done waiting for other SBBs to finish execution (input_hash={})".format(cr_data.input_hash))
+        self.log.info("Done waiting for other SBBs to finish execution ({})".format(cr_data))
 
     async def _wait_for_everybody_cr(self, cr_data: CRContext):
-        self.log.info("Waiting for conflict resolution to finish for ALL sub blocks (input_hash={})".format(cr_data.input_hash))
+        self.log.info("Waiting for conflict resolution to finish for ALL sub blocks ({})".format(cr_data))
         await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.CONFLICT_RESOLUTION,
                                             value=self.num_sb_builders, timeout=Phase.CR_TIMEOUT)
-        self.log.info("Conflict resolution complete for ALL sub blocks (input_hash={})".format(cr_data.input_hash))
+        self.log.info("Conflict resolution complete for ALL sub blocks ({})".format(cr_data))
 
     async def _wait_for_phase_variable(self, db: redis.StrictRedis, key: str, value: int, timeout: int):
         elapsed = 0

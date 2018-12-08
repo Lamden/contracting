@@ -123,10 +123,10 @@ class CRCmdGetSetBase(CRCmdBase):
         # First, try and return the local modified key
         val = self.data['getset'][key]['mod']
         if val is not None:
-            self.log.debugv("SBB specific MODIFIED key found for key named <{}>".format(key))
+            self.log.spam("SBB specific MODIFIED key found for key named <{}>".format(key))
         # Otherwise, default to the local original key
         else:
-            self.log.debugv("SBB specific ORIGINAL key found for key named <{}>".format(key))
+            self.log.spam("SBB specific ORIGINAL key found for key named <{}>".format(key))
             val = self.data['getset'][key]['og']
 
         if val is None and not return_none:
@@ -154,11 +154,16 @@ class CRCmdSet(CRCmdGetSetBase):
             return
 
         self.data['getset'].redo_log[self.contract_idx][key] = self._get(key, return_none=True)
-        self.log.debugv("Contract {} added key {} to redo log with val {}".format(self.contract_idx, key,
-                                                                                  self.data['getset'].redo_log[
-                                                                                      self.contract_idx][key]))
+        self.log.spam("Contract {} added key {} to redo log with val {}".format(self.contract_idx, key,
+                                                                                self.data['getset'].redo_log[
+                                                                                self.contract_idx][key]))
 
     def __call__(self, key, value):
+        # DEBUG -- TODO DELETE
+        if key == 'currency:balances:black_hole':
+            self.log.debugv("(ContractIdx={}) SETTING BLACKHOLE TO {}".format(self.contract_idx, value))
+        # END DEBUG
+
         assert type(value) in (str, bytes), "Attempted to use 'set' with a value that is not str or bytes (val={}). " \
                                             "This is not supported currently.".format(value)
         self._copy_og_key_if_not_exists(key)
@@ -167,7 +172,7 @@ class CRCmdSet(CRCmdGetSetBase):
 
         self._add_key_to_redo_log(key)
 
-        self.log.debugv("Setting SBB specific key <{}> to value {}".format(key, value))
+        self.log.spam("Setting SBB specific key <{}> to value {}".format(key, value))
         self.data['getset'][key]['mod'] = value
         self.data['getset'][key]['contracts'].add(self.contract_idx)
         self.data['getset'].writes[self.contract_idx].add(key)
@@ -206,11 +211,11 @@ class CRCmdHGet(CRCmdHMapBase):
         # First, try and return the local modified key
         mod_val = self.data['hm'][key][field]['mod']
         if mod_val is not None:
-            self.log.debugv("SBB specific MODIFIED key found for key named <{}>".format(key))
+            self.log.spam("SBB specific MODIFIED key found for key named <{}>".format(key))
             return mod_val
 
         # Otherwise, default to the local original key
-        self.log.debugv("SBB specific ORIGINAL key found for key named <{}>".format(key))
+        self.log.spam("SBB specific ORIGINAL key found for key named <{}>".format(key))
         return self.data['hm'][key][field]['og']
         # TODO add the read list
 
@@ -225,7 +230,7 @@ class CRCmdHSet(CRCmdHMapBase):
         if type(value) is str:
             value = value.encode()
 
-        self.log.debugv("Setting SBB specific key <{}> to value {}".format(key, value))
+        self.log.spam("Setting SBB specific key <{}> to value {}".format(key, value))
         self.data['hm'][key][field]['mod'] = value
 
         # self._add_key_to_mod_list(self._get_key_field_name(key, field))

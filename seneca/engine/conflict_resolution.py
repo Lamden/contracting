@@ -114,7 +114,7 @@ class CRDataGetSet(CRDataBase, dict):
             if og_val is None:
                 self.log.debugv("Removing key {}".format(key))
                 del self[key]
-            # Otherwise, reset the key to the value before the contract
+            # Otherwise, reset_db the key to the value before the contract
             else:
                 self.log.debugv("Resetting key {} to value {}".format(key, og_val))
                 self[key]['mod'] = og_val
@@ -333,38 +333,42 @@ class CRContext:
     def reset_run_data(self):
         """ Resets all state held by this container. """
         # TODO this is likely very sketch in terms of memory leaks but YOLO this is python bro whats a memory leak
-        # TODO -- we should if hard_reset=False, we should also reset all redis keys EXCLUDING phase variables
+        # TODO -- we should if hard_reset=False, we should also reset_db all redis keys EXCLUDING phase variables
         def _is_subclass(obj, subs: tuple):
             """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
             for s in subs:
                 if issubclass(type(obj), s): return True
             return False
 
-        self.log.debug("Soft resetting CRData with input hash {}".format(self.input_hash))
+        self.log.debug("Resetting run data for CRData with ".format(self.input_hash, id(self)))
 
         # Reset this object's state
         self.run_results.clear()
         self.contracts.clear()
+        self.merged_to_common = False
+        self.input_hash = None
+
         # TODO is this ok resetting all the CRData's like this? Should we worry about memory leaks? --davis
         self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
                         CRDataBase.registry.items()}
 
-    def reset(self, hard_reset=False):
-        """ Resets all state held by this container. """
-        # TODO i think this would be a lot easier if we just scrapped this whole CRContext object and made a new
-        # one, but then would we have to worry about memory leaks? idk but either way screw python
-        def _is_subclass(obj, subs: tuple):
-            """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
-            for s in subs:
-                if issubclass(type(obj), s): return True
-            return False
+    def reset_db(self):
+        self.log.debug("CRData resetting working db #{}".format(self.working_db.connection_pool.connection_kwargs['db']))
+        self.working_db.flushdb()
 
-        self.log.debug("Resetting CRData with input hash {} (hard_reset={})".format(self.input_hash, hard_reset))
-        if hard_reset:
-            self.working_db.flushdb()
-        self.merged_to_common = False
-        self.input_hash = None
-
+    def assert_reset(self):
+        """ Assert this object has been reset_db properly. For dev purposes. """
+        err = "\nContracts: {}\nRun Results: {}\nReads: {}\nWrites: {}\nOutputs: {}\nRedo Log: {}\nInput hash: {}\n"\
+              .format(self.contracts, self.run_results, self['getset'].reads, self['getset'].writes,
+                      self['getset'].outputs, self['getset'].redo_log, self.input_hash)
+        assert len(self.contracts) == 0, err
+        assert len(self.run_results) == 0
+        assert len(self['getset'].reads) == 0, err
+        assert len(self['getset'].writes) == 0, err
+        assert len(self['getset'].outputs) == 0, err
+        assert len(self['getset'].redo_log) == 0, err
+        assert not self.merged_to_common
+        assert self.input_hash is None
 
     def get_state_for_idx(self, contract_idx: int) -> str:
         """
@@ -397,9 +401,17 @@ class CRContext:
         contract_list = data.get_rerun_list()
         self.log.debugv("Contracts indexes to rerun: {}".format(contract_list))
 
+        # DEBUG -- TODO DELETE
+        # self.log.notice("CRData with input hash {}".format(self.input_hash))
+        # self.log.notice("CRData with id {}".format(id(self)))
+        # self.log.notice("CRData contracts length: {}".format(len(self.contracts)))
+        # self.log.info("data reads: {}".format(data.reads))
+        # self.log.info("data writes: {}".format(data.writes))
+        # END DEBUG
+
         for i in contract_list:
             self.log.debugv("Rerunning contract at index {}".format(i))
-            og_reads, og_writes = data.reads[i], data.reads[i]
+            og_reads, og_writes = data.reads[i], data.writes[i]
             self.reset_contract_data(i)
 
             yield i
@@ -449,6 +461,10 @@ class CRContext:
                                      .format(item, list(self.cr_data.keys()))
         return self.cr_data[item]
 
+    def __repr__(self):
+        return "< CRContext(input_hash={}, num_contracts={}, working_db_num={}) >".format(
+            self.input_hash, len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
+
 
 class RedisProxy:
 
@@ -492,7 +508,7 @@ JUST RAISE AN ASSERTION FOR NOW IF A NEW KEY IS MODIFIED
        # build a set of all reads/write that have their original value changed
         # copy, from common layer, to the new original value, and set the modified value to None
         # build a min heap of contract indexes that need to be run by check contract's mod list
-        # reset the contract data before you rerun it
+        # reset_db the contract data before you rerun it
         # loop
 
         # PREFER MASTER VALUE when copying keys over. if og should have been copied from master during exec phase,
