@@ -267,7 +267,6 @@ class SenecaClient(SenecaInterface):
         True.
         """
         assert input_hash not in self.pending_futures, "SB with input hash {} is already pending!".format(input_hash)
-        # assert input_hash not in self.queued_futures, "SB with input hash {} is already queued!".format(input_hash)
         for data in self.queued_futures:
             if data['input_hash'] == input_hash:
                 raise Exception("Input hash {} already in queued futures {}".format(input_hash, self.queued_futures))
@@ -285,14 +284,12 @@ class SenecaClient(SenecaInterface):
 
             self.log.info("No available dbs. Queueing up future to execute sb for input hash {}".format(input_hash))
             fut = self._ensure_future(self._wait_and_execute_sb(input_hash, contracts, completion_handler))
-            # self.queued_futures[input_hash] = fut
             self.queued_futures.append({'input_hash': input_hash, 'fut': fut})
 
         return True
 
     def _execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
         self.log.info(">>> Executing sub block for input hash {} >>>".format(input_hash))
-        # self.queued_futures.pop(input_hash, None)
 
         self._start_sb(input_hash)
         for c in contracts:
@@ -318,8 +315,7 @@ class SenecaClient(SenecaInterface):
          - Once the _wait_and_merge_to_common future is done, the callback is trigger
         """
         assert self.active_db, "Active db not set! Did you call _start_sb?"
-        # self.log.info("Ending sub block {} which has input hash {}".format(self.sbb_idx, self.active_db.input_hash))
-        self.log.info("<<< Ending sub block for input hash {} <<<".format(self.active_db.input_hash))  # TODO change log lvl to info
+        self.log.info("<<< Ending sub block for input hash {} <<<".format(self.active_db.input_hash))
 
         Phase.incr(self.active_db.working_db, Macros.EXECUTION)
 
