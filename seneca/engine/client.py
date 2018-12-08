@@ -67,8 +67,8 @@ class SenecaClient(SenecaInterface):
         self.pending_futures = {}
 
         # queued_futures tracks execute_sb calls that cannot run immediately because there are no available dbs
-        # it is a map of input hashes -> asyncio.Future
-        self.queued_futures = {}
+        # it is a deque of dicts, containing keys 'input_hash': str, and 'fut': asyncio.Future
+        self.queued_futures = deque()
 
         # DEBUG -- TODO DELETE
         self.log.important2("\n\n\n this is using the latest code \n\n\n")
@@ -102,8 +102,8 @@ class SenecaClient(SenecaInterface):
                 self.pending_futures[input_hash]['merge_fut'].cancel()
         self.pending_futures.clear()
 
-        for input_hash in self.queued_futures:
-            self.queued_futures[input_hash].cancel()
+        for data in self.queued_futures:
+            data['fut'].cancel()
         self.queued_futures.clear()
 
         # does it leak some dbs?
@@ -261,7 +261,10 @@ class SenecaClient(SenecaInterface):
         True.
         """
         assert input_hash not in self.pending_futures, "SB with input hash {} is already pending!".format(input_hash)
-        assert input_hash not in self.queued_futures, "SB with input hash {} is already queued!".format(input_hash)
+        # assert input_hash not in self.queued_futures, "SB with input hash {} is already queued!".format(input_hash)
+        for data in self.queued_futures:
+            if data['input_hash'] == input_hash:
+                raise Exception("Input hash {} already in queued futures {}".format(input_hash, self.queued_futures))
         assert input_hash is not None, "Input hash cannot be None!"
 
         if self._can_start_next_sb():
@@ -276,13 +279,14 @@ class SenecaClient(SenecaInterface):
 
             self.log.info("No available dbs. Queueing up future to execute sb for input hash {}".format(input_hash))
             fut = self._ensure_future(self._wait_and_execute_sb(input_hash, contracts, completion_handler))
-            self.queued_futures[input_hash] = fut
+            # self.queued_futures[input_hash] = fut
+            self.queued_futures.append({'input_hash': input_hash, 'fut': fut})
 
         return True
 
     def _execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
         self.log.info(">>> Executing sub block for input hash {} >>>".format(input_hash))
-        self.queued_futures.pop(input_hash, None)
+        # self.queued_futures.pop(input_hash, None)
 
         self._start_sb(input_hash)
         for c in contracts:
@@ -314,16 +318,19 @@ class SenecaClient(SenecaInterface):
         Phase.incr_phase_variable(self.active_db.working_db, Macros.EXECUTION)
 
         future = self._ensure_future(self._wait_and_merge_to_common(self.active_db, completion_handler))
-        queued_fut = self.queued_futures.pop(self.active_db.input_hash, None)
         self.pending_futures[self.active_db.input_hash] = {'fut': future, 'data': self.active_db, 'merge': False,
-                                                           'complete': False, 'merge_fut': None,
-                                                           'queued_fut': queued_fut}
+                                                           'complete': False, 'merge_fut': None}
 
         self.pending_dbs.append(self.active_db)
         self.active_db = None  # we really don't care, but might be useful initially for error checking
 
     async def _wait_and_execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
-        await self._wait_for_available_db()
+        await self._wait_for_available_db(input_hash)
+
+        assert self.queued_futures[0]['input_hash'] == input_hash, "Input hash {} does not match next queued hash {}" \
+            .format(input_hash, self.queued_futures[0]['input_hash'])
+        self.queued_futures.popleft()
+
         self._execute_sb(input_hash, contracts, completion_handler)
 
     async def _wait_and_merge_to_common(self, cr_data: CRContext, completion_handler: Callable[[CRContext], None]):
@@ -363,18 +370,20 @@ class SenecaClient(SenecaInterface):
             await self._wait_for_everybody_cr(cr_data)
         self._update_master_db(expected_data=cr_data)
 
-    async def _wait_for_available_db(self):
+    async def _wait_for_available_db(self, input_hash: str):
         elapsed = 0
-        while not self._can_start_next_sb():
+        while not (self._can_start_next_sb() and self.queued_futures[0]['input_hash'] == input_hash):
             await asyncio.sleep(Phase.POLL_INTERVAL)
             elapsed += Phase.POLL_INTERVAL
 
             if elapsed >= Phase.AVAIL_DB_TIMEOUT:
-                err_msg = "Exceeded timeout of {} waiting for an available db!".format(Phase.AVAIL_DB_TIMEOUT)
+                err_msg = "Exceeded timeout of {} waiting for an available db for input hash {}!"\
+                          .format(Phase.AVAIL_DB_TIMEOUT, input_hash)
                 self.log.fatal(err_msg)
                 raise Exception(err_msg)
 
-        self.log.debugv("Waited a total of {} seconds for a db to become available".format(elapsed))
+        self.log.debugv("Waited a total of {} seconds for a db to become available for input hash {}"
+                        .format(elapsed, input_hash))
 
     async def _wait_for_cr_and_merge(self, cr_data: CRContext):
         self.log.info("Waiting for other SBBs to finish conflict resolution ({})...".format(cr_data))

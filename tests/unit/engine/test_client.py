@@ -90,8 +90,9 @@ class TestSenecaClient(TestCase):
                 futs.append(d['fut'])
                 if d['merge_fut']:
                     futs.append(d['merge_fut'])
-            if input_hash in client.queued_futures:
-                futs.append(client.queued_futures[input_hash])
+            for data in client.queued_futures:
+                if data['input_hash'] == input_hash:
+                    futs.append(data['fut'])
 
         return futs
 
