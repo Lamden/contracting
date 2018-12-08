@@ -6,7 +6,7 @@ from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
 from seneca.libs.logger import overwrite_logger_level, get_logger
 from decimal import Decimal
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import random
 
 
@@ -77,6 +77,8 @@ class TestSenecaClient(TestCase):
                 self.assertEqual(expected_sbb_rep, cr_data.get_subblock_rep())
             if merge_master:
                 asyncio.ensure_future(_merge(client))
+            if client and input_hash:
+                self.completed_hashes[client].append(input_hash)
 
         return _completion_handler
 
@@ -130,6 +132,7 @@ class TestSenecaClient(TestCase):
             #     interface.execute_function(module_path='seneca.contracts.currency.mint', sender=GENESIS_AUTHOR,
             #                                stamps=STAMP_AMOUNT, to=wallet, amount=amount)
         self._mint_wallets()
+        self.completed_hashes = defaultdict(list)
 
     def test_setup_dbs(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
@@ -502,10 +505,8 @@ class TestSenecaClient(TestCase):
         c1_map = OrderedDict({input_hash1: client1, input_hash3: client1, input_hash5: client1, input_hash7: client1})
         c2_map = OrderedDict({input_hash2: client2, input_hash4: client2, input_hash6: client2, input_hash8: client2})
 
-        # TODO try executing empty sb in the middle
         NUM_TX = 10
         for i, in_hash in enumerate(c1_map):
-            log.fatal("@@@@ hash {}".format(in_hash))
             # txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if i % 2 == 1 else []
             txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if True else []
             client1.execute_sb(in_hash, txs, self.assert_completion(None, in_hash, merge_master=True, client=client1, merge_wait=0))
@@ -531,6 +532,58 @@ class TestSenecaClient(TestCase):
 
         loop.run_until_complete(_wait_for_things_to_finish())
         loop.close()
+
+    def test_hella_subblocks_called_in_correct_order(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        input_hash1 = '1' * 64
+        input_hash2 = '2' * 64
+        input_hash3 = '3' * 64
+        input_hash4 = '4' * 64
+        input_hash5 = '5' * 64
+        input_hash6 = '6' * 64
+        input_hash7 = '7' * 64
+        input_hash8 = '8' * 64
+        input_hash9 = 'A' * 64
+        input_hash10 = 'B' * 64
+
+        client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+
+        c1_map = OrderedDict({input_hash1: client1, input_hash3: client1, input_hash5: client1, input_hash7: client1})
+        c2_map = OrderedDict({input_hash2: client2, input_hash4: client2, input_hash6: client2, input_hash8: client2})
+
+        NUM_TX = 10
+        for i, in_hash in enumerate(c1_map):
+            # txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if i % 2 == 1 else []
+            txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if True else []
+            client1.execute_sb(in_hash, txs, self.assert_completion(None, in_hash, merge_master=True, client=client1, merge_wait=0))
+        for i, in_hash in enumerate(c2_map):
+            # txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if i % 2 == 1 else []
+            txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if True else []
+            client2.execute_sb(in_hash, txs, self.assert_completion(None, in_hash, merge_master=True, client=client2, merge_wait=0))
+
+        # Execute an empty sb at the end
+        client1.execute_sb(input_hash9, [], self.assert_completion(None, input_hash9, merge_master=True, client=client1, merge_wait=0))
+        client2.execute_sb(input_hash10, [], self.assert_completion(None, input_hash10, merge_master=True, client=client2, merge_wait=0))
+
+        # Run it all
+        coros1 = self._get_futures(c1_map)
+        coros2 = self._get_futures(c2_map)
+
+        loop.run_until_complete(asyncio.gather(*coros1, *coros2))
+
+        async def _wait_for_things_to_finish():
+            log.notice("Tester waiting for things to finish")
+            await asyncio.sleep(3)
+            log.notice("Tester done waiting")
+
+        loop.run_until_complete(_wait_for_things_to_finish())
+        loop.close()
+
+        self.assertEqual(list(c1_map.keys()) + [input_hash9], self.completed_hashes[client1])
+        self.assertEqual(list(c2_map.keys()) + [input_hash10], self.completed_hashes[client2])
 
     # Test that pending_db/active_db/working_db get updated as we go thru the flow
 
