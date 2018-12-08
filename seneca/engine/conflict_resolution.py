@@ -462,7 +462,7 @@ class CRContext:
         return self.cr_data[item]
 
     def __repr__(self):
-        return "< CRContext(input_hash={}, num_contracts={}, working_db_num={}) >".format(
+        return "<CRContext(input_hash={}, num_contracts={}, working_db_num={})>".format(
             self.input_hash, len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
 
 

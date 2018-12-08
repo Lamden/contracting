@@ -505,6 +505,7 @@ class TestSenecaClient(TestCase):
         # TODO try executing empty sb in the middle
         NUM_TX = 10
         for i, in_hash in enumerate(c1_map):
+            log.fatal("@@@@ hash {}".format(in_hash))
             # txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if i % 2 == 1 else []
             txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if True else []
             client1.execute_sb(in_hash, txs, self.assert_completion(None, in_hash, merge_master=True, client=client1, merge_wait=0))
@@ -514,8 +515,8 @@ class TestSenecaClient(TestCase):
             client2.execute_sb(in_hash, txs, self.assert_completion(None, in_hash, merge_master=True, client=client2, merge_wait=0))
 
         # Execute an empty sb at the end
-        client1.execute_sb(input_hash9, [], self.assert_completion(None, input_hash9))
-        client2.execute_sb(input_hash10, [], self.assert_completion(None, input_hash10))
+        client1.execute_sb(input_hash9, [], self.assert_completion(None, input_hash9, merge_master=True, client=client1, merge_wait=0))
+        client2.execute_sb(input_hash10, [], self.assert_completion(None, input_hash10, merge_master=True, client=client2, merge_wait=0))
 
         # Run it all
         coros1 = self._get_futures(c1_map)
@@ -524,18 +525,19 @@ class TestSenecaClient(TestCase):
         loop.run_until_complete(asyncio.gather(*coros1, *coros2))
 
         async def _wait_for_things_to_finish():
-            log.important2("Waiting for things to finish")
-            await asyncio.sleep(1)
-            log.important2("Done waiting")
+            log.notice("Tester waiting for things to finish")
+            await asyncio.sleep(3)
+            log.notice("Tester done waiting")
 
         loop.run_until_complete(_wait_for_things_to_finish())
-        # loop.close()
+        loop.close()
 
     # Test that pending_db/active_db/working_db get updated as we go thru the flow
 
     # Test starting a new sub block before the last sub block finishes
 
     # Test with multiple sb's where stuff in SB 2 will pass the first time and fail the second time (cause some og read was modified)
+
 
 if __name__ == "__main__":
     import unittest
