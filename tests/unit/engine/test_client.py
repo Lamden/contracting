@@ -480,7 +480,7 @@ class TestSenecaClient(TestCase):
         loop.close()
 
     @mock.patch("seneca.engine.client.NUM_CACHES", 2)
-    def test_queue_more_db_than_caches(self):
+    def test_hella_subblocks_with_stamps(self):
         self._mint_wallets(10 ** 8)
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
