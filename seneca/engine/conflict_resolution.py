@@ -404,7 +404,7 @@ class CRContext:
         # TODO this does not support new keys being modified during the rerun process
         data = self.cr_data['getset']
         contract_list = data.get_rerun_list()
-        self.log.debugv("Contracts indexes to rerun: {}".format(contract_list))
+        self.log.info("Contracts indexes to rerun: {}".format(contract_list))
 
         # DEBUG -- TODO DELETE
         # self.log.notice("CRData with input hash {}".format(self.input_hash))
@@ -485,8 +485,6 @@ class RedisProxy:
         from seneca.engine.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
         assert item in CRCmdBase.registry, "redis operation {} not implemented for conflict resolution".format(item)
 
-        # return CRCmdBase.registry[item](working_db=self.working_db, master_db=self.master_db,
-        #                                 sbb_idx=self.sbb_idx, contract_idx=self.contract_idx, data=self.data,)
         t = CRCmdBase.registry[item]
         if t not in self.cmds:
             self.cmds[t] = t(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
