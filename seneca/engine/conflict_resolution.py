@@ -161,7 +161,7 @@ class CRDataGetSet(CRDataBase, dict):
         return mod_keys
 
     def add_adjacent_keys(self, key_set):
-        copy_set = set(key_set)
+        copy_set = set(key_set)  # we must copy the set so we can modify the real while while enumerating
         for key in copy_set:
             self._add_adjacent_keys(key, key_set)
 
@@ -194,8 +194,6 @@ class CRDataGetSet(CRDataBase, dict):
 
         self[key]['mod'] = None
         self[key]['contracts'] = set()
-
-        # First, try and copy over master if it differs from original value
 
         if self.working.exists(key) and self.working.get(key) != og_val:
             self.log.debugv("Reseting key {} to COMMON value {}".format(key, self.working.get(key)))
@@ -246,41 +244,6 @@ class CRDataHMap(CRDataBase, defaultdict):
 
 class CRDataDelete(CRDataBase, set):
     NAME = 'del'
-
-    def merge_to_common(self):
-        return False  # TODO implement
-        raise NotImplementedError()
-
-    def get_state_rep(self):
-        return False  # TODO implement
-        raise NotImplementedError()
-
-
-class CRDataOperations(CRDataBase, list):
-    """
-    CRDataOperations is a list of RedisOperation instances.
-    """
-    NAME = 'ops'
-
-    def merge_to_common(self):
-        pass  # TODO implement
-        # raise NotImplementedError()
-
-    def get_state_rep(self):
-        pass  # TODO implement
-        # raise NotImplementedError()
-
-    def should_rerun(self, contract_idx: int) -> bool:
-        pass  # TODO implement
-        # raise NotImplementedError()
-
-
-class CRDataOutputs(CRDataBase, list):
-    """
-    This structure is a list of tuples. The index of the outer list correspons to the output of the contract with that
-    same index. The tuple itself always has 2 elements, and is of the form [RESULT, OUTPUT], where
-    """
-    NAME = 'out'
 
     def merge_to_common(self):
         return False  # TODO implement
