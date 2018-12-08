@@ -515,7 +515,7 @@ class TestSenecaClient(TestCase):
         c1_map = OrderedDict({input_hash1: client1, input_hash3: client1, input_hash5: client1, input_hash7: client1})
         c2_map = OrderedDict({input_hash2: client2, input_hash4: client2, input_hash6: client2, input_hash8: client2})
 
-        NUM_TX = 10
+        NUM_TX = 200
         for i, in_hash in enumerate(c1_map):
             # txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if i % 2 == 1 else []
             txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if True else []

@@ -2,6 +2,8 @@ import redis
 from collections import defaultdict
 from seneca.libs.logger import get_logger
 from typing import List
+
+
 # TODO -- clean this file up
 
 
@@ -76,7 +78,8 @@ class CRDataGetSet(CRDataBase, dict):
 
     def _get_modified_keys(self):
         # TODO this needs to return READs that have had their original values changed too!
-        return set().union((key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
+        return set().union(
+            (key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
 
     def merge_to_common(self):
         modified_keys = self._get_modified_keys()
@@ -321,8 +324,8 @@ class CRContext:
 
     def update_contract_result(self, contract_idx: int, result: str):
         assert len(self.contracts) == len(self.run_results), "Oh dear...a logic error is present"  # TODO remove
-        assert len(self.contracts) > contract_idx, "contract_idx {} out of bounds. Only {} contracts in self.contracts"\
-                                                   .format(contract_idx, len(self.contracts))
+        assert len(self.contracts) > contract_idx, "contract_idx {} out of bounds. Only {} contracts in self.contracts" \
+            .format(contract_idx, len(self.contracts))
         self.log.debugv("Updating run result for contract idx {} to <{}>".format(contract_idx, result))
         self.run_results[contract_idx] = result
 
@@ -332,6 +335,7 @@ class CRContext:
 
     def reset_run_data(self):
         """ Resets all state held by this container. """
+
         # TODO this is likely very sketch in terms of memory leaks but YOLO this is python bro whats a memory leak
         # TODO -- we should if hard_reset=False, we should also reset_db all redis keys EXCLUDING phase variables
         def _is_subclass(obj, subs: tuple):
@@ -353,14 +357,15 @@ class CRContext:
                         CRDataBase.registry.items()}
 
     def reset_db(self):
-        self.log.debug("CRData resetting working db #{}".format(self.working_db.connection_pool.connection_kwargs['db']))
+        self.log.debug(
+            "CRData resetting working db #{}".format(self.working_db.connection_pool.connection_kwargs['db']))
         self.working_db.flushdb()
 
     def assert_reset(self):
         """ Assert this object has been reset_db properly. For dev purposes. """
-        err = "\nContracts: {}\nRun Results: {}\nReads: {}\nWrites: {}\nOutputs: {}\nRedo Log: {}\nInput hash: {}\n"\
-              .format(self.contracts, self.run_results, self['getset'].reads, self['getset'].writes,
-                      self['getset'].outputs, self['getset'].redo_log, self.input_hash)
+        err = "\nContracts: {}\nRun Results: {}\nReads: {}\nWrites: {}\nOutputs: {}\nRedo Log: {}\nInput hash: {}\n" \
+            .format(self.contracts, self.run_results, self['getset'].reads, self['getset'].writes,
+                    self['getset'].outputs, self['getset'].redo_log, self.input_hash)
         assert len(self.contracts) == 0, err
         assert len(self.run_results) == 0
         assert len(self['getset'].reads) == 0, err
@@ -375,7 +380,7 @@ class CRContext:
         Returns the state for the contract at the specified index
         """
         assert contract_idx < len(self.contracts), "Contract index {} out of bounds for self.contracts of length {}" \
-                                                   .format(contract_idx, len(self.contracts))
+            .format(contract_idx, len(self.contracts))
 
         state_str = ''
         for key in sorted(self.cr_data.keys()):  # We sort the keys so that output will always be deterministic
@@ -457,8 +462,8 @@ class CRContext:
                 raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, t))
 
     def __getitem__(self, item):
-        assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}"\
-                                     .format(item, list(self.cr_data.keys()))
+        assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}" \
+            .format(item, list(self.cr_data.keys()))
         return self.cr_data[item]
 
     def __repr__(self):
@@ -474,15 +479,23 @@ class RedisProxy:
         self.data = data
         self.working_db, self.master_db = data.working_db, data.master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
+        self.cmds = {}
 
     def __getattr__(self, item):
         from seneca.engine.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
         assert item in CRCmdBase.registry, "redis operation {} not implemented for conflict resolution".format(item)
 
-        return CRCmdBase.registry[item](working_db=self.working_db, master_db=self.master_db,
-                                        sbb_idx=self.sbb_idx, contract_idx=self.contract_idx, data=self.data,
-                                        finalize=self.finalize)
+        # return CRCmdBase.registry[item](working_db=self.working_db, master_db=self.master_db,
+        #                                 sbb_idx=self.sbb_idx, contract_idx=self.contract_idx, data=self.data,)
+        t = CRCmdBase.registry[item]
+        if t not in self.cmds:
+            self.cmds[t] = t(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
+                             contract_idx=self.contract_idx, data=self.data)
 
+        cmd = self.cmds[t]
+        cmd.set_params(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
+                       contract_idx=self.contract_idx, data=self.data)
+        return cmd
 
 # print("CRDataMetaRegistery")
 # for k, v in CRDataBase.registry.items():
