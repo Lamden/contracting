@@ -319,7 +319,7 @@ class SenecaClient(SenecaInterface):
         """
         assert self.active_db, "Active db not set! Did you call _start_sb?"
         # self.log.info("Ending sub block {} which has input hash {}".format(self.sbb_idx, self.active_db.input_hash))
-        self.log.important("<<< Ending sub block for input hash {} <<<".format(self.active_db.input_hash))  # TODO change log lvl to info
+        self.log.info("<<< Ending sub block for input hash {} <<<".format(self.active_db.input_hash))  # TODO change log lvl to info
 
         Phase.incr(self.active_db.working_db, Macros.EXECUTION)
 
