@@ -388,10 +388,10 @@ class SenecaClient(SenecaInterface):
                         .format(elapsed, input_hash))
 
     async def _wait_for_cr_and_merge(self, cr_data: CRContext):
-        self.log.info("Waiting for other SBBs to finish conflict resolution ({})...".format(cr_data))
+        self.log.debug("Waiting for other SBBs to finish conflict resolution ({})...".format(cr_data))
         await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.CONFLICT_RESOLUTION, value=self.sbb_idx,
                                             timeout=(len(self.pending_dbs) + 1) * Phase.CR_TIMEOUT)
-        self.log.info("Done waiting for other SBBs to finish conflict resolution ({})".format(cr_data))
+        self.log.debug("Done waiting for other SBBs to finish conflict resolution ({})".format(cr_data))
 
         self._rerun_contracts_for_cr_data(cr_data)
         self.log.info("Merging sbb_{} data to common layer ({})".format(self.sbb_idx, cr_data))
@@ -419,19 +419,19 @@ class SenecaClient(SenecaInterface):
                 self.log.fatal(err_msg)
                 raise Exception(err_msg)
 
-        self.log.info("CRData {} DONE waiting to be at the top of pending db!".format(cr_data))
+        self.log.debug("CRData {} DONE waiting to be at the top of pending db!".format(cr_data))
 
     async def _wait_for_execution_stage(self, cr_data: CRContext):
-        self.log.info("Waiting for other SBBs to finish execution ({})".format(cr_data))
+        self.log.debug("Waiting for other SBBs to finish execution ({})".format(cr_data))
         await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.EXECUTION, value=self.num_sb_builders,
                                             timeout=(len(self.pending_dbs) + 1) * Phase.EXEC_TIMEOUT)
-        self.log.info("Done waiting for other SBBs to finish execution ({})".format(cr_data))
+        self.log.debug("Done waiting for other SBBs to finish execution ({})".format(cr_data))
 
     async def _wait_for_everybody_cr(self, cr_data: CRContext):
-        self.log.info("Waiting for conflict resolution to finish for ALL sub blocks ({})".format(cr_data))
+        self.log.debug("Waiting for conflict resolution to finish for ALL sub blocks ({})".format(cr_data))
         await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.CONFLICT_RESOLUTION,
                                             value=self.num_sb_builders, timeout=Phase.CR_TIMEOUT)
-        self.log.info("Conflict resolution complete for ALL sub blocks ({})".format(cr_data))
+        self.log.debug("Conflict resolution complete for ALL sub blocks ({})".format(cr_data))
 
     async def _wait_for_phase_variable(self, db: redis.StrictRedis, key: str, value: int, timeout: int):
         elapsed = 0
@@ -447,7 +447,7 @@ class SenecaClient(SenecaInterface):
                 self.log.fatal(err_msg)
                 raise Exception(err_msg)
 
-        self.log.debug("Waited a total of {} seconds for phase variable {} to reach value {}".format(elapsed, key, value))
+        self.log.spam("Waited a total of {} seconds for phase variable {} to reach value {}".format(elapsed, key, value))
 
     def _ensure_future(self, coro) -> asyncio.Future:
         """

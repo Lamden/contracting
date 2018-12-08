@@ -384,8 +384,7 @@ class CRContext:
 
             yield i
 
-            # TODO i think these assertions will fail when we rerun a contract that fails (b/c read/write list will
-            # be empty). We should only do this logic if the execution was successful
+            # TODO handle this behavior by reverting and failing until we have a better mechanism
             assert og_reads == data.reads[i], "Original reads have changed for contract idx {}!\nOriginal: {}\nNew " \
                                               "Reads: {}".format(i, og_reads, data.reads[i])
             assert og_writes == data.writes[i], "Original writes have changed for contract idx {}!\nOriginal: {}\nNew " \
@@ -430,8 +429,8 @@ class CRContext:
         return self.cr_data[item]
 
     def __repr__(self):
-        return "<CRContext(input_hash={}, num_contracts={}, working_db_num={})>".format(
-            self.input_hash, len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
+        return "<CRContext(input_hash={} .., num_contracts={}, working_db_num={})>".format(
+            self.input_hash[:16], len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
 
 
 class RedisProxy:
