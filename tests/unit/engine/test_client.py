@@ -60,7 +60,16 @@ def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: s
 
 
 class TestSenecaClient(TestCase):
+    LOG_LVL = 21
     CONTRACTS_TO_STORE = {'currency': 'currency.sen.py'}
+
+    @classmethod
+    def setUpClass(cls):
+        overwrite_logger_level(cls.LOG_LVL)
+
+    @classmethod
+    def tearDownClass(cls):
+        overwrite_logger_level(0)
 
     def assert_completion(self, expected_sbb_rep: List[tuple]=None, input_hash='', merge_master=False, client=None, merge_wait=1):
         if merge_master:
@@ -535,6 +544,7 @@ class TestSenecaClient(TestCase):
         loop.close()
 
     def test_hella_subblocks_called_in_correct_order(self):
+        self._mint_wallets(10 ** 8)
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
@@ -583,6 +593,7 @@ class TestSenecaClient(TestCase):
         loop.run_until_complete(_wait_for_things_to_finish())
         loop.close()
 
+        # Check things were called in the correct order
         self.assertEqual(list(c1_map.keys()) + [input_hash9], self.completed_hashes[client1])
         self.assertEqual(list(c2_map.keys()) + [input_hash10], self.completed_hashes[client2])
 
