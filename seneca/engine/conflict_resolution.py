@@ -7,6 +7,9 @@ from typing import List
 # TODO -- clean this file up
 
 
+CR_EXCLUDED_KEYS = ['currency:black_hole']
+
+
 class RedisOperation:
     def __init__(self, op_name: str, key: str, *args, **kwargs):
         self.op_name, self.key, self.args, self.kwargs = op_name, key, args, kwargs

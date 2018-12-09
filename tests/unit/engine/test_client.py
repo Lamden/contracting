@@ -543,6 +543,7 @@ class TestSenecaClient(TestCase):
         loop.run_until_complete(_wait_for_things_to_finish())
         loop.close()
 
+    @mock.patch("seneca.engine.client.NUM_CACHES", 2)
     def test_hella_subblocks_called_in_correct_order(self):
         self._mint_wallets(10 ** 8)
         loop = asyncio.new_event_loop()
@@ -597,9 +598,6 @@ class TestSenecaClient(TestCase):
         self.assertEqual(list(c1_map.keys()) + [input_hash9], self.completed_hashes[client1])
         self.assertEqual(list(c2_map.keys()) + [input_hash10], self.completed_hashes[client2])
 
-    # Test that pending_db/active_db/working_db get updated as we go thru the flow
-
-    # Test starting a new sub block before the last sub block finishes
 
     # Test with multiple sb's where stuff in SB 2 will pass the first time and fail the second time (cause some og read was modified)
 
