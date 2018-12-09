@@ -7,12 +7,10 @@ from typing import List
 # TODO -- clean this file up
 
 
-CR_EXCLUDED_KEYS = ['currency:black_hole']
+# TODO this assumes stamps_to_tau will never change. We need more intricate logic to handle the case where it does...
+CR_EXCLUDED_KEYS = ['currency:market:stamps_to_tau']
 
-
-class RedisOperation:
-    def __init__(self, op_name: str, key: str, *args, **kwargs):
-        self.op_name, self.key, self.args, self.kwargs = op_name, key, args, kwargs
+STAMPS_KEY = 'currency:balances:black_hole'
 
 
 class CRDataMeta(type):
