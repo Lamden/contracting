@@ -60,16 +60,18 @@ def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: s
 
 
 class TestSenecaClient(TestCase):
-    LOG_LVL = 21
+    LOG_LVL = None
     CONTRACTS_TO_STORE = {'currency': 'currency.sen.py'}
 
     @classmethod
     def setUpClass(cls):
-        overwrite_logger_level(cls.LOG_LVL)
+        if cls.LOG_LVL:
+            overwrite_logger_level(cls.LOG_LVL)
 
     @classmethod
     def tearDownClass(cls):
-        overwrite_logger_level(0)
+        if cls.LOG_LVL:
+            overwrite_logger_level(999999)  # re-enable all logging
 
     def assert_completion(self, expected_sbb_rep: List[tuple]=None, input_hash='', merge_master=False, client=None, merge_wait=1):
         if merge_master:

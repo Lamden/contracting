@@ -39,12 +39,6 @@ class Phase:
             return 0
         return int(db.get(key).decode())
 
-    @staticmethod
-    def atomic_incr_check(db, key, check_fn: Callable[[int, int], bool]) -> bool:
-        pass
-
-        pipe = db.pipeline()
-
 
 class SenecaClient(SenecaInterface):
     def __init__(self, sbb_idx, num_sbb, concurrent_mode=True, loop=None):

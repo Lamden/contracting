@@ -133,7 +133,7 @@ class MockLogger:
 
 
 def get_logger(name=''):
-    if _LOG_LVL == 0:
+    if _LOG_LVL < 0:
         return MockLogger()
 
     filedir = "logs/{}".format(os.getenv('TEST_NAME', 'test'))
