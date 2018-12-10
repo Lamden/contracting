@@ -71,8 +71,8 @@ class SenecaClient(SenecaInterface):
         self.queued_futures = deque()
 
         # DEBUG -- TODO DELETE
-        self.log.important2("\n\n\n this is using the latest code \n\n\n")
-        self.log.important("num caches {}".format(NUM_CACHES))
+        # self.log.important2("\n\n\n this is using the latest code \n\n\n")
+        # self.log.important("num caches {}".format(NUM_CACHES))
         # END DEBUG
 
         self._setup_dbs()
