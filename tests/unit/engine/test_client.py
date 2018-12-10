@@ -1,12 +1,16 @@
 from unittest import TestCase
+from unittest import mock
 from unittest.mock import MagicMock
 from seneca.engine.client import *
 from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter
-from seneca.libs.logger import overwrite_logger_level
+from seneca.libs.logger import overwrite_logger_level, get_logger
 from decimal import Decimal
+from collections import OrderedDict, defaultdict
+import random, uuid
 
 
+log = get_logger("TestSenecaClient")
 GENESIS_AUTHOR = 'anonymoose'
 STAMP_AMOUNT = None
 MINT_WALLETS = {
@@ -17,6 +21,10 @@ MINT_WALLETS = {
     'tj': 8000,
     'ethan': 8000
 }
+
+# Add a bunch of other random wallet
+for _ in range(359):
+    MINT_WALLETS[str(uuid.uuid4())] = 2 ** 63
 
 
 TEST_CONTRACT = \
@@ -49,25 +57,47 @@ class MockPublishTransaction:
         self.stamps, self.sender, self.contract_code, self.contract_name = stamps, sender, contract_code, contract_name
 
 
-def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: str='currency'):
-    contract = MockContractTransaction(sender=sender, contract_name='currency', func_name='transfer', to=receiver,
-                                       amount=amount)
+def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: str='currency', stamps=STAMP_AMOUNT):
+    contract = MockContractTransaction(sender=sender, contract_name='currency', func_name='transfer', stamps=stamps,
+                                       to=receiver, amount=amount)
     return contract
 
 
 class TestSenecaClient(TestCase):
+    LOG_LVL = None
     CONTRACTS_TO_STORE = {'currency': 'currency.sen.py'}
 
-    def assert_completion(self, expected_sbb_rep: List[tuple]=None, input_hash=''):
+    @classmethod
+    def setUpClass(cls):
+        if cls.LOG_LVL:
+            overwrite_logger_level(cls.LOG_LVL)
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.LOG_LVL:
+            overwrite_logger_level(999999)  # re-enable all logging
+
+    def assert_completion(self, expected_sbb_rep: List[tuple]=None, input_hash='', merge_master=False, client=None, merge_wait=1):
+        if merge_master:
+            assert client is not None, "if merge_master=True then client must be passed in"
+
+        async def _merge(client):
+            asyncio.sleep(merge_wait)
+            client.update_master_db()
+
         def _completion_handler(cr_data: CRContext):
             if input_hash:
                 self.assertEqual(cr_data.input_hash, input_hash)
             if expected_sbb_rep:
                 self.assertEqual(expected_sbb_rep, cr_data.get_subblock_rep())
+            if merge_master:
+                asyncio.ensure_future(_merge(client))
+            if client and input_hash:
+                self.completed_hashes[client].append(input_hash)
 
         return _completion_handler
 
-    def get_futures(self, input_hash_client_dict: dict) -> list:
+    def _get_futures(self, input_hash_client_dict: dict) -> list:
         futs = []
         for input_hash, client in input_hash_client_dict.items():
             if input_hash in client.pending_futures:
@@ -75,10 +105,26 @@ class TestSenecaClient(TestCase):
                 futs.append(d['fut'])
                 if d['merge_fut']:
                     futs.append(d['merge_fut'])
-            if input_hash in client.queued_futures:
-                futs.append(client.queued_futures[input_hash])
+            for data in client.queued_futures:
+                if data['input_hash'] == input_hash:
+                    futs.append(data['fut'])
 
         return futs
+
+    def _gen_random_contracts(self, num=8, max_amount=8, stamps=STAMP_AMOUNT) -> list:
+        contracts = []
+        for _ in range(num):
+            sender, receiver = random.sample(list(MINT_WALLETS.keys()), 2)
+            amount = random.randint(0, max_amount)
+            contracts.append(create_currency_tx(sender, receiver, amount, stamps=stamps))
+
+        return contracts
+
+    def _mint_wallets(self, seed_amount=None):
+        with SenecaInterface(False) as interface:
+            for wallet, amount in MINT_WALLETS.items():
+                interface.execute_function(module_path='seneca.contracts.currency.mint', sender=GENESIS_AUTHOR,
+                                           stamps=STAMP_AMOUNT, to=wallet, amount=seed_amount or amount)
 
     def setUp(self):
         # overwrite_logger_level(0)
@@ -98,9 +144,11 @@ class TestSenecaClient(TestCase):
                 'contract': 'minter'
             }
             # tooling.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
-            for wallet, amount in MINT_WALLETS.items():
-                interface.execute_function(module_path='seneca.contracts.currency.mint', sender=GENESIS_AUTHOR,
-                                           stamps=STAMP_AMOUNT, to=wallet, amount=amount)
+            # for wallet, amount in MINT_WALLETS.items():
+            #     interface.execute_function(module_path='seneca.contracts.currency.mint', sender=GENESIS_AUTHOR,
+            #                                stamps=STAMP_AMOUNT, to=wallet, amount=amount)
+        self._mint_wallets()
+        self.completed_hashes = defaultdict(list)
 
     def test_setup_dbs(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
@@ -432,7 +480,7 @@ class TestSenecaClient(TestCase):
 
         # We must run the future manually, since the event loop is not currently running
         # coros1 = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
-        coros1 = self.get_futures({input_hash1: client1, input_hash2: client2})
+        coros1 = self._get_futures({input_hash1: client1, input_hash2: client2})
         # coros1 = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'],
         #          client1.pending_futures[input_hash3]['fut'])
         loop.run_until_complete(asyncio.gather(*coros1))
@@ -441,7 +489,7 @@ class TestSenecaClient(TestCase):
         client1.update_master_db()
 
         # coros2 = (client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
-        coros2 = self.get_futures({input_hash3: client1, input_hash4: client2})
+        coros2 = self._get_futures({input_hash3: client1, input_hash4: client2})
         loop.run_until_complete(asyncio.gather(*coros2))
 
         for c in (client1, client2):
@@ -450,12 +498,114 @@ class TestSenecaClient(TestCase):
 
         loop.close()
 
+    @mock.patch("seneca.engine.client.NUM_CACHES", 2)
+    def test_hella_subblocks_with_stamps(self):
+        self._mint_wallets(10 ** 8)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-    # Test that pending_db/active_db/working_db get updated as we go thru the flow
+        input_hash1 = '1' * 64
+        input_hash2 = '2' * 64
+        input_hash3 = '3' * 64
+        input_hash4 = '4' * 64
+        input_hash5 = '5' * 64
+        input_hash6 = '6' * 64
+        input_hash7 = '7' * 64
+        input_hash8 = '8' * 64
+        input_hash9 = 'A' * 64
+        input_hash10 = 'B' * 64
 
-    # Test starting a new sub block before the last sub block finishes
+        client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+
+        c1_map = OrderedDict({input_hash1: client1, input_hash3: client1, input_hash5: client1, input_hash7: client1})
+        c2_map = OrderedDict({input_hash2: client2, input_hash4: client2, input_hash6: client2, input_hash8: client2})
+
+        NUM_TX = 10
+        for i, in_hash in enumerate(c1_map):
+            # txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if i % 2 == 1 else []
+            txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if True else []
+            client1.execute_sb(in_hash, txs, self.assert_completion(None, in_hash, merge_master=True, client=client1, merge_wait=0))
+        for i, in_hash in enumerate(c2_map):
+            # txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if i % 2 == 1 else []
+            txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if True else []
+            client2.execute_sb(in_hash, txs, self.assert_completion(None, in_hash, merge_master=True, client=client2, merge_wait=0))
+
+        # Execute an empty sb at the end
+        client1.execute_sb(input_hash9, [], self.assert_completion(None, input_hash9, merge_master=True, client=client1, merge_wait=0))
+        client2.execute_sb(input_hash10, [], self.assert_completion(None, input_hash10, merge_master=True, client=client2, merge_wait=0))
+
+        # Run it all
+        coros1 = self._get_futures(c1_map)
+        coros2 = self._get_futures(c2_map)
+
+        loop.run_until_complete(asyncio.gather(*coros1, *coros2))
+
+        async def _wait_for_things_to_finish():
+            log.notice("Tester waiting for things to finish")
+            await asyncio.sleep(3)
+            log.notice("Tester done waiting")
+
+        loop.run_until_complete(_wait_for_things_to_finish())
+        loop.close()
+
+    @mock.patch("seneca.engine.client.NUM_CACHES", 2)
+    def test_hella_subblocks_called_in_correct_order(self):
+        self._mint_wallets(10 ** 8)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        input_hash1 = '1' * 64
+        input_hash2 = '2' * 64
+        input_hash3 = '3' * 64
+        input_hash4 = '4' * 64
+        input_hash5 = '5' * 64
+        input_hash6 = '6' * 64
+        input_hash7 = '7' * 64
+        input_hash8 = '8' * 64
+        input_hash9 = 'A' * 64
+        input_hash10 = 'B' * 64
+
+        client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+
+        c1_map = OrderedDict({input_hash1: client1, input_hash3: client1, input_hash5: client1, input_hash7: client1})
+        c2_map = OrderedDict({input_hash2: client2, input_hash4: client2, input_hash6: client2, input_hash8: client2})
+
+        NUM_TX = 23
+        for i, in_hash in enumerate(c1_map):
+            # txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if i % 2 == 1 else []
+            txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if True else []
+            client1.execute_sb(in_hash, txs, self.assert_completion(None, in_hash, merge_master=True, client=client1, merge_wait=0))
+        for i, in_hash in enumerate(c2_map):
+            # txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if i % 2 == 1 else []
+            txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if True else []
+            client2.execute_sb(in_hash, txs, self.assert_completion(None, in_hash, merge_master=True, client=client2, merge_wait=0))
+
+        # Execute an empty sb at the end
+        client1.execute_sb(input_hash9, [], self.assert_completion(None, input_hash9, merge_master=True, client=client1, merge_wait=0))
+        client2.execute_sb(input_hash10, [], self.assert_completion(None, input_hash10, merge_master=True, client=client2, merge_wait=0))
+
+        # Run it all
+        coros1 = self._get_futures(c1_map)
+        coros2 = self._get_futures(c2_map)
+
+        loop.run_until_complete(asyncio.gather(*coros1, *coros2))
+
+        async def _wait_for_things_to_finish():
+            log.notice("Tester waiting for things to finish")
+            await asyncio.sleep(3)
+            log.notice("Tester done waiting")
+
+        loop.run_until_complete(_wait_for_things_to_finish())
+        loop.close()
+
+        # Check things were called in the correct order
+        self.assertEqual(list(c1_map.keys()) + [input_hash9], self.completed_hashes[client1])
+        self.assertEqual(list(c2_map.keys()) + [input_hash10], self.completed_hashes[client2])
 
     # Test with multiple sb's where stuff in SB 2 will pass the first time and fail the second time (cause some og read was modified)
+
 
 if __name__ == "__main__":
     import unittest

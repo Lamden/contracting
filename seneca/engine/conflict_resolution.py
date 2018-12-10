@@ -2,12 +2,15 @@ import redis
 from collections import defaultdict
 from seneca.libs.logger import get_logger
 from typing import List
+
+
 # TODO -- clean this file up
 
 
-class RedisOperation:
-    def __init__(self, op_name: str, key: str, *args, **kwargs):
-        self.op_name, self.key, self.args, self.kwargs = op_name, key, args, kwargs
+# TODO this assumes stamps_to_tau will never change. We need more intricate logic to handle the case where it does...
+STAMPS_KEY = 'currency:balances:black_hole'
+CR_EXCLUDED_KEYS = ['currency:market:stamps_to_tau', STAMPS_KEY]
+
 
 
 class CRDataMeta(type):
@@ -76,7 +79,8 @@ class CRDataGetSet(CRDataBase, dict):
 
     def _get_modified_keys(self):
         # TODO this needs to return READs that have had their original values changed too!
-        return set().union((key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
+        return set().union(
+            (key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
 
     def merge_to_common(self):
         modified_keys = self._get_modified_keys()
@@ -114,7 +118,7 @@ class CRDataGetSet(CRDataBase, dict):
             if og_val is None:
                 self.log.debugv("Removing key {}".format(key))
                 del self[key]
-            # Otherwise, reset the key to the value before the contract
+            # Otherwise, reset_db the key to the value before the contract
             else:
                 self.log.debugv("Resetting key {} to value {}".format(key, og_val))
                 self[key]['mod'] = og_val
@@ -131,6 +135,7 @@ class CRDataGetSet(CRDataBase, dict):
 
     def get_rerun_list(self, reset_keys=True) -> List[int]:
         mod_keys = self.get_modified_keys_recursive()
+        assert STAMPS_KEY not in mod_keys, "Noooooooo mod keys {} has stamp key".format(mod_keys)
         contract_set = set()
         self.log.debugv("Modified keys for rerunning: {}".format(mod_keys))
 
@@ -150,15 +155,15 @@ class CRDataGetSet(CRDataBase, dict):
                     self.working.exists(k) and (self.working.get(k) != self[k]['og'])):
                 mods.add(k)
 
-        return mods
+        return mods - {STAMPS_KEY, *CR_EXCLUDED_KEYS}
 
     def get_modified_keys_recursive(self) -> set:
         mod_keys = self.get_modified_keys()
         self.add_adjacent_keys(mod_keys)
-        return mod_keys
+        return mod_keys - {STAMPS_KEY, *CR_EXCLUDED_KEYS}
 
     def add_adjacent_keys(self, key_set):
-        copy_set = set(key_set)
+        copy_set = set(key_set)  # we must copy the set so we can modify the real while while enumerating
         for key in copy_set:
             self._add_adjacent_keys(key, key_set)
 
@@ -191,8 +196,6 @@ class CRDataGetSet(CRDataBase, dict):
 
         self[key]['mod'] = None
         self[key]['contracts'] = set()
-
-        # First, try and copy over master if it differs from original value
 
         if self.working.exists(key) and self.working.get(key) != og_val:
             self.log.debugv("Reseting key {} to COMMON value {}".format(key, self.working.get(key)))
@@ -253,41 +256,6 @@ class CRDataDelete(CRDataBase, set):
         raise NotImplementedError()
 
 
-class CRDataOperations(CRDataBase, list):
-    """
-    CRDataOperations is a list of RedisOperation instances.
-    """
-    NAME = 'ops'
-
-    def merge_to_common(self):
-        pass  # TODO implement
-        # raise NotImplementedError()
-
-    def get_state_rep(self):
-        pass  # TODO implement
-        # raise NotImplementedError()
-
-    def should_rerun(self, contract_idx: int) -> bool:
-        pass  # TODO implement
-        # raise NotImplementedError()
-
-
-class CRDataOutputs(CRDataBase, list):
-    """
-    This structure is a list of tuples. The index of the outer list correspons to the output of the contract with that
-    same index. The tuple itself always has 2 elements, and is of the form [RESULT, OUTPUT], where
-    """
-    NAME = 'out'
-
-    def merge_to_common(self):
-        return False  # TODO implement
-        raise NotImplementedError()
-
-    def get_state_rep(self):
-        return False  # TODO implement
-        raise NotImplementedError()
-
-
 class CRContext:
 
     def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, finalize=False):
@@ -321,8 +289,8 @@ class CRContext:
 
     def update_contract_result(self, contract_idx: int, result: str):
         assert len(self.contracts) == len(self.run_results), "Oh dear...a logic error is present"  # TODO remove
-        assert len(self.contracts) > contract_idx, "contract_idx {} out of bounds. Only {} contracts in self.contracts"\
-                                                   .format(contract_idx, len(self.contracts))
+        assert len(self.contracts) > contract_idx, "contract_idx {} out of bounds. Only {} contracts in self.contracts" \
+            .format(contract_idx, len(self.contracts))
         self.log.debugv("Updating run result for contract idx {} to <{}>".format(contract_idx, result))
         self.run_results[contract_idx] = result
 
@@ -332,46 +300,52 @@ class CRContext:
 
     def reset_run_data(self):
         """ Resets all state held by this container. """
+
         # TODO this is likely very sketch in terms of memory leaks but YOLO this is python bro whats a memory leak
-        # TODO -- we should if hard_reset=False, we should also reset all redis keys EXCLUDING phase variables
+        # TODO -- we should if hard_reset=False, we should also reset_db all redis keys EXCLUDING phase variables
         def _is_subclass(obj, subs: tuple):
             """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
             for s in subs:
                 if issubclass(type(obj), s): return True
             return False
 
-        self.log.debug("Soft resetting CRData with input hash {}".format(self.input_hash))
+        self.log.debug("Resetting run data for CRData with ".format(self.input_hash, id(self)))
 
         # Reset this object's state
         self.run_results.clear()
         self.contracts.clear()
+        self.merged_to_common = False
+        self.input_hash = None
+
         # TODO is this ok resetting all the CRData's like this? Should we worry about memory leaks? --davis
         self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
                         CRDataBase.registry.items()}
 
-    def reset(self, hard_reset=False):
-        """ Resets all state held by this container. """
-        # TODO i think this would be a lot easier if we just scrapped this whole CRContext object and made a new
-        # one, but then would we have to worry about memory leaks? idk but either way screw python
-        def _is_subclass(obj, subs: tuple):
-            """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
-            for s in subs:
-                if issubclass(type(obj), s): return True
-            return False
+    def reset_db(self):
+        self.log.debug(
+            "CRData resetting working db #{}".format(self.working_db.connection_pool.connection_kwargs['db']))
+        self.working_db.flushdb()
 
-        self.log.debug("Resetting CRData with input hash {} (hard_reset={})".format(self.input_hash, hard_reset))
-        if hard_reset:
-            self.working_db.flushdb()
-        self.merged_to_common = False
-        self.input_hash = None
-
+    def assert_reset(self):
+        """ Assert this object has been reset_db properly. For dev purposes. """
+        err = "\nContracts: {}\nRun Results: {}\nReads: {}\nWrites: {}\nOutputs: {}\nRedo Log: {}\nInput hash: {}\n" \
+            .format(self.contracts, self.run_results, self['getset'].reads, self['getset'].writes,
+                    self['getset'].outputs, self['getset'].redo_log, self.input_hash)
+        assert len(self.contracts) == 0, err
+        assert len(self.run_results) == 0
+        assert len(self['getset'].reads) == 0, err
+        assert len(self['getset'].writes) == 0, err
+        assert len(self['getset'].outputs) == 0, err
+        assert len(self['getset'].redo_log) == 0, err
+        assert not self.merged_to_common
+        assert self.input_hash is None
 
     def get_state_for_idx(self, contract_idx: int) -> str:
         """
         Returns the state for the contract at the specified index
         """
         assert contract_idx < len(self.contracts), "Contract index {} out of bounds for self.contracts of length {}" \
-                                                   .format(contract_idx, len(self.contracts))
+            .format(contract_idx, len(self.contracts))
 
         state_str = ''
         for key in sorted(self.cr_data.keys()):  # We sort the keys so that output will always be deterministic
@@ -395,17 +369,24 @@ class CRContext:
         # TODO this does not support new keys being modified during the rerun process
         data = self.cr_data['getset']
         contract_list = data.get_rerun_list()
-        self.log.debugv("Contracts indexes to rerun: {}".format(contract_list))
+        self.log.info("Contracts indexes to rerun: {}".format(contract_list))
+
+        # DEBUG -- TODO DELETE
+        # self.log.notice("CRData with input hash {}".format(self.input_hash))
+        # self.log.notice("CRData with id {}".format(id(self)))
+        # self.log.notice("CRData contracts length: {}".format(len(self.contracts)))
+        # self.log.info("data reads: {}".format(data.reads))
+        # self.log.info("data writes: {}".format(data.writes))
+        # END DEBUG
 
         for i in contract_list:
             self.log.debugv("Rerunning contract at index {}".format(i))
-            og_reads, og_writes = data.reads[i], data.reads[i]
+            og_reads, og_writes = data.reads[i], data.writes[i]
             self.reset_contract_data(i)
 
             yield i
 
-            # TODO i think these assertions will fail when we rerun a contract that fails (b/c read/write list will
-            # be empty). We should only do this logic if the execution was successful
+            # TODO handle this behavior by reverting and failing until we have a better mechanism
             assert og_reads == data.reads[i], "Original reads have changed for contract idx {}!\nOriginal: {}\nNew " \
                                               "Reads: {}".format(i, og_reads, data.reads[i])
             assert og_writes == data.writes[i], "Original writes have changed for contract idx {}!\nOriginal: {}\nNew " \
@@ -445,9 +426,13 @@ class CRContext:
                 raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, t))
 
     def __getitem__(self, item):
-        assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}"\
-                                     .format(item, list(self.cr_data.keys()))
+        assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}" \
+            .format(item, list(self.cr_data.keys()))
         return self.cr_data[item]
+
+    def __repr__(self):
+        return "<CRContext(input_hash={} .., num_contracts={}, working_db_num={})>".format(
+            self.input_hash[:16], len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
 
 
 class RedisProxy:
@@ -458,15 +443,21 @@ class RedisProxy:
         self.data = data
         self.working_db, self.master_db = data.working_db, data.master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
+        self.cmds = {}
 
     def __getattr__(self, item):
         from seneca.engine.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
         assert item in CRCmdBase.registry, "redis operation {} not implemented for conflict resolution".format(item)
 
-        return CRCmdBase.registry[item](working_db=self.working_db, master_db=self.master_db,
-                                        sbb_idx=self.sbb_idx, contract_idx=self.contract_idx, data=self.data,
-                                        finalize=self.finalize)
+        t = CRCmdBase.registry[item]
+        if t not in self.cmds:
+            self.cmds[t] = t(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
+                             contract_idx=self.contract_idx, data=self.data)
 
+        cmd = self.cmds[t]
+        cmd.set_params(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
+                       contract_idx=self.contract_idx, data=self.data)
+        return cmd
 
 # print("CRDataMetaRegistery")
 # for k, v in CRDataBase.registry.items():
@@ -492,7 +483,7 @@ JUST RAISE AN ASSERTION FOR NOW IF A NEW KEY IS MODIFIED
        # build a set of all reads/write that have their original value changed
         # copy, from common layer, to the new original value, and set the modified value to None
         # build a min heap of contract indexes that need to be run by check contract's mod list
-        # reset the contract data before you rerun it
+        # reset_db the contract data before you rerun it
         # loop
 
         # PREFER MASTER VALUE when copying keys over. if og should have been copied from master during exec phase,
