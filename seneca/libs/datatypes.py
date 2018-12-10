@@ -442,6 +442,20 @@ class HMap(RObject):
         g = self.decode_value(g)
         return g
 
+    def incr(self, key, value=1):
+        if type(key) in complex_types:
+            key = key.rep()
+
+        g = self.driver.incr('{}{}{}'.format(self.prefix, self.delimiter, key), amount=value)
+        return g
+
+    def decr(self, key, value=1):
+        if type(key) in complex_types:
+            key = key.rep()
+
+        g = self.driver.decr('{}{}{}'.format(self.prefix, self.delimiter, key), amount=value)
+        return g
+
     def __getitem__(self, k):
         item = self.get(k)
         if item is None and self.value_type is not None:
