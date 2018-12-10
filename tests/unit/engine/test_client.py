@@ -7,7 +7,7 @@ from seneca.engine.interpreter import SenecaInterpreter
 from seneca.libs.logger import overwrite_logger_level, get_logger
 from decimal import Decimal
 from collections import OrderedDict, defaultdict
-import random
+import random, uuid
 
 
 log = get_logger("TestSenecaClient")
@@ -21,6 +21,10 @@ MINT_WALLETS = {
     'tj': 8000,
     'ethan': 8000
 }
+
+# Add a bunch of other random wallet
+for _ in range(359):
+    MINT_WALLETS[str(uuid.uuid4())] = 2 ** 63
 
 
 TEST_CONTRACT = \
@@ -568,7 +572,7 @@ class TestSenecaClient(TestCase):
         c1_map = OrderedDict({input_hash1: client1, input_hash3: client1, input_hash5: client1, input_hash7: client1})
         c2_map = OrderedDict({input_hash2: client2, input_hash4: client2, input_hash6: client2, input_hash8: client2})
 
-        NUM_TX = 20
+        NUM_TX = 23
         for i, in_hash in enumerate(c1_map):
             # txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if i % 2 == 1 else []
             txs = self._gen_random_contracts(num=NUM_TX, stamps=10 ** 5) if True else []
@@ -599,7 +603,6 @@ class TestSenecaClient(TestCase):
         # Check things were called in the correct order
         self.assertEqual(list(c1_map.keys()) + [input_hash9], self.completed_hashes[client1])
         self.assertEqual(list(c2_map.keys()) + [input_hash10], self.completed_hashes[client2])
-
 
     # Test with multiple sb's where stuff in SB 2 will pass the first time and fail the second time (cause some og read was modified)
 

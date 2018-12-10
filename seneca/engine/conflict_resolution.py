@@ -8,9 +8,9 @@ from typing import List
 
 
 # TODO this assumes stamps_to_tau will never change. We need more intricate logic to handle the case where it does...
-CR_EXCLUDED_KEYS = ['currency:market:stamps_to_tau']
-
 STAMPS_KEY = 'currency:balances:black_hole'
+CR_EXCLUDED_KEYS = ['currency:market:stamps_to_tau', STAMPS_KEY]
+
 
 
 class CRDataMeta(type):
@@ -135,6 +135,7 @@ class CRDataGetSet(CRDataBase, dict):
 
     def get_rerun_list(self, reset_keys=True) -> List[int]:
         mod_keys = self.get_modified_keys_recursive()
+        assert STAMPS_KEY not in mod_keys, "Noooooooo mod keys {} has stamp key".format(mod_keys)
         contract_set = set()
         self.log.debugv("Modified keys for rerunning: {}".format(mod_keys))
 
@@ -154,12 +155,12 @@ class CRDataGetSet(CRDataBase, dict):
                     self.working.exists(k) and (self.working.get(k) != self[k]['og'])):
                 mods.add(k)
 
-        return mods
+        return mods - {STAMPS_KEY, *CR_EXCLUDED_KEYS}
 
     def get_modified_keys_recursive(self) -> set:
         mod_keys = self.get_modified_keys()
         self.add_adjacent_keys(mod_keys)
-        return mod_keys
+        return mod_keys - {STAMPS_KEY, *CR_EXCLUDED_KEYS}
 
     def add_adjacent_keys(self, key_set):
         copy_set = set(key_set)  # we must copy the set so we can modify the real while while enumerating

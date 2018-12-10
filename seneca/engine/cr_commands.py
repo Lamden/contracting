@@ -1,6 +1,6 @@
 import redis
 from seneca.libs.logger import get_logger
-from seneca.engine.conflict_resolution import CRDataGetSet, CRContext, CRDataBase
+from seneca.engine.conflict_resolution import CRDataGetSet, CRContext, CRDataBase, CR_EXCLUDED_KEYS
 
 
 class CRCmdMeta(type):
@@ -135,8 +135,11 @@ class CRCmdGetSetBase(CRCmdBase):
         if val is None and not return_none:
             raise Exception("Key '{}' does not exist, but was attempted to be GET".format(key))
 
-        self.data['getset'].reads[self.contract_idx].add(key)
-        self.data['getset'][key]['contracts'].add(self.contract_idx)
+        # TODO properly handle CR on stamps key
+        if key not in CR_EXCLUDED_KEYS:
+            self.data['getset'].reads[self.contract_idx].add(key)
+            self.data['getset'][key]['contracts'].add(self.contract_idx)
+
         return val
 
 
@@ -162,10 +165,9 @@ class CRCmdSet(CRCmdGetSetBase):
                                                                                 self.contract_idx][key]))
 
     def __call__(self, key, value):
-        # DEBUG -- TODO DELETE
-        if key == 'currency:balances:black_hole':
-            self.log.debugv("(ContractIdx={}) SETTING BLACKHOLE TO {}".format(self.contract_idx, value))
-        # END DEBUG
+        # TODO properly handle CR on stamps key
+        if key in CR_EXCLUDED_KEYS:
+            return
 
         assert type(value) in (str, bytes), "Attempted to use 'set' with a value that is not str or bytes (val={}). " \
                                             "This is not supported currently.".format(value)
@@ -209,7 +211,7 @@ class CRCmdHGet(CRCmdHMapBase):
     def __call__(self, key, field):
         self._copy_og_key_if_not_exists(key, field)
 
-        # TODO make all this DRYer so you can abstract like a pro
+        # TODO make all this DRYer so you can abstract
 
         # First, try and return the local modified key
         mod_val = self.data['hm'][key][field]['mod']
