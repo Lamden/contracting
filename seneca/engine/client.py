@@ -7,6 +7,7 @@ from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.util import module_path_for_contract
 from collections import deque, defaultdict
 from typing import Callable, List
+import traceback
 
 
 SUCC_FLAG = 'SUCC'
@@ -224,7 +225,8 @@ class SenecaClient(SenecaInterface):
             result = SUCC_FLAG
 
         except Exception as e:
-            self.log.warning("Contract failed with error: {} \ncontract obj: {}".format(e, contract))
+            # TODO -- change this log level for production, as we will get spammed like nuts when contracts fail
+            self.log.warning("Contract failed with error:\n{} \ncontract obj: {}".format(traceback.format_exc(), contract))
             result = 'FAIL' + ' -- ' + str(e)
             data.rollback_contract(contract_idx)
 
