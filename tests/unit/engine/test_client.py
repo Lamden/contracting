@@ -143,10 +143,7 @@ class TestSenecaClient(TestCase):
                 'sender': GENESIS_AUTHOR,
                 'contract': 'minter'
             }
-            # tooling.execute_code_str(MINT_CODE_STR, scope={'rt': rt})
-            # for wallet, amount in MINT_WALLETS.items():
-            #     interface.execute_function(module_path='seneca.contracts.currency.mint', sender=GENESIS_AUTHOR,
-            #                                stamps=STAMP_AMOUNT, to=wallet, amount=amount)
+
         self._mint_wallets()
         self.completed_hashes = defaultdict(list)
 
@@ -159,7 +156,9 @@ class TestSenecaClient(TestCase):
         self.assertEqual(len(client.available_dbs), NUM_CACHES)
 
     def test_flush(self):
-        client = SenecaClient(sbb_idx=0, num_sbb=1)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
 
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
@@ -172,6 +171,26 @@ class TestSenecaClient(TestCase):
 
         self.assertEqual(len(client.pending_dbs), 0)
         self.assertEqual(client.active_db, None)
+
+        loop.close()
+
+    def test_skip_current_db(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        input_hash = 'A' * 64
+        c1 = create_currency_tx('anonymoose', 'stu', 14)
+        c2 = create_currency_tx('stu', 'anonymoose', 40)
+
+        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+
+        client.execute_sb(input_hash=input_hash, contracts=[c1, c2],
+                          completion_handler=self.assert_completion(None, input_hash))
+        self.assertTrue(input_hash in client.pending_futures)
+
+        client.skip_current_db()
+        self.assertEqual(len(client.pending_futures), 0)
+
+        loop.close()
 
     def test_run_tx_increments_contract_idx(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)

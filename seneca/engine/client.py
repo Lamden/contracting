@@ -176,6 +176,18 @@ class SenecaClient(SenecaInterface):
             self.log.info("Merging immediately for {}".format(cr_data))
             self._update_master_db(expected_data=cr_data)
 
+    def skip_current_db(self):
+        if len(self.pending_dbs) == 0:
+            self.log.warning("skip_current_db called, but there are no pending dbs! Returning.")
+            return
+
+        cr_data = self.pending_dbs.popleft()
+        cr_dict = self.pending_futures.pop(cr_data.input_hash)
+
+        assert cr_dict['merge'] is False, "tried to skip current db, but merge flag set to true for CR {} with pending" \
+                                          " futures dict {}".format(cr_data, cr_dict)
+        cr_dict['fut'].cancel()
+
     def submit_contract(self, contract):
         self.publish_code_str(contract.contract_name, contract.sender, contract.code, scope={
             'rt': {
@@ -455,7 +467,10 @@ class SenecaClient(SenecaInterface):
             try:
                 return await coro
             except Exception as e:
-                self.log.fatal("\nError caught in coro {}!\n{}\n".format(coro, traceback.format_exc()))
-                raise e
+                if type(e) is asyncio.CancelledError:
+                    self.log.warning("Coro {} cancelled.".format(coro))
+                else:
+                    self.log.fatal("\nError caught in coro {}!\n{}\n".format(coro, traceback.format_exc()))
+                    raise e
 
         return asyncio.ensure_future(_safe_ensure_future())
