@@ -173,6 +173,21 @@ class TestSenecaClient(TestCase):
         self.assertEqual(len(client.pending_dbs), 0)
         self.assertEqual(client.active_db, None)
 
+    def test_skip_current_db(self):
+        input_hash = 'A' * 64
+        c1 = create_currency_tx('anonymoose', 'stu', 14)
+        c2 = create_currency_tx('stu', 'anonymoose', 40)
+
+        client = SenecaClient(sbb_idx=0, num_sbb=1)
+
+        client.execute_sb(input_hash=input_hash, contracts=[c1, c2],
+                          completion_handler=self.assert_completion(None, input_hash))
+        self.assertTrue(input_hash in client.pending_futures)
+
+        client.skip_current_db()
+        self.assertEqual(len(client.pending_futures), 0)
+
+
     def test_run_tx_increments_contract_idx(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
         client._start_sb('A' * 64)
