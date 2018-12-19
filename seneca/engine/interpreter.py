@@ -196,7 +196,7 @@ class SenecaInterpreter:
         pipe.hset('contracts_meta', fullname, json.dumps({
             'code_str': code_str,
             'resources': Seneca.resources,
-            'methods': Seneca.exports,
+            'methods': Seneca.methods,
             'author': author,
             'timestamp': time.time()
         }))
