@@ -314,7 +314,6 @@ class TestSenecaClient(TestCase):
         loop.close()
 
     def test_end_subblock_1_sbb_with_failure(self):
-
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
@@ -622,6 +621,48 @@ class TestSenecaClient(TestCase):
         # Check things were called in the correct order
         self.assertEqual(list(c1_map.keys()) + [input_hash9], self.completed_hashes[client1])
         self.assertEqual(list(c2_map.keys()) + [input_hash10], self.completed_hashes[client2])
+
+    def test_contract_with_key_that_doesnt_exist_yet(self):
+        self._mint_wallets(10 ** 8)
+
+        input_hash1 = 'A' * 64
+        input_hash2 = 'B' * 64
+        input_hash3 = 'C' * 64
+        input_hash4 = 'D' * 64
+
+        stamps = 10**4
+        c1 = create_currency_tx('anonymoose', 'stu', 14, stamps=stamps)
+        c2 = create_currency_tx('stu', 'anonymoose', 40, stamps=stamps)
+        c3 = create_currency_tx('ghu', 'A NEW KEY THAT DOESNT EXIST', 10**9, stamps=stamps)
+        c4 = create_currency_tx('tj', 'birb', 90, stamps=stamps)
+        c5 = create_currency_tx('ethan', 'birb', 60, stamps=stamps)
+        c6 = create_currency_tx('stu', 'anonymoose', 10, stamps=stamps)
+        c7 = create_currency_tx('ghu', 'tj', 50, stamps=stamps)
+        c8 = create_currency_tx('birb', 'anonymoose', 100, stamps=stamps)
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+
+        client1.execute_sb(input_hash1, contracts=[c1, c2], completion_handler=self.assert_completion(None, input_hash1))
+        client2.execute_sb(input_hash2, contracts=[c3, c4], completion_handler=self.assert_completion(None, input_hash2))
+
+        client1.execute_sb(input_hash3, contracts=[c5, c6], completion_handler=self.assert_completion(None, input_hash3))
+        client2.execute_sb(input_hash4, contracts=[c7, c8], completion_handler=self.assert_completion(None, input_hash4))
+
+        client1.update_master_db()
+        client2.update_master_db()
+
+        # We must run the future manually, since the event loop is not currently running
+        coros = (client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut'])
+        loop.run_until_complete(asyncio.gather(*coros))
+
+        coros = (client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
+        loop.run_until_complete(asyncio.gather(*coros))
+
+        loop.close()
 
     # Test with multiple sb's where stuff in SB 2 will pass the first time and fail the second time (cause some og read was modified)
 

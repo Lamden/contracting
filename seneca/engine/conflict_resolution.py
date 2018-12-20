@@ -124,7 +124,7 @@ class CRDataGetSet(CRDataBase, dict):
                 self[key]['mod'] = og_val
 
             # Remove this contract idx from the key's affected contracts
-            if contract_idx in self[key]['contracts']:
+            if key in self and contract_idx in self[key]['contracts']:
                 self[key]['contracts'].remove(contract_idx)
 
     def get_state_for_idx(self, contract_idx: int) -> str:
