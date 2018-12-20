@@ -324,11 +324,17 @@ result = {}()
         exec(_obj, scope)  # rebuilds RObjects
         exec(import_obj, scope)  # submits stamps
         scope.update({'__use_locals__': True})
-        if stamps != None:
+        if stamps is not None:
             self.tracer.set_stamp(stamps)
             self.tracer.start()
-            exec(fn_call_obj, scope)  # Actually execute the function
-            self.tracer.stop()
+
+            try:
+                exec(fn_call_obj, scope)  # Actually execute the function
+            except Exception as e:
+                raise e
+            finally:
+                self.tracer.stop()
+
             stamps -= self.tracer.get_stamp_used()
         else:
             exec(fn_call_obj, scope)
