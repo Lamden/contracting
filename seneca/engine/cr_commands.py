@@ -118,7 +118,7 @@ class CRCmdGetSetBase(CRCmdBase):
         val = db.get(key) if db else None
         self.data['getset'][key] = {'og': val, 'mod': None, 'contracts': set()}
 
-    def _get(self, key, return_none=False):
+    def _get(self, key, return_none=True):
         self._copy_og_key_if_not_exists(key)
 
         # TODO make all this DRYer so you can abstract it like a pro
