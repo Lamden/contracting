@@ -27,6 +27,8 @@ class Seneca:
     imports = {}
     loaded = {}
     cache = {}
+    resources = {}
+    methods = {}
 
     basic_scope = {}
 
@@ -107,8 +109,27 @@ class SenecaNodeTransformer(ast.NodeTransformer):
         return node
 
     def visit_Assign(self, node):
+
         for target in node.targets:
-            SenecaInterpreter.check_protected(target, Seneca.protected_variables)
+            if type(target) == ast.Tuple:
+                items = []
+                for item in target.elts:
+                    SenecaInterpreter.check_protected(item, Seneca.protected_variables)
+                    items.append(item.id)
+                val = None
+                if type(node.value) == ast.Call:
+                    val = node.value.func.id
+                elif type(target) == ast.Tuple:
+                    val = 'tuple'
+                Seneca.resources[', '.join(items)] = val
+            elif type(node.value) == ast.Call:
+                if hasattr(node.value.func, 'id'):
+                    Seneca.resources[target.id] = node.value.func.id
+                SenecaInterpreter.check_protected(target, Seneca.protected_variables)
+            else:
+                Seneca.resources[target.id] = node.value.__class__.__name__
+                SenecaInterpreter.check_protected(target, Seneca.protected_variables)
+
         if type(node.value) == ast.Call:
             Seneca.postvalidated.body.append(node)
         self.generic_visit(node)
@@ -133,6 +154,7 @@ class SenecaNodeTransformer(ast.NodeTransformer):
         for item in node.decorator_list:
             if item.id == 'export':
                 Seneca.exports[node.name] = True
+                Seneca.methods[node.name] = [arg.arg for arg in node.args.args]
         return node
 
 
@@ -173,6 +195,8 @@ class SenecaInterpreter:
         pipe.hset('contracts_code', fullname, marshal.dumps(code_obj))
         pipe.hset('contracts_meta', fullname, json.dumps({
             'code_str': code_str,
+            'resources': Seneca.resources,
+            'methods': Seneca.methods,
             'author': author,
             'timestamp': time.time()
         }))
@@ -197,6 +221,8 @@ class SenecaInterpreter:
         Seneca.protected_variables = protected_variables
 
         tree = ast.parse(code_str)
+        Seneca.resources = {}
+        Seneca.methods = {}
         Seneca.protected_variables += ['export']
         Seneca.prevalidated = copy.deepcopy(tree)
         Seneca.prevalidated.body = []
