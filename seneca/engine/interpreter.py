@@ -23,6 +23,8 @@ class Seneca:
     concurrent_mode = True
     interface = None
 
+    CURRENCY_NAME = 'currency'
+
     exports = {}
     imports = {}
     loaded = {}
@@ -314,15 +316,29 @@ result = {}()
         contract_name = module_name.rsplit('.', 1)[-1]
         fn_call_obj, import_obj, meta = self.get_cached_code_obj(module_path, stamps)
         scope = {
-            'rt': { 'author': meta['author'], 'sender': sender, 'contract': contract_name },
+            'rt': {'author': meta['author'], 'sender': sender, 'contract': contract_name},
             '__args__': args,
             '__kwargs__': kwargs,
         }
+
+        currency_module_path = module_path.rsplit('.', 1)[0] + '.' + Seneca.CURRENCY_NAME
+        c_fn_call_obj, c_import_obj, c_meta = self.get_cached_code_obj(module_path, stamps)
+        currency_scope = {
+            'rt': {'author': c_meta['author'], 'sender': sender, 'contract': Seneca.CURRENCY_NAME},
+        }
+
         scope.update(Seneca.basic_scope)
+        currency_scope.update(Seneca.basic_scope)
+
+        Seneca.loaded['__main__'] = currency_scope
+        _obj = marshal.loads(self.r.hget('contracts_code', Seneca.CURRENCY_NAME))
+        exec(_obj, currency_scope)  # rebuilds RObjects for currency contract
+
         Seneca.loaded['__main__'] = scope
         _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
-        exec(_obj, scope)  # rebuilds RObjects
+        exec(_obj, scope)  # rebuilds RObjects for contract being run
         exec(import_obj, scope)  # submits stamps
+
         scope.update({'__use_locals__': True})
         if stamps is not None:
             self.tracer.set_stamp(stamps)

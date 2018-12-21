@@ -14,12 +14,12 @@ MINT_WALLETS = {
 }
 
 
-class TestSenecaClient(TestCase):
+class TestImporting(TestCase):
     CONTRACTS_TO_STORE = {
         'birb_bucks': 'birb_bucks.sen.py',
         'cat_cash': 'cat_cash.sen.py',
-        'dynamic_imports': 'dynamic_imports.sen.py'
-    }
+        'dynamic_imports': 'dynamic_imports.sen.py',
+        'currency': 'currency.sen.py'}
 
     def setUp(self):
         # overwrite_logger_level(0)
@@ -70,8 +70,4 @@ class TestSenecaClient(TestCase):
                 account='birb'
             )
 
-            print(f4)
-
             self.assertEqual(f4['output'], 0)
-
-            print(f4)
