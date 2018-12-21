@@ -314,16 +314,18 @@ result = {}()
         contract_name = module_name.rsplit('.', 1)[-1]
         fn_call_obj, import_obj, meta = self.get_cached_code_obj(module_path, stamps)
         scope = {
-            'rt': { 'author': meta['author'], 'sender': sender, 'contract': contract_name },
+            'rt': { 'author': meta['author'], 'sender': sender, 'contract': contract_name},
             '__args__': args,
             '__kwargs__': kwargs,
         }
+        currency_scope = scope
         scope.update(Seneca.basic_scope)
         Seneca.loaded['__main__'] = scope
 
         currency_contract = self.r.hget('contracts', 'currency')
         if currency_contract:
-            _obj = marshal.loads(self.r.hget('contracts_code', 'currency'))
+            currency_scope['contract']['rt'] = 'currency'
+            _obj = marshal.loads(currency_contract)
         else:
             _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
 
