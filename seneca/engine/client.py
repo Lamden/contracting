@@ -228,18 +228,17 @@ class SenecaClient(SenecaInterface):
             # TODO not this pls
             if hasattr(contract, 'contract_code'):
                 author = contract.sender
-                run_info = self.publish_code_str(fullname=contract.contract_name, author=author,
-                                                 code_str=contract.contract_code)
+                self.publish_code_str(fullname=contract.contract_name, author=author,
+                                      code_str=contract.contract_code)
             else:
                 mod_path = module_path_for_contract(contract)
                 run_info = self.execute_function(module_path=mod_path, sender=contract.sender,
                                                  stamps=contract.stamps_supplied, **contract.kwargs)
-
-            # The following is just for debug info
-            stamps_sup = contract.stamps_supplied if contract.stamps_supplied is not None else 0
-            stamps_spent = stamps_sup - run_info['remaining_stamps']
-            self.log.spam("Running contract from sender {} used {} stamps and returned run_info: {}"
-                          .format(contract.sender, stamps_spent, run_info))
+                # The following is just for debug info
+                stamps_sup = contract.stamps_supplied if contract.stamps_supplied is not None else 0
+                stamps_spent = stamps_sup - run_info['remaining_stamps']
+                self.log.spam("Running contract from sender {} used {} stamps and returned run_info: {}"
+                              .format(contract.sender, stamps_spent, run_info))
 
             result = SUCC_FLAG
 
