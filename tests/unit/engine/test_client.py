@@ -54,7 +54,7 @@ class MockContractTransaction:
 
 class MockPublishTransaction:
     def __init__(self, sender: str, contract_name: str, contract_code: str, stamps=STAMP_AMOUNT):
-        self.stamps, self.sender, self.contract_code, self.contract_name = stamps, sender, contract_code, contract_name
+        self.stamps_supplied, self.sender, self.contract_code, self.contract_name = stamps, sender, contract_code, contract_name
 
 
 def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: str='currency', stamps=STAMP_AMOUNT):
