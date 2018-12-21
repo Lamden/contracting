@@ -320,10 +320,14 @@ result = {}()
         }
         scope.update(Seneca.basic_scope)
         Seneca.loaded['__main__'] = scope
-        _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
-        exec(_obj, scope)  # rebuilds RObjects
+        _obj = marshal.loads(self.r.hget('contracts_code', 'currency'))
+        exec(_obj, scope)  # rebuilds RObjects with currency contract to submit stamps
         exec(import_obj, scope)  # submits stamps
         scope.update({'__use_locals__': True})
+
+        _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
+        exec(_obj, scope)  # rebuilds RObjects for the contract being run
+
         if stamps is not None:
             self.tracer.set_stamp(stamps)
             self.tracer.start()
