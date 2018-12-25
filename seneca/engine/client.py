@@ -151,9 +151,9 @@ class SenecaClient(SenecaInterface):
         # If no pending dbs to sync to master db, return
         # NOTE: For dev, we raise a proper exception. This should not happen. --davis
         if len(self.pending_dbs) == 0:
-            raise Exception("Attempted to update_master_db, but there are no pending_dbs")
-            # self.log.warning("Attempted to update_master_db, but there are no pending_dbs")
-            # return
+            # raise Exception("Attempted to update_master_db, but there are no pending_dbs")
+            self.log.warning("Attempted to update_master_db, but there are no pending_dbs")
+            return
 
         cr_data = self.pending_dbs[0]
         input_hash = cr_data.input_hash
