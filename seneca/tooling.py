@@ -4,7 +4,8 @@ import types
 
 default_driver = SenecaInterface(concurrent_mode=False,
                            port=6379,
-                           password='')
+                           password='',
+                           bypass_currency=True)
 
 
 class SenecaFunction:
