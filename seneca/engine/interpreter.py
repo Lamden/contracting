@@ -23,10 +23,14 @@ class Seneca:
     concurrent_mode = True
     interface = None
 
+    CURRENCY_NAME = 'currency'
+
     exports = {}
     imports = {}
     loaded = {}
     cache = {}
+    resources = {}
+    methods = {}
 
     basic_scope = {}
 
@@ -107,8 +111,27 @@ class SenecaNodeTransformer(ast.NodeTransformer):
         return node
 
     def visit_Assign(self, node):
+
         for target in node.targets:
-            SenecaInterpreter.check_protected(target, Seneca.protected_variables)
+            if type(target) == ast.Tuple:
+                items = []
+                for item in target.elts:
+                    SenecaInterpreter.check_protected(item, Seneca.protected_variables)
+                    items.append(item.id)
+                val = None
+                if type(node.value) == ast.Call:
+                    val = node.value.func.id
+                elif type(target) == ast.Tuple:
+                    val = 'tuple'
+                Seneca.resources[', '.join(items)] = val
+            elif type(node.value) == ast.Call:
+                if hasattr(node.value.func, 'id'):
+                    Seneca.resources[target.id] = node.value.func.id
+                SenecaInterpreter.check_protected(target, Seneca.protected_variables)
+            else:
+                Seneca.resources[target.id] = node.value.__class__.__name__
+                SenecaInterpreter.check_protected(target, Seneca.protected_variables)
+
         if type(node.value) == ast.Call:
             Seneca.postvalidated.body.append(node)
         self.generic_visit(node)
@@ -133,6 +156,7 @@ class SenecaNodeTransformer(ast.NodeTransformer):
         for item in node.decorator_list:
             if item.id == 'export':
                 Seneca.exports[node.name] = True
+                Seneca.methods[node.name] = [arg.arg for arg in node.args.args]
         return node
 
 
@@ -173,6 +197,8 @@ class SenecaInterpreter:
         pipe.hset('contracts_code', fullname, marshal.dumps(code_obj))
         pipe.hset('contracts_meta', fullname, json.dumps({
             'code_str': code_str,
+            'resources': Seneca.resources,
+            'methods': Seneca.methods,
             'author': author,
             'timestamp': time.time()
         }))
@@ -197,6 +223,8 @@ class SenecaInterpreter:
         Seneca.protected_variables = protected_variables
 
         tree = ast.parse(code_str)
+        Seneca.resources = {}
+        Seneca.methods = {}
         Seneca.protected_variables += ['export']
         Seneca.prevalidated = copy.deepcopy(tree)
         Seneca.prevalidated.body = []
@@ -288,22 +316,41 @@ result = {}()
         contract_name = module_name.rsplit('.', 1)[-1]
         fn_call_obj, import_obj, meta = self.get_cached_code_obj(module_path, stamps)
         scope = {
-            'rt': { 'author': meta['author'], 'sender': sender, 'contract': contract_name },
+            'rt': {'author': meta['author'], 'sender': sender, 'contract': contract_name},
             '__args__': args,
             '__kwargs__': kwargs,
         }
+
+        currency_module_path = module_path.rsplit('.', 1)[0] + '.' + Seneca.CURRENCY_NAME
+        c_fn_call_obj, c_import_obj, c_meta = self.get_cached_code_obj(module_path, stamps)
+        currency_scope = {
+            'rt': {'author': c_meta['author'], 'sender': sender, 'contract': Seneca.CURRENCY_NAME},
+        }
+
         scope.update(Seneca.basic_scope)
+        currency_scope.update(Seneca.basic_scope)
+
+        Seneca.loaded['__main__'] = currency_scope
+        _obj = marshal.loads(self.r.hget('contracts_code', Seneca.CURRENCY_NAME))
+        exec(_obj, currency_scope)  # rebuilds RObjects for currency contract
+
         Seneca.loaded['__main__'] = scope
-        print(scope)
-        exec(import_obj, scope)
         _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
-        exec(_obj, scope)
+        exec(_obj, scope)  # rebuilds RObjects for contract being run
+        exec(import_obj, scope)  # submits stamps
+
         scope.update({'__use_locals__': True})
-        if stamps != None:
+        if stamps is not None:
             self.tracer.set_stamp(stamps)
             self.tracer.start()
-            exec(fn_call_obj, scope)
-            self.tracer.stop()
+
+            try:
+                exec(fn_call_obj, scope)  # Actually execute the function
+            except Exception as e:
+                raise e
+            finally:
+                self.tracer.stop()
+
             stamps -= self.tracer.get_stamp_used()
         else:
             exec(fn_call_obj, scope)

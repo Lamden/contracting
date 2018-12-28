@@ -323,7 +323,7 @@ class RObject:
 
         self.driver = Seneca.interface.r
 
-        self.contract_id = Seneca.loaded['__main__']['rt']['contract']
+        self.contract_id = Seneca.loaded['__main__']['rt']['contract'].rsplit('.', 1)[-1]
         self.prefix = '{}{}{}'.format(self.contract_id, delimiter, prefix)
 
         self.concurrent_mode = Seneca.concurrent_mode
@@ -440,6 +440,20 @@ class HMap(RObject):
 
         g = self.driver.get('{}{}{}'.format(self.prefix, self.delimiter, key))
         g = self.decode_value(g)
+        return g
+
+    def incr(self, key, value=1):
+        if type(key) in complex_types:
+            key = key.rep()
+
+        g = self.driver.incr('{}{}{}'.format(self.prefix, self.delimiter, key), amount=value)
+        return g
+
+    def decr(self, key, value=1):
+        if type(key) in complex_types:
+            key = key.rep()
+
+        g = self.driver.decr('{}{}{}'.format(self.prefix, self.delimiter, key), amount=value)
         return g
 
     def __getitem__(self, k):

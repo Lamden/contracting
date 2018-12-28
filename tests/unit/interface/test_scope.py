@@ -10,6 +10,11 @@ test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
 
 class TestScope(TestInterface):
 
+    def setUp(self):
+        with SenecaInterface(False) as interface:
+            interface.r.flushall()
+        super().setUp()
+
     def test_scope(self):
         """
             Importing exported functions should pass
@@ -57,10 +62,10 @@ result = do_that_thing()
                 self.si.publish_code_str(contract, 'anonymoose', f.read())
 
         self.si.execute_function('seneca.contracts.currency.mint',
-            'anonymoose', stamps=None, to='anonymoose', amount=10000)
+                                 'anonymoose', stamps=None, to='anonymoose', amount=10000)
 
         result = self.si.execute_function('seneca.contracts.reasonable.call_with_args',
-            'anonymoose', 10000, 'it is required', not_required='it is not requried')
+                                          'anonymoose', 10000, 'it is required', not_required='it is not requried')
 
         self.assertEqual(result['status'], 'success')
 
@@ -69,7 +74,7 @@ result = do_that_thing()
             self.si.publish_code_str('currency', 'anonymoose', f.read())
         with self.assertRaises(ImportError) as context:
             result = self.si.execute_function('seneca.engine.util.make_n_tup',
-                'also_me', 10000, {'x': 'y'})
+                                              'also_me', 10000, {'x': 'y'})
             print('Should not print this: ', result)
 
     def test_execute_function_out_of_gas(self):
@@ -78,10 +83,10 @@ result = do_that_thing()
             with open('{}/{}.sen.py'.format(test_contracts_path, contract)) as f:
                 self.si.publish_code_str(contract, 'anonymoose', f.read())
         self.si.execute_function('seneca.contracts.currency.mint',
-            'anonymoose', stamps=None, to='anonymoose', amount=10000)
+                                 'anonymoose', stamps=None, to='anonymoose', amount=10000)
         with self.assertRaises(AssertionError) as context:
             result = self.si.execute_function('seneca.contracts.reasonable.call_with_args',
-                'anonymoose', 5, 'it is required', not_required='it is not requried')
+                                              'anonymoose', 5, 'it is required', not_required='it is not requried')
 
 if __name__ == '__main__':
     unittest.main()

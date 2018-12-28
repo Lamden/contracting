@@ -572,5 +572,27 @@ class TestDatatypes(TestCase):
         self.assertTrue(isinstance(_r, RankedPlaceholder))
         self.assertEqual(_r.value_type, str)
 
+    def test_incr(self):
+        m = HMap(prefix='howdy')
+        m.set('stu', 100)
+
+        s = m.incr('stu')
+        self.assertEqual(s, 101)
+
+        s = m.incr('stu', 10)
+        self.assertEqual(s, 111)
+
+    def test_decr(self):
+        m = HMap(prefix='howdy')
+        m.set('stu', 100)
+
+        s = m.decr('stu')
+        self.assertEqual(s, 99)
+
+        s = m.decr('stu', 10)
+        self.assertEqual(s, 89)
+
+
+
 if __name__ == '__main__':
     unittest.main()
