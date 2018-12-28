@@ -57,3 +57,7 @@ class ContractWrapper:
 def publish_function(f, name, author):
     default_driver.publish_function(f, contract_name=name, author=author)
     return ContractWrapper(contract_name=name, driver=default_driver, default_sender=author)
+
+
+def export(*args):
+    pass
