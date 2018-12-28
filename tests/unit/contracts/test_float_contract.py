@@ -16,8 +16,8 @@ MINT_WALLETS = {
 }
 
 
-class TestSenecaClient(TestCase):
-    CONTRACTS_TO_STORE = {'decimal_test': 'decimal_test.sen.py'}
+class TestStuCannotNameTestsIfHisLifeDependedOnIt(TestCase):
+    CONTRACTS_TO_STORE = {'decimal_test': 'decimal_test.sen.py', 'currency': 'currency.sen.py'}
 
     def setUp(self):
         # overwrite_logger_level(0)
