@@ -161,12 +161,14 @@ class SenecaNodeTransformer(ast.NodeTransformer):
 
 
 class SenecaInterpreter:
-    def __init__(self, concurrent_mode=True, port=None, password=None):
+    def __init__(self, concurrent_mode=True, port=None, password=None, bypass_currency=False):
         self.r = redis.StrictRedis(host='localhost',
                                   port=get_redis_port(port=port),
                                   db=MASTER_DB,
                                   password=get_redis_password(password=password)
                                   )
+
+        self.bypass_currency = bypass_currency
         self.setup_tracer()
         Seneca.concurrent_mode = concurrent_mode
 
@@ -328,11 +330,13 @@ result = {}()
         }
 
         scope.update(Seneca.basic_scope)
-        currency_scope.update(Seneca.basic_scope)
 
-        Seneca.loaded['__main__'] = currency_scope
-        _obj = marshal.loads(self.r.hget('contracts_code', Seneca.CURRENCY_NAME))
-        exec(_obj, currency_scope)  # rebuilds RObjects for currency contract
+        if not self.bypass_currency:
+            currency_scope.update(Seneca.basic_scope)
+
+            Seneca.loaded['__main__'] = currency_scope
+            _obj = marshal.loads(self.r.hget('contracts_code', Seneca.CURRENCY_NAME))
+            exec(_obj, currency_scope)  # rebuilds RObjects for currency contract
 
         Seneca.loaded['__main__'] = scope
         _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
