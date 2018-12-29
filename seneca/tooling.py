@@ -37,7 +37,7 @@ class SenecaFunction:
 
 
 class ContractWrapper:
-    def __init__(self, contract_name=None, driver=None, default_sender=None):
+    def __init__(self, contract_name=None, driver=default_driver, default_sender=None):
         self.driver = driver
         self.author = driver.get_contract_meta(contract_name)['author']
         self.default_sender = default_sender
