@@ -23,8 +23,12 @@ class SenecaFunction:
         def default(d, k):
             return d if kwargs.get(k) is None else kwargs.get(k)
 
+        sender = self.defaults.get('sender')
+        if 'sender' in kwargs.keys():
+            sender = kwargs['sender']
+            kwargs.pop('sender', None)
+
         stamps = default(None, 'stamps')
-        sender = default(self.defaults.get('sender'), 'sender')
 
         r = self.driver.execute_function(
             module_path=self.module_path,
