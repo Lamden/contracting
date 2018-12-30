@@ -2,10 +2,30 @@ from seneca.engine.interface import SenecaInterface
 import types
 
 
-default_driver = SenecaInterface(concurrent_mode=False,
-                           port=6379,
-                           password='',
-                           bypass_currency=True)
+class LocalInterface(SenecaInterface):
+    def __init__(self, concurrent_mode=False,
+                       port=6379,
+                       password='',
+                       bypass_currency=True):
+
+        super().__init__(concurrent_mode=concurrent_mode,
+                         port=port,
+                         password=password,
+                         bypass_currency=bypass_currency)
+
+    def delete_contract(self, name):
+        self.r.hdel('contracts', name)
+        self.r.hdel('contracts_code', name)
+        self.r.hdel('contracts_meta', name)
+
+        for key in self.r.scan_iter('{}:*'.format(name)):
+            self.r.delete(key)
+
+
+default_driver = LocalInterface(concurrent_mode=False,
+                                port=6379,
+                                password='',
+                                bypass_currency=True)
 
 
 class SenecaFunction:
