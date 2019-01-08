@@ -151,9 +151,9 @@ class SenecaClient(SenecaInterface):
         # If no pending dbs to sync to master db, return
         # NOTE: For dev, we raise a proper exception. This should not happen. --davis
         if len(self.pending_dbs) == 0:
-            raise Exception("Attempted to update_master_db, but there are no pending_dbs")
-            # self.log.warning("Attempted to update_master_db, but there are no pending_dbs")
-            # return
+            # raise Exception("Attempted to update_master_db, but there are no pending_dbs")
+            self.log.warning("Attempted to update_master_db, but there are no pending_dbs")
+            return
 
         cr_data = self.pending_dbs[0]
         input_hash = cr_data.input_hash
@@ -239,8 +239,14 @@ class SenecaClient(SenecaInterface):
                     'sender': contract.sender
                 })
                 mod_path = module_path_for_contract(contract)
-                self.execute_function(module_path=mod_path, sender=contract.sender,
-                                      stamps=contract.stamps_supplied, **contract.kwargs)
+                run_info = self.execute_function(module_path=mod_path, sender=contract.sender,
+                                                 stamps=contract.stamps_supplied, **contract.kwargs)
+                # The following is just for debug info
+                stamps_sup = contract.stamps_supplied if contract.stamps_supplied is not None else 0
+                stamps_spent = stamps_sup - run_info['remaining_stamps']
+                self.log.spam("Running contract from sender {} used {} stamps and returned run_info: {}"
+                              .format(contract.sender, stamps_spent, run_info))
+
             result = SUCC_FLAG
 
         except Exception as e:

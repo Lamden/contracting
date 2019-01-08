@@ -2,10 +2,10 @@ from seneca.engine.interface import SenecaInterface
 import types
 
 
-def default_driver():
-    return SenecaInterface(concurrent_mode=False,
+default_driver = SenecaInterface(concurrent_mode=False,
                            port=6379,
-                           password='')
+                           password='',
+                           bypass_currency=True)
 
 
 class SenecaFunction:
@@ -53,3 +53,12 @@ class ContractWrapper:
                                                kwargs=kwargs,
                                                default_sender=self.default_sender,
                                                driver=self.driver))
+
+
+def publish_function(f, name, author):
+    default_driver.publish_function(f, contract_name=name, author=author)
+    return ContractWrapper(contract_name=name, driver=default_driver, default_sender=author)
+
+
+def export(*args):
+    pass

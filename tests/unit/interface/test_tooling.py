@@ -1,7 +1,7 @@
 from unittest import TestCase
 from seneca.tooling import *
 from decimal import *
-
+GENESIS_AUTHOR = 'anonymoose'
 example_code = '''
 from seneca.libs.datatypes import hmap
 
@@ -26,11 +26,20 @@ def add_floats(s1, s2):
 
 
 class TestSenecaTooling(TestCase):
+    CONTRACTS_TO_STORE = {'currency': 'currency.sen.py'}
+
     def setUp(self):
         self.driver = SenecaInterface(concurrent_mode=False,
                            port=6379,
                            password='')
         self.driver.r.flushdb()
+        import seneca
+        test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
+
+        for contract_name, file_name in self.CONTRACTS_TO_STORE.items():
+            with open(test_contracts_path + file_name) as f:
+                code_str = f.read()
+                self.driver.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
 
     def test_submission(self):
         self.driver.publish_code_str(
