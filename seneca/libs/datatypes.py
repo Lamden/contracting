@@ -322,10 +322,9 @@ class RObject:
     def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj'):
 
         self.driver = Seneca.interface.r
-
+        self.delimiter = delimiter
         self.contract_id = Seneca.loaded['__main__']['rt']['contract'].rsplit('.', 1)[-1]
         self.prefix = '{}{}{}'.format(self.contract_id, delimiter, prefix)
-
         self.concurrent_mode = Seneca.concurrent_mode
         self.key_type = key_type
 
@@ -348,6 +347,13 @@ class RObject:
                                           "called on this thread first?".format(BookKeeper._get_key())
             info = BookKeeper.get_info()
             self.driver = RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
+
+    def __getattribute__(self, attr):
+        if callable(object.__getattribute__(self, attr)):
+            info = BookKeeper.get_info()
+            self.contract_id = info['rt']['contract'].rsplit('.', 1)[-1]
+            self.prefix = '{}{}{}'.format(self.contract_id, self.delimiter, self.prefix.split(':', 1)[1])
+        return object.__getattribute__(self, attr)
 
     def encode_value(self, value, explicit=False):
         v = None

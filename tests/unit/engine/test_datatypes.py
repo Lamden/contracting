@@ -18,7 +18,7 @@ class TestDatatypes(TestCase):
     def setUp(self):
         self.interface = SenecaInterface(False)
         Seneca.concurrent_mode = False
-        Seneca.loaded = {'__main__': {'rt': {'author': 'me', 'sender': 'me', 'contract': 'currency'}}}
+        Seneca.loaded = {'__main__': {'rt': {'author': 'me', 'sender': 'me', 'contract': 'test'}}}
         self.r = self.interface.r
         self.l = HList(prefix='yo')
         self.r.flushdb()
@@ -33,7 +33,7 @@ class TestDatatypes(TestCase):
         self.assertTrue(string_to_type['bool'] == bool)
 
     def test_parse_representation_map(self):
-        repr_str = '*hmap<currency:test>(int,str)'
+        repr_str = '*hmap<test:test>(int,str)'
         m = parse_representation(repr_str)
 
         self.assertTrue(type(m) == HMap)
@@ -47,12 +47,12 @@ class TestDatatypes(TestCase):
         self.assertTrue(p.value_type == int)
         self.assertTrue(p.placeholder_type == HMap)
 
-        good_repr_str = '*hmap<currency:some_map>(str,int)'
+        good_repr_str = '*hmap<test:some_map>(str,int)'
         good_map = parse_representation(good_repr_str)
 
         self.assertTrue(p.valid(good_map))
 
-        bad_repr_str = '*hmap<currency:some_other_map>(int,str)'
+        bad_repr_str = '*hmap<test:some_other_map>(int,str)'
         bad_map = parse_representation(bad_repr_str)
 
         self.assertFalse(p.valid(bad_map))
@@ -72,7 +72,7 @@ class TestDatatypes(TestCase):
         p = Placeholder(placeholder_type=HMap)
         r = RObject(value_type=p)
 
-        repr_str = '*hmap<currency:howdy>(str,int)'
+        repr_str = '*hmap<test:howdy>(str,int)'
         _map = parse_representation(repr_str)
 
         v = r.encode_value(_map)
@@ -86,7 +86,7 @@ class TestDatatypes(TestCase):
         self.assertTrue(r.decode_value(b'"s"'), 's')
         self.assertTrue(r.decode_value(b'[1, 2, 3]'), [1, 2, 3])
 
-        repr_str = b'*hmap<currency:howdy>(str,int)'
+        repr_str = b'*hmap<test:howdy>(str,int)'
         decoded_map = r.decode_value(repr_str)
 
         self.assertTrue(type(decoded_map), HMap)
@@ -134,8 +134,8 @@ class TestDatatypes(TestCase):
         self.assertTrue(isinstance(m2, HMap))
 
     def test_hlist_init_repr(self):
-        self.assertEqual(self.l.rep(), '*hlist<currency:yo>(int)')
-        self.assertEqual(self.l.prefix, 'currency:yo')
+        self.assertEqual(self.l.rep(), '*hlist<test:yo>(int)')
+        self.assertEqual(self.l.prefix, 'test:yo')
 
     def test_hlist_push_pop(self):
         self.l.push(123)
@@ -241,7 +241,7 @@ class TestDatatypes(TestCase):
 
         ll = hlist('hello_there')
         self.assertTrue(isinstance(ll, HList))
-        self.assertEqual(ll.prefix, 'currency:hello_there')
+        self.assertEqual(ll.prefix, 'test:hello_there')
         self.assertEqual(p.value_type, int)
 
     def test_hlist_store_placeholders(self):
@@ -258,7 +258,7 @@ class TestDatatypes(TestCase):
         t = Table(prefix='holla', schema={'name': str, 'balance': int})
 
         self.assertEqual(t.schema, {'name': str, 'balance': int})
-        self.assertEqual(t.p, 'currency:holla:')
+        self.assertEqual(t.p, 'test:holla:')
 
         with self.assertRaises(AssertionError):
             bad_t = Table(prefix='bad_boy', schema={'howdy': 'partner'})
@@ -298,7 +298,7 @@ class TestDatatypes(TestCase):
 
         t = Table(prefix='complex', schema={'name': str, 'list': p})
 
-        repr_str = '*hlist<currency:some_list>(int)'
+        repr_str = '*hlist<test:some_list>(int)'
         l = parse_representation(repr_str)
 
         v = t.encode_value(l, p)
@@ -366,7 +366,7 @@ class TestDatatypes(TestCase):
         self.assertEqual(ph.value_type, ph2.value_type)
 
     def test_table_type_repr_with_prefix(self):
-        s = '*table<currency:lazytown>({howdy:int,boiii:*hmap(str,int)})'
+        s = '*table<test:lazytown>({howdy:int,boiii:*hmap(str,int)})'
         t = parse_complex_type_repr(s)
         self.assertTrue(t.prefix, 'lazytown')
 
@@ -408,7 +408,7 @@ class TestDatatypes(TestCase):
         self.assertDictEqual(_s, {'test1': 123, 'test2': 'hello'})
 
     def test_table_representation(self):
-        s = '*table<currency:lazytown>({howdy:int,boiii:*hmap(str,int)})'
+        s = '*table<test:lazytown>({howdy:int,boiii:*hmap(str,int)})'
         _s = table(prefix='lazytown', schema={'howdy': int, 'boiii': hmap()})
         self.assertEqual(s, _s.rep())
 
@@ -446,7 +446,7 @@ class TestDatatypes(TestCase):
         _h = h['sdgdfgdfg']
         self.assertEqual(_h.value_type, int)
         self.assertEqual(_h.key_type, str)
-        self.assertEqual(_h.prefix, 'currency:yoyo.sdgdfgdfg')
+        self.assertEqual(_h.prefix, 'test:yoyo.sdgdfgdfg')
 
         z = h['sdgdfgdfg']['blah']
         self.assertEqual(z, 0)
@@ -455,7 +455,7 @@ class TestDatatypes(TestCase):
         h = hlist(prefix='yoyo', value_type=hlist())
         _h = h[0]
         self.assertEqual(_h.value_type, int)
-        self.assertEqual(_h.prefix, 'currency:yoyo.0')
+        self.assertEqual(_h.prefix, 'test:yoyo.0')
 
         z = h[0][0]
         self.assertEqual(z, 0)

@@ -18,7 +18,7 @@ class BookKeeper:
         return key
 
     @classmethod
-    def set_info(cls, sbb_idx: int, contract_idx: int, data: CRContext, **kwargs) -> None:
+    def set_info(cls, sbb_idx: int=None, contract_idx: int=None, data: CRContext=None, **kwargs) -> None:
         """
         Sets the info (subblock builder index and contract index) for the current thread.
         """
@@ -37,7 +37,7 @@ class BookKeeper:
         key = cls._get_key()
 
         with cls._lock:
-            assert key in cls._shared_state, "Key {} not found in shared state. Did you call set_info first?"
+            assert key in cls._shared_state, "Key {} not found in shared state. Did you call set_info first?".format(key)
             return cls._shared_state[key]
 
     @classmethod
@@ -57,4 +57,3 @@ class BookKeeper:
         with cls._lock:
             assert key in cls._shared_state, "Key {} not found in shared state. Did you call set_info first?"
             del cls._shared_state[key]
-

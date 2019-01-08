@@ -221,16 +221,23 @@ class SenecaClient(SenecaInterface):
         assert data is self.active_db or data is self.pending_dbs[0], \
             "Data {} is not active db {} or next pending db {}".format(data, self.active_db, self.pending_dbs[0])
 
-        BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data)
-
         try:
             # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
             # TODO not this pls
             if hasattr(contract, 'contract_code'):
+                BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data, rt={
+                    'contract': contract.contract_name,
+                    'author': contract.sender,
+                    'sender': contract.sender
+                })
                 author = contract.sender
                 self.publish_code_str(fullname=contract.contract_name, author=author,
                                       code_str=contract.contract_code)
             else:
+                BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data, rt={
+                    'contract': contract.contract_name,
+                    'sender': contract.sender
+                })
                 mod_path = module_path_for_contract(contract)
                 self.execute_function(module_path=mod_path, sender=contract.sender,
                                       stamps=contract.stamps_supplied, **contract.kwargs)
