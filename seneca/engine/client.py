@@ -223,21 +223,16 @@ class SenecaClient(SenecaInterface):
 
         try:
             # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
+            BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data, rt={
+                'contract': contract.contract_name
+            })
             # TODO not this pls
             if hasattr(contract, 'contract_code'):
-                BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data, rt={
-                    'contract': contract.contract_name,
-                    'author': contract.sender,
-                    'sender': contract.sender
-                })
+
                 author = contract.sender
                 self.publish_code_str(fullname=contract.contract_name, author=author,
                                       code_str=contract.contract_code)
             else:
-                BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data, rt={
-                    'contract': contract.contract_name,
-                    'sender': contract.sender
-                })
                 mod_path = module_path_for_contract(contract)
                 run_info = self.execute_function(module_path=mod_path, sender=contract.sender,
                                                  stamps=contract.stamps_supplied, **contract.kwargs)

@@ -340,7 +340,7 @@ result = {}()
 
         Seneca.loaded['__main__'] = scope
         _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
-        exec(_obj, scope)  # rebuilds RObjects for contract being run
+        exec(_obj, scope)  # rebuilds RObjects
         exec(import_obj, scope)  # submits stamps
 
         scope.update({'__use_locals__': True})

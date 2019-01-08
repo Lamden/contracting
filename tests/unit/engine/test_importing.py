@@ -62,7 +62,7 @@ class TestImporting(TestCase):
 
             self.assertEqual(f['output'], 1000000)
 
-            f4 = interface.execute_function(
+            f = interface.execute_function(
                 module_path='seneca.contracts.dynamic_imports.get_token_balance',
                 sender=GENESIS_AUTHOR,
                 stamps=None,
@@ -70,4 +70,4 @@ class TestImporting(TestCase):
                 account='birb'
             )
 
-            self.assertEqual(f4['output'], 0)
+            self.assertEqual(f['output'], 0)
