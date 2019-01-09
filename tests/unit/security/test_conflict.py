@@ -1,9 +1,10 @@
 from unittest import TestCase
-from seneca.engine.interface import SenecaInterface
+from seneca.engine.interface import SenecaInterface, Seneca
 from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException, CompilationException
 from os.path import join
 from tests.utils import captured_output, TestInterface
 import redis, unittest, seneca, os
+from decimal import *
 
 os.environ['CIRCLECI'] = 'true'
 
@@ -68,12 +69,15 @@ from seneca.contracts.c_2 import read_resource as rr2, read_other_resource as ro
 cr2(string='stu', value=100)
 cr2(string='davis', value=123)
 
-print(rr1(string='stu'))
-print(rr1(string='davis'))
-print(rr2(string='stu'))
-print(rr2(string='davis'))
+res1 = rr1(string='stu')
+res2 = rr1(string='davis')
+res3 = rr2(string='stu')
+res4 = rr2(string='davis')
         """)
-
+        self.assertEqual(Seneca.loaded['__main__']['res1'], Decimal(100))
+        self.assertEqual(Seneca.loaded['__main__']['res2'], Decimal(123))
+        self.assertEqual(Seneca.loaded['__main__']['res3'], Decimal(888))
+        self.assertEqual(Seneca.loaded['__main__']['res4'], Decimal(7777))
 
 
 
