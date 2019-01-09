@@ -350,11 +350,12 @@ class RObject:
 
     def __getattribute__(self, attr):
         if callable(object.__getattribute__(self, attr)):
-            info = BookKeeper.get_info()
-            contract_id = info['rt']['contract'].rsplit('.', 1)[-1]
-            if contract_id != 'dynamic_imports':
-                self.contract_id = contract_id
-            self.prefix = '{}{}{}'.format(self.contract_id, self.delimiter, self.prefix.split(':', 1)[1])
+            if BookKeeper.has_info():
+                info = BookKeeper.get_info()
+                contract_id = info['rt']['contract'].rsplit('.', 1)[-1]
+                if contract_id != 'dynamic_imports':
+                    self.contract_id = contract_id
+                self.prefix = '{}{}{}'.format(self.contract_id, self.delimiter, self.prefix.split(':', 1)[1])
         return object.__getattribute__(self, attr)
 
     def encode_value(self, value, explicit=False):
