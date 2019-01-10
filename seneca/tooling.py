@@ -85,5 +85,10 @@ def publish_function(f, name, author):
     return ContractWrapper(contract_name=name, driver=default_driver, default_sender=author)
 
 
+def publish_file(f, name, author):
+    default_driver.publish_code_str(fullname=name, author=author, code_str=f.read())
+    return ContractWrapper(contract_name=name, driver=default_driver, default_sender=author)
+
+
 def export(*args):
     pass
