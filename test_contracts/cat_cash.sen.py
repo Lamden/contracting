@@ -6,7 +6,6 @@ balances = hmap('balances', str, int)
 def deposit_to_all_wallets():
     balances['cat'] = 1000000
 
-
 def balance_of(wallet_id):
     return balances[wallet_id]
 

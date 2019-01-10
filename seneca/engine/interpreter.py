@@ -53,9 +53,9 @@ class Export(ScopeParser):
     def __call__(self, fn):
         if not fn.__module__: return
         self.set_scope_during_compilation(fn)
-
         def _fn(*args, **kwargs):
             args, kwargs = self.set_scope(fn, args, kwargs)
+            BookKeeper.set_info(rt=fn.__globals__['rt'])
             return fn(*args, **kwargs)
         return _fn
 
@@ -65,6 +65,7 @@ class Seed(ScopeParser):
         if fn.__globals__.get('__seed__') == True:
             old_concurrent_mode = Seneca.concurrent_mode
             Seneca.concurrent_mode = False
+            BookKeeper.set_info(rt=fn.__globals__['rt'])
             fn()
             Seneca.concurrent_mode = old_concurrent_mode
 
@@ -309,7 +310,6 @@ from {} import {}
 result = {}()
         '''.format(module[1])
         fn_call_obj = compile(code_str, '__main__', 'exec')
-        # import_obj = marshal.loads(self.r.hget('contracts_code', module[0].rsplit('.', 1)[-1]))
 
         return fn_call_obj, import_obj, meta
 
@@ -340,7 +340,7 @@ result = {}()
 
         Seneca.loaded['__main__'] = scope
         _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
-        exec(_obj, scope)  # rebuilds RObjects for contract being run
+        exec(_obj, scope)  # rebuilds RObjects
         exec(import_obj, scope)  # submits stamps
 
         scope.update({'__use_locals__': True})
