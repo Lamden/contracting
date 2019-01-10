@@ -50,10 +50,11 @@ class SenecaFunction:
 
         stamps = default(None, 'stamps')
 
+        kwargs['stamps'] = stamps
+        kwargs['sender'] = sender
+
         r = self.driver.execute_function(
             module_path=self.module_path,
-            stamps=stamps,
-            sender=sender,
             **kwargs
         )
 
