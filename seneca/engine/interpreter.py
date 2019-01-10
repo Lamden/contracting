@@ -39,7 +39,8 @@ class ScopeParser:
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(Seneca.loaded['__main__'])
         fn.__globals__['rt']['contract'] = fn.__module__
-        if fn.__globals__.get('__use_locals__'):
+
+        if fn.__globals__.get('__use_locals__') == '{}.{}'.format(fn.__module__.rsplit('.')[-1], fn.__name__):
             if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
             if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
         return args, kwargs
@@ -343,7 +344,7 @@ result = {}()
         exec(_obj, scope)  # rebuilds RObjects
         exec(import_obj, scope)  # submits stamps
 
-        scope.update({'__use_locals__': True})
+        scope.update({'__use_locals__': '.'.join(module_path.split('.')[-2:])})
         if stamps is not None:
             self.tracer.set_stamp(stamps)
             self.tracer.start()
