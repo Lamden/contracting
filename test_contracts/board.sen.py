@@ -2,12 +2,13 @@ from seneca.libs.datatypes import hmap
 from seneca.contracts.tau import transfer, get_balance
 
 owners = hmap('owners', str, str)
-prices = hmap('prices', str, str)
-colors = hmap('colors', str, int)
+prices = hmap('prices', str, int)
+colors = hmap('colors', str, str)
 
 max_x = 250
 max_y = 250
 
+@export
 def coor_str(x, y):
     return '{},{}'.format(x, y)
 
@@ -15,7 +16,8 @@ def owner_of_pixel(x, y):
     return owners[coor_str(x, y)]
 
 def price_of_pixel(x, y):
-    return prices[coor_str(x, y)]
+    price = prices[coor_str(x, y)]
+    return 0 if price == '' else price
 
 @export
 def buy_pixel(x, y, r, g, b, new_price=0):
@@ -37,9 +39,11 @@ def buy_pixel(x, y, r, g, b, new_price=0):
 
     transfer(owner, price)
 
+    c = coor_str(x, y)
     owners[coor_str(x, y)] = rt['sender']
     prices[coor_str(x, y)] = new_price if new_price > 0 else price
     colors[coor_str(x, y)] = '{},{},{}'.format(r, g, b)
+
 
 @export
 def price_pixel(x, y, amount):
