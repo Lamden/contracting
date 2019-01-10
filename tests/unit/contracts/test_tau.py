@@ -98,4 +98,5 @@ class TestTau(TestCase):
 		with self.assertRaises(AssertionError):
 			self.contract.spend_custodial(_from='stu', to='davis', amount=500, sender='falcon')
 
-main()
+if __name__ == "__main__":
+	main()
