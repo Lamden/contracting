@@ -19,8 +19,9 @@ def tau():
 	custodials = hmap('custodials', str, hmap(key_type=str, value_type=int))
 
 	@export
+	def add_to_custodial(to, amount):
 		assert balances[rt['sender']] >= amount
-		
+
 		custodials[rt['sender']][to] += amount
 		balances[rt['sender']] -= amount
 
