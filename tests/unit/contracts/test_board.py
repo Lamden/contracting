@@ -18,9 +18,9 @@ class TestBoard(TestCase):
 		f.close()
 		self.contract = ContractWrapper(contract_name='board', driver=default_driver, default_sender='stu')
 
-	# def test_coor_str(self):
-	# 	res = self.contract.coor_str(x=1, y=0)
-	# 	self.assertEqual(res['output'], '1,0')
+	def test_coor_str(self):
+		res = self.contract.coor_str(x=1, y=0)
+		self.assertEqual(res['output'], '1,0')
 
 	def test_buy_pixel(self):
 		res = self.contract.buy_pixel(x=0, y=0, r=255, g=255, b=0, new_price=1000)

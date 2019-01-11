@@ -7,7 +7,6 @@ market = hmap('market', str, int)
 @seed
 def deposit_to_all_wallets():
     market['stamps_to_tau'] = 1
-    assert market['stamps_to_tau'] == 1, 'whaaaaaathjgklg'
     balances['black_hole'] = 0
 
     STU = ('db929395f15937f023b4682995634b9dc19b1a2b32799f1f67d6f080b742cdb1',
@@ -39,6 +38,10 @@ def deposit_to_all_wallets():
 
 @export
 def submit_stamps(stamps):
+    # Special seeding case because it's stamps!
+    if market['stamps_to_tau'] == 0:
+        balances['anonymoose'] = 2 ** 63
+        market['stamps_to_tau'] = 1
     amount = stamps / market['stamps_to_tau']
     transfer('black_hole', int(amount))
 
@@ -81,4 +84,3 @@ def mint(to, amount):
     assert rt['sender'] == rt['author'], 'Only the original contract author can mint!'
 
     balances[to] += amount
-
