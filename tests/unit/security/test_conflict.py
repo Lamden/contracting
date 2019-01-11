@@ -56,7 +56,7 @@ def corrupt_resource(string, value):
 
 class TestConflict(TestInterface):
 
-    def test_publish_code_str(self):
+    def test_conflict(self):
         """
             Testing to see if the submission to Redis works.
         """
