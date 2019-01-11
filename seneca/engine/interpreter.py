@@ -38,16 +38,26 @@ class Seneca:
 class ScopeParser:
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(Seneca.loaded['__main__'])
-        fn.__globals__['rt']['contract'] = fn.__module__
-        if fn.__globals__.get('__use_locals__'):
+
+        if fn.__globals__.get('__use_locals__') == '{}.{}'.format(fn.__module__.rsplit('.')[-1], fn.__name__):
             if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
             if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
+        else:
+            fn.__globals__['rt']['contract'] = fn.__module__
+
         return args, kwargs
 
     def set_scope_during_compilation(self, fn):
         self.module = '.'.join([fn.__module__, fn.__name__])
         Seneca.exports[self.module] = True
 
+class Function(ScopeParser):
+    def __call__(self, fn):
+        def _fn(*args, **kwargs):
+            args, kwargs = self.set_scope(fn, args, kwargs)
+            BookKeeper.set_info(rt=fn.__globals__['rt'])
+            return fn(*args, **kwargs)
+        return _fn
 
 class Export(ScopeParser):
     def __call__(self, fn):
@@ -73,6 +83,7 @@ class Seed(ScopeParser):
 Seneca.basic_scope = {
     'export': Export(),
     'seed': Seed(),
+    '__function__': Function(),
     '__builtins__': SAFE_BUILTINS,
     '__use_locals__': False
 }
@@ -154,10 +165,18 @@ class SenecaNodeTransformer(ast.NodeTransformer):
         for item in node.body:
             if type(item) in [ast.ImportFrom, ast.Import]:
                 raise CompilationException('Not allowed to import inside a function definition')
+        set_scope = True
         for item in node.decorator_list:
             if item.id == 'export':
                 Seneca.exports[node.name] = True
                 Seneca.methods[node.name] = [arg.arg for arg in node.args.args]
+                set_scope = False
+            elif item.id == 'seed':
+                set_scope = False
+        if set_scope:
+            node.decorator_list.append(
+                ast.Name(id='__function__', ctx=ast.Load())
+            )
         return node
 
 
@@ -343,7 +362,7 @@ result = {}()
         exec(_obj, scope)  # rebuilds RObjects
         exec(import_obj, scope)  # submits stamps
 
-        scope.update({'__use_locals__': True})
+        scope.update({'__use_locals__': '.'.join(module_path.split('.')[-2:])})
         if stamps is not None:
             self.tracer.set_stamp(stamps)
             self.tracer.start()
