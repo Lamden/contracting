@@ -15,7 +15,6 @@ def coor_str(x, y):
 def owner_of_pixel(x, y):
     return owners[coor_str(x, y)]
 
-@export
 def price_of_pixel(x, y):
     return prices[coor_str(x, y)]
 
@@ -39,7 +38,6 @@ def buy_pixel(x, y, r, g, b, new_price=0):
 
     transfer(owner, price)
 
-    c = coor_str(x, y)
     owners[coor_str(x, y)] = rt['sender']
     prices[coor_str(x, y)] = new_price if new_price > 0 else price
     colors[coor_str(x, y)] = '{},{},{}'.format(r, g, b)
