@@ -165,11 +165,15 @@ class SenecaNodeTransformer(ast.NodeTransformer):
         for item in node.body:
             if type(item) in [ast.ImportFrom, ast.Import]:
                 raise CompilationException('Not allowed to import inside a function definition')
+        set_scope = True
         for item in node.decorator_list:
             if item.id == 'export':
                 Seneca.exports[node.name] = True
                 Seneca.methods[node.name] = [arg.arg for arg in node.args.args]
-        if not Seneca.exports.get(node.name):
+                set_scope = False
+            elif item.id == 'seed':
+                set_scope = False
+        if set_scope:
             node.decorator_list.append(
                 ast.Name(id='__function__', ctx=ast.Load())
             )
