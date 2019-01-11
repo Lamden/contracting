@@ -15,7 +15,6 @@ def coor_str(x, y):
 def owner_of_pixel(x, y):
     return owners[coor_str(x, y)]
 
-@export
 def price_of_pixel(x, y):
     return prices[coor_str(x, y)]
 
