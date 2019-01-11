@@ -25,6 +25,8 @@ class TestBoard(TestCase):
 	def test_buy_pixel(self):
 		res = self.contract.buy_pixel(x=0, y=0, r=255, g=255, b=0, new_price=1000)
 		self.assertEqual(res['status'], 'success')
+		self.assertTrue(default_driver.r.exists('tau:balances:stu'))
+		self.assertTrue(default_driver.r.exists('board:colors:0,0'))
 
 if __name__ == "__main__":
 	main()
