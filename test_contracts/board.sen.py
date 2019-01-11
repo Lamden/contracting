@@ -15,9 +15,9 @@ def coor_str(x, y):
 def owner_of_pixel(x, y):
     return owners[coor_str(x, y)]
 
+@export
 def price_of_pixel(x, y):
-    price = prices[coor_str(x, y)]
-    return 0 if price == '' else price
+    return prices[coor_str(x, y)]
 
 @export
 def buy_pixel(x, y, r, g, b, new_price=0):

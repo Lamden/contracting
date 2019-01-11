@@ -38,9 +38,9 @@ class Seneca:
 class ScopeParser:
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(Seneca.loaded['__main__'])
-        fn.__globals__['rt']['contract'] = fn.__module__
 
         if fn.__globals__.get('__use_locals__') == '{}.{}'.format(fn.__module__.rsplit('.')[-1], fn.__name__):
+            fn.__globals__['rt']['contract'] = fn.__module__
             if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
             if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
         return args, kwargs
