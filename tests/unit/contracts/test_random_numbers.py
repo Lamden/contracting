@@ -27,7 +27,7 @@ class TestWhy(TestCase):
             'data': None,
             'last_block_hash': b'abc'
         }
-        BookKeeper.set_info(**context)
+        BookKeeper.set_cr_info(**context)
 
         # overwrite_logger_level(0)
         with SenecaInterface(False) as interface:

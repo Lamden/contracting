@@ -19,8 +19,8 @@ class TestBookKeeper(TestCase):
     def test_set_and_get_info(self):
         expected_info = self._build_info_dict(sbb_idx=8, contract_idx=10)
 
-        BookKeeper.set_info(**expected_info)
-        actual_info = BookKeeper.get_info()
+        BookKeeper.set_cr_info(**expected_info)
+        actual_info = BookKeeper.get_cr_info()
 
         self.assertEqual(actual_info, expected_info)
 
@@ -35,7 +35,7 @@ class TestBookKeeper(TestCase):
         #         pid_func.return_value = mock_pid
         #         id_func.return_value = mock_thread
         #
-        #         print("Got key: {}".format(BookKeeper._get_key()))
+        #         print("Got key: {}".format(BookKeeper._get_cr_key()))
 
 
 if __name__ == '__main__':

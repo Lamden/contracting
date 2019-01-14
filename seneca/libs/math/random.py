@@ -21,7 +21,7 @@ class Seeded:
 
 def seed(d=None):
     try:
-        seed = BookKeeper.get_info().get('last_block_hash')
+        seed = BookKeeper.get_cr_info().get('last_block_hash')
     except Exception as e:
         seed = b'0'
 

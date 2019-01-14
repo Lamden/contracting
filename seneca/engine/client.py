@@ -223,7 +223,7 @@ class SenecaClient(SenecaInterface):
 
         try:
             # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
-            BookKeeper.set_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data, rt={
+            BookKeeper.set_cr_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data, rt={
                 'contract': contract.contract_name
             })
             # TODO not this pls
