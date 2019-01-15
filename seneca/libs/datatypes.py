@@ -350,7 +350,7 @@ class RObject:
 
     def __getattribute__(self, attr):
         if callable(object.__getattribute__(self, attr)):
-            if BookKeeper.has_cr_info():
+            if BookKeeper.has_info():
                 info = BookKeeper.get_info()
                 contract_id = info['rt']['contract'].rsplit('.', 1)[-1]
                 if contract_id != 'dynamic_imports':

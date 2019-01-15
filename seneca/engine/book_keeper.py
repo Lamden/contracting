@@ -27,8 +27,6 @@ class BookKeeper:
         Sets the info (subblock builder index and contract index) for the current thread.
         """
         key = cls._get_cr_key()
-        # print("\nSetting key {} with info sbb_idx: {} and contract_idx: {}".format(key, sbb_idx, contract_idx))  # TODO remove
-
         with cls._lock:
             cls._shared_state[key] = {'sbb_idx': sbb_idx, 'contract_idx': contract_idx, 'data': data, **kwargs}
 
@@ -39,7 +37,6 @@ class BookKeeper:
         :return:
         """
         key = cls._get_cr_key()
-
         with cls._lock:
             assert key in cls._shared_state, "Key {} not found in shared state. Did you call set_cr_info first?".format(key)
             return cls._shared_state[key]
@@ -47,7 +44,6 @@ class BookKeeper:
     @classmethod
     def get_info(cls):
         key = cls._get_key()
-
         with cls._lock:
             assert key in cls._shared_state, "Key {} not found in shared state. Did you call set_info first?".format(key)
             return cls._shared_state[key]
@@ -55,24 +51,42 @@ class BookKeeper:
     @classmethod
     def set_info(cls, **kwargs):
         key = cls._get_key()
-
         with cls._lock:
             cls._shared_state[key] = kwargs
 
     @classmethod
     def has_cr_info(cls) -> bool:
         """
-        Checks if bookkeeping info exists for this current process/thread combination
+        Checks if bookkeeping conflict resolution info exists for this current process/thread combination
         """
         key = cls._get_cr_key()
+        with cls._lock:
+            return key in cls._shared_state
 
+    @classmethod
+    def has_info(cls) -> bool:
+        """
+        Checks if bookkeeping info exists for this current process/thread combination
+        """
+        key = cls._get_key()
         with cls._lock:
             return key in cls._shared_state
 
     @classmethod
     def del_cr_info(cls) -> None:
         key = cls._get_cr_key()
-
         with cls._lock:
             assert key in cls._shared_state, "Key {} not found in shared state. Did you call set_cr_info first?"
             del cls._shared_state[key]
+
+    @classmethod
+    def del_info(cls) -> None:
+        key = cls._get_key()
+        with cls._lock:
+            assert key in cls._shared_state, "Key {} not found in shared state. Did you call set_info first?"
+            del cls._shared_state[key]
+
+    @classmethod
+    def reset(cls):
+        with cls._lock:
+            cls._shared_state.clear()

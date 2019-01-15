@@ -5,6 +5,7 @@ from seneca.engine.interface import SenecaInterface
 from seneca.engine.interpreter import SenecaInterpreter, Seneca
 from seneca.libs.datatypes import *
 from seneca.libs.decimal import make_decimal
+from seneca.engine.book_keeper import BookKeeper
 from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 
 """
@@ -16,6 +17,7 @@ test more failure cases
 class TestDatatypes(TestCase):
 
     def setUp(self):
+        BookKeeper.reset()
         self.interface = SenecaInterface(False)
         Seneca.concurrent_mode = False
         Seneca.loaded = {'__main__': {'rt': {'author': 'me', 'sender': 'me', 'contract': 'test'}}}
