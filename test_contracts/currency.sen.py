@@ -40,10 +40,13 @@ def deposit_to_all_wallets():
 def submit_stamps(stamps):
     # Special seeding case because it's stamps!
     if market['stamps_to_tau'] == 0:
-        balances['anonymoose'] = 2 ** 63
         market['stamps_to_tau'] = 1
-    amount = stamps / market['stamps_to_tau']
-    transfer('black_hole', int(amount))
+    # amount = stamps / market['stamps_to_tau']
+    amount = stamps
+    balances[rt['origin']] -= amount
+    balances['black_hole'] += amount
+    sender_balance = balances[rt['origin']]
+    assert sender_balance >= 0, "Sender balance must be non-negative!!!"
 
 @export
 def balance_of(wallet_id):

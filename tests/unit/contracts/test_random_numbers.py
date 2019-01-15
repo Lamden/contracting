@@ -30,7 +30,7 @@ class TestWhy(TestCase):
         BookKeeper.set_cr_info(**context)
 
         # overwrite_logger_level(0)
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             interface.r.flushall()
             # Store all smart contracts in CONTRACTS_TO_STORE
             import seneca
@@ -48,7 +48,7 @@ class TestWhy(TestCase):
             }
 
     def test_shuffle_cards(self):
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             f = interface.execute_function(
                 module_path='seneca.contracts.random_nums.shuffle_cards',
                 sender=GENESIS_AUTHOR,
@@ -64,7 +64,7 @@ class TestWhy(TestCase):
         self.assertEqual(f['output'], f2['output'])
 
     def test_random_num_imports(self):
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             f = interface.execute_function(
                 module_path='seneca.contracts.importing_randoms.yo',
                 sender=GENESIS_AUTHOR,
@@ -72,7 +72,7 @@ class TestWhy(TestCase):
             )
 
     def test_random_num_one_vs_two(self):
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             f = interface.execute_function(
                 module_path='seneca.contracts.random_nums.random_number',
                 sender=GENESIS_AUTHOR,
@@ -90,7 +90,7 @@ class TestWhy(TestCase):
         self.assertEqual(f2['output'], 220)
 
     def test_random_getrandbits(self):
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             f = interface.execute_function(
                 module_path='seneca.contracts.random_nums.random_bits',
                 sender=GENESIS_AUTHOR,
@@ -101,7 +101,7 @@ class TestWhy(TestCase):
         self.assertEqual(f['output'], 386311)
 
     def test_random_range_int(self):
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             f = interface.execute_function(
                 module_path='seneca.contracts.random_nums.int_in_range',
                 sender=GENESIS_AUTHOR,
@@ -122,7 +122,7 @@ class TestWhy(TestCase):
         self.assertEqual(f2['output'], 22879)
 
     def test_random_choice(self):
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             f = interface.execute_function(
                 module_path='seneca.contracts.random_nums.pick_cities',
                 sender=GENESIS_AUTHOR,

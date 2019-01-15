@@ -26,10 +26,7 @@ class TestInterface(TestCase):
 
     def setUp(self):
         self.si = SenecaInterface(False, port=get_redis_port(), password=get_redis_password())
-        try: v = self.si.r.get('market:stamps_to_tau')
-        except: v = 1
-        self.si.r.flushdb()
-        self.si.r.set('market:stamps_to_tau', v)
+        self.si.r.flushall()
         print('\n{}'.format('#' * 128))
         print(self.id)
         print('{}\n'.format('#' * 128))

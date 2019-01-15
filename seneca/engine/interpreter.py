@@ -38,11 +38,14 @@ class Seneca:
 class ScopeParser:
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(Seneca.loaded['__main__'])
-
-        if fn.__globals__.get('__use_locals__') == '{}.{}'.format(fn.__module__.rsplit('.')[-1], fn.__name__):
+        contract_name = fn.__module__.rsplit('.')[-1]
+        if fn.__globals__.get('__use_locals__') == '{}.{}'.format(contract_name, fn.__name__):
             if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
             if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
         else:
+            if fn.__globals__['rt'].get('__last_sender__'):
+                fn.__globals__['rt']['sender'] = fn.__globals__['rt']['__last_sender__']
+            fn.__globals__['rt']['__last_sender__'] = fn.__module__.rsplit('.', 1)[-1]
             fn.__globals__['rt']['contract'] = fn.__module__
 
         return args, kwargs
@@ -108,6 +111,7 @@ class SenecaNodeTransformer(ast.NodeTransformer):
 
     def visit_Import(self, node):
         module_name = node.names[0].name
+        Seneca.protected_variables.add(module_name)
         SenecaInterpreter.assert_import_path(module_name)
         Seneca.prevalidated.body.append(node)
         self.generic_visit(node)
@@ -116,6 +120,7 @@ class SenecaNodeTransformer(ast.NodeTransformer):
 
     def visit_ImportFrom(self, node):
         module_name = node.names[0].name
+        Seneca.protected_variables.add(module_name)
         SenecaInterpreter.assert_import_path(node.module, module_name=module_name)
         Seneca.prevalidated.body.append(node)
         self.generic_visit(node)
@@ -123,7 +128,6 @@ class SenecaNodeTransformer(ast.NodeTransformer):
         return node
 
     def visit_Assign(self, node):
-
         for target in node.targets:
             if type(target) == ast.Tuple:
                 items = []
@@ -234,7 +238,7 @@ class SenecaInterpreter:
         pipe.execute()
 
     @staticmethod
-    def parse_ast(code_str, protected_variables=[]):
+    def parse_ast(code_str, protected_variables=set()):
 
         # crude but effective way to force fixed precision without developer behavior change
         decimal_addon = 'from seneca.libs.decimal import make_decimal'
@@ -242,12 +246,12 @@ class SenecaInterpreter:
         code_str = decimal_addon + '\n' + code_str
 
         Seneca.current_ast_types = set()
-        Seneca.protected_variables = protected_variables
+        Seneca.protected_variables = set(protected_variables)
 
         tree = ast.parse(code_str)
         Seneca.resources = {}
         Seneca.methods = {}
-        Seneca.protected_variables += ['export']
+        Seneca.protected_variables = Seneca.protected_variables.union(set(Seneca.basic_scope.keys()))
         Seneca.prevalidated = copy.deepcopy(tree)
         Seneca.prevalidated.body = []
         Seneca.postvalidated = copy.deepcopy(tree)
@@ -305,17 +309,17 @@ class SenecaInterpreter:
         if is_main:
             Seneca.loaded['__main__'] = scope
         Seneca.loaded['__main__'].update(scope)
-
         exec(code, scope)
         if is_main:
             self.validate()
+        return scope.get('result')
 
     @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
     def get_cached_code_obj(self, module_path, stamps_supplied):
         self.assert_import_path(module_path)
         module = module_path.rsplit('.', 1)
         meta = self.get_contract_meta(module[0].rsplit('.')[-1])
-        if stamps_supplied != None:
+        if not self.bypass_currency:
             import_obj = compile('''
 from seneca.contracts.currency import submit_stamps
 submit_stamps({})
@@ -336,39 +340,48 @@ result = {}()
         module_name = module_path.rsplit('.', 1)[0]
         contract_name = module_name.rsplit('.', 1)[-1]
         fn_call_obj, import_obj, meta = self.get_cached_code_obj(module_path, stamps)
-        scope = {
-            'rt': {'author': meta['author'], 'sender': sender, 'contract': contract_name},
+        contract_scope = {
+            'rt': {
+                'author': meta['author'],
+                'sender': sender,
+                'origin': sender,
+                'contract': contract_name
+            },
             '__args__': args,
             '__kwargs__': kwargs,
         }
-
-        currency_module_path = module_path.rsplit('.', 1)[0] + '.' + Seneca.CURRENCY_NAME
-        c_fn_call_obj, c_import_obj, c_meta = self.get_cached_code_obj(module_path, stamps)
-        currency_scope = {
-            'rt': {'author': c_meta['author'], 'sender': sender, 'contract': Seneca.CURRENCY_NAME},
-        }
-
-        scope.update(Seneca.basic_scope)
+        contract_scope.update(Seneca.basic_scope)
 
         if not self.bypass_currency:
+            _, _, c_meta = self.get_cached_code_obj(module_path, stamps)
+            currency_scope = {
+                'rt': {
+                    'author': c_meta['author'],
+                    'sender': sender,
+                    'origin': sender,
+                    'contract': Seneca.CURRENCY_NAME
+                },
+            }
             currency_scope.update(Seneca.basic_scope)
-
             Seneca.loaded['__main__'] = currency_scope
             _obj = marshal.loads(self.r.hget('contracts_code', Seneca.CURRENCY_NAME))
             exec(_obj, currency_scope)  # rebuilds RObjects for currency contract
 
-        Seneca.loaded['__main__'] = scope
+        Seneca.loaded['__main__'] = contract_scope
         _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
-        exec(_obj, scope)  # rebuilds RObjects
-        exec(import_obj, scope)  # submits stamps
+        exec(_obj, contract_scope)  # rebuilds RObjects
+        exec(import_obj, contract_scope)  # run cached imports and submits stamps if necessary
+        contract_scope['rt']['__last_sender__'] = contract_name
+        contract_scope['rt']['contract'] = contract_name
 
-        scope.update({'__use_locals__': '.'.join(module_path.split('.')[-2:])})
-        if stamps is not None:
+        contract_scope.update({'__use_locals__': '.'.join(module_path.split('.')[-2:])})
+
+        if not self.bypass_currency:
             self.tracer.set_stamp(stamps)
             self.tracer.start()
 
             try:
-                exec(fn_call_obj, scope)  # Actually execute the function
+                exec(fn_call_obj, contract_scope)  # Actually execute the function
             except Exception as e:
                 raise e
             finally:
@@ -376,10 +389,10 @@ result = {}()
 
             stamps -= self.tracer.get_stamp_used()
         else:
-            exec(fn_call_obj, scope)
+            exec(fn_call_obj, contract_scope)
             stamps = 0
         return {
             'status': 'success',
-            'output': scope.get('result'),
+            'output': contract_scope.get('result'),
             'remaining_stamps': stamps
         }

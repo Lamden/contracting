@@ -50,7 +50,7 @@ v = __builtins__['__import__']('sys')
         with self.assertRaises(CompilationException) as context:
             self.si.execute_code_str("""
 __tracer__.set_stamp(1000)
-            """, scope={'__tracer__': Tracer()})
+            """, added_scope={'__tracer__': Tracer()})
 
     def test_import(self):
         with self.assertRaises(CompilationException) as context:

@@ -31,7 +31,8 @@ class TestSenecaTooling(TestCase):
     def setUp(self):
         self.driver = SenecaInterface(concurrent_mode=False,
                            port=6379,
-                           password='')
+                           password='',
+                           bypass_currency=True)
         self.driver.r.flushdb()
         import seneca
         test_contracts_path = seneca.__path__[0] + '/../test_contracts/'
