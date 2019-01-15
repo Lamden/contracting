@@ -343,9 +343,9 @@ class RObject:
         self.rep_str = rep_str
 
         if self.concurrent_mode:
-            assert BookKeeper.has_info(), "No BookKeeping info found for this thread/process with key {}. Was set_info " \
-                                          "called on this thread first?".format(BookKeeper._get_key())
-            info = BookKeeper.get_info()
+            assert BookKeeper.has_cr_info(), "No BookKeeping info found for this thread/process with key {}. Was set_cr_info " \
+                                          "called on this thread first?".format(BookKeeper._get_cr_key())
+            info = BookKeeper.get_cr_info()
             self.driver = RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
 
     def __getattribute__(self, attr):
