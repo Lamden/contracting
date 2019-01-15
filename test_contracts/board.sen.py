@@ -1,5 +1,7 @@
 from seneca.libs.datatypes import hmap
-from seneca.contracts.tau import transfer, get_balance
+from seneca.contracts.tau import transfer, get_balance, spend_custodial
+
+board_owner = 'falcon'
 
 owners = hmap('owners', str, str)
 prices = hmap('prices', str, int)
@@ -8,18 +10,20 @@ colors = hmap('colors', str, str)
 max_x = 250
 max_y = 250
 
-@export
 def coor_str(x, y):
     return '{},{}'.format(x, y)
 
 def owner_of_pixel(x, y):
     return owners[coor_str(x, y)]
 
+@export
 def price_of_pixel(x, y):
     return prices[coor_str(x, y)]
 
 @export
 def buy_pixel(x, y, r, g, b, new_price=0):
+
+
     assert new_price >= 0
 
     x, y, r, g, b = [int(i) for i in [x, y, r, g, b]]
@@ -36,23 +40,26 @@ def buy_pixel(x, y, r, g, b, new_price=0):
 
     owner = owner_of_pixel(x, y)
 
-    transfer(owner, price)
+    # Set the owner to the default board owner if it is not set
+    if owner == '':
+        owner = board_owner
+
+    spend_custodial(rt['sender'], price, owner)
 
     owners[coor_str(x, y)] = rt['sender']
     prices[coor_str(x, y)] = new_price if new_price > 0 else price
     colors[coor_str(x, y)] = '{},{},{}'.format(r, g, b)
 
-
 @export
-def price_pixel(x, y, amount):
+def price_pixel(x, y, new_price):
     owner = owner_of_pixel(x, y)
     assert rt['sender'] == owner
 
     x = int(x)
     y = int(y)
 
-    amount = int(amount)
-    prices[coor_str(x, y)] = amount
+    new_price = int(new_price)
+    prices[coor_str(x, y)] = new_price
 
 @export
 def color_pixel(x, y, r, g, b):
