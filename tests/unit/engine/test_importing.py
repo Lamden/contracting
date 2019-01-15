@@ -23,7 +23,7 @@ class TestImporting(TestCase):
 
     def setUp(self):
         # overwrite_logger_level(0)
-        with SenecaInterface(False, 6379, '') as interface:
+        with SenecaInterface(False, 6379, '', bypass_currency=True) as interface:
             interface.r.flushall()
             # Store all smart contracts in CONTRACTS_TO_STORE
             import seneca
@@ -41,7 +41,7 @@ class TestImporting(TestCase):
             }
 
     def test_import(self):
-        with SenecaInterface(False, 6379, '') as interface:
+        with SenecaInterface(False, 6379, '', bypass_currency=True) as interface:
             f = interface.execute_function(
                 module_path='seneca.contracts.dynamic_imports.get_token_balance',
                 sender=GENESIS_AUTHOR,

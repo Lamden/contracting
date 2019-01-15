@@ -64,7 +64,7 @@ def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: s
 
 
 class TestSenecaClient(TestCase):
-    LOG_LVL = None
+    LOG_LVL = 20
     CONTRACTS_TO_STORE = {'currency': 'currency.sen.py'}
 
     @classmethod
@@ -121,14 +121,17 @@ class TestSenecaClient(TestCase):
         return contracts
 
     def _mint_wallets(self, seed_amount=None):
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             for wallet, amount in MINT_WALLETS.items():
                 interface.execute_function(module_path='seneca.contracts.currency.mint', sender=GENESIS_AUTHOR,
                                            stamps=STAMP_AMOUNT, to=wallet, amount=seed_amount or amount)
 
     def setUp(self):
+        print('\n{}'.format('#' * 128))
+        print(self.id)
+        print('{}\n'.format('#' * 128))
         # overwrite_logger_level(0)
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             interface.r.flushall()
             # Store all smart contracts in CONTRACTS_TO_STORE
             import seneca
@@ -159,6 +162,7 @@ class TestSenecaClient(TestCase):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.bypass_currency = True
 
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
@@ -182,6 +186,7 @@ class TestSenecaClient(TestCase):
         c2 = create_currency_tx('stu', 'anonymoose', 40)
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.bypass_currency = True
 
         client.execute_sb(input_hash=input_hash, contracts=[c1, c2],
                           completion_handler=self.assert_completion(None, input_hash))
@@ -194,6 +199,7 @@ class TestSenecaClient(TestCase):
 
     def test_run_tx_increments_contract_idx(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
+        client.bypass_currency = True
         client._start_sb('A' * 64)
 
         self.assertEqual(client.active_db.next_contract_idx, 0)
@@ -218,6 +224,7 @@ class TestSenecaClient(TestCase):
                             (c2, "SUCC", "")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.bypass_currency = True
         client._start_sb(input_hash)
 
         client.run_contract(c1)
@@ -242,6 +249,7 @@ class TestSenecaClient(TestCase):
                             (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.bypass_currency = True
         client._start_sb(input_hash)
 
         client.run_contract(c1)
@@ -266,6 +274,7 @@ class TestSenecaClient(TestCase):
                             (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.bypass_currency = True
 
         client.execute_sb(input_hash=input_hash, contracts=[c1, c2],
                           completion_handler=self.assert_completion(expected_sbb_rep, input_hash))
@@ -284,6 +293,7 @@ class TestSenecaClient(TestCase):
         input_hash = 'A' * 64
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.bypass_currency = True
         client.execute_sb(input_hash=input_hash, contracts=[],
                           completion_handler=self.assert_completion(expected_sbb_rep, input_hash))
 
@@ -304,7 +314,9 @@ class TestSenecaClient(TestCase):
         expected_sbb2_rep = []
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client1.bypass_currency = True
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+        client2.bypass_currency = True
         client1.execute_sb(input_hash=input_hash1, contracts=[c1, c2], completion_handler=self.assert_completion(expected_sbb1_rep, input_hash1))
         client2.execute_sb(input_hash=input_hash2, contracts=[], completion_handler=self.assert_completion(expected_sbb2_rep, input_hash2))
 
@@ -326,6 +338,7 @@ class TestSenecaClient(TestCase):
                             (c3, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.bypass_currency = True
         client._start_sb(input_hash)
 
         client.run_contract(c1)
@@ -357,7 +370,9 @@ class TestSenecaClient(TestCase):
                              (c4, "SUCC", "SET currency:balances:tj 7910;SET currency:balances:birb 8090;")]
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client1.bypass_currency = True
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+        client2.bypass_currency = True
         client1._start_sb(input_hash1)
         client2._start_sb(input_hash2)
 
@@ -404,7 +419,9 @@ class TestSenecaClient(TestCase):
         asyncio.set_event_loop(loop)
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client1.bypass_currency = True
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+        client2.bypass_currency = True
 
         client1._start_sb(input_hash1)
         client2._start_sb(input_hash2)
@@ -464,7 +481,9 @@ class TestSenecaClient(TestCase):
         asyncio.set_event_loop(loop)
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client1.bypass_currency = True
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+        client2.bypass_currency = True
 
         client1._start_sb(input_hash1)
         client2._start_sb(input_hash2)
@@ -644,7 +663,9 @@ class TestSenecaClient(TestCase):
         asyncio.set_event_loop(loop)
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
+        client1.bypass_currency = True
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
+        client2.bypass_currency = True
 
         client1.execute_sb(input_hash1, contracts=[c1, c2], completion_handler=self.assert_completion(None, input_hash1))
         client2.execute_sb(input_hash2, contracts=[c3, c4], completion_handler=self.assert_completion(None, input_hash2))

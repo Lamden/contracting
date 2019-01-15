@@ -39,17 +39,21 @@ hmap('balance', str, int)
 from seneca.libs.datatypes import hmap
 hmap = 'hacked'
             """)
+        with self.assertRaises(ReadOnlyException) as context:
+            self.si.execute_code_str("""
+seed = 'hacked'
+            """)
 
-#     def test_store_meta(self):
-#         self.si.execute_code_str("""
-# from seneca.libs.datatypes import hmap
-# @export
-# def callit(a,b,c=1,d=2):
-#     return 1,2
-# some_map = hmap('balance', str, int)
-# t, r = 2,3
-# x = 45
-#         """)
+    def test_store_meta(self):
+        self.si.execute_code_str("""
+from seneca.libs.datatypes import hmap
+@export
+def callit(a,b,c=1,d=2):
+    return 1,2
+some_map = hmap('balance', str, int)
+t, r = 2,3
+x = 45
+        """)
 
 if __name__ == '__main__':
     unittest.main()

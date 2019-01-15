@@ -10,7 +10,7 @@ os.environ['CIRCLECI'] = 'true'
 
 test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
-c_1 = """
+c_3 = """
 from seneca.libs.datatypes import hmap
 resource = hmap('resource', str, int)
 
@@ -28,9 +28,9 @@ def write_resource(string, value):
     resource[string] = value
 """
 
-c_2 = """
-from seneca.contracts.c_1 import read_resource as r
-from seneca.contracts.c_1 import write_resource as w
+c_4 = """
+from seneca.contracts.c_3 import read_resource as r
+from seneca.contracts.c_3 import write_resource as w
 
 from seneca.libs.datatypes import hmap
 resource = hmap('resource', str, int)
@@ -60,11 +60,11 @@ class TestConflict(TestInterface):
         """
             Testing to see if the submission to Redis works.
         """
-        self.si.publish_code_str('c_1', 'anonymoose', c_1)
-        self.si.publish_code_str('c_2', 'anonymoose', c_2)
+        self.si.publish_code_str('c_3', 'anonymoose', c_3)
+        self.si.publish_code_str('c_4', 'anonymoose', c_4)
         self.si.execute_code_str("""
-from seneca.contracts.c_1 import read_resource as rr1
-from seneca.contracts.c_2 import read_resource as rr2, read_other_resource as ror2, corrupt_resource as cr2
+from seneca.contracts.c_3 import read_resource as rr1
+from seneca.contracts.c_4 import read_resource as rr2, read_other_resource as ror2, corrupt_resource as cr2
 
 cr2(string='stu', value=100)
 cr2(string='davis', value=123)
