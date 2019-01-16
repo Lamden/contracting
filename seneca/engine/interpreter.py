@@ -50,6 +50,14 @@ class ScopeParser:
 
         return args, kwargs
 
+    def reset_scope(self, fn):
+        old_sender = fn.__globals__['rt'].get('sender')
+        contract = fn.__globals__.get('__use_locals__')
+        if contract:
+            if contract.split('.')[0] == old_sender or \
+                fn.__globals__['rt']['sender'] == old_sender:
+                fn.__globals__['rt']['sender'] = fn.__globals__['rt']['origin']
+
     def set_scope_during_compilation(self, fn):
         self.module = '.'.join([fn.__module__, fn.__name__])
         Seneca.exports[self.module] = True
@@ -59,7 +67,9 @@ class Function(ScopeParser):
         def _fn(*args, **kwargs):
             args, kwargs = self.set_scope(fn, args, kwargs)
             BookKeeper.set_info(rt=fn.__globals__['rt'])
-            return fn(*args, **kwargs)
+            res = fn(*args, **kwargs)
+            self.reset_scope(fn)
+            return res
         return _fn
 
 class Export(ScopeParser):
@@ -69,7 +79,9 @@ class Export(ScopeParser):
         def _fn(*args, **kwargs):
             args, kwargs = self.set_scope(fn, args, kwargs)
             BookKeeper.set_info(rt=fn.__globals__['rt'])
-            return fn(*args, **kwargs)
+            res = fn(*args, **kwargs)
+            self.reset_scope(fn)
+            return res
         return _fn
 
 
@@ -351,6 +363,8 @@ result = {}()
             '__kwargs__': kwargs,
         }
         contract_scope.update(Seneca.basic_scope)
+
+
 
         if not self.bypass_currency:
             _, _, c_meta = self.get_cached_code_obj(module_path, stamps)
