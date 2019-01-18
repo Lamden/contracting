@@ -30,6 +30,11 @@ my_number = hmap('my_number', str, str)
 @export
 def call_me_maybe():
     my_number[rt['sender']] = '0987654321'
+    call_here()
+
+@export
+def call_here():
+    my_number[rt['sender']] = '1234'
 
 """
 
@@ -58,6 +63,7 @@ call_me()
         """)
         self.assertTrue(self.si.r.exists('c_1:my_number:anonymous'))
         self.assertTrue(self.si.r.exists('c_2:my_number:c_1'))
+        self.assertEqual(self.si.r.get('c_2:my_number:c_1'), b'"1234"')
 
     def test_call_scope_execute_function(self):
         self.si.publish_code_str('c_2', AUTHOR, c_2)
@@ -68,6 +74,7 @@ call_me()
         self.si.execute_function('seneca.contracts.c_1.call_me', AUTHOR, 10000)
         self.assertTrue(self.si.r.exists('c_1:my_number:{}'.format(AUTHOR)))
         self.assertTrue(self.si.r.exists('c_2:my_number:c_1'))
+        self.assertEqual(self.si.r.get('c_2:my_number:c_1'), b'"1234"')
 
 if __name__ == '__main__':
     unittest.main()
