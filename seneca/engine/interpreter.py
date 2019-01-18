@@ -157,7 +157,11 @@ class SenecaNodeTransformer(ast.NodeTransformer):
                     Seneca.resources[target.id] = node.value.func.id
                 SenecaInterpreter.check_protected(target, Seneca.protected_variables)
             else:
-                Seneca.resources[target.id] = node.value.__class__.__name__
+                if type(target) == ast.Subscript:
+                    name = target.value.id
+                else:
+                    name = target.id
+                Seneca.resources[name] = node.value.__class__.__name__
                 SenecaInterpreter.check_protected(target, Seneca.protected_variables)
 
         if type(node.value) == ast.Call:
