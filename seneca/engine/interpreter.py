@@ -41,11 +41,12 @@ class ScopeParser:
         if fn.__globals__.get('__use_locals__') == '{}.{}'.format(contract_name, fn.__name__):
             if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
             if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
-            fn.__globals__['__last_sender__'] = contract_name
+            Seneca.loaded['__main__']['__last_sender__'] = contract_name
         else:
-            if fn.__globals__.get('__last_sender__'):
-                fn.__globals__['rt']['sender'] = fn.__globals__['__last_sender__']
-            fn.__globals__['rt']['__last_sender__'] = fn.__module__.rsplit('.', 1)[-1]
+            if not Seneca.loaded['__main__'].get('__last_sender__') == contract_name:
+                if Seneca.loaded['__main__'].get('__last_sender__'):
+                    fn.__globals__['rt']['sender'] = Seneca.loaded['__main__']['__last_sender__']
+                Seneca.loaded['__main__']['__last_sender__'] = contract_name
             fn.__globals__['rt']['contract'] = fn.__module__
 
         return args, kwargs
@@ -368,8 +369,6 @@ result = {}()
         }
         contract_scope.update(Seneca.basic_scope)
 
-
-
         if not self.bypass_currency:
             _, _, c_meta = self.get_cached_code_obj(module_path, stamps)
             currency_scope = {
@@ -389,7 +388,6 @@ result = {}()
         _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
         exec(_obj, contract_scope)  # rebuilds RObjects
         exec(import_obj, contract_scope)  # run cached imports and submits stamps if necessary
-        contract_scope['__last_sender__'] = contract_name
         contract_scope['rt']['contract'] = contract_name
 
         contract_scope.update({'__use_locals__': '.'.join(module_path.split('.')[-2:])})
