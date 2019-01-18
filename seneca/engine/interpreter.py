@@ -28,7 +28,6 @@ class Seneca:
     exports = {}
     imports = {}
     loaded = {}
-    cache = {}
     resources = {}
     methods = {}
 
@@ -42,9 +41,10 @@ class ScopeParser:
         if fn.__globals__.get('__use_locals__') == '{}.{}'.format(contract_name, fn.__name__):
             if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
             if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
+            fn.__globals__['__last_sender__'] = contract_name
         else:
-            if fn.__globals__['rt'].get('__last_sender__'):
-                fn.__globals__['rt']['sender'] = fn.__globals__['rt']['__last_sender__']
+            if fn.__globals__.get('__last_sender__'):
+                fn.__globals__['rt']['sender'] = fn.__globals__['__last_sender__']
             fn.__globals__['rt']['__last_sender__'] = fn.__module__.rsplit('.', 1)[-1]
             fn.__globals__['rt']['contract'] = fn.__module__
 
@@ -389,7 +389,7 @@ result = {}()
         _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
         exec(_obj, contract_scope)  # rebuilds RObjects
         exec(import_obj, contract_scope)  # run cached imports and submits stamps if necessary
-        contract_scope['rt']['__last_sender__'] = contract_name
+        contract_scope['__last_sender__'] = contract_name
         contract_scope['rt']['contract'] = contract_name
 
         contract_scope.update({'__use_locals__': '.'.join(module_path.split('.')[-2:])})
