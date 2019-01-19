@@ -106,6 +106,7 @@ _SAFE_NAMES = [
     'round',
     'slice',
     'str',
+    'bytes',
     'tuple',
     'zip',
 

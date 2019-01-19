@@ -30,6 +30,7 @@ class Seneca:
     loaded = {}
     resources = {}
     methods = {}
+    callstack = []
 
     basic_scope = {}
 
@@ -38,6 +39,7 @@ class ScopeParser:
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(Seneca.loaded['__main__'])
         contract_name = fn.__module__.rsplit('.')[-1]
+        Seneca.callstack.append(contract_name)
         if fn.__globals__.get('__use_locals__') == '{}.{}'.format(contract_name, fn.__name__):
             if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
             if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
@@ -48,7 +50,6 @@ class ScopeParser:
                     fn.__globals__['rt']['sender'] = Seneca.loaded['__main__']['__last_sender__']
                 Seneca.loaded['__main__']['__last_sender__'] = contract_name
             fn.__globals__['rt']['contract'] = fn.__module__
-
         return args, kwargs
 
     def reset_scope(self, fn):
@@ -58,6 +59,7 @@ class ScopeParser:
             if contract.split('.')[0] == old_sender or \
                 fn.__globals__['rt']['sender'] == old_sender:
                 fn.__globals__['rt']['sender'] = fn.__globals__['rt']['origin']
+        Seneca.callstack.pop()
 
     def set_scope_during_compilation(self, fn):
         self.module = '.'.join([fn.__module__, fn.__name__])
@@ -388,7 +390,7 @@ result = {}()
         _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
         exec(_obj, contract_scope)  # rebuilds RObjects
         exec(import_obj, contract_scope)  # run cached imports and submits stamps if necessary
-        contract_scope['rt']['contract'] = contract_name
+        # contract_scope['rt']['contract'] = contract_name
 
         contract_scope.update({'__use_locals__': '.'.join(module_path.split('.')[-2:])})
 

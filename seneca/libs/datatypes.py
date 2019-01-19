@@ -354,11 +354,11 @@ class RObject:
     def __getattribute__(self, attr):
         if callable(object.__getattribute__(self, attr)):
             if BookKeeper.has_info():
-                info = BookKeeper.get_info()
-                contract_id = info['rt']['contract'].rsplit('.', 1)[-1]
-                if contract_id != 'dynamic_imports':
-                    self.contract_id = contract_id
-                self.prefix = '{}{}{}'.format(self.contract_id, self.delimiter, self.prefix.split(':', 1)[1])
+                if len(Seneca.callstack) > 0:
+                    contract_id = Seneca.callstack[-1]
+                    if contract_id != 'dynamic_imports':
+                        self.contract_id = contract_id
+                    self.prefix = '{}{}{}'.format(self.contract_id, self.delimiter, self.prefix.split(':', 1)[1])
         return object.__getattribute__(self, attr)
 
     def encode_value(self, value, explicit=False):
@@ -444,7 +444,6 @@ class HMap(RObject):
 
         if type(key) in complex_types:
             key = key.rep()
-
         return self.driver.set('{}{}{}'.format(self.prefix, self.delimiter, key), v)
 
     def get(self, key):
