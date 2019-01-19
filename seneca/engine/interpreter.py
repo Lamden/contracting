@@ -390,7 +390,7 @@ result = {}()
         _obj = marshal.loads(self.r.hget('contracts_code', contract_name))
         exec(_obj, contract_scope)  # rebuilds RObjects
         exec(import_obj, contract_scope)  # run cached imports and submits stamps if necessary
-        # contract_scope['rt']['contract'] = contract_name
+        contract_scope['rt']['contract'] = contract_name
 
         contract_scope.update({'__use_locals__': '.'.join(module_path.split('.')[-2:])})
 
