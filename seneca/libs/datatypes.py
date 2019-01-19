@@ -250,11 +250,14 @@ class TablePlaceholder(Placeholder):
         self.placeholder_type = Table
 
     def valid(self, t):
-        self_keys = set(self.schema.keys())
-        t_keys = set(t.schema.keys())
 
-        if self_keys == t_keys and self.key_type == t.key_type \
-                and t.prefix is not None and isinstance(t, Table):
+        if type(t) == dict:
+            t_keys = {}
+            for k in t:
+                t_keys[k] = type(t[k])
+            t = Table(schema=t_keys)
+
+        if self.schema == t.schema and isinstance(t, Table):
             return True
         return False
 
@@ -360,12 +363,13 @@ class RObject:
 
     def encode_value(self, value, explicit=False):
         v = None
-
         if issubclass(type(self.value_type), Placeholder):
             assert self.value_type.valid(value) is True, \
                 'Value {} is not a matching map'.format(value)
-            v = value.rep()
-
+            if type(value) == dict:
+                v = json.dumps(value)
+            else:
+                v = value.rep()
         else:
             # due to the naive nature of fixed point precision casting, we try to cast decimals into ints when there
             # is no loss of precision
@@ -589,7 +593,6 @@ class Table(RObject):
 
     def encode_value(self, value, t):
         v = None
-
         if issubclass(type(t), Placeholder):
             assert t.valid(value) is True, \
                 'Value {} is not a matching map'.format(value)
