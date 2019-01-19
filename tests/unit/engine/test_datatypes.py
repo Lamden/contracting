@@ -372,6 +372,11 @@ class TestDatatypes(TestCase):
         t = parse_complex_type_repr(s)
         self.assertTrue(t.prefix, 'lazytown')
 
+    def test_table_as_type(self):
+        h = hmap('holla', key_type=str, value_type=table(schema={'hello': str, 'world': int}))
+        h.set('yes', {'hello': 'there', 'world': 4})
+        self.assertEqual(h['yes'], {'hello': 'there', 'world': 4})
+
     def test_none_typing(self):
         s = hmap(prefix='hello', value_type=None)
         s.set('yo', 123)
@@ -528,7 +533,6 @@ class TestDatatypes(TestCase):
     def test_exists_hlist(self):
         l = HList('bleh', str)
         l.push('stu')
-        print(l.exists('stu'))
 
     def test_float_hmap(self):
         h = hmap('test', str, float)
@@ -570,7 +574,6 @@ class TestDatatypes(TestCase):
     def test_build_placeholder_ranked_from_repr(self):
         r = '*ranked(int,str)'
         _r = build_ranked_from_repr(r)
-        print(_r)
         self.assertTrue(isinstance(_r, RankedPlaceholder))
         self.assertEqual(_r.value_type, str)
 
