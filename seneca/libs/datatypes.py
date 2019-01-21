@@ -356,6 +356,9 @@ class RObject:
             if BookKeeper.has_info():
                 info = BookKeeper.get_info()
                 contract_id = info['rt']['contract'].rsplit('.', 1)[-1]
+                if len(Seneca.callstack) > 0:
+                    if Seneca.callstack[-1] == info['rt'].get('sender'):
+                        contract_id = Seneca.callstack[-1]
                 if contract_id != 'dynamic_imports':
                     self.contract_id = contract_id
                 self.prefix = '{}{}{}'.format(self.contract_id, self.delimiter, self.prefix.split(':', 1)[1])
@@ -444,7 +447,6 @@ class HMap(RObject):
 
         if type(key) in complex_types:
             key = key.rep()
-
         return self.driver.set('{}{}{}'.format(self.prefix, self.delimiter, key), v)
 
     def get(self, key):

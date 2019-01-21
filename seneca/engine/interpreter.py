@@ -30,6 +30,7 @@ class Seneca:
     loaded = {}
     resources = {}
     methods = {}
+    callstack = []
 
     basic_scope = {}
 
@@ -38,6 +39,7 @@ class ScopeParser:
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(Seneca.loaded['__main__'])
         contract_name = fn.__module__.rsplit('.')[-1]
+        Seneca.callstack.append(contract_name)
         if fn.__globals__.get('__use_locals__') == '{}.{}'.format(contract_name, fn.__name__):
             if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']
             if fn.__globals__.get('__kwargs__'): kwargs = fn.__globals__['__kwargs__']
@@ -47,8 +49,8 @@ class ScopeParser:
                 if Seneca.loaded['__main__'].get('__last_sender__'):
                     fn.__globals__['rt']['sender'] = Seneca.loaded['__main__']['__last_sender__']
                 Seneca.loaded['__main__']['__last_sender__'] = contract_name
-            fn.__globals__['rt']['contract'] = fn.__module__
-
+            fn.__globals__['rt']['contract'] = contract_name
+        BookKeeper.set_info(rt=fn.__globals__['rt'])
         return args, kwargs
 
     def reset_scope(self, fn):
@@ -58,6 +60,7 @@ class ScopeParser:
             if contract.split('.')[0] == old_sender or \
                 fn.__globals__['rt']['sender'] == old_sender:
                 fn.__globals__['rt']['sender'] = fn.__globals__['rt']['origin']
+        Seneca.callstack.pop()
 
     def set_scope_during_compilation(self, fn):
         self.module = '.'.join([fn.__module__, fn.__name__])
@@ -67,7 +70,6 @@ class Function(ScopeParser):
     def __call__(self, fn):
         def _fn(*args, **kwargs):
             args, kwargs = self.set_scope(fn, args, kwargs)
-            BookKeeper.set_info(rt=fn.__globals__['rt'])
             res = fn(*args, **kwargs)
             self.reset_scope(fn)
             return res
@@ -79,7 +81,6 @@ class Export(ScopeParser):
         self.set_scope_during_compilation(fn)
         def _fn(*args, **kwargs):
             args, kwargs = self.set_scope(fn, args, kwargs)
-            BookKeeper.set_info(rt=fn.__globals__['rt'])
             res = fn(*args, **kwargs)
             self.reset_scope(fn)
             return res
