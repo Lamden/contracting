@@ -30,7 +30,7 @@ def initiate(initiator,
 			'token': token,
 			'expiration': expiration
 		}
-		
+
 def redeem(secret):
 	digest = hash_data(secret, 'sha3_256')
 	if swaps[rt['sender']][digest]:
@@ -40,11 +40,12 @@ def redeem(secret):
 		token = import_contract(s['token'])
 		token.transfer(rt['sender'], s['amount'])
 
-def refund(secret):
+def refund(participant, secret):
 	digest = hash_data(secret, 'sha3_256')
-	if swaps[rt['sender']][digest]:
-		s = swaps[rt['sender']][digest]
-		assert s['expiration'] < now, 'The swap is expired.'
+	if swaps[participant][digest]:
+		s = swaps[participant][digest]
+		# TODO figure out time
+		# assert s['expiration'] < now, 'The swap is expired.'
 		assert s['initiator'] == rt['sender'], 'Cannot refund. You are not the initiator.'
 
 		token = import_contract(s['token'])

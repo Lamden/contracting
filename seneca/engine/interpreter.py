@@ -50,6 +50,7 @@ class ScopeParser:
                     fn.__globals__['rt']['sender'] = Seneca.loaded['__main__']['__last_sender__']
                 Seneca.loaded['__main__']['__last_sender__'] = contract_name
             fn.__globals__['rt']['contract'] = contract_name
+        BookKeeper.set_info(rt=fn.__globals__['rt'])
         return args, kwargs
 
     def reset_scope(self, fn):
@@ -69,7 +70,6 @@ class Function(ScopeParser):
     def __call__(self, fn):
         def _fn(*args, **kwargs):
             args, kwargs = self.set_scope(fn, args, kwargs)
-            BookKeeper.set_info(rt=fn.__globals__['rt'])
             res = fn(*args, **kwargs)
             self.reset_scope(fn)
             return res
@@ -81,7 +81,6 @@ class Export(ScopeParser):
         self.set_scope_during_compilation(fn)
         def _fn(*args, **kwargs):
             args, kwargs = self.set_scope(fn, args, kwargs)
-            BookKeeper.set_info(rt=fn.__globals__['rt'])
             res = fn(*args, **kwargs)
             self.reset_scope(fn)
             return res
