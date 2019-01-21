@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, main
 from seneca.engine.interface import SenecaInterface
 from decimal import *
 
@@ -41,6 +41,8 @@ class TestImporting(TestCase):
             }
 
     def test_import(self):
+        import os
+        os.environ['IS_IMPORT'] = 'TTTT'
         with SenecaInterface(False, 6379, '', bypass_currency=True) as interface:
             f = interface.execute_function(
                 module_path='seneca.contracts.dynamic_imports.get_token_balance',
@@ -71,3 +73,8 @@ class TestImporting(TestCase):
             )
 
             self.assertEqual(f['output'], 0)
+
+        os.environ['IS_IMPORT'] = ''
+
+if __name__ == '__main__':
+    main()

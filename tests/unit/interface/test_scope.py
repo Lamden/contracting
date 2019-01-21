@@ -41,7 +41,7 @@ from test_contracts.good import one_you_cannot_export
 from test_contracts.reasonable import reasonable_call
 result = reasonable_call()
         """, scope)
-        self.assertEqual(res, 'sender: 123, contract: test_contracts.reasonable')
+        self.assertEqual(res, 'sender: 123, contract: reasonable')
 
     def test_globals_redis(self):
         bk_info = {'sbb_idx': 2, 'contract_idx': 12}
@@ -79,7 +79,7 @@ result = do_that_thing()
         for contract in contracts:
             with open('{}/{}.sen.py'.format(test_contracts_path, contract)) as f:
                 self.si.publish_code_str(contract, AUTHOR, f.read())
-                
+
         with self.assertRaises(AssertionError) as context:
             result = self.si.execute_function('seneca.contracts.reasonable.call_with_args',
                                               AUTHOR, 5, 'it is required', not_required='it is not requried')

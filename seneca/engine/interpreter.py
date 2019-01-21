@@ -49,7 +49,7 @@ class ScopeParser:
                 if Seneca.loaded['__main__'].get('__last_sender__'):
                     fn.__globals__['rt']['sender'] = Seneca.loaded['__main__']['__last_sender__']
                 Seneca.loaded['__main__']['__last_sender__'] = contract_name
-            fn.__globals__['rt']['contract'] = fn.__module__
+            fn.__globals__['rt']['contract'] = contract_name
         return args, kwargs
 
     def reset_scope(self, fn):
