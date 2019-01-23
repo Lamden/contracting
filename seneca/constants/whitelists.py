@@ -106,8 +106,13 @@ _SAFE_NAMES = [
     'round',
     'slice',
     'str',
+    'bytes',
     'tuple',
     'zip',
+
+    # Iteration
+    'map',
+    'list',
 
     # JUST FOR TESTING! TODO remove this irl
     'dir',

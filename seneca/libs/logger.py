@@ -25,10 +25,14 @@ def get_main_log_path():
 
     # Create log directory if it does not exist
     log_dir = os.path.dirname(log_path)
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    try:
+        if not os.path.isdir(log_dir):
+            os.makedirs(log_dir)
+    except Exception as e:
+        print("Possible error creating log file: {}".format(e))
 
     return log_path
+
 
 format = '%(asctime)s.%(msecs)03d %(name)s[%(process)d][%(processName)s] <{}> %(levelname)-2s %(message)s'.format(os.getenv('HOST_NAME', 'Node'))
 
@@ -129,14 +133,17 @@ class MockLogger:
 
 
 def get_logger(name=''):
-    if _LOG_LVL == 0:
+    if _LOG_LVL < 0:
         return MockLogger()
 
     filedir = "logs/{}".format(os.getenv('TEST_NAME', 'test'))
     filename = "{}/{}.log".format(filedir, os.getenv('HOST_NAME', name))
 
-    if not os.path.exists(filedir):
-        os.makedirs(filedir, exist_ok=True)
+    try:
+        if not os.path.isdir(filedir):
+            os.makedirs(filedir, exist_ok=True)
+    except Exception as e:
+        print("Possible error creating log file: {}".format(e))
 
     filehandlers = [
         logging.FileHandler(get_main_log_path(), delay=True),
@@ -153,8 +160,9 @@ def get_logger(name=''):
     log = logging.getLogger(name)
     log.setLevel(_LOG_LVL)
 
-    sys.stdout = LoggerWriter(log.debug)
-    sys.stderr = LoggerWriter(log.error)
+    if os.getenv('HOST_IP'):
+        sys.stdout = LoggerWriter(log.debug)
+        sys.stderr = LoggerWriter(log.error)
 
     for log_name, log_level in CUSTOM_LEVELS.items():
         apply_custom_level(log, log_name, log_level)

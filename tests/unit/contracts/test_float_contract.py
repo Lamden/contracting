@@ -16,12 +16,12 @@ MINT_WALLETS = {
 }
 
 
-class TestSenecaClient(TestCase):
-    CONTRACTS_TO_STORE = {'decimal_test': 'decimal_test.sen.py'}
+class TestStuCannotNameTestsIfHisLifeDependedOnIt(TestCase):
+    CONTRACTS_TO_STORE = {'decimal_test': 'decimal_test.sen.py', 'currency': 'currency.sen.py'}
 
     def setUp(self):
         # overwrite_logger_level(0)
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             interface.r.flushall()
             # Store all smart contracts in CONTRACTS_TO_STORE
             import seneca
@@ -39,7 +39,7 @@ class TestSenecaClient(TestCase):
             }
 
     def test_store_float(self):
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             interface.execute_function(
                 module_path='seneca.contracts.decimal_test.store_float',
                 sender=GENESIS_AUTHOR,
@@ -58,7 +58,7 @@ class TestSenecaClient(TestCase):
         self.assertEqual(f['output'], Decimal('0.01'))
 
     def test_add_floats(self):
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             interface.execute_function(
                 module_path='seneca.contracts.decimal_test.store_float',
                 sender=GENESIS_AUTHOR,
@@ -86,7 +86,7 @@ class TestSenecaClient(TestCase):
         self.assertEqual(f['output'], Decimal('3.3'))
 
     def test_divide_float(self):
-        with SenecaInterface(False) as interface:
+        with SenecaInterface(False, bypass_currency=True) as interface:
             interface.execute_function(
                 module_path='seneca.contracts.decimal_test.store_float',
                 sender=GENESIS_AUTHOR,
