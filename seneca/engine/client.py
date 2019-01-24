@@ -20,7 +20,7 @@ class Macros:
     CONFLICT_RESOLUTION = '_conflict_resolution_phase'
     RESET = "_reset_phase"
 
-    ALL_MACROS = [EXECUTION, CONFLICT_RESOLUTION]
+    ALL_MACROS = [EXECUTION, CONFLICT_RESOLUTION, RESET]
 
 
 class Phase:
@@ -39,6 +39,11 @@ class Phase:
         if not db.exists(key):
             return 0
         return int(db.get(key).decode())
+
+    @staticmethod
+    def reset_keys(db):
+        for key in Macros.ALL_MACROS:
+            db.delete(key)
 
 
 class SenecaClient(SenecaInterface):
@@ -82,6 +87,7 @@ class SenecaClient(SenecaInterface):
         self.master_db = redis.StrictRedis(host='localhost', port=self.port, db=MASTER_DB, password=self.password)
         for db_num in range(self.max_number_workers):
             db_client = redis.StrictRedis(host='localhost', port=self.port, db=db_num+DB_OFFSET, password=self.password)
+            Phase.reset_keys(db_client)
             cr_data = CRContext(working_db=db_client, master_db=self.master_db, sbb_idx=self.sbb_idx)
             self.available_dbs.append(cr_data)
 
