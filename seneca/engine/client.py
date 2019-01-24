@@ -456,10 +456,10 @@ class SenecaClient(SenecaInterface):
             elapsed += Phase.POLL_INTERVAL
 
             if elapsed >= timeout:
-                err_msg = "Client with sbb_idx {} exceeded timeout of {} waiting for phase key {} to reach {}! " \
-                          "Current conflict resolution phase value: {}" \
-                    .format(self.sbb_idx, elapsed, key, value,
-                            Phase.get(db, key))
+                err_msg = "Client with sbb_idx {} exceeded timeout of {} waiting for phase key {} to reach {}!\n" \
+                          "Current {} value: {}\nDB Number: {}" \
+                          .format(self.sbb_idx, elapsed, key, value, key, Phase.get(db, key),
+                                  db.connection_pool.connection_kwargs['db'])
                 self.log.fatal(err_msg)
                 raise Exception(err_msg)
 
