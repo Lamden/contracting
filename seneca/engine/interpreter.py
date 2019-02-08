@@ -7,8 +7,6 @@ import seneca, os, sys
 from os.path import join
 from seneca.engine.book_keeper import BookKeeper
 
-sys.setrecursionlimit(RECURSION_LIMIT)
-
 class ReadOnlyException(Exception):
     pass
 
