@@ -1,4 +1,4 @@
-import random, seneca
+import random, seneca, resource, sys
 from os import getenv as env
 from dotenv import load_dotenv
 
@@ -39,3 +39,5 @@ NUM_CACHES = 2
 
 # Number of sb's to queue up if we run out of caches
 MAX_SB_QUEUE_SIZE = 8
+MEMORY_LIMIT = 32768 # 32kb
+RECURSION_LIMIT = 1024
