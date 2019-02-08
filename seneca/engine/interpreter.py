@@ -1,11 +1,13 @@
 import redis, ast, marshal, array, copy, inspect, types, uuid, copy, ujson as json, sys, time
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
-from seneca.constants.config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET, CODE_OBJ_MAX_CACHE
+from seneca.constants.config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET, CODE_OBJ_MAX_CACHE, MEMORY_LIMIT, RECURSION_LIMIT
 from functools import lru_cache
 from seneca.libs.metering.tracer import Tracer
-import seneca, os
+import seneca, os, sys
 from os.path import join
 from seneca.engine.book_keeper import BookKeeper
+
+sys.setrecursionlimit(RECURSION_LIMIT)
 
 class ReadOnlyException(Exception):
     pass
@@ -34,11 +36,10 @@ class Seneca:
 
     basic_scope = {}
 
-
 class ScopeParser:
     def set_scope(self, fn, args, kwargs):
         fn.__globals__.update(Seneca.loaded['__main__'])
-        contract_name = fn.__module__.rsplit('.')[-1]
+        contract_name = fn.__module__.rsplit('.')[-1] if fn.__module__ else fn.__globals__['rt']['contract']
         Seneca.callstack.append(contract_name)
         if fn.__globals__.get('__use_locals__') == '{}.{}'.format(contract_name, fn.__name__):
             if fn.__globals__.get('__args__'): args = fn.__globals__['__args__']

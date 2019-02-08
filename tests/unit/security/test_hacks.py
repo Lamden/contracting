@@ -9,6 +9,13 @@ test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
 class TestHacks(TestInterface):
 
+    def test_forbidden_import(self):
+        with self.assertRaises(ImportError) as context:
+            self.si.execute_code_str("""
+import sys
+            """)
+
+
     def test_modify_imports(self):
         with self.assertRaises(ReadOnlyException) as context:
             self.si.execute_code_str("""
@@ -58,15 +65,40 @@ __tracer__.set_stamp(1000)
 __import__('sys')
             """)
 
+# No memory limit for now
+#     def test_overflow(self):
+#         with self.assertRaises(ValueError) as context:
+#             self.si.execute_code_str("""
+# obj = {}
+# for i in range(int(1000000)):
+#     obj[i*int(10000000)] = i*int(10000000)
+#             """)
+#             print('passed through')
+#         with self.assertRaises(ValueError) as context:
+#             self.si.execute_code_str("""
+# obj = {}
+# for i in range(int(1000000)):
+#     obj[i*int(10000000)] = i*int(10000000)
+#             """)
+
+    def test_recursion(self):
+        with self.assertRaises(RecursionError) as context:
+            self.si.execute_code_str("""
+def recurse():
+    return recurse()
+recurse()
+            """)
+
+
 if __name__ == '__main__':
-    print('#' * 128)
-    print('Listing attributes assesible in each built-in values:')
-    print('#' * 128)
-    from seneca.constants.whitelists import _SAFE_NAMES
-    for name in _SAFE_NAMES:
-        v = eval(name)
-        print('{}:\n\t{}'.format(
-            v,
-            [k for k in dir(v) if not k.startswith('__')],
-        ))
+    # print('#' * 128)
+    # print('Listing attributes assesible in each built-in values:')
+    # print('#' * 128)
+    # from seneca.constants.whitelists import _SAFE_NAMES
+    # for name in _SAFE_NAMES:
+    #     v = eval(name)
+    #     print('{}:\n\t{}'.format(
+    #         v,
+    #         [k for k in dir(v) if not k.startswith('__')],
+    #     ))
     unittest.main()

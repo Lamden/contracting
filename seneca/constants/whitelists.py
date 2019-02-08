@@ -115,8 +115,8 @@ _SAFE_NAMES = [
     'list',
 
     # JUST FOR TESTING! TODO remove this irl
-    'dir',
-    'help',
+    # 'dir',
+    # 'help',
     'print',
     # 'globals'
 ]
