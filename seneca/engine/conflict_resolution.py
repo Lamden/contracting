@@ -9,8 +9,7 @@ from typing import List
 
 # TODO this assumes stamps_to_tau will never change. We need more intricate logic to handle the case where it does...
 STAMPS_KEY = 'currency:balances:black_hole'
-CR_EXCLUDED_KEYS = ['currency:market:stamps_to_tau', STAMPS_KEY]
-
+CR_EXCLUDED_KEYS = ['currency:xrate:TAU_STP', STAMPS_KEY]
 
 
 class CRDataMeta(type):
@@ -431,7 +430,7 @@ class CRContext:
         return self.cr_data[item]
 
     def __repr__(self):
-        return "<CRContext(input_hash={} .., num_contracts={}, working_db_num={})>".format(
+        return "<CRContext(input_hash={} .., contracts run so far={}, working db num={})>".format(
             self.input_hash[:16], len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
 
 

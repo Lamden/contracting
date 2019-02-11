@@ -232,9 +232,8 @@ class SenecaClient(SenecaInterface):
             BookKeeper.set_cr_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data, rt={
                 'contract': contract.contract_name
             })
-            # TODO not this pls
-            if hasattr(contract, 'contract_code'):
 
+            if hasattr(contract, 'contract_code'):  # TODO not this pls
                 author = contract.sender
                 self.publish_code_str(fullname=contract.contract_name, author=author,
                                       code_str=contract.contract_code)
@@ -311,7 +310,7 @@ class SenecaClient(SenecaInterface):
         return True
 
     def _execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
-        self.log.info(">>> Executing sub block for input hash {} >>>".format(input_hash))
+        self.log.info(">>> Executing sub block for input hash {} with {} txs >>>".format(input_hash, len(contracts)))
 
         self._start_sb(input_hash)
         for c in contracts:
@@ -324,9 +323,9 @@ class SenecaClient(SenecaInterface):
         assert self._can_start_next_sb(), "Attempted to start a new sub block, but cannot start next sb!!! Dev error!"
 
         self.active_db = self.available_dbs.popleft()
-        self.active_db.assert_reset()  # Dev checks, make sure the CRContext has been properly reset_db
         self.active_db.input_hash = input_hash
         self.log.important("Starting sb with CRData {}".format(self.active_db))
+        self.active_db.assert_reset()  # Dev checks, make sure the CRContext has been properly reset_db
 
     def _end_sb(self, completion_handler: Callable[[CRContext], None]):
         """
