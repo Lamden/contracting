@@ -49,10 +49,6 @@ ALLOWED_AST_TYPES = {
     ast.Starred,
     ast.Mod,
     ast.NotEq,
-    # TODO: Decide if we actually want these
-    # Error handling
-    # ast.ExceptHandler,
-    # ast.Try,
     # Loops
     ast.For,
     ast.While,
@@ -66,6 +62,11 @@ ALLOWED_AST_TYPES = {
     ast.And,
     ast.Or,
     ast.Mult,
+
+    # TODO: Decide if we actually want these
+    # Error handling
+    # ast.ExceptHandler,
+    # ast.Try,
 }
 
 SENECA_LIBRARY_PATH = 'seneca.libs'

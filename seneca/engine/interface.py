@@ -3,6 +3,7 @@ from seneca.engine.module import SenecaFinder, RedisFinder
 from seneca.engine.interpreter import SenecaInterpreter, Seneca
 import inspect
 import autopep8
+from seneca.constants.config import *
 
 
 class SenecaInterface(SenecaInterpreter):
@@ -45,6 +46,10 @@ class SenecaInterface(SenecaInterpreter):
         return final_code
 
     def compile_code(self, code_str, scope={}, no_seed=False):
+        code_str = '''
+from seneca.libs.resource import set_resource_limits
+set_resource_limits()
+''' + code_str
         tree, code, prevalidated = self.parse_ast(code_str, protected_variables=list(scope.keys()))
         prevalidated_obj = compile(prevalidated, filename='__main__', mode="exec")
         self.execute(prevalidated_obj, scope)
