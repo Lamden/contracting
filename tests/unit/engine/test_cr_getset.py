@@ -31,7 +31,9 @@ class TestCRGetSet(TestCase):
                             data=data)
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
-        return CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
+        cr = CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
+        cr.locked = False
+        return cr
 
     def _new_get(self, sbb_idx=0, contract_idx=0, finalize=False):
         return self._new_getset(should_set=False, sbb_idx=0, contract_idx=contract_idx, finalize=finalize)
