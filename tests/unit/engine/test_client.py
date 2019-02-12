@@ -7,7 +7,7 @@ from seneca.engine.interpreter import SenecaInterpreter
 from seneca.libs.logger import overwrite_logger_level, get_logger
 from decimal import Decimal
 from collections import OrderedDict, defaultdict
-import random, uuid
+import random, uuid, os
 
 
 log = get_logger("TestSenecaClient")
@@ -683,6 +683,48 @@ class TestSenecaClient(TestCase):
         coros = (client1.pending_futures[input_hash3]['fut'], client2.pending_futures[input_hash4]['fut'])
         loop.run_until_complete(asyncio.gather(*coros))
 
+        loop.close()
+
+    @mock.patch("seneca.engine.client.NUM_CACHES", 2)
+    def test_publish_tx_then_use_that_tx_with_one_sb_builder(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.bypass_currency = True
+
+        contract_name = 'stubucks'
+        input_hash1 = '1' * 64
+        input_hash2 = '2' * 64
+        input_hash3 = '3' * 64
+        input_hash4 = '4' * 64
+
+        with open(os.path.dirname(__file__) + '/' + 'stubucks.txt', 'r') as f:
+            code = f.read()
+
+        # print("got contract code {}".format(code))
+        publish_tx = MockPublishTransaction(sender=MINT_WALLETS['stu'], contract_name=contract_name, contract_code=code)
+        transfer_tx = MockContractTransaction(sender='435e3264395e24eb37a0eb6c322421e701dc332db45536d25eac67924b9321aa',
+                                              contract_name=contract_name, func_name='transfer', to=MINT_WALLETS['birb'], amount=1)
+
+        tx1_set = self._gen_random_contracts(num=7) + [publish_tx]
+        tx2_set = self._gen_random_contracts(num=7) + [transfer_tx]
+        tx3_set = []
+        tx4_set = self._gen_random_contracts(num=10)
+
+        client.execute_sb(input_hash1, contracts=tx1_set, completion_handler=self.assert_completion(None, input_hash1, merge_master=True, client=client))
+        client.execute_sb(input_hash2, contracts=tx2_set, completion_handler=self.assert_completion(None, input_hash2, merge_master=True, client=client))
+        client.execute_sb(input_hash3, contracts=tx3_set, completion_handler=self.assert_completion(None, input_hash3, merge_master=True, client=client))
+        client.execute_sb(input_hash4, contracts=tx4_set, completion_handler=self.assert_completion(None, input_hash4, merge_master=True, client=client))
+
+        coros = self._get_futures(OrderedDict({input_hash1: client, input_hash2: client, input_hash3: client, input_hash4: client}))
+        loop.run_until_complete(asyncio.gather(*coros))
+
+        async def _wait_for_things_to_finish():
+            log.notice("Tester waiting for things to finish")
+            await asyncio.sleep(1)
+            log.notice("Tester done waiting")
+
+        loop.run_until_complete(_wait_for_things_to_finish())
         loop.close()
 
     # Test with multiple sb's where stuff in SB 2 will pass the first time and fail the second time (cause some og read was modified)

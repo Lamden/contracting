@@ -9,8 +9,7 @@ from typing import List
 
 # TODO this assumes stamps_to_tau will never change. We need more intricate logic to handle the case where it does...
 STAMPS_KEY = 'currency:balances:black_hole'
-CR_EXCLUDED_KEYS = ['currency:market:stamps_to_tau', STAMPS_KEY]
-
+CR_EXCLUDED_KEYS = ['currency:xrate:TAU_STP', STAMPS_KEY]
 
 
 class CRDataMeta(type):
@@ -277,6 +276,11 @@ class CRContext:
         self.input_hash = None  # Input hash should be set by SenecaClient once a new sub block is started
         self.merged_to_common = False
 
+        # 'locked' is a debug flag to detect with CR data is being written to when it shouldnt be. If locked, no
+        # acceses to underlying self.cr_data is expected. We lock the CRContext when we put it in available_dbs,
+        # and unlock it when we put it in pending_dbs or active_dbs
+        self.locked = True
+
     @property
     def next_contract_idx(self):
         assert len(self.contracts) == len(self.run_results), "Oh dear...a logic error is present"  # TODO remove
@@ -328,6 +332,10 @@ class CRContext:
 
     def assert_reset(self):
         """ Assert this object has been reset_db properly. For dev purposes. """
+
+        old_locked_val = self.locked
+        self.locked = False
+
         err = "\nContracts: {}\nRun Results: {}\nReads: {}\nWrites: {}\nOutputs: {}\nRedo Log: {}\nInput hash: {}\n" \
             .format(self.contracts, self.run_results, self['getset'].reads, self['getset'].writes,
                     self['getset'].outputs, self['getset'].redo_log, self.input_hash)
@@ -338,7 +346,9 @@ class CRContext:
         assert len(self['getset'].outputs) == 0, err
         assert len(self['getset'].redo_log) == 0, err
         assert not self.merged_to_common
-        assert self.input_hash is None
+        assert self.input_hash is None, "Input hash not reset. (self.input_hash={})".format(self.input_hash)
+
+        self.locked = old_locked_val
 
     def get_state_for_idx(self, contract_idx: int) -> str:
         """
@@ -428,10 +438,13 @@ class CRContext:
     def __getitem__(self, item):
         assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}" \
             .format(item, list(self.cr_data.keys()))
+        if self.locked:
+            raise Exception("CRData attempted to be accessed while it was locked!! Interpreter layer is likely being "
+                            "bad")
         return self.cr_data[item]
 
     def __repr__(self):
-        return "<CRContext(input_hash={} .., num_contracts={}, working_db_num={})>".format(
+        return "<CRContext(input_hash={} .., contracts run so far={}, working db num={})>".format(
             self.input_hash[:16], len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
 
 

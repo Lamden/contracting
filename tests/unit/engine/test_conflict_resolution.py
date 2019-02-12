@@ -28,7 +28,9 @@ class TestConflictResolution(TestCase):
         self.r = RedisProxy(sbb_idx=sbb_idx, contract_idx=contract_idx, data=data)
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
-        return CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
+        cr = CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
+        cr.locked = False
+        return cr
 
     def test_all_keys_and_values_for_basic_set_get(self):
         KEY1, VAL1 = 'k1', b'v1'

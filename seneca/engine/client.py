@@ -228,13 +228,13 @@ class SenecaClient(SenecaInterface):
             "Data {} is not active db {} or next pending db {}".format(data, self.active_db, self.pending_dbs[0])
 
         try:
-            # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
             BookKeeper.set_cr_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data, rt={
                 'contract': contract.contract_name
             })
-            # TODO not this pls
-            if hasattr(contract, 'contract_code'):
+            data.locked = False
 
+            # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
+            if hasattr(contract, 'contract_code'):  # TODO not this pls
                 author = contract.sender
                 self.publish_code_str(fullname=contract.contract_name, author=author,
                                       code_str=contract.contract_code)
@@ -255,6 +255,9 @@ class SenecaClient(SenecaInterface):
             self.log.warning("Contract failed with error:\n{} \ncontract obj: {}".format(traceback.format_exc(), contract))
             result = 'FAIL' + ' -- ' + str(e)
             data.rollback_contract(contract_idx)
+
+        finally:
+            data.locked = True
 
         return result
 
@@ -311,7 +314,7 @@ class SenecaClient(SenecaInterface):
         return True
 
     def _execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
-        self.log.info(">>> Executing sub block for input hash {} >>>".format(input_hash))
+        self.log.info(">>> Executing sub block for input hash {} with {} txs >>>".format(input_hash, len(contracts)))
 
         self._start_sb(input_hash)
         for c in contracts:
@@ -325,6 +328,7 @@ class SenecaClient(SenecaInterface):
 
         self.active_db = self.available_dbs.popleft()
         self.active_db.assert_reset()  # Dev checks, make sure the CRContext has been properly reset_db
+
         self.active_db.input_hash = input_hash
         self.log.important("Starting sb with CRData {}".format(self.active_db))
 
