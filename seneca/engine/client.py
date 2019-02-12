@@ -323,9 +323,10 @@ class SenecaClient(SenecaInterface):
         assert self._can_start_next_sb(), "Attempted to start a new sub block, but cannot start next sb!!! Dev error!"
 
         self.active_db = self.available_dbs.popleft()
+        self.active_db.assert_reset()  # Dev checks, make sure the CRContext has been properly reset_db
+
         self.active_db.input_hash = input_hash
         self.log.important("Starting sb with CRData {}".format(self.active_db))
-        self.active_db.assert_reset()  # Dev checks, make sure the CRContext has been properly reset_db
 
     def _end_sb(self, completion_handler: Callable[[CRContext], None]):
         """

@@ -685,7 +685,7 @@ class TestSenecaClient(TestCase):
 
         loop.close()
 
-    @mock.patch("seneca.engine.client.NUM_CACHES", 1)
+    @mock.patch("seneca.engine.client.NUM_CACHES", 2)
     def test_publish_tx_then_use_that_tx_with_one_sb_builder(self):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -706,8 +706,8 @@ class TestSenecaClient(TestCase):
         transfer_tx = MockContractTransaction(sender='435e3264395e24eb37a0eb6c322421e701dc332db45536d25eac67924b9321aa',
                                               contract_name=contract_name, func_name='transfer', to=MINT_WALLETS['birb'], amount=1)
 
-        tx1_set = self._gen_random_contracts(num=1) + [publish_tx] + self._gen_random_contracts(num=3)
-        tx2_set = self._gen_random_contracts(num=2) + [transfer_tx] + self._gen_random_contracts(num=4)
+        tx1_set = self._gen_random_contracts(num=7) + [publish_tx]
+        tx2_set = self._gen_random_contracts(num=7) + [transfer_tx]
         tx3_set = []
         tx4_set = self._gen_random_contracts(num=10)
 

@@ -337,7 +337,7 @@ class CRContext:
         assert len(self['getset'].outputs) == 0, err
         assert len(self['getset'].redo_log) == 0, err
         assert not self.merged_to_common
-        assert self.input_hash is None
+        assert self.input_hash is None, "Input hash not reset. (self.input_hash={})".format(self.input_hash)
 
     def get_state_for_idx(self, contract_idx: int) -> str:
         """
