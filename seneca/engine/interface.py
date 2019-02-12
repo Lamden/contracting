@@ -3,6 +3,7 @@ from seneca.engine.module import SenecaFinder, RedisFinder
 from seneca.engine.interpreter import SenecaInterpreter, Seneca
 import inspect
 import autopep8
+from seneca.constants.config import *
 
 
 class SenecaInterface(SenecaInterpreter):
