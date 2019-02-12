@@ -10,7 +10,7 @@ class TestResetDB(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.si = SenecaInterface(False)
+        cls.si = SenecaInterface(False, port=get_redis_port(), password=get_redis_password())
         cls.si.bypass_currency = True
         cls.si.r.flushall()
 
