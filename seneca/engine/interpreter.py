@@ -204,13 +204,8 @@ class SenecaNodeTransformer(ast.NodeTransformer):
 
 
 class SenecaInterpreter:
-    def __init__(self, concurrent_mode=True, port=None, password=None, bypass_currency=False):
-        self.r = redis.StrictRedis(host='localhost',
-                                  port=get_redis_port(port=port),
-                                  db=MASTER_DB,
-                                  password=get_redis_password(password=password)
-                                  )
-
+    def __init__(self, concurrent_mode=True, bypass_currency=False, *args, **kwargs):
+        self.r = redis.StrictRedis(host='localhost', db=MASTER_DB)
         self.bypass_currency = bypass_currency
         self.setup_tracer()
         Seneca.concurrent_mode = concurrent_mode
