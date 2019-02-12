@@ -31,7 +31,6 @@ class SenecaFinder(MetaPathFinder):
                     submodule_locations = None
                 else:
                     continue
-
             return spec_from_file_location(fullname, filename, loader=SenecaLoader(filename),
                                            submodule_search_locations=submodule_locations)
 
