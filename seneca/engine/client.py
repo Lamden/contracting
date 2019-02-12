@@ -228,11 +228,12 @@ class SenecaClient(SenecaInterface):
             "Data {} is not active db {} or next pending db {}".format(data, self.active_db, self.pending_dbs[0])
 
         try:
-            # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
             BookKeeper.set_cr_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data, rt={
                 'contract': contract.contract_name
             })
+            data.locked = False
 
+            # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
             if hasattr(contract, 'contract_code'):  # TODO not this pls
                 author = contract.sender
                 self.publish_code_str(fullname=contract.contract_name, author=author,
@@ -254,6 +255,9 @@ class SenecaClient(SenecaInterface):
             self.log.warning("Contract failed with error:\n{} \ncontract obj: {}".format(traceback.format_exc(), contract))
             result = 'FAIL' + ' -- ' + str(e)
             data.rollback_contract(contract_idx)
+
+        finally:
+            data.locked = True
 
         return result
 
