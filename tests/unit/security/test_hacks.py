@@ -4,6 +4,7 @@ from seneca.engine.interpreter import SenecaInterpreter, ReadOnlyException, Comp
 from os.path import join
 from tests.utils import captured_output, TestInterface
 import redis, unittest, seneca
+from unittest.mock import MagicMock, patch
 
 test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
@@ -14,7 +15,6 @@ class TestHacks(TestInterface):
             self.si.execute_code_str("""
 import sys
             """)
-
 
     def test_modify_imports(self):
         with self.assertRaises(ReadOnlyException) as context:
@@ -65,22 +65,6 @@ __tracer__.set_stamp(1000)
 __import__('sys')
             """)
 
-# No memory limit for now
-#     def test_overflow(self):
-#         with self.assertRaises(ValueError) as context:
-#             self.si.execute_code_str("""
-# obj = {}
-# for i in range(int(1000000)):
-#     obj[i*int(10000000)] = i*int(10000000)
-#             """)
-#             print('passed through')
-#         with self.assertRaises(ValueError) as context:
-#             self.si.execute_code_str("""
-# obj = {}
-# for i in range(int(1000000)):
-#     obj[i*int(10000000)] = i*int(10000000)
-#             """)
-
     def test_recursion(self):
         with self.assertRaises(RecursionError) as context:
             self.si.execute_code_str("""
@@ -88,6 +72,31 @@ def recurse():
     return recurse()
 recurse()
             """)
+
+#     def test_overflow(self):
+#         with self.assertRaises(ValueError) as context:
+#             self.si.execute_code_str("""
+# obj = {}
+# for i in range(int(1000000)):
+#     obj[i*int(10000000)] = i*int(10000000)
+#             """)
+#         print('passed through 1st time')
+#         with self.assertRaises(ValueError) as context:
+#             self.si.execute_code_str("""
+# obj = {}
+# for i in range(int(1000000)):
+#     obj[i*int(10000000)] = i*int(10000000)
+#             """)
+#         print('passed through 2nd time')
+#
+#
+#     @patch("seneca.constants.config.CPU_TIME_LIMIT", 3)
+#     def test_run_time(self):
+#         with self.assertRaises(Exception) as context:
+#             self.si.execute_code_str("""
+# for i in range(int(100000000)):
+#     a = 1
+#             """)
 
 
 if __name__ == '__main__':

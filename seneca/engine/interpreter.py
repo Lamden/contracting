@@ -3,11 +3,9 @@ from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS,
 from seneca.constants.config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET, CODE_OBJ_MAX_CACHE, MEMORY_LIMIT, RECURSION_LIMIT
 from functools import lru_cache
 from seneca.libs.metering.tracer import Tracer
-import seneca, os, sys
+import seneca, os
 from os.path import join
 from seneca.engine.book_keeper import BookKeeper
-
-sys.setrecursionlimit(RECURSION_LIMIT)
 
 class ReadOnlyException(Exception):
     pass
