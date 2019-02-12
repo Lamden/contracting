@@ -7,7 +7,7 @@ from seneca.engine.interpreter import SenecaInterpreter
 from seneca.libs.logger import overwrite_logger_level, get_logger
 from decimal import Decimal
 from collections import OrderedDict, defaultdict
-import random, uuid
+import random, uuid, os
 
 
 log = get_logger("TestSenecaClient")
@@ -698,7 +698,7 @@ class TestSenecaClient(TestCase):
         input_hash3 = '3' * 64
         input_hash4 = '4' * 64
 
-        with open('stubucks.txt', 'r') as f:
+        with open(os.path.dirname(__file__) + '/' + 'stubucks.txt', 'r') as f:
             code = f.read()
 
         # print("got contract code {}".format(code))
