@@ -16,6 +16,7 @@ class CompilationException(Exception):
 
 
 class Seneca:
+    
     current_ast_types = None
     prevalidated = None
     postvalidated = None
@@ -391,11 +392,9 @@ result = {}()
         contract_scope['rt']['contract'] = contract_name
 
         contract_scope.update({'__use_locals__': '.'.join(module_path.split('.')[-2:])})
-
         if not self.bypass_currency:
             self.tracer.set_stamp(stamps)
             self.tracer.start()
-
             try:
                 exec(fn_call_obj, contract_scope)  # Actually execute the function
             except Exception as e:

@@ -46,12 +46,13 @@ def transfer(to, amount):
     balances[rt['sender']] -= amount
     balances[to] += amount
     sender_balance = balances[rt['sender']]
-
-    assert sender_balance >= 0, "Sender balance must be non-negative!!!"
+    if sender_balance < 0:
+        assert rt['origin'] == rt['sender'], 'Contract "{}" trying to initiate unauthorized transfer to "{}"'.format(rt['sender'], to)
+        assert None, "Sender balance must be non-negative!!!"
 
 @export
 def approve(spender, amount):
-    allowed[rt['sender']][spender] = amount
+    allowed[rt['origin']][spender] = amount
 
 @export
 def transfer_from(_from, to, amount):
