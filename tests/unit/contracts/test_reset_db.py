@@ -142,7 +142,7 @@ def ls_mones():
             self.si.publish_code_str('currency', AUTHOR, f.read())
         self.si.execute_function('seneca.contracts.currency.mint', AUTHOR, 0, to='birb', amount=10000000)
         self.si.publish_code_str('rad_name', AUTHOR, self.code_str)
-
+        self.si.execute_function('seneca.contracts.rad_name.ad_mones', 'birb', 10000)
 
     def test_2_republish_in_between_runs(self):
         self.si.r.flushall()
