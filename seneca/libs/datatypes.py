@@ -3,7 +3,7 @@ import ujson as json
 from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
 from seneca.libs.logger import get_logger
 from seneca.engine.book_keeper import BookKeeper
-from seneca.engine.interpreter import SenecaInterpreter, Seneca
+from seneca.engine.interpret.parser import Parser
 from seneca.engine.conflict_resolution import RedisProxy
 from decimal import Decimal
 from seneca.libs.decimal import make_decimal
@@ -323,12 +323,13 @@ def vivify(prefix, t, delim):
 class RObject:
 
     def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj'):
-
-        self.driver = Seneca.interface.r
+        if not Parser.parser_scope.get('rt'):
+            return
+        self.driver = Parser.executor.r
         self.delimiter = delimiter
-        self.contract_id = Seneca.loaded['__main__']['rt']['contract'].rsplit('.', 1)[-1]
+        self.contract_id = Parser.parser_scope['rt']['contract'].rsplit('.', 1)[-1]
         self.prefix = '{}{}{}'.format(self.contract_id, delimiter, prefix)
-        self.concurrent_mode = Seneca.concurrent_mode
+        self.concurrent_mode = Parser.executor.concurrency
         self.key_type = key_type
 
         #self.driver = driver

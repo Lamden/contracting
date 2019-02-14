@@ -3,7 +3,8 @@ from contextlib import contextmanager
 from io import StringIO
 from unittest import TestCase
 from seneca.engine.interface import SenecaInterface
-from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
+from seneca.constants.config import get_redis_port, MASTER_DB, REDIS_PORT, get_redis_password
+from seneca.engine.interpret.executor import Executor
 
 def recur_fibo(n):
     if n <= 1:
@@ -27,6 +28,19 @@ class TestInterface(TestCase):
     def setUp(self):
         self.si = SenecaInterface(False, port=get_redis_port(), password=get_redis_password())
         self.si.r.flushall()
+        print('\n{}'.format('#' * 128))
+        print(self.id)
+        print('{}\n'.format('#' * 128))
+
+class TestExecutor(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.r = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
+        cls.r.flushall()
+        cls.ex = Executor(currency=False, concurrency=False)
+
+    def setUp(self):
         print('\n{}'.format('#' * 128))
         print(self.id)
         print('{}\n'.format('#' * 128))

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 
 def load_env():
-    load_dotenv(dotenv_path='{}/../docker/redis.env'.format(path), override=True)
+    load_dotenv(dotenv_path='{}/../docker/redis.env'.format(SENECA_PATH), override=True)
 
 
 def get_redis_port(port=None):
@@ -26,9 +26,11 @@ def get_redis_password(password=None):
 
     return env('REDIS_PASSWORD', '')
 
-path = seneca.__path__[0]
+SENECA_PATH = seneca.__path__[0]
+SENECA_SC_PATH = 'seneca.contracts'
 load_env()
 
+REDIS_PORT = 6379
 MASTER_DB = 0
 DB_OFFSET = 1
 CODE_OBJ_MAX_CACHE = 64
