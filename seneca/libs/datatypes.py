@@ -323,11 +323,10 @@ def vivify(prefix, t, delim):
 class RObject:
 
     def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj'):
-        if not Parser.parser_scope.get('rt'):
-            return
+        # if not Parser.executor: return
         self.driver = Parser.executor.r
         self.delimiter = delimiter
-        self.contract_id = Parser.parser_scope['rt']['contract'].rsplit('.', 1)[-1]
+        self.contract_id = Parser.parser_scope['rt']['contract']
         self.prefix = '{}{}{}'.format(self.contract_id, delimiter, prefix)
         self.concurrent_mode = Parser.executor.concurrency
         self.key_type = key_type
@@ -352,18 +351,18 @@ class RObject:
             info = BookKeeper.get_cr_info()
             self.driver = RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
 
-    def __getattribute__(self, attr):
-        if callable(object.__getattribute__(self, attr)):
-            if BookKeeper.has_info():
-                info = BookKeeper.get_info()
-                contract_id = info['rt']['contract'].rsplit('.', 1)[-1]
-                if len(Seneca.callstack) > 0:
-                    if Seneca.callstack[-1] == info['rt'].get('sender'):
-                        contract_id = Seneca.callstack[-1]
-                if contract_id != 'dynamic_imports':
-                    self.contract_id = contract_id
-                self.prefix = '{}{}{}'.format(self.contract_id, self.delimiter, self.prefix.split(':', 1)[1])
-        return object.__getattribute__(self, attr)
+    # def __getattribute__(self, attr):
+    #     if callable(object.__getattribute__(self, attr)):
+    #         if BookKeeper.has_info():
+    #             info = BookKeeper.get_info()
+    #             contract_id = info['rt']['contract'].rsplit('.', 1)[-1]
+    #             if len(Seneca.callstack) > 0:
+    #                 if Seneca.callstack[-1] == info['rt'].get('sender'):
+    #                     contract_id = Seneca.callstack[-1]
+    #             if contract_id != 'dynamic_imports':
+    #                 self.contract_id = contract_id
+    #             self.prefix = '{}{}{}'.format(self.contract_id, self.delimiter, self.prefix.split(':', 1)[1])
+    #     return object.__getattribute__(self, attr)
 
     def encode_value(self, value, explicit=False):
         v = None

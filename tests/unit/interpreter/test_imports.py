@@ -1,4 +1,4 @@
-from seneca.engine.interpreter import CompilationException
+from seneca.engine.interpret.utils import CompilationException, ReadOnlyException
 from tests.utils import captured_output, TestExecutor
 import redis, unittest, seneca
 
@@ -40,13 +40,11 @@ import json
             and other such libraries. Only ones from the whitelist
         """
 
-        with captured_output() as (out, err):
-            with self.assertRaises(ImportError) as context:
-                self.ex.execute_code_str("""
+        with self.assertRaises(ImportError) as context:
+            self.ex.execute_code_str("""
 from test_contracts.good import balances
 print('Hacked', balances) # Should not print this!
-                """)
-            self.assertEqual(out.getvalue().strip(), '')
+            """)
 
     def test_import_star(self):
         """

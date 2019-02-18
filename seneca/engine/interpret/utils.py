@@ -12,16 +12,15 @@ from seneca.libs.decimal import make_decimal
     @staticmethod
     def resource_limits(code_str):
         return '''
-from seneca.libs.resources import set_resources
-set_resources()
+from seneca.libs.resource import set_resource_limits
+set_resource_limits()
 ''' + code_str
 
     @staticmethod
-    def stamps(code_str, stamps_supplied):
+    def stamps(code_str):
         return '''
-from seneca.contracts.currency import submit_stamps
-submit_stamps({})
-'''.format(stamps_supplied) + code_str
+submit_stamps()
+''' + code_str
 
     @staticmethod
     def import_module(code_str, module, func):
@@ -56,14 +55,13 @@ class Assert:
             raise ImportError('Not allowed to import *')
         elif module_name:
             import_path = '.'.join([import_path, module_name])
-        if import_path == 'seneca.engine.interpret.executor.Executor' and contract_name in ('smart_contract', ):
-            return True
         if import_path.startswith(SENECA_LIBRARY_PATH):
-            return True
+            return
         for path in ALLOWED_IMPORT_PATHS:
             if import_path.startswith(path):
-                if len(import_path.split('.')) - len(path.split('.')) == 2:
-                    return True
+                path_parts = import_path.split('.')
+                if len(path_parts) - len(path.split('.')) == 2:
+                    return path_parts[-1]
                 else:
                     raise ImportError(
                         'Instead of importing the entire "{}" module, you must import each functions directly.'.format(
@@ -74,11 +72,24 @@ class Assert:
     def is_protected(target, scope):
         if isinstance(target, ast.Subscript):
             return
-        if target.id in scope['protected'] or target.id in [k.rsplit('.', 1)[-1] for k in scope['imports'].keys()]:
+        if target.id in scope['protected'] \
+                or target.id in [k.rsplit('.', 1)[-1] for k in scope['imports'].keys()]:
             raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
+
+    @staticmethod
+    def is_not_resource(name, scope):
+        if name in scope['resources']:
+            raise ImportError('Cannot import "{}" as it is a resource variable'.format(name))
 
     @staticmethod
     def no_nested_imports(node):
         for item in node.body:
             if type(item) in [ast.ImportFrom, ast.Import]:
                 raise CompilationException('Not allowed to import inside a function definition')
+
+    @staticmethod
+    def validate(imports, exports):
+        for import_path in imports:
+            if not exports.get(import_path):
+                raise ImportError('Forbidden to import "{}"'.format(
+                    import_path))

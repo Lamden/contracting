@@ -1,11 +1,11 @@
 from unittest import TestCase
-from seneca.libs.metering.cost import Cost
+from seneca.libs.metering.estimator import OperationsEstimator
 import unittest
 
-class TestCosts(TestCase):
+class TestEstimator(TestCase):
 
     def setUp(self):
-        self.c = Cost()
+        self.c = OperationsEstimator()
         self.c.pre()
 
     def tearDown(self):

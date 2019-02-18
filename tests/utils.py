@@ -37,10 +37,18 @@ class TestExecutor(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.r = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
-        cls.r.flushall()
-        cls.ex = Executor(currency=False, concurrency=False)
+        cls.reset()
 
     def setUp(self):
         print('\n{}'.format('#' * 128))
         print(self.id)
         print('{}\n'.format('#' * 128))
+
+    @classmethod
+    def reset(cls, currency=False, concurrency=False):
+        cls.r.flushall()
+        cls.ex = Executor(currency=currency, concurrency=concurrency)
+
+    @classmethod
+    def flush(cls):
+        cls.r.flushall()

@@ -1,14 +1,14 @@
-from test_contracts.good import one_you_can_export as good
-from test_contracts.okay import one_you_can_export as okay
+from test_contracts.good import one_you_can_export as good_export
+from test_contracts.okay import one_you_can_export as okay_export
 
 @export
 def good_call():
-    good()
-    okay()
+    good_export()
+    okay_export()
 
 @export
 def reasonable_call():
-    good()
+    good_export()
 
 @export
 def do_that_thing():
@@ -21,4 +21,4 @@ def test_global_namespace():
     print("ALL GLOBALS: {}".format(globals()))
 
 def secret_call():
-    okay()
+    okay_export()

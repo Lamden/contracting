@@ -12,21 +12,26 @@ class Parser:
         '__builtins__': SAFE_BUILTINS
     }
 
-    parser_scope = {}
+    parser_scope = {
+        'callstack': [],
+        'exports': {},
+        'imports': {},
+        'resources': {},
+        'protected': set()
+    }
     executor_scope = None
     seed_tree = None
     executor = None
 
     @classmethod
     def reset(cls, top_level_contract=None):
-        cls.parser_scope = {
-            'callstack': [top_level_contract],
-            'exports': {},
+        cls.parser_scope.update({
             'imports': {},
-            'resources': {},
-            'protected': set()
-        }
+            '__args__': (),
+            '__kwargs__': {}
+        })
         cls.parser_scope.update(cls.basic_scope)
+        cls.parser_scope['protected'].update(cls.basic_scope.keys())
         cls.seed_tree = None
 
     @staticmethod
@@ -63,17 +68,16 @@ class NodeTransformer(ast.NodeTransformer):
     def visit_Import(self, node):
         return self._visit_any_import(node, node.names[0].name)
 
-
     def visit_ImportFrom(self, node):
         return self._visit_any_import(node, node.module, module_name=node.names[0].name)
 
     def _visit_any_import(self, node, import_path, module_name=None):
-        Assert.valid_import_path(import_path, module_name, Parser.parser_scope['callstack'][-1])
-        if not Parser.parser_scope['exports'].get(import_path):
-            Parser.parser_scope['imports'][import_path] = True
+        obj_name = Assert.valid_import_path(import_path, module_name, Parser.parser_scope['rt']['contract'])
+        if obj_name:
+            Assert.is_not_resource(obj_name, Parser.parser_scope)
+            call_name = '{}.{}'.format(import_path.split('.')[-1], obj_name)
+            Parser.parser_scope['imports'][call_name] = True
         Parser.parser_scope['protected'].add(import_path)
-        # Seneca.prevalidated.body.append(node)
-        # Seneca.postvalidated.body.append(node)
         Parser.seed_tree.body.append(node)
         self.generic_visit(node)
         return node
@@ -123,10 +127,9 @@ class NodeTransformer(ast.NodeTransformer):
 
     def visit_FunctionDef(self, node):
         Assert.no_nested_imports(node)
-        for item in node.decorator_list:
-            if item.id == 'export':
-                Parser.parser_scope['exports'][node.name] = [arg.arg for arg in node.args.args]
-            elif item.id == 'seed':
-                pass
+        node.decorator_list.append(
+            ast.Name(id='__function__', ctx=ast.Load())
+        )
         Parser.seed_tree.body.append(node)
         return node
+
