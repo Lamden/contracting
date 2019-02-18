@@ -42,7 +42,7 @@ class Assert:
     @staticmethod
     def ast_types(t):
         if type(t) not in ALLOWED_AST_TYPES:
-            CompilationException('Illegal AST type: {}'.format(t))
+            raise CompilationException('Illegal AST type: {}'.format(t))
 
     @staticmethod
     def not_system_variable(v):

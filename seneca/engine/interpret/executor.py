@@ -11,16 +11,14 @@ from seneca.engine.interpret.module import SenecaFinder, RedisFinder
 
 class Executor:
 
-    def __init__(self, currency=True, concurrency=True):
+    def __init__(self, currency=True, concurrency=True, flushall=False):
 
-        if not isinstance(sys.meta_path[-1], RedisFinder):
-            self.old_sys_path = sys.meta_path
-            SenecaFinder.executor = self
-            sys.meta_path = [sys.meta_path[-1], SenecaFinder(), RedisFinder()]
+        self.reset_syspath()
 
         Parser.executor = self
 
         self.r = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
+        if flushall: self.r.flushall()
         self.path = join(seneca.__path__[0], 'contracts')
         self.author = '__lamden_io__'
         self.official_contracts = [
@@ -31,6 +29,13 @@ class Executor:
         self.currency = currency
         self.concurrency = concurrency
         self.setup_tracer()
+
+    def reset_syspath(self):
+        if not isinstance(sys.meta_path[-1], RedisFinder):
+            self.old_sys_path = sys.meta_path
+            # self.new_sys_path = sys.meta_path[-2:] + [SenecaFinder(), RedisFinder()]
+            self.new_sys_path = [sys.meta_path[-1], SenecaFinder(), RedisFinder()]
+            sys.meta_path = self.new_sys_path
 
     def setup_tracer(self):
         seneca_path = seneca.__path__[0]
@@ -86,7 +91,7 @@ class Executor:
         Scope.scope = Parser.parser_scope
         exec(seed_code_obj, Parser.parser_scope)
         Assert.validate(Scope.scope['imports'], Scope.scope['exports'])
-        Parser.parser_scope.update(Scope.scope)
+        Parser.parser_scope.update(Scope.scope)  # Scope is updated for seeding purposes!
         return seed_code_obj, Parser.parser_scope['resources'], Parser.parser_scope['exports']
 
     @staticmethod
@@ -125,6 +130,7 @@ class Executor:
         code_obj, _, _ = self.compile('__main__', code_str, scope)
         scope.update(Parser.basic_scope)
         exec(code_str, scope)
+        Parser.parser_scope.update(scope)
 
     def execute_function(self, contract_name, func_name, sender, stamps=0, args=tuple(), kwargs={}):
         Parser.parser_scope.update({
@@ -141,14 +147,13 @@ class Executor:
         if contract_name == 'smart_contract':
             Parser.parser_scope['__executor__'] = self
         code_obj = self.get_contract_cache(contract_name, func_name)
-        # Parser.parser_scope['callstack'] = [contract_name]
+        Parser.parser_scope['callstack'] = []
         Scope.scope = Parser.parser_scope
 
         if self.currency:
             self.tracer.set_stamp(stamps)
             self.tracer.start()
             try:
-                # Parser.parser_scope['callstack'].append('currency')
                 exec(code_obj, Parser.parser_scope)
             except Exception as e:
                 raise
@@ -173,39 +178,3 @@ class Executor:
                                          'contract_name': contract_name,
                                          'code_str': code_str
                                      })
-
-if __name__ == '__main__':
-    r = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
-    r.flushall()
-    e = Executor(currency=False, concurrency=False)
-    c = e.get_contract('currency')
-    sc = e.get_contract('smart_contract')
-    res = e.execute_function('currency', 'balance_of', 'fish',
-                       kwargs={
-                           'wallet_id': '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
-                       })
-    print(res)
-    code_str = '''
-@export
-def do_it():
-    print('i am dumb')
-    '''
-    res = e.execute_function('smart_contract', 'submit_contract', 'fish',
-                       kwargs={
-                           'contract_name': 'dumb_contract',
-                           'code_str': code_str
-                       })
-    print(res)
-    res = e.execute_function('smart_contract', 'get_contract', 'fish',
-                             kwargs={
-                                 'contract_name': 'dumb_contract'
-                             })
-    print(res)
-    res = e.execute_function('dump_contract', 'do_it', 'fish')
-    print(res)
-    res = e.execute_function('smart_contract', 'submit_contract', 'fish',
-                             kwargs={
-                                 'contract_name': 'dumb_contract',
-                                 'code_str': code_str
-                             })
-    print(res)

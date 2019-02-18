@@ -39,7 +39,7 @@ from test_contracts.good import one_you_cannot_export
 from test_contracts.reasonable import reasonable_call
 print(reasonable_call())
             """, scope)
-            self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: __main__')
+            self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: reasonable')
 
     def test_globals_redis(self):
         bk_info = {'sbb_idx': 2, 'contract_idx': 12}

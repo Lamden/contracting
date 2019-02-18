@@ -3,16 +3,27 @@ class Scope:
     scope = {}
 
     def set_scope(self, fn, args, kwargs):
-        contract_name = self.scope['rt']['contract']
+
+
+        # Set contract name
+        old_contract_name = self.scope['rt']['contract']
+        contract_name = fn.__module__ or self.scope['rt']['contract']
+        self.scope['rt']['contract'] = contract_name
         self.scope['callstack'].append('{}.{}'.format(contract_name, fn.__name__))
+
+        # Set stamps for currency
         if contract_name and fn.__name__ == 'submit_stamps':
             return (), {'stamps': self.scope['__stamps__']}
+
+        # Set args and kwargs for top level run
         if len(self.scope['callstack']) == 1:
             if self.scope.get('__args__'):
                 args = self.scope['__args__']
             if self.scope.get('__kwargs__'):
                 kwargs = self.scope['__kwargs__']
-
+        elif contract_name != old_contract_name:
+            self.scope['rt']['sender'] = old_contract_name
+        fn.__globals__['rt'] = self.scope['rt']
         return args, kwargs
 
     def reset_scope(self, fn):
@@ -28,7 +39,7 @@ class Function(Scope):
             self.reset_scope(fn)
             return res
         _fn.__name__ = fn.__name__
-        _fn.__module__ = fn.__module__
+        fn.__module__ = self.scope['rt']['contract']
         return _fn
 
 

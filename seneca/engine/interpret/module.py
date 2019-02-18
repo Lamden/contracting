@@ -1,4 +1,4 @@
-import os
+import os, sys
 import encodings.idna, atexit
 from os.path import join, exists, isdir, basename
 from importlib.abc import Loader, MetaPathFinder
@@ -46,22 +46,19 @@ class SenecaLoader(Loader):
         self.tree = None
         self.contract_name = basename(filename).split('.')[0]
         with open(self.filename) as f:
-            code_str = f.read()
-            if 'seneca/libs' in self.filename:
-                self.code_obj = compile(code_str, filename=self.filename, mode="exec")
-            elif self.filename.endswith('.sen.py'):
-                self.tree = Parser.parse_ast(code_str)
-                self.code_obj = compile(self.tree, filename=self.filename, mode="exec")
+            compile_obj = f.read()
+            if self.filename.endswith('.sen.py'):
+                compile_obj = Parser.parse_ast(compile_obj)
+            self.code_obj = compile(compile_obj, filename=self.filename, mode="exec")
 
     def exec_module(self, module):
         old_contract_name = Parser.parser_scope['rt']['contract']
         Parser.parser_scope['rt']['contract'] = self.contract_name
         scope = vars(module)
         scope.update(Parser.parser_scope)
-        SenecaFinder.executor.execute(self.code_obj, scope)
+        Parser.executor.execute(self.code_obj, scope)
         Parser.parser_scope['rt']['contract'] = old_contract_name
         return module
-
 
 class RedisFinder:
 
@@ -76,5 +73,5 @@ class RedisLoader(SenecaLoader):
     def __init__(self, fullname):
         self.fullname = fullname
         self.contract_name = fullname.split('.')[2]
-        self.code_obj = SenecaFinder.executor.get_contract(self.contract_name)['code_obj']
+        self.code_obj = Parser.executor.get_contract(self.contract_name)['code_obj']
         self.is_main = True
