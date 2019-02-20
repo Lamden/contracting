@@ -19,9 +19,7 @@ class Parser:
         'resources': {},
         'protected': set()
     }
-    executor_scope = None
     seed_tree = None
-    executor = None
 
     @classmethod
     def reset(cls, top_level_contract=None):

@@ -13,10 +13,8 @@ class Executor:
 
     def __init__(self, currency=True, concurrency=True, flushall=False):
 
-        self.reset_syspath()
-
         Parser.executor = self
-
+        self.reset_syspath()
         self.r = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
         if flushall: self.r.flushall()
         self.path = join(seneca.__path__[0], 'contracts')

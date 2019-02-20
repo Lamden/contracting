@@ -37,6 +37,14 @@ class CompilationException(Exception):
     pass
 
 
+class NotImplementedException(Exception):
+    pass
+
+
+class ItemNotFoundException(Exception):
+    pass
+
+
 class Assert:
 
     @staticmethod
