@@ -1,6 +1,8 @@
 from seneca.engine.interpret.scope import Export, Seed, Function
-from seneca.constants.whitelists import SAFE_BUILTINS
-from seneca.engine.interpret.utils import Plugins, Assert
+from seneca.constants.whitelists import SAFE_BUILTINS, ALLOWED_DATA_TYPES
+from seneca.engine.interpret.utils import Plugins, Assert, CompilationException
+from seneca.libs.decimal import make_decimal
+from seneca.libs.resource import set_resource_limits
 import ast, copy
 
 class Parser:
@@ -8,11 +10,14 @@ class Parser:
     basic_scope = {
         'export': Export(),
         'seed': Seed(),
+        '__set_resources__': set_resource_limits,
+        '__decimal__': make_decimal,
         '__function__': Function(),
         '__builtins__': SAFE_BUILTINS
     }
 
     parser_scope = {
+        'ast': None,
         'callstack': [],
         'exports': {},
         'imports': {},
@@ -34,9 +39,6 @@ class Parser:
 
     @staticmethod
     def parse_ast(code_str):
-        # Add plugins
-        code_str = Plugins.fixed_precision(code_str)
-        code_str = Plugins.resource_limits(code_str)
 
         # Parse tree
         tree = ast.parse(code_str)
@@ -76,39 +78,23 @@ class NodeTransformer(ast.NodeTransformer):
             call_name = '{}.{}'.format(import_path.split('.')[-1], obj_name)
             Parser.parser_scope['imports'][call_name] = True
         Parser.parser_scope['protected'].add(import_path)
+        if Parser.parser_scope['ast'] != '__system__':
+            Parser.parser_scope['ast'] = 'import'
         Parser.seed_tree.body.append(node)
         self.generic_visit(node)
         return node
 
     def visit_Assign(self, node):
-        for target in node.targets:
-            if type(target) == ast.Tuple:
-                items = []
-                for item in target.elts:
-                    Assert.is_protected(item, Parser.parser_scope)
-                    items.append(item.id)
-                val = None
-                if type(node.value) == ast.Call:
-                    val = node.value.func.id
-                elif type(target) == ast.Tuple:
-                    val = 'tuple'
-                Parser.parser_scope['resources'][', '.join(items)] = val
-            elif type(node.value) == ast.Call:
-                if hasattr(node.value.func, 'id'):
-                    Parser.parser_scope['resources'][target.id] = node.value.func.id
-                Assert.is_protected(target, Parser.parser_scope)
-            else:
-                if type(target) == ast.Subscript:
-                    name = target.value.id
-                else:
-                    name = target.id
-                Parser.parser_scope['resources'][name] = node.value.__class__.__name__
-                Assert.is_protected(target, Parser.parser_scope)
-
-        if type(node.value) == ast.Call:
-            Parser.seed_tree.body.append(node)
-
+        resource_name, func_name = Assert.valid_assign(node, Parser.parser_scope)
+        if resource_name and func_name:
+            Parser.parser_scope['resources'][resource_name] = func_name
+        Parser.seed_tree.body.append(node)
         self.generic_visit(node)
+        return node
+
+    def visit_Call(self, node):
+        if Parser.parser_scope['ast'] in ('seed', 'export', 'func'):
+            Assert.not_datatype(node)
         return node
 
     def visit_AugAssign(self, node):
@@ -118,16 +104,28 @@ class NodeTransformer(ast.NodeTransformer):
 
     def visit_Num(self, node):
         if isinstance(node.n, float) or isinstance(node.n, int):
-            return ast.Call(func=ast.Name(id='make_decimal', ctx=ast.Load()),
+            return ast.Call(func=ast.Name(id='__decimal__', ctx=ast.Load()),
                             args=[node], keywords=[])
         self.generic_visit(node)
         return node
 
     def visit_FunctionDef(self, node):
-        Assert.no_nested_imports(node)
-        node.decorator_list.append(
-            ast.Name(id='__function__', ctx=ast.Load())
-        )
+        if Parser.parser_scope['ast'] != '__system__':
+            Assert.no_nested_imports(node)
+            ast_set = False
+            for d in node.decorator_list:
+                if d.id in ('export', 'seed'):
+                    Parser.parser_scope['ast'] = d.id
+                    ast_set = True
+            if not ast_set:
+                Parser.parser_scope['ast'] = 'func'
+            if Parser.parser_scope['ast'] in ('export', 'seed', 'func'):
+                for n in node.body:
+                    self.generic_visit(n)
+            # Parser.parser_scope['ast'] = None
+            node.decorator_list.append(
+                ast.Name(id='__function__', ctx=ast.Load())
+            )
         Parser.seed_tree.body.append(node)
         return node
 

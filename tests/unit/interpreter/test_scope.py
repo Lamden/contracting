@@ -8,7 +8,7 @@ AUTHOR = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
 
 class TestScope(TestExecutor):
 
-    def tearDown(self):
+    def setUp(self):
         self.ex.currency = False
         self.reset()
 

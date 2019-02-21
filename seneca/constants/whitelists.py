@@ -1,5 +1,11 @@
 import ast, builtins
 
+ALLOWED_DATA_TYPES = {
+    'Map',
+    'Table',
+    'Key'
+}
+
 ALLOWED_AST_TYPES = {
     ast.Module,
     ast.Eq,

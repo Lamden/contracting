@@ -43,7 +43,6 @@ import json
         with self.assertRaises(ImportError) as context:
             self.ex.execute_code_str("""
 from test_contracts.good import balances
-print('Hacked', balances) # Should not print this!
             """)
 
     def test_import_star(self):

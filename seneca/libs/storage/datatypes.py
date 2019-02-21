@@ -7,17 +7,17 @@ import ujson as json
 
 DELIMITER = ':'
 POINTER = '*'
+SORTED_TYPE = '~'
 TYPE_SEPARATOR = '@'
 NUMBER_TYPES = (int, float)
 APPROVED_TYPES = (Decimal, str, bool, bytes)
+RESOURCE_KEY = '__resources__'
+PROPERTY_KEY = '__properties__'
 
 
-class DataType(Encoder):
-    def __init__(self, resource, encoding='utf-8', encoding_errors='strict', decode_responses=False, *args, **kwargs):
+class DataType(object):
+    def __init__(self, resource, *args, **kwargs):
         self.resource = resource
-        self.encoding = encoding
-        self.encoding_errors = encoding_errors
-        self.decode_responses = decode_responses
 
     @property
     def driver(self):
@@ -44,10 +44,11 @@ class DataType(Encoder):
             value = '{}{}'.format(POINTER, value)
         else:
             value = '{}{}{}'.format(value, TYPE_SEPARATOR, type(value).__name__)
-        return super().encode(value)
+        return value
 
     def decode(self, value):
-        value = super().decode(value, force=True)
+        value = value.decode()
+        # value = super().decode(value, force=True)
         if value[0] == POINTER:
             data_type_name, resource, key = value[1:].split(DELIMITER)
             data_type = Registry.get_data_type(data_type_name)
@@ -94,8 +95,24 @@ class Table(DataType):
             raise AssertionError('Schema for {} is not found'.format(self.key))
 
     @property
-    def current_index(self):
-        return self.driver.llen(self.key)
+    def row_id(self):
+        return self.driver.hget(self.table_properties_hash, 'ROW_ID')
+
+    @property
+    def count(self):
+        return self.driver.hlen(self.key)
+
+    @property
+    def index_hash(self):
+        return '{}{}{}'.format(self.key, TYPE_SEPARATOR, POINTER)
+
+    @property
+    def sort_hash(self):
+        return '{}{}{}'.format(self.key, TYPE_SEPARATOR, SORTED_TYPE)
+
+    @property
+    def table_properties_hash(self):
+        return '{}{}{}'.format(self.key, TYPE_SEPARATOR, PROPERTY_KEY)
 
     def create_row(self, *args, **kwargs):
         keys = list(self.schema.keys())
@@ -103,16 +120,18 @@ class Table(DataType):
         kwargs_tuple = tuple()
         for idx, arg in enumerate(args):
             k = keys[idx]
-            assert not kwargs.get(k), '{} already specified'.format(k)
+            assert not kwargs.get(k), '{} already specified in named arguments'.format(k)
             schema_arg = self.schema[k]
             arg = schema_arg.get_asserted_arg(arg)
             self.add_to_index(k, schema_arg, arg)
+            self.add_to_sort(k, schema_arg, arg)
             args_tuple += (arg,)
         for k in keys[len(args):]:
             schema_arg = self.schema[k]
             kwarg = kwargs.get(k)
             kwarg = schema_arg.get_asserted_arg(kwarg)
             self.add_to_index(k, schema_arg, kwarg)
+            self.add_to_sort(k, schema_arg, kwarg)
             kwargs_tuple += (kwarg,)
         data = args + kwargs_tuple
         return Table(self.resource, self.schema, data)
@@ -120,65 +139,70 @@ class Table(DataType):
     def add_to_index(self, field, schema_arg, arg):
         # Populate index
         if schema_arg.indexed:
-            index_hash = '{}{}{}{}'.format(self.key, TYPE_SEPARATOR, POINTER, field)
-            self.driver.hset(index_hash, arg, self.current_index)
+            index_hash = self.index_hash + field
+            self.driver.hset(index_hash, arg, self.row_id)
+
+    def add_to_sort(self, field, schema_arg, arg):
+        if schema_arg.sort:
+            sort_hash = self.sort_hash + field
+            print(sort_hash, field, arg)
+            # self.driver.zadd(sort_hash, arg, field)
 
     def add_row(self, *args, **kwargs):
+        self.driver.hincrby(self.table_properties_hash, 'ROW_ID', 1)
         row = self.create_row(*args, **kwargs)
-        self.driver.rpush(self.key, self.encode(row.data))
+        self.driver.hset(self.key, self.row_id, self.encode(row.data))
         return row
 
+    def delete_rows(self, idx=None):
+        return self.driver.hdel(self.key, idx)
+
     def delete_table(self):
-        # Delete indexes
+        # Delete indexes and sort
         for field, arg in self.schema.items():
             if arg.indexed:
-                index_hash = '{}{}{}{}'.format(self.key, TYPE_SEPARATOR, POINTER, field)
+                index_hash = self.index_hash + field
                 self.driver.delete(index_hash)
+            if arg.sort:
+                sort_hash = self.sort_hash + field
+                self.driver.delete(sort_hash)
 
         # Delete table list
+        self.driver.delete(self.resource)
+        self.driver.delete(self.table_properties_hash)
         self.driver.delete(self.key)
 
-        # Deregister schema
+        # De-register schema
         resource_name = self.top_level_key
         if Table.schemas.get(resource_name):
             del Table.schemas[resource_name]
 
-    def find(self, field=None, matches=None, exactly=None, limit=100, first=None, last=None, start_idx=None, stop_idx=None):
+    def find(self, field=None, matches=None, exactly=None, limit=100):
         if field:
             if not self.schema.get(field):
                 raise AssertionError('No field named "{}"'.format(field))
             if not self.schema[field].indexed:
                 raise AssertionError('Field "{}" is not indexed and hence not queryable'.format(field))
-            index_hash = '{}{}{}{}'.format(self.key, TYPE_SEPARATOR, POINTER, field)
+            index_hash = self.index_hash + field
             if exactly:
                 idx = self.driver.hget(index_hash, exactly)
-                res = [self.driver.lindex(self.key, idx)]
+                res = [self.driver.hget(self.key, idx)]
             elif matches:
                 _, idxs = self.driver.hscan(index_hash, match=matches, count=limit)
-                res = [self.driver.lindex(self.key, idx) for key, idx in idxs.items()]
-        elif start_idx or stop_idx:
-            if start_idx and stop_idx:
-                res = self.driver.lrange(self.key, start_idx, stop_idx)
-            else:
-                raise AssertionError('Must include start_idx and stop_idx together')
-        elif first:
-            res = self.driver.lrange(self.key, 0, first-1)
-        elif last:
-            idx = self.driver.llen(self.key)
-            res = self.driver.lrange(self.key, idx-last, idx)
+                res = self.driver.hmget(self.key, idxs.values())
+        else:
+            res = self.driver.hgetall(self.key)
+            return [self.decode(r) for k, r in res.items()]
         return [self.decode(r) for r in res]
-
-    def count(self):
-        res = self.driver.llen(self.key)
-        return res
 
 
 class SchemaArgs(object):
-    def __init__(self, value_type, required=False, default=None, indexed=False):
+    def __init__(self, value_type, required=False, default=None, indexed=False, sort=False, primary_key=False):
         self.value_type = value_type
-        self.required = required
+        self.required = primary_key or required
         self.default = default
-        self.indexed = indexed
+        self.indexed = primary_key or indexed
+        self.sort = sort
         self.resource = None
         self.fix_assert_attributes()
 
@@ -227,17 +251,17 @@ class SchemaArgs(object):
 
         return arg
 
+
 class Registry:
     @classmethod
     def get_data_type(cls, class_name):
         data_type_class = {
             'Map': Map,
-            'Table': Table,
-            'List': List
+            'Table': Table
         }.get(class_name)
         assert data_type_class, 'DataType "{}" not found!'.format(class_name)
         return data_type_class
-    
+
     @classmethod
     def get_value_type(cls, value_type_name):
         value_type = {

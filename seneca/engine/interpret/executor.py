@@ -48,7 +48,7 @@ class Executor:
         for name in self.official_contracts:
             with open(join(self.path, name+'.sen.py')) as f:
                 code_str = f.read()
-                code_obj, resources, methods = self.compile(name, code_str)
+                code_obj, resources, methods = self.compile(name, code_str, {'ast': '__system__'})
             contracts[name] = {
                 'code_str': code_str,
                 'code_obj': code_obj,
@@ -80,12 +80,14 @@ class Executor:
     @staticmethod
     def compile(contract_name, code_str, scope={}):
         Parser.reset(contract_name)
-        Parser.parser_scope['protected'].update(scope.keys())
         Executor.set_default_rt(scope.get('rt', {}))
+        Parser.parser_scope.update(scope)
+        Parser.parser_scope['protected'].update(scope.keys())
         Parser.parser_scope['rt']['contract'] = contract_name
         seed_tree = Parser.parse_ast(code_str)
         seed_code_obj = compile(seed_tree, contract_name, 'exec')
         Parser.parser_scope['__seed__'] = True
+        Scope.scope['ast'] = None
         Scope.scope = Parser.parser_scope
         exec(seed_code_obj, Parser.parser_scope)
         Assert.validate(Scope.scope['imports'], Scope.scope['exports'])

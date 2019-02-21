@@ -1,20 +1,7 @@
-from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SENECA_LIBRARY_PATH
+from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SENECA_LIBRARY_PATH, ALLOWED_DATA_TYPES
 import ast
 
 class Plugins:
-
-    @staticmethod
-    def fixed_precision(code_str):
-        return '''
-from seneca.libs.decimal import make_decimal
-''' + code_str
-
-    @staticmethod
-    def resource_limits(code_str):
-        return '''
-from seneca.libs.resource import set_resource_limits
-set_resource_limits()
-''' + code_str
 
     @staticmethod
     def stamps(code_str):
@@ -25,6 +12,7 @@ submit_stamps()
     @staticmethod
     def import_module(code_str, module, func):
         return code_str + '''
+__set_resources__()
 __result__ = {func}()
 '''.format(func=func)
 
@@ -94,6 +82,27 @@ class Assert:
         for item in node.body:
             if type(item) in [ast.ImportFrom, ast.Import]:
                 raise CompilationException('Not allowed to import inside a function definition')
+
+    @staticmethod
+    def not_datatype(node):
+        if type(node.func) == ast.Name:
+            if node.func.id in ALLOWED_DATA_TYPES:
+                raise CompilationException('Not allowed to instantiate DataTypes inside functions')
+
+    @staticmethod
+    def valid_assign(node, scope):
+        invalid_assign = True
+        if type(node.value) == ast.Call:
+            assert len(node.targets) == 1, 'You can only declare one DataType at a time'
+            resource_name = node.targets[0].id
+            func_name = node.value.func.id
+            if func_name in ALLOWED_DATA_TYPES:
+                return resource_name, func_name
+
+        if invalid_assign and not scope['ast']:
+            raise CompilationException('You may only declare DataTypes or import modules in the global scope')
+
+        return None, None
 
     @staticmethod
     def validate(imports, exports):

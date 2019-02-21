@@ -1,7 +1,7 @@
 from unittest import TestCase
-import redis, unittest, seneca
+import redis, unittest
 from seneca.constants.config import MASTER_DB, REDIS_PORT
-from seneca.engine.storage.datatypes import Map, Table, SchemaArgs
+from seneca.libs.storage.datatypes import Map, Table, SchemaArgs
 from seneca.engine.interpret.parser import Parser
 from decimal import Decimal
 
@@ -23,16 +23,17 @@ class Executor:
 class TestDataTypes(TestCase):
 
     def setUp(self):
+        self.contract_id = self.id().split('.')[-1]
         self.ex = Executor()
-        Parser.parser_scope['rt']['contract'] = self.id()
+        Parser.parser_scope['rt']['contract'] = self.contract_id
         print('#'*128)
-        print('\t', self.id())
+        print('\t', self.contract_id)
         print('#'*128)
 
     def test_map(self):
         balances = Map('balances')
         balances['hr'] = Map('hr')
-        self.assertEqual(repr(balances['hr']), 'Map:{}:balances:hr'.format(self.id()))
+        self.assertEqual(repr(balances['hr']), 'Map:{}:balances:hr'.format(self.contract_id))
 
     def test_map_nested(self):
         balances = Map('balances')
@@ -63,7 +64,7 @@ class TestDataTypes(TestCase):
         Coin.add_row(purpose='anarchy net', name='stubucks', price=1)
         Coin.add_row('falcoin', 'anarchy net')
 
-        self.assertEqual(Coin.count(), 3)
+        self.assertEqual(Coin.count, 3)
 
     def test_table_indexed(self):
         Coin = Table('Coin', {
@@ -77,22 +78,6 @@ class TestDataTypes(TestCase):
         self.assertEqual(Coin.find(field='name', exactly='faltau'), [('faltau', 'anarchy net', Decimal('0'))])
         self.assertEqual(Coin.find(field='name', matches='fal*'), [('faltau', 'anarchy net', Decimal('0')), ('falcoin', 'anarchy net', Decimal('0'))])
 
-    def test_table_find_first_last_start_stop(self):
-        Coin = Table('Coin', {
-            'name': SchemaArgs(str, required=True),
-            'purpose': str,
-            'price': int
-        })
-        Coin.add_row('tau', purpose='anarchy net')
-        Coin.add_row(purpose='anarchy net', name='stubucks', price=1)
-        Coin.add_row('falcoin', 'anarchy net')
-
-        self.assertEqual([('tau', 'anarchy net', Decimal('0')), ('stubucks', 'anarchy net', Decimal('1'))],
-                         Coin.find(first=2))
-        self.assertEqual([('stubucks', 'anarchy net', Decimal('1')), ('falcoin', 'anarchy net', Decimal('0'))],
-                         Coin.find(last=2))
-        self.assertEqual([('stubucks', 'anarchy net', Decimal('1')), ('falcoin', 'anarchy net', Decimal('0'))],
-                         Coin.find(start_idx=1, stop_idx=2))
 
     def test_table_with_table_as_type(self):
         Coin = Table('Coin', {
@@ -106,8 +91,8 @@ class TestDataTypes(TestCase):
         })
         tau = Coin.add_row('tau')
         lamden = Company.add_row('lamden', coin=tau, evaluation=0)
-        self.assertEqual(repr(tau), 'Table:{}:Coin'.format(self.id()))
-        self.assertEqual(repr(lamden), 'Table:{}:Company'.format(self.id()))
+        self.assertEqual(repr(tau), 'Table:{}:Coin'.format(self.contract_id))
+        self.assertEqual(repr(lamden), 'Table:{}:Company'.format(self.contract_id))
 
     def test_table_with_invalid_table_type(self):
         Coin = Table('Coin', {
@@ -138,6 +123,31 @@ class TestDataTypes(TestCase):
         Coin.add_row('falcoin', 'anarchy net')
         Coin.delete_table()
         self.assertEqual(self.ex.r.keys(), [])
+
+    def test_delete_row(self):
+        Coin = Table('Coin', {
+            'name': SchemaArgs(str, required=True, indexed=True),
+            'purpose': str,
+            'price': int
+        })
+        Coin.add_row('faltau', purpose='anarchy net')
+        Coin.add_row(purpose='anarchy net', name='stubucks', price=1)
+        Coin.add_row('falcoin', 'anarchy net')
+        Coin.add_row('falcoin', 'anarchy net')
+        Coin.add_row('falcoin', 'anarchy net')
+        Coin.delete_rows(idx=3)
+        self.assertEqual(Coin.count, 4)
+
+    # def test_table_with_sorted_column(self):
+    #     Coin = Table('Coin', {
+    #         'name': SchemaArgs(str, primary_key=True),
+    #         'purpose': str,
+    #         'price': SchemaArgs(int, sort=True)
+    #     })
+    #     Coin.add_row('faltau', purpose='anarchy net', price=6)
+    #     Coin.add_row(purpose='anarchy net', name='stubucks', price=10)
+    #     Coin.add_row('falcoin', 'anarchy net', price=100)
+
 
 if __name__ == '__main__':
     unittest.main()
