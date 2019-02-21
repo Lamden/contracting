@@ -77,7 +77,7 @@ class NodeTransformer(ast.NodeTransformer):
             Assert.is_not_resource(obj_name, Parser.parser_scope)
             call_name = '{}.{}'.format(import_path.split('.')[-1], obj_name)
             Parser.parser_scope['imports'][call_name] = True
-        Parser.parser_scope['protected'].add(import_path)
+        Parser.parser_scope['protected'].add(module_name)
         if Parser.parser_scope['ast'] != '__system__':
             Parser.parser_scope['ast'] = 'import'
         Parser.seed_tree.body.append(node)
@@ -95,6 +95,8 @@ class NodeTransformer(ast.NodeTransformer):
     def visit_Call(self, node):
         if Parser.parser_scope['ast'] in ('seed', 'export', 'func'):
             Assert.not_datatype(node)
+            return node
+        self.generic_visit(node)
         return node
 
     def visit_AugAssign(self, node):

@@ -56,8 +56,4 @@ class Export(Scope):
 class Seed(Scope):
     def __call__(self, fn):
         if self.scope.get('__seed__'):
-            # old_concurrent_mode = Scope.concurrent_mode
-            # Scope.concurrent_mode = False
-            # BookKeeper.set_info(rt=fn.__globals__['rt'])
             fn()
-            # Scope.concurrent_mode = old_concurrent_mode

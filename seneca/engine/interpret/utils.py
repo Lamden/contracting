@@ -91,16 +91,23 @@ class Assert:
 
     @staticmethod
     def valid_assign(node, scope):
+        for t in node.targets:
+            if type(t) == ast.Name:
+                if t.id in scope['protected']:
+                    raise CompilationException('Cannot assign protected variable "{}"'.format(t.id))
+
         invalid_assign = True
         if type(node.value) == ast.Call:
             assert len(node.targets) == 1, 'You can only declare one DataType at a time'
             resource_name = node.targets[0].id
-            func_name = node.value.func.id
-            if func_name in ALLOWED_DATA_TYPES:
-                return resource_name, func_name
+            if type(node.value.func) == ast.Name:
+                func_name = node.value.func.id
+                if func_name in ALLOWED_DATA_TYPES:
+                    return resource_name, func_name
 
         if invalid_assign and not scope['ast']:
             raise CompilationException('You may only declare DataTypes or import modules in the global scope')
+
 
         return None, None
 
