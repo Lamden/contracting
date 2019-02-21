@@ -122,10 +122,9 @@ class NodeTransformer(ast.NodeTransformer):
             if Parser.parser_scope['ast'] in ('export', 'seed', 'func'):
                 for n in node.body:
                     self.generic_visit(n)
-            # Parser.parser_scope['ast'] = None
-            node.decorator_list.append(
-                ast.Name(id='__function__', ctx=ast.Load())
-            )
+        node.decorator_list.append(
+            ast.Name(id='__function__', ctx=ast.Load())
+        )
         Parser.seed_tree.body.append(node)
         return node
 

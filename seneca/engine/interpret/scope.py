@@ -4,7 +4,6 @@ class Scope:
 
     def set_scope(self, fn, args, kwargs):
 
-
         # Set contract name
         old_contract_name = self.scope['rt']['contract']
         contract_name = fn.__module__ or self.scope['rt']['contract']
