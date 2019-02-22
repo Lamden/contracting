@@ -126,13 +126,13 @@ static void reprint(PyObject *obj) {
              str = PyBytes_AS_STRING(frame->f_code->co_code);
              opcode = str[frame->f_lasti];
              if (opcode < 0) opcode = -opcode;
-             self->cost += self->cu_costs[opcode];
-             if (self->cost > self->stamp_supplied) {
+             if (self->cost + self->cu_costs[opcode] > self->stamp_supplied) {
                  PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
                  PyEval_SetTrace(NULL, NULL);
                  self->started = 0;
                  return RET_ERROR;
              }
+             self->cost += self->cu_costs[opcode];
              break;
 
          // case PyTrace_EXCEPTION:

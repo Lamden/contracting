@@ -39,5 +39,16 @@ class TestTransfer(TestExecutor):
                 'amount': 1
             })
 
+    def test_transfer_template_with_metering_all_fail(self):
+        self.ex.currency = True
+        for i in range(CONTRACT_COUNT):
+            try:
+                self.ex.execute_function('currency', 'transfer', 'stu', 1000, kwargs={
+                    'to': 'ass',
+                    'amount': 1
+                })
+            except Exception as e:
+                pass
+
 if __name__ == '__main__':
     unittest.main()

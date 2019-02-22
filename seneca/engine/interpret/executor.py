@@ -154,16 +154,20 @@ class Executor:
         Scope.scope = Parser.parser_scope
 
         if self.currency:
+            error = None
             self.tracer.set_stamp(stamps)
             self.tracer.start()
             try:
                 exec(code_obj, Parser.parser_scope)
             except Exception as e:
-                raise
-            self.tracer.stop()
-            # NOTE: Stamp submission is separated from the assertion and execution
-            # because we still want to subtract stamps if we run out of stamps.
-            exec(Plugins.submit_stamps(), Parser.parser_scope)
+                error = e
+            finally:
+                # NOTE: Stamp submission is separated from the assertion and execution
+                # because we still want to subtract stamps if we run out of stamps.
+                self.tracer.stop()
+                exec(Plugins.submit_stamps(), Parser.parser_scope)
+                if error:
+                    raise error
         else:
             try:
                 exec(code_obj, Scope.scope)
