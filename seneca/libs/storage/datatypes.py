@@ -64,7 +64,6 @@ class ResourceObj:
     instance = None
 
     def __set__(self, instance, value):
-        print('set', instance, value)
         ResourceObj.instance = instance
         k, v = instance.resource, value
         instance.driver.hset(instance.rt['contract'], k, instance.encode(v))

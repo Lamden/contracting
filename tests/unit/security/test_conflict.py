@@ -66,6 +66,11 @@ def corrupt_resource(string, value):
 def read_shared_name():
     t = 7 + shared_name
     return t
+    
+@export
+def read_shared_name_aug_assign():
+    shared_name += 3
+    return shared_name
 
 """
 
@@ -109,9 +114,19 @@ res4 = rr2(string='davis')
         self.ex.publish_code_str('c_3', 'anonymoose', c_3)
         self.ex.publish_code_str('c_4', 'anonymoose', c_4)
         res = self.ex.execute_function('c_3', 'read_shared_name', 'anonymoose')
-        self.assertEqual(res['output'], 10)
+        self.assertEqual(res['output'], 12)
         self.assertEqual(type(res['output']), Decimal)
 
+    def test_repeated_variables_inside_different_contracts_aug_set_get(self):
+        self.flush()
+        self.ex.publish_code_str('c_3', 'anonymoose', c_3)
+        self.ex.publish_code_str('c_4', 'anonymoose', c_4)
+        res = self.ex.execute_function('c_4', 'read_shared_name_aug_assign', 'anonymoose')
+        self.assertEqual(res['output'], 8)
+        self.assertEqual(type(res['output']), Decimal)
+        res = self.ex.execute_function('c_4', 'read_shared_name_aug_assign', 'anonymoose')
+        self.assertEqual(res['output'], 11)
+        self.assertEqual(type(res['output']), Decimal)
 
 if __name__ == '__main__':
     unittest.main()
