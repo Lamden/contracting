@@ -1,7 +1,7 @@
 from seneca.engine.interpret.parser import Parser
-from seneca.engine.interpret.executor import Executor
-from seneca.engine.interpret.utils import NotImplementedException, ItemNotFoundException
-from redis.connection import Encoder
+from seneca.engine.interpret.utils import ItemNotFoundException
+from seneca.engine.conflict_resolution import RedisProxy
+from seneca.engine.book_keeper import BookKeeper
 from decimal import Decimal
 import ujson as json
 
@@ -21,7 +21,7 @@ class DataType(object):
 
     @property
     def driver(self):
-        return Parser.executor.r
+        return Parser.executor.driver
 
     @property
     def rt(self):
@@ -108,8 +108,8 @@ class Table(DataType):
             self.schema = Table.schemas[resource_name]
         elif self.schema:
             for k, v in self.schema.items():
-                if type(v) != SchemaArgs:
-                    self.schema[k] = SchemaArgs(v)
+                if type(v) != TableProperty:
+                    self.schema[k] = TableProperty(v)
             Table.schemas[resource_name] = self.schema
         else:
             raise AssertionError('Schema for {} is not found'.format(self.key))
@@ -165,7 +165,7 @@ class Table(DataType):
     def add_to_sort(self, field, schema_arg, arg):
         if schema_arg.sort:
             sort_hash = self.sort_hash + field
-            print(sort_hash, field, arg)
+            # print(sort_hash, field, arg)
             # self.driver.zadd(sort_hash, arg, field)
 
     def add_row(self, *args, **kwargs):
@@ -216,7 +216,7 @@ class Table(DataType):
         return [self.decode(r) for r in res]
 
 
-class SchemaArgs(object):
+class TableProperty(object):
     def __init__(self, value_type, required=False, default=None, indexed=False, sort=False, primary_key=False):
         self.value_type = value_type
         self.required = primary_key or required

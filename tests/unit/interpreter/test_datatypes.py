@@ -1,15 +1,15 @@
 from unittest import TestCase
 import redis, unittest
 from seneca.constants.config import MASTER_DB, REDIS_PORT
-from seneca.libs.storage.datatypes import Map, Table, SchemaArgs
+from seneca.libs.storage.datatypes import Map, Table, TableProperty
 from seneca.engine.interpret.parser import Parser
 from decimal import Decimal
 
 
 class Executor:
     def __init__(self):
-        self.r = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
-        self.r.flushall()
+        self.driver = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
+        self.driver.flushall()
         Parser.executor = self
         Parser.parser_scope = {
             'rt': {
@@ -45,7 +45,7 @@ class TestDataTypes(TestCase):
 
     def test_map_nested_different_type(self):
         Coin = Table('Coin', {
-            'name': SchemaArgs(str, required=True),
+            'name': TableProperty(str, required=True),
             'purpose': str
         })
         tau = Coin.add_row('tau', 'something')
@@ -56,7 +56,7 @@ class TestDataTypes(TestCase):
 
     def test_table_append(self):
         Coin = Table('Coin', {
-            'name': SchemaArgs(str, required=True),
+            'name': TableProperty(str, required=True),
             'purpose': str,
             'price': int
         })
@@ -68,7 +68,7 @@ class TestDataTypes(TestCase):
 
     def test_table_indexed(self):
         Coin = Table('Coin', {
-            'name': SchemaArgs(str, required=True, indexed=True),
+            'name': TableProperty(str, required=True, indexed=True),
             'purpose': str,
             'price': int
         })
@@ -81,8 +81,8 @@ class TestDataTypes(TestCase):
 
     def test_table_with_table_as_type(self):
         Coin = Table('Coin', {
-            'name': SchemaArgs(str, required=True),
-            'purpose': SchemaArgs(str, default='anarchy net')
+            'name': TableProperty(str, required=True),
+            'purpose': TableProperty(str, default='anarchy net')
         })
         Company = Table('Company', {
             'name': str,
@@ -96,17 +96,17 @@ class TestDataTypes(TestCase):
 
     def test_table_with_invalid_table_type(self):
         Coin = Table('Coin', {
-            'name': SchemaArgs(str, True),
-            'purpose': SchemaArgs(str, False, '')
+            'name': TableProperty(str, True),
+            'purpose': TableProperty(str, False, '')
         })
         Fake = Table('Fake', {
-            'name': SchemaArgs(str, True),
-            'purpose': SchemaArgs(str, False, '')
+            'name': TableProperty(str, True),
+            'purpose': TableProperty(str, False, '')
         })
         Company = Table('Company', {
-            'name': SchemaArgs(str),
-            'coin': SchemaArgs(Coin),
-            'evaluation': SchemaArgs(int)
+            'name': TableProperty(str),
+            'coin': TableProperty(Coin),
+            'evaluation': TableProperty(int)
         })
         fake_tau = Fake.add_row('tau', 'anarchy net')
         with self.assertRaises(AssertionError) as context:
@@ -114,7 +114,7 @@ class TestDataTypes(TestCase):
 
     def test_table_delete(self):
         Coin = Table('Coin', {
-            'name': SchemaArgs(str, required=True, indexed=True),
+            'name': TableProperty(str, required=True, indexed=True),
             'purpose': str,
             'price': int
         })
@@ -122,11 +122,11 @@ class TestDataTypes(TestCase):
         Coin.add_row(purpose='anarchy net', name='stubucks', price=1)
         Coin.add_row('falcoin', 'anarchy net')
         Coin.delete_table()
-        self.assertEqual(self.ex.r.keys(), [])
+        self.assertEqual(self.ex.driver.keys(), [])
 
     def test_delete_row(self):
         Coin = Table('Coin', {
-            'name': SchemaArgs(str, required=True, indexed=True),
+            'name': TableProperty(str, required=True, indexed=True),
             'purpose': str,
             'price': int
         })
@@ -140,9 +140,9 @@ class TestDataTypes(TestCase):
 
     # def test_table_with_sorted_column(self):
     #     Coin = Table('Coin', {
-    #         'name': SchemaArgs(str, primary_key=True),
+    #         'name': TableProperty(str, primary_key=True),
     #         'purpose': str,
-    #         'price': SchemaArgs(int, sort=True)
+    #         'price': TableProperty(int, sort=True)
     #     })
     #     Coin.add_row('faltau', purpose='anarchy net', price=6)
     #     Coin.add_row(purpose='anarchy net', name='stubucks', price=10)

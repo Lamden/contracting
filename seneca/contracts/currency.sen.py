@@ -27,10 +27,15 @@ def initialize_contract():
 
 @export
 def assert_stamps(stamps):
+    # NOTE: This is run first before executing any lines from the core code block. No stamps will be
+    #       subtracted if this assertion fails.
     assert balances[rt['origin']] >= stamps, "Not enough funds to submit stamps"
 
 @export
 def submit_stamps(stamps):
+    # NOTE: Assertion is made before executing the core code block. The exact amount of used stamps is
+    #       passed in from the executor as a separate exec() command. This will ensure that even if
+    #       the core code block fails, stamps will be subtracted
     balances[rt['origin']] -= stamps
     balances['LamdenReserves'] += stamps
 

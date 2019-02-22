@@ -43,7 +43,7 @@ class TestTransfer(TestExecutor):
         self.ex.currency = True
         for i in range(CONTRACT_COUNT):
             try:
-                self.ex.execute_function('currency', 'transfer', 'stu', 1000, kwargs={
+                self.ex.execute_function('currency', 'transfer', 'stu', 100, kwargs={
                     'to': 'ass',
                     'amount': 1
                 })

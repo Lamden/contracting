@@ -14,9 +14,10 @@ class Executor:
     def __init__(self, currency=True, concurrency=True, flushall=False):
 
         Parser.executor = self
+        self.currency = False
+        self.concurrency = False
         self.reset_syspath()
-        self.r = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
-        if flushall: self.r.flushall()
+        if flushall: self.driver.flushall()
         self.path = join(seneca.__path__[0], 'contracts')
         self.author = '__lamden_io__'
         self.official_contracts = [
@@ -27,6 +28,14 @@ class Executor:
         self.currency = currency
         self.concurrency = concurrency
         self.setup_tracer()
+
+    @property
+    def driver(self):
+        if self.concurrency:
+            info = BookKeeper.get_cr_info()
+            return RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
+        else:
+            return redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
 
     def reset_syspath(self):
         if not isinstance(sys.meta_path[-1], RedisFinder):
@@ -42,8 +51,6 @@ class Executor:
         Plugins.submit_stamps()
 
     def setup_official_contracts(self):
-        self.currency = False
-        self.concurrency = False
         contracts = {}
         for name in self.official_contracts:
             with open(join(self.path, name+'.sen.py')) as f:
@@ -56,17 +63,17 @@ class Executor:
                 'resources': resources,
                 'methods': methods,
             }
-        pipe = self.r.pipeline()
+        pipe = self.driver.pipeline()
         for name, c in contracts.items():
             self.set_contract(name, **c, driver=pipe, override=True)
         pipe.execute()
 
     def get_contract(self, contract_name):
-        return marshal.loads(self.r.hget('contracts', contract_name))
+        return marshal.loads(self.driver.hget('contracts', contract_name))
 
     def set_contract(self, contract_name, code_str, code_obj, author, resources, methods, driver=None, override=False):
         if not driver:
-            driver = self.r
+            driver = self.driver
         if not override:
             assert not driver.hget('contracts', contract_name), 'Contract name "{}" already taken.'.format(contract_name)
         driver.hset('contracts', contract_name, marshal.dumps({

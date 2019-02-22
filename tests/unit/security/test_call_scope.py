@@ -46,16 +46,16 @@ class TestCallScope(TestExecutor):
 from seneca.contracts.c_1 import call_me
 call_me()
         """)
-        self.assertEqual(self.ex.r.get('c_1:my_number:{}'.format(AUTHOR)), b'"1234567890"')
-        self.assertEqual(self.ex.r.get('c_2:my_number:c_1'), b'"1234"')
+        self.assertEqual(self.ex.driver.get('c_1:my_number:{}'.format(AUTHOR)), b'"1234567890"')
+        self.assertEqual(self.ex.driver.get('c_2:my_number:c_1'), b'"1234"')
 
     def test_call_scope_execute_function(self):
         self.flush()
         self.ex.publish_code_str('c_2', AUTHOR, c_2)
         self.ex.publish_code_str('c_1', AUTHOR, c_1)
         self.ex.execute_function('c_1', 'call_me', AUTHOR, 10000)
-        self.assertEqual(self.ex.r.get('c_1:my_number:{}'.format(AUTHOR)), b'"1234567890"')
-        self.assertEqual(self.ex.r.get('c_2:my_number:c_1'), b'"1234"')
+        self.assertEqual(self.ex.driver.get('c_1:my_number:{}'.format(AUTHOR)), b'"1234567890"')
+        self.assertEqual(self.ex.driver.get('c_2:my_number:c_1'), b'"1234"')
 
 if __name__ == '__main__':
     unittest.main()

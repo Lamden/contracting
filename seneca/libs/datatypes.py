@@ -323,7 +323,7 @@ def vivify(prefix, t, delim):
 class RObject:
 
     def __init__(self, prefix=None, key_type=str, value_type=int, delimiter=':', rep_str='obj'):
-        self.driver = Parser.executor.r
+        self.driver = Parser.executor.driver
         self.delimiter = delimiter
         self.contract_id = Parser.parser_scope['rt']['contract']
         self.prefix_str = prefix

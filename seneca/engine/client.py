@@ -1,12 +1,12 @@
-import time, asyncio, ujson as json, redis, traceback
+import asyncio, redis
 from seneca.libs.logger import get_logger
-from seneca.engine.interface import SenecaInterface
+from seneca.engine.interpret.executor import Executor
 from seneca.constants.config import *
 from seneca.engine.conflict_resolution import CRContext
 from seneca.engine.book_keeper import BookKeeper
 from seneca.engine.util import module_path_for_contract
-from collections import deque, defaultdict
-from typing import Callable, List
+from collections import deque
+from typing import Callable
 import traceback
 
 
@@ -46,7 +46,7 @@ class Phase:
             db.delete(key)
 
 
-class SenecaClient(SenecaInterface):
+class SenecaClient(Executor):
     def __init__(self, sbb_idx, num_sbb, concurrent_mode=True, loop=None):
         # TODO do we even need to bother with the concurrent_mode flag? We are treating that its always true --davis
         super().__init__()
@@ -75,11 +75,6 @@ class SenecaClient(SenecaInterface):
         # queued_futures tracks execute_sb calls that cannot run immediately because there are no available dbs
         # it is a deque of dicts, containing keys 'input_hash': str, and 'fut': asyncio.Future
         self.queued_futures = deque()
-
-        # DEBUG -- TODO DELETE
-        # self.log.important2("\n\n\n this is using the latest code \n\n\n")
-        # self.log.important("num caches {}".format(NUM_CACHES))
-        # END DEBUG
 
         self._setup_dbs()
 
