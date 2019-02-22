@@ -1,4 +1,4 @@
-from seneca.libs.storage.datatypes import DataType, NUMBER_TYPES, APPROVED_TYPES, SORTED_TYPE, TYPE_SEPARATOR, \
+from seneca.libs.storage.datatype import DataType, NUMBER_TYPES, APPROVED_TYPES, SORTED_TYPE, TYPE_SEPARATOR, \
     PROPERTY_KEY, POINTER
 from seneca.libs.storage.registry import Registry
 from decimal import Decimal

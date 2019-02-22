@@ -1,5 +1,5 @@
 from seneca.engine.interpret.utils import ItemNotFoundException
-from seneca.libs.storage.datatypes import DataType
+from seneca.libs.storage.datatype import DataType
 from seneca.libs.storage.registry import Registry
 
 
