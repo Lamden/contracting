@@ -59,8 +59,7 @@ class NodeTransformer(ast.NodeTransformer):
 
     @property
     def resource_list(self):
-        contract_resources = Parser.parser_scope['resources'][self.contract_name]
-        return [k for k, v in contract_resources.items() if v == 'Resource']
+        return [k for k, v in self.resource.items() if v == 'Resource']
 
     @property
     def resource(self):
@@ -153,8 +152,9 @@ class NodeTransformer(ast.NodeTransformer):
                 Parser.parser_scope['ast'] = 'func'
             if Parser.parser_scope['ast'] in ('export', 'seed', 'func'):
                 node.body = [self.generic_visit(n) for n in node.body]
-                reassignment = Plugins.global_reassignment(self.resource_list)
-                node.body = reassignment.body + node.body
+                if len(self.resource_list) > 0:
+                    reassignment = Plugins.global_reassignment(self.resource_list)
+                    node.body = reassignment.body + node.body
         node.decorator_list.append(
             ast.Name(id='__function__', ctx=ast.Load())
         )
