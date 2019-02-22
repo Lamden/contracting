@@ -1,13 +1,26 @@
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SENECA_LIBRARY_PATH, ALLOWED_DATA_TYPES
 import ast
+from functools import lru_cache
+
 
 class Plugins:
 
+    __submit_stamps__ = None
+
     @staticmethod
-    def stamps(code_str):
+    def assert_stamps(code_str):
         return '''
+assert_stamps(__stamps__)
+    ''' + code_str
+
+    @classmethod
+    def submit_stamps(cls):
+        if not cls.__submit_stamps__:
+            cls.__submit_stamps__ = compile('''
+__stamps_used__ = __tracer__.get_stamp_used()
 submit_stamps()
-''' + code_str
+        ''', 'currency', 'exec')
+        return cls.__submit_stamps__
 
     @staticmethod
     def import_module(code_str, module, func):

@@ -31,7 +31,6 @@ class Executor:
     def reset_syspath(self):
         if not isinstance(sys.meta_path[-1], RedisFinder):
             self.old_sys_path = sys.meta_path
-            # self.new_sys_path = sys.meta_path[-2:] + [SenecaFinder(), RedisFinder()]
             self.new_sys_path = [sys.meta_path[-1], SenecaFinder(), RedisFinder()]
             sys.meta_path = self.new_sys_path
 
@@ -40,6 +39,7 @@ class Executor:
         path = join(seneca_path, 'constants', 'cu_costs.const')
         os.environ['CU_COST_FNAME'] = path
         self.tracer = Tracer()
+        Plugins.submit_stamps()
 
     def setup_official_contracts(self):
         self.currency = False
@@ -115,7 +115,7 @@ class Executor:
         except Exception as e:
             author = self.author
         if self.currency:
-            code_str = Plugins.stamps(code_str)
+            code_str = Plugins.assert_stamps(code_str)
         code_str = Plugins.import_module(code_str, contract_name, func_name)
         code_obj = compile(code_str, import_path, 'exec')
         return code_obj, author
@@ -141,7 +141,9 @@ class Executor:
             },
             '__stamps__': stamps,
             '__args__': args,
-            '__kwargs__': kwargs
+            '__kwargs__': kwargs,
+            '__tracer__': self.tracer,
+            '__is_main__': True
         })
         Parser.parser_scope.update(Parser.basic_scope)
         code_obj, author = self.get_contract_cache(contract_name, func_name)
@@ -158,9 +160,10 @@ class Executor:
                 exec(code_obj, Parser.parser_scope)
             except Exception as e:
                 raise
-            finally:
-                stamps -= self.tracer.get_stamp_used()
-                self.tracer.stop()
+            self.tracer.stop()
+            # NOTE: Stamp submission is separated from the assertion and execution
+            # because we still want to subtract stamps if we run out of stamps.
+            exec(Plugins.submit_stamps(), Parser.parser_scope)
         else:
             try:
                 exec(code_obj, Scope.scope)
@@ -170,7 +173,7 @@ class Executor:
         return {
             'status': 'success',
             'output': Scope.scope.get('__result__'),
-            'remaining_stamps': stamps
+            'remaining_stamps': Scope.scope.get('__stamps_used__', 0)
         }
 
     def publish_code_str(self, contract_name, author, code_str):

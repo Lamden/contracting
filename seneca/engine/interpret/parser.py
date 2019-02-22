@@ -17,14 +17,7 @@ class Parser:
         '__builtins__': SAFE_BUILTINS
     }
 
-    parser_scope = {
-        'ast': None,
-        'callstack': [],
-        'exports': {},
-        'imports': {},
-        'resources': {},
-        'protected': defaultdict(set)
-    }
+    parser_scope = None
     seed_tree = None
     child = None
     initialized = False

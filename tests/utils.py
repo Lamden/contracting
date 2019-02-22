@@ -6,11 +6,6 @@ from seneca.engine.interface import SenecaInterface
 from seneca.constants.config import get_redis_port, MASTER_DB, REDIS_PORT, get_redis_password
 from seneca.engine.interpret.executor import Executor
 
-def recur_fibo(n):
-    if n <= 1:
-        return n
-    else:
-        return(recur_fibo(n-1) + recur_fibo(n-2))
 
 @contextmanager
 def captured_output():

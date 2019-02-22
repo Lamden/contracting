@@ -11,8 +11,11 @@ class Scope:
         self.scope['callstack'].append('{}.{}'.format(contract_name, fn.__name__))
 
         # Set stamps for currency
-        if contract_name and fn.__name__ == 'submit_stamps':
-            return (), {'stamps': self.scope['__stamps__']}
+        if contract_name:
+            if fn.__name__ == 'assert_stamps':
+                return (), {'stamps': self.scope['__stamps__']}
+            elif fn.__name__ == 'submit_stamps':
+                return (), {'stamps': self.scope['__stamps_used__']}
 
         # Set args and kwargs for top level run
         if len(self.scope['callstack']) == 1:

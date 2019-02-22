@@ -26,15 +26,13 @@ def initialize_contract():
         balances[w] = SEED_AMOUNT
 
 @export
+def assert_stamps(stamps):
+    assert balances[rt['origin']] >= stamps, "Not enough funds to submit stamps"
+
+@export
 def submit_stamps(stamps):
-    assert stamps > 0, "Stamps supplied must be non-negative"
-    if xrate['TAU_STP'] == 0:
-        xrate['TAU_STP'] = 1.0
-    amount = stamps * xrate['TAU_STP']
-    balances[rt['origin']] -= amount
-    balances['LamdenReserves'] += amount
-    sender_balance = balances[rt['origin']]
-    assert sender_balance >= 0, "Not enough funds to submit stamps"
+    balances[rt['origin']] -= stamps
+    balances['LamdenReserves'] += stamps
 
 @export
 def balance_of(wallet_id):
@@ -43,12 +41,11 @@ def balance_of(wallet_id):
 @export
 def transfer(to, amount):
     # print("transfering from {} to {} with amount {}".format(rt['sender'], to, amount))
+    assert balances[rt['sender']] > 0 and rt['origin'] == rt['sender'], 'Contract "{}" trying to initiate ' \
+                                                                               'unauthorized transfer to ' \
+                                                                               '"{}"'.format(rt['sender'], to)
     balances[rt['sender']] -= amount
     balances[to] += amount
-    sender_balance = balances[rt['sender']]
-    if sender_balance < 0:
-        assert rt['origin'] == rt['sender'], 'Contract "{}" trying to initiate unauthorized transfer to "{}"'.format(rt['sender'], to)
-        assert None, "Sender balance must be non-negative!!!"
 
 @export
 def approve(spender, amount):
