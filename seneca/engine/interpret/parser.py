@@ -3,10 +3,11 @@ from seneca.constants.whitelists import SAFE_BUILTINS, ALLOWED_DATA_TYPES
 from seneca.engine.interpret.utils import Plugins, Assert, CompilationException
 from seneca.libs.decimal import make_decimal
 from seneca.libs.resource import set_resource_limits
+from collections import defaultdict
 import ast, copy
 
-class Parser:
 
+class Parser:
     basic_scope = {
         'export': Export(),
         'seed': Seed(),
@@ -25,6 +26,7 @@ class Parser:
         'protected': set()
     }
     seed_tree = None
+    child = None
 
     @classmethod
     def reset(cls, top_level_contract=None):
@@ -39,7 +41,6 @@ class Parser:
 
     @staticmethod
     def parse_ast(code_str):
-
         # Parse tree
         tree = ast.parse(code_str)
         Parser.seed_tree = copy.deepcopy(tree)
@@ -49,7 +50,23 @@ class Parser:
 
         return Parser.seed_tree
 
+
 class NodeTransformer(ast.NodeTransformer):
+
+    @property
+    def contract_name(self):
+        return Parser.parser_scope['rt']['contract']
+
+    @property
+    def resource_list(self):
+        contract_resources = Parser.parser_scope['resources'][self.contract_name]
+        return [k for k, v in contract_resources.items() if v == 'Resource']
+
+    @property
+    def resource(self):
+        if not Parser.parser_scope['resources'].get(self.contract_name):  # Default dict not marshallable
+            Parser.parser_scope['resources'][self.contract_name] = {}
+        return Parser.parser_scope['resources'][self.contract_name]
 
     def generic_visit(self, node):
         Assert.ast_types(node)
@@ -57,6 +74,9 @@ class NodeTransformer(ast.NodeTransformer):
 
     def visit_Name(self, node):
         Assert.not_system_variable(node.id)
+        if Parser.parser_scope['ast'] in ('seed', 'export', 'func') \
+                and node.id in self.resource_list:
+            return Plugins.resource_reassignment(node.id, node.ctx)
         self.generic_visit(node)
         return node
 
@@ -87,7 +107,9 @@ class NodeTransformer(ast.NodeTransformer):
     def visit_Assign(self, node):
         resource_name, func_name = Assert.valid_assign(node, Parser.parser_scope)
         if resource_name and func_name:
-            Parser.parser_scope['resources'][resource_name] = func_name
+            if func_name == 'Resource':
+                node.value.args = [ast.Str(resource_name)]
+            self.resource[resource_name] = func_name
         Parser.seed_tree.body.append(node)
         self.generic_visit(node)
         return node
@@ -111,6 +133,14 @@ class NodeTransformer(ast.NodeTransformer):
         self.generic_visit(node)
         return node
 
+    def _reassign_resources(self, node):
+        if Parser.parser_scope['ast'] in ('export', 'seed', 'func'):
+            if type(node) == ast.Assign:
+                if type(node.targets[0]) == ast.Name:
+                    node.targets = [
+                        ast.Attribute(ast.Name(id=node.targets[0].id, ctx=ast.Load()), 'resource_obj', ast.Store())]
+        return node
+
     def visit_FunctionDef(self, node):
         if Parser.parser_scope['ast'] != '__system__':
             Assert.no_nested_imports(node)
@@ -122,11 +152,11 @@ class NodeTransformer(ast.NodeTransformer):
             if not ast_set:
                 Parser.parser_scope['ast'] = 'func'
             if Parser.parser_scope['ast'] in ('export', 'seed', 'func'):
-                for n in node.body:
-                    self.generic_visit(n)
+                node.body = [self.generic_visit(n) for n in node.body]
+                reassignment = Plugins.global_reassignment(self.resource_list)
+                node.body = reassignment.body + node.body
         node.decorator_list.append(
             ast.Name(id='__function__', ctx=ast.Load())
         )
         Parser.seed_tree.body.append(node)
         return node
-

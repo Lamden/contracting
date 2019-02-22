@@ -9,6 +9,7 @@ AUTHOR = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
 class TestScope(TestExecutor):
 
     def setUp(self):
+        super().setUp()
         self.ex.currency = False
         self.reset()
 
@@ -42,9 +43,7 @@ print(reasonable_call())
             self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: reasonable')
 
     def test_globals_redis(self):
-        bk_info = {'sbb_idx': 2, 'contract_idx': 12}
-        rt_info = {'rt': {'sender': 'davis', 'author': 'davis'}}
-        all_info = {**bk_info, **rt_info}
+        all_info = {'sbb_idx': 2, 'contract_idx': 12}
         with open(join(test_contracts_path, 'sample.sen.py')) as f:
             self.ex.publish_code_str('sample', 'davis', f.read())
 

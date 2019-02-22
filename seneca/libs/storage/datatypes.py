@@ -48,7 +48,6 @@ class DataType(object):
 
     def decode(self, value):
         value = value.decode()
-        # value = super().decode(value, force=True)
         if value[0] == POINTER:
             data_type_name, resource, key = value[1:].split(DELIMITER)
             data_type = Registry.get_data_type(data_type_name)
@@ -58,6 +57,28 @@ class DataType(object):
             data_type = Registry.get_value_type(value_type)
             data_type_obj = data_type(value)
         return data_type_obj
+
+
+class ResourceObj:
+
+    instance = None
+
+    def __set__(self, instance, value):
+        print('set', instance, value)
+        ResourceObj.instance = instance
+        k, v = instance.resource, value
+        instance.driver.hset(instance.rt['contract'], k, instance.encode(v))
+        self.instance = instance
+
+    def __get__(self, instance, parent):
+        res = instance.driver.hget(instance.rt['contract'], instance.resource)
+        if not res:
+            raise ItemNotFoundException('Cannot find {} in {}'.format(instance.resource, instance.__repr__))
+        return instance.decode(res)
+
+
+class Resource(DataType):
+    resource_obj = ResourceObj()
 
 
 class Map(DataType):

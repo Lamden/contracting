@@ -3,7 +3,7 @@ import ast, builtins
 ALLOWED_DATA_TYPES = {
     'Map',
     'Table',
-    'Key'
+    'Resource'
 }
 
 ALLOWED_AST_TYPES = {
@@ -73,6 +73,7 @@ ALLOWED_AST_TYPES = {
     # Error handling
     # ast.ExceptHandler,
     # ast.Try,
+    ast.Global
 }
 
 SENECA_LIBRARY_PATH = 'seneca.libs'
@@ -125,7 +126,8 @@ _SAFE_NAMES = [
     # 'dir',
     # 'help',
     'print',
-    # 'globals'
+    # 'globals',
+    # 'locals'
 ]
 
 _SAFE_EXCEPTIONS = [

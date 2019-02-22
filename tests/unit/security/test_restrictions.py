@@ -41,9 +41,9 @@ class TestGlobalInit(TestExecutor):
     def test_import(self):
         res = self.ex.execute_code_str("""
 from seneca.libs.storage.datatypes import Map
-x = Map('x')
+z = Map('z')
         """)
-        self.assertEqual(repr(Parser.parser_scope['x']), 'Map:__main__:x')
+        self.assertEqual(repr(Parser.parser_scope['z']), 'Map:__main__:z')
 
     def test_assign_anything_other_than_datatype_in_global(self):
         with self.assertRaises(CompilationException) as context:

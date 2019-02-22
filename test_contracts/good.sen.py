@@ -1,4 +1,5 @@
-balances = {'hello': 'world'}
+from seneca.libs.storage.datatypes import Map
+balances = Map('hello')
 
 @export
 def one_you_can_export():

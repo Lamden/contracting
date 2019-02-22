@@ -16,6 +16,22 @@ __set_resources__()
 __result__ = {func}()
 '''.format(func=func)
 
+    @staticmethod
+    def resource_reassignment(varname, ctx):
+        node = ast.parse('''
+{}.resource_obj
+        '''.format(varname), mode='exec').body[0].value
+        node.ctx = ctx
+        return node
+
+    @staticmethod
+    def global_reassignment(resource_list):
+        return ast.parse('''
+global {variables}
+        '''.format(
+            variables=','.join(resource_list)
+        ))
+
 
 class ReadOnlyException(Exception):
     pass
@@ -106,7 +122,8 @@ class Assert:
                     return resource_name, func_name
 
         if invalid_assign and not scope['ast']:
-            raise CompilationException('You may only declare DataTypes or import modules in the global scope')
+            raise CompilationException('You may only declare DataTypes or import modules in the global scope'
+                                        ', line {}:{}, in {}'.format(node.lineno, node.col_offset, scope['rt']['contract']))
 
 
         return None, None

@@ -22,7 +22,9 @@ class Scope:
                 kwargs = self.scope['__kwargs__']
         elif contract_name != old_contract_name:
             self.scope['rt']['sender'] = old_contract_name
+
         fn.__globals__['rt'] = self.scope['rt']
+
         return args, kwargs
 
     def reset_scope(self, fn):

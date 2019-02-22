@@ -46,7 +46,7 @@ class TestCallScope(TestExecutor):
 from seneca.contracts.c_1 import call_me
 call_me()
         """)
-        self.assertEqual(self.ex.r.get('c_1:my_number:__main__'), b'"1234567890"')
+        self.assertEqual(self.ex.r.get('c_1:my_number:{}'.format(AUTHOR)), b'"1234567890"')
         self.assertEqual(self.ex.r.get('c_2:my_number:c_1'), b'"1234"')
 
     def test_call_scope_execute_function(self):

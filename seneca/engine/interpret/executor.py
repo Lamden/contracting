@@ -80,7 +80,7 @@ class Executor:
     @staticmethod
     def compile(contract_name, code_str, scope={}):
         Parser.reset(contract_name)
-        Executor.set_default_rt(scope.get('rt', {}))
+        Executor.set_default_rt(Parser.parser_scope.get('rt', {}))
         Parser.parser_scope.update(scope)
         Parser.parser_scope['protected'].update(scope.keys())
         Parser.parser_scope['rt']['contract'] = contract_name
@@ -111,14 +111,14 @@ class Executor:
         code_str = ''
         try:
             meta = self.get_contract(contract_name)
-            Parser.parser_scope['rt']['author'] = meta['author']
+            author = meta['author']
         except Exception as e:
-            Parser.parser_scope['rt']['author'] = self.author
+            author = self.author
         if self.currency:
             code_str = Plugins.stamps(code_str)
         code_str = Plugins.import_module(code_str, contract_name, func_name)
         code_obj = compile(code_str, import_path, 'exec')
-        return code_obj
+        return code_obj, author
 
     def execute(self, code_obj, scope={}):
         scope.update(Parser.parser_scope)
@@ -144,9 +144,10 @@ class Executor:
             '__kwargs__': kwargs
         })
         Parser.parser_scope.update(Parser.basic_scope)
+        code_obj, author = self.get_contract_cache(contract_name, func_name)
         if contract_name == 'smart_contract':
             Parser.parser_scope['__executor__'] = self
-        code_obj = self.get_contract_cache(contract_name, func_name)
+        Parser.parser_scope['rt']['author'] = author
         Parser.parser_scope['callstack'] = []
         Scope.scope = Parser.parser_scope
 

@@ -11,7 +11,6 @@ balances['LamdenReserves'] = 0
 
 @seed
 def initialize_contract():
-    print('Seeding wallets...')
     # Deposit to all network founders
     ALL_WALLETS = [
         '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502',
