@@ -1,4 +1,4 @@
-from seneca.libs.storage.datatypes import Map, Key, Table, SchemaArgs
+from seneca.libs.storage.map import Map, Key, Table, SchemaArgs
 
 michelin_stars = Key()
 restaurant_name = Key()

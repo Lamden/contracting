@@ -1,4 +1,4 @@
-from seneca.libs.storage.datatypes import Map
+from seneca.libs.storage.map import Map
 balances = Map('hello')
 
 @export

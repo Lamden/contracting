@@ -1,7 +1,8 @@
 from unittest import TestCase
 import redis, unittest
 from seneca.constants.config import MASTER_DB, REDIS_PORT
-from seneca.libs.storage.datatypes import Map, Table, TableProperty
+from seneca.libs.storage.map import Map
+from seneca.libs.storage.table import Table, TableProperty
 from seneca.engine.interpret.parser import Parser
 from decimal import Decimal
 

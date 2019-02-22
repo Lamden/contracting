@@ -1,4 +1,3 @@
-from seneca.engine.interpret.utils import ReadOnlyException, CompilationException
 from seneca.engine.interpret.parser import Parser
 from tests.utils import TestExecutor
 import redis, unittest, seneca, os
@@ -9,7 +8,8 @@ os.environ['CIRCLECI'] = 'true'
 test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
 c_3 = """
-from seneca.libs.storage.datatypes import Map, Resource
+from seneca.libs.storage.map import Map
+from seneca.libs.storage.resource import Resource
 resource = Map('resource')
 shared_name = Resource()
 sandles = Resource()
@@ -39,7 +39,8 @@ c_4 = """
 from seneca.contracts.c_3 import read_resource as r
 from seneca.contracts.c_3 import write_resource as w
 
-from seneca.libs.storage.datatypes import Map, Resource
+from seneca.libs.storage.map import Map
+from seneca.libs.storage.resource import Resource
 resource = Map('resource')
 shared_name = Resource()
 shoes = Resource()
@@ -107,7 +108,6 @@ res4 = rr2(string='davis')
         self.ex.publish_code_str('c_4', 'anonymoose', c_4)
         self.assertEqual(self.ex.driver.hget('c_3', 'shared_name'), '{}@Decimal'.format(3).encode())
         self.assertEqual(self.ex.driver.hget('c_4', 'shared_name'), '{}@Decimal'.format(5).encode())
-
 
     def test_repeated_variables_inside_different_contracts_get(self):
         self.flush()
