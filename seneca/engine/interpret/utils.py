@@ -82,11 +82,10 @@ class Assert:
 
     @staticmethod
     def is_protected(target, scope):
-        if isinstance(target, ast.Subscript):
-            return
-        if target.id in scope['protected'] \
-                or target.id in [k.rsplit('.', 1)[-1] for k in scope['imports'].keys()]:
-            raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
+        if type(target) == ast.Name:
+            if target.id in scope['protected']['global'].union(scope['protected'][scope['rt']['contract']]) \
+                    or target.id in [k.rsplit('.', 1)[-1] for k in scope['imports'].keys()]:
+                raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
 
     @staticmethod
     def is_not_resource(name, scope):
@@ -108,9 +107,7 @@ class Assert:
     @staticmethod
     def valid_assign(node, scope):
         for t in node.targets:
-            if type(t) == ast.Name:
-                if t.id in scope['protected']:
-                    raise CompilationException('Cannot assign protected variable "{}"'.format(t.id))
+            Assert.is_protected(t, scope)
 
         invalid_assign = True
         if type(node.value) == ast.Call:

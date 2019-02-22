@@ -23,20 +23,35 @@ class Parser:
         'exports': {},
         'imports': {},
         'resources': {},
-        'protected': set()
+        'protected': defaultdict(set)
     }
     seed_tree = None
     child = None
+    initialized = False
 
     @classmethod
-    def reset(cls, top_level_contract=None):
+    def initialize(cls):
+        if not cls.initialized:
+            cls.parser_scope = {
+                'ast': None,
+                'callstack': [],
+                'exports': {},
+                'imports': {},
+                'resources': {},
+                'protected': defaultdict(set)
+            }
+            cls.initialized = True
+
+    @classmethod
+    def reset(cls):
+        cls.initialize()
         cls.parser_scope.update({
             'imports': {},
             '__args__': (),
             '__kwargs__': {}
         })
         cls.parser_scope.update(cls.basic_scope)
-        cls.parser_scope['protected'].update(cls.basic_scope.keys())
+        cls.parser_scope['protected']['global'].update(cls.basic_scope.keys())
         cls.seed_tree = None
 
     @staticmethod
@@ -91,12 +106,12 @@ class NodeTransformer(ast.NodeTransformer):
         return self._visit_any_import(node, node.module, module_name=node.names[0].name)
 
     def _visit_any_import(self, node, import_path, module_name=None):
-        obj_name = Assert.valid_import_path(import_path, module_name, Parser.parser_scope['rt']['contract'])
+        obj_name = Assert.valid_import_path(import_path, module_name, self.contract_name)
         if obj_name:
             Assert.is_not_resource(obj_name, Parser.parser_scope)
             call_name = '{}.{}'.format(import_path.split('.')[-1], obj_name)
             Parser.parser_scope['imports'][call_name] = True
-        Parser.parser_scope['protected'].add(module_name)
+        Parser.parser_scope['protected'][self.contract_name].add(module_name)
         if Parser.parser_scope['ast'] != '__system__':
             Parser.parser_scope['ast'] = 'import'
         Parser.seed_tree.body.append(node)

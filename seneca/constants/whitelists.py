@@ -18,6 +18,7 @@ ALLOWED_AST_TYPES = {
     ast.alias,
     ast.If,
     ast.FunctionDef,
+    ast.Global,  # Used for setting up resources in seed function during compilation
     ast.GtE,
     ast.LtE,
     ast.Load,
@@ -73,7 +74,6 @@ ALLOWED_AST_TYPES = {
     # Error handling
     # ast.ExceptHandler,
     # ast.Try,
-    ast.Global
 }
 
 SENECA_LIBRARY_PATH = 'seneca.libs'

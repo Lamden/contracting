@@ -79,10 +79,10 @@ class Executor:
 
     @staticmethod
     def compile(contract_name, code_str, scope={}):
-        Parser.reset(contract_name)
+        Parser.reset()
         Executor.set_default_rt(Parser.parser_scope.get('rt', {}))
         Parser.parser_scope.update(scope)
-        Parser.parser_scope['protected'].update(scope.keys())
+        Parser.parser_scope['protected']['global'].update(scope.keys())
         Parser.parser_scope['rt']['contract'] = contract_name
         seed_tree = Parser.parse_ast(code_str)
         seed_code_obj = compile(seed_tree, contract_name, 'exec')

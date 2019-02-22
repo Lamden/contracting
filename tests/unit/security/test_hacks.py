@@ -16,7 +16,7 @@ __contract__ = 'hacks'
                 """)
 
     def test_read_only_variables_custom(self):
-        with self.assertRaises(CompilationException) as context:
+        with self.assertRaises(ReadOnlyException) as context:
             self.ex.execute_code_str("""
 bird = 'hacks'
                 """, {'bird': '123'})
@@ -34,14 +34,14 @@ hmap('balance', str, int)
             """)
 
     def test_import_datatypes_reassign(self):
-        with self.assertRaises(CompilationException) as context:
+        with self.assertRaises(ReadOnlyException) as context:
             self.ex.execute_code_str("""
 from seneca.libs.datatypes import hmap
 hmap = 'hacked'
                 """)
 
     def test_import_builtin_reassign(self):
-        with self.assertRaises(CompilationException) as context:
+        with self.assertRaises(ReadOnlyException) as context:
             self.ex.execute_code_str("""
 seed = 'hacked'
                 """)
@@ -57,6 +57,7 @@ t, r = 2,3
 x = 45
             """)
 
+
 class TestMoreHacks(TestExecutor):
 
     def test_forbidden_import(self):
@@ -66,7 +67,7 @@ import sys
             """)
 
     def test_modify_imports(self):
-        with self.assertRaises(CompilationException) as context:
+        with self.assertRaises(ReadOnlyException) as context:
             self.ex.execute_code_str("""
 from test_contracts.sample import good_call
 def bad_call():
