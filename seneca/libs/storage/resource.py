@@ -8,10 +8,8 @@ class ResourceObj:
     instance = None
 
     def __set__(self, instance, value):
-        ResourceObj.instance = instance
         k, v = instance.resource, value
         instance.driver.hset(instance.rt['contract'], k, instance.encode(v))
-        self.instance = instance
 
     def __get__(self, instance, parent):
         res = instance.driver.hget(instance.rt['contract'], instance.resource)

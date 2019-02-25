@@ -2,7 +2,7 @@ from seneca.engine.interpret.parser import Parser
 from seneca.engine.interpret.scope import Scope
 from seneca.libs.metering.tracer import Tracer
 from seneca.constants.config import MASTER_DB, REDIS_PORT, CODE_OBJ_MAX_CACHE
-import seneca, redis, ujson as json, sys, marshal, os
+import seneca, redis, sys, marshal, os, ast
 from os.path import join
 from functools import lru_cache
 from seneca.engine.interpret.utils import Plugins, Assert

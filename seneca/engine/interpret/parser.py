@@ -162,6 +162,7 @@ class NodeTransformer(ast.NodeTransformer):
                 node.body = [self.generic_visit(n) for n in node.body]
                 if len(self.resource_list) > 0:
                     reassignment = Plugins.global_reassignment(self.resource_list)
+                    print(self.resource_list)
                     node.body = reassignment.body + node.body
         node.decorator_list.append(
             ast.Name(id='__function__', ctx=ast.Load())
