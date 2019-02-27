@@ -17,12 +17,13 @@ founder = founder_wallets[0]
 seed_amount = 1000000
 
 
-class TestCurrency(TestExecutor):
+class TestClassicCurrency(TestExecutor):
 
-    def setUp(self):
-        super().setUp()
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
         with open(join(PATH, 'new_currency.sen.py')) as f:
-            self.ex.execute_function('smart_contract', 'submit_contract', AUTHOR, kwargs={
+            cls.ex.execute_function('smart_contract', 'submit_contract', AUTHOR, kwargs={
                 'contract_name': 'new_currency',
                 'code_str': f.read()
             })
@@ -46,3 +47,47 @@ class TestCurrency(TestExecutor):
         res = self.ex.execute_function('new_currency', 'approve', wallets[0], kwargs={'spender': wallets[3], 'amount': 100})
         res = self.ex.execute_function('new_currency', 'allowance', wallets[0], kwargs={'approver': wallets[0], 'spender': wallets[1]})
         self.assertEqual(res['output'], 100)
+
+
+class TestWalrusCurrency(TestExecutor):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        with open(join(PATH, 'walrus_currency.sen.py')) as f:
+            cls.ex.execute_function('smart_contract', 'submit_contract', AUTHOR, kwargs={
+                'contract_name': 'walrus_currency',
+                'code_str': f.read()
+            })
+
+    def test_seeding(self):
+        res = self.ex.execute_function('walrus_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': founder})
+        self.assertEqual(seed_amount, res['output'])
+        res = self.ex.execute_function('walrus_currency', 'exchange_rate', AUTHOR)
+        self.assertEqual(1.0, res['output'])
+
+    def test_transfer(self):
+        res = self.ex.execute_function('walrus_currency', 'transfer', wallets[0], kwargs={'to': wallets[1], 'amount': 100})
+        res = self.ex.execute_function('walrus_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[0]})
+        self.assertEqual(seed_amount-100, res['output'])
+        res = self.ex.execute_function('walrus_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
+        self.assertEqual(seed_amount+100, res['output'])
+
+    def test_approve(self):
+        res = self.ex.execute_function('walrus_currency', 'approve', wallets[0], kwargs={'spender': wallets[1], 'amount': 100})
+        res = self.ex.execute_function('walrus_currency', 'allowance', wallets[0], kwargs={'approver': wallets[0], 'spender': wallets[1]})
+        self.assertEqual(res['output'], 100)
+
+    def test_transfer_from(self):
+        res = self.ex.execute_function('walrus_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
+        original_balance = res['output']
+        res = self.ex.execute_function('walrus_currency', 'approve', wallets[0],
+                                       kwargs={'spender': wallets[1], 'amount': 100})
+        res = self.ex.execute_function('walrus_currency', 'transfer_from', wallets[1],
+                                       kwargs={'approver': wallets[0], 'amount': 100})
+        res = self.ex.execute_function('walrus_currency', 'allowance', wallets[0], kwargs={'approver': wallets[0], 'spender': wallets[1]})
+        self.assertEqual(res['output'], 0)
+        res = self.ex.execute_function('walrus_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
+        self.assertEqual(res['output'], original_balance+100)
+
+

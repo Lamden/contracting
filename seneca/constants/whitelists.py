@@ -5,14 +5,14 @@ ALLOWED_DATA_TYPES = {
     'Table',
     'Resource',
 
-    'WHash',
-    'WSet',
-    'WZSet',
-    'WList',
-    'WHyperLogLog',
-    'WArray',
-    'WBitField',
-    'WBloomFilter'
+    'Hash',
+    'Set',
+    'ZSet',
+    'List',
+    'HyperLogLog',
+    'Array',
+    'BitField',
+    'BloomFilter'
 }
 
 ALLOWED_AST_TYPES = {

@@ -23,7 +23,6 @@ class TestInterface(TestCase):
 
     def setUp(self):
         self.si = SenecaInterface(False, port=get_redis_port(), password=get_redis_password())
-        self.si.r.flushall()
         print('\n{}'.format('#' * 128))
         print(self.id)
         print('{}\n'.format('#' * 128))
@@ -33,6 +32,7 @@ class TestExecutor(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.r = Driver(host='localhost', port=REDIS_PORT, db=MASTER_DB)
+        cls.r.flushall()
         cls.reset()
 
     def setUp(self):

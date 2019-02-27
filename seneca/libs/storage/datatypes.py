@@ -2,10 +2,12 @@ from seneca.libs.storage.map import Map
 from seneca.libs.storage.resource import Resource
 from seneca.libs.storage.table import Table
 from seneca.libs.storage.datatype import WalrusDataType
-from walrus.containers import *
+from walrus.containers import Hash as WHash, Set as WSet, List as WList, ZSet as WZSet, BitField as WBitField
+from walrus.containers import BloomFilter as WBloomFilter, Array as WArray, HyperLogLog as WHyperLogLog
+from walrus.containers import chainable_method
 
 
-class WHash(WalrusDataType, Hash):
+class Hash(WalrusDataType, WHash):
 
     default_value = {}
 
@@ -14,29 +16,29 @@ class WHash(WalrusDataType, Hash):
         super().update(**{k: self.encode(v) for k, v in kwargs.items()})
 
 
-class WSet(WalrusDataType, Set):
+class Set(WalrusDataType, WSet):
     pass
 
 
-class WList(WalrusDataType, List):
+class List(WalrusDataType, WList):
     pass
 
 
-class WZSet(WalrusDataType, ZSet):
+class ZSet(WalrusDataType, WZSet):
     pass
 
 
-class WBitField(WalrusDataType, BitField):
+class BitField(WalrusDataType, WBitField):
     pass
 
 
-class WBloomFilter(WalrusDataType, BloomFilter):
+class BloomFilter(WalrusDataType, WBloomFilter):
     pass
 
 
-class WArray(WalrusDataType, Array):
+class Array(WalrusDataType, WArray):
     pass
 
 
-class WHyperLogLog(WalrusDataType, HyperLogLog):
+class HyperLogLog(WalrusDataType, WHyperLogLog):
     pass

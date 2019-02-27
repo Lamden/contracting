@@ -1,9 +1,9 @@
-from seneca.libs.storage.datatypes import WHash, WSet
+from seneca.libs.storage.datatypes import Hash
 
 # Declare Data Types
-globals = WHash('globals')
-balances = WHash('balances')
-allowed = WHash('allowed')
+globals = Hash('globals')
+balances = Hash('balances')
+allowed = Hash('allowed')
 
 @seed
 def initalize_currency():
