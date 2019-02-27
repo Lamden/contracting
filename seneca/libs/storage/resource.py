@@ -14,7 +14,7 @@ class ResourceObj:
     def __get__(self, instance, parent):
         res = instance.driver.hget(instance.rt['contract'], instance.resource)
         if not res:
-            raise ItemNotFoundException('Cannot find {} in {}'.format(instance.resource, instance.__repr__))
+            raise ItemNotFoundException('Cannot find {} in {}'.format(instance.resource, instance.__repr__()))
         return instance.decode(res)
 
 

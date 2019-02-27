@@ -83,6 +83,7 @@ class NodeTransformer(ast.NodeTransformer):
         Assert.not_system_variable(node.id)
         if Parser.parser_scope['ast'] in ('seed', 'export', 'func') \
                 and node.id in self.resource_list:
+            self.generic_visit(node)
             return Plugins.resource_reassignment(node.id, node.ctx)
         self.generic_visit(node)
         return node
@@ -109,6 +110,8 @@ class NodeTransformer(ast.NodeTransformer):
             Parser.parser_scope['ast'] = 'import'
         Parser.seed_tree.body.append(node)
         self.generic_visit(node)
+        if Parser.parser_scope['ast'] != '__system__':
+            Parser.parser_scope['ast'] = None
         return node
 
     def visit_Assign(self, node):
@@ -117,7 +120,7 @@ class NodeTransformer(ast.NodeTransformer):
             if func_name == 'Resource':
                 node.value.args = [ast.Str(resource_name)]
             self.resource[resource_name] = func_name
-        Parser.seed_tree.body.append(node)
+            Parser.seed_tree.body.append(node)
         self.generic_visit(node)
         return node
 
@@ -134,22 +137,16 @@ class NodeTransformer(ast.NodeTransformer):
         return node
 
     def visit_Num(self, node):
-        if isinstance(node.n, float) or isinstance(node.n, int):
+        # NOTE: Integers are important for indexing and slicing so we cannot replace them. They also will not suffer
+        #       from rounding issues.
+        if isinstance(node.n, float):  # or isinstance(node.n, int):
             return ast.Call(func=ast.Name(id='__decimal__', ctx=ast.Load()),
                             args=[node], keywords=[])
         self.generic_visit(node)
         return node
 
-    def _reassign_resources(self, node):
-        if Parser.parser_scope['ast'] in ('export', 'seed', 'func'):
-            if type(node) == ast.Assign:
-                if type(node.targets[0]) == ast.Name:
-                    node.targets = [
-                        ast.Attribute(ast.Name(id=node.targets[0].id, ctx=ast.Load()), 'resource_obj', ast.Store())]
-        return node
-
     def visit_FunctionDef(self, node):
-        if Parser.parser_scope['ast'] != '__system__':
+        if Parser.parser_scope['ast'] == None:
             Assert.no_nested_imports(node)
             ast_set = False
             for d in node.decorator_list:
@@ -159,11 +156,9 @@ class NodeTransformer(ast.NodeTransformer):
             if not ast_set:
                 Parser.parser_scope['ast'] = 'func'
             if Parser.parser_scope['ast'] in ('export', 'seed', 'func'):
-                node.body = [self.generic_visit(n) for n in node.body]
-                if len(self.resource_list) > 0:
-                    reassignment = Plugins.global_reassignment(self.resource_list)
-                    print(self.resource_list)
-                    node.body = reassignment.body + node.body
+                self.generic_visit(node)
+            Parser.parser_scope['ast'] = None
+
         node.decorator_list.append(
             ast.Name(id='__function__', ctx=ast.Load())
         )

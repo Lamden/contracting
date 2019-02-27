@@ -2,11 +2,12 @@ from seneca.engine.interpret.parser import Parser
 from seneca.engine.interpret.scope import Scope
 from seneca.libs.metering.tracer import Tracer
 from seneca.constants.config import MASTER_DB, REDIS_PORT, CODE_OBJ_MAX_CACHE
-import seneca, redis, sys, marshal, os, ast
+import seneca, sys, marshal, os, ast
 from os.path import join
 from functools import lru_cache
 from seneca.engine.interpret.utils import Plugins, Assert
 from seneca.engine.interpret.module import SenecaFinder, RedisFinder
+from seneca.engine.interpret.driver import Driver
 
 
 class Executor:
@@ -21,7 +22,7 @@ class Executor:
         self.path = join(seneca.__path__[0], 'contracts')
         self.author = '__lamden_io__'
         self.official_contracts = [
-            'currency',
+            # 'currency',
             'smart_contract'
         ]
         self.setup_official_contracts()
@@ -35,7 +36,7 @@ class Executor:
             info = BookKeeper.get_cr_info()
             return RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
         else:
-            return redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
+            return Driver(host='localhost', port=REDIS_PORT, db=MASTER_DB)
 
     def reset_syspath(self):
         if not isinstance(sys.meta_path[-1], RedisFinder):
@@ -63,10 +64,8 @@ class Executor:
                 'resources': resources,
                 'methods': methods,
             }
-        pipe = self.driver.pipeline()
         for name, c in contracts.items():
-            self.set_contract(name, **c, driver=pipe, override=True)
-        pipe.execute()
+            self.set_contract(name, **c, driver=self.driver, override=True)
 
     def get_contract(self, contract_name):
         return marshal.loads(self.driver.hget('contracts', contract_name))
@@ -93,8 +92,8 @@ class Executor:
         Parser.parser_scope['rt']['contract'] = contract_name
         seed_tree = Parser.parse_ast(code_str)
         seed_code_obj = compile(seed_tree, contract_name, 'exec')
+        Parser.parser_scope['ast'] = None
         Parser.parser_scope['__seed__'] = True
-        Scope.scope['ast'] = None
         Scope.scope = Parser.parser_scope
         exec(seed_code_obj, Parser.parser_scope)
         Assert.validate(Scope.scope['imports'], Scope.scope['exports'])

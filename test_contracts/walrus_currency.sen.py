@@ -1,23 +1,18 @@
-from seneca.libs.storage.map import Map
-from seneca.libs.storage.resource import Resource
-from seneca.libs.storage.table import Table, TableProperty
+from seneca.libs.storage.datatypes import WHash, WSet
 
 # Declare Data Types
-xrate = Resource()
-seed_amount = Resource()
-balances = Map('balances')
-allowed = Table('allowed', {
-    'approver': TableProperty(str, indexed=True),
-    'spender': TableProperty(str, indexed=True),
-    'amount': int
-})
+globals = WHash('globals')
+balances = WHash('balances')
+allowed = WHash('allowed')
 
 @seed
 def initalize_currency():
 
     # Initialization
-    xrate = 1.0
-    seed_amount = 1000000
+    globals.update({
+        'xrate': 1.0,
+        'seed_amount': 1000000
+    })
     balances['LamdenReserves'] = 0
 
     # Deposit to all network founders
@@ -31,7 +26,7 @@ def initalize_currency():
     ]
 
     for w in founder_wallets:
-        balances[w] = seed_amount
+        balances[w] = globals['seed_amount']
 
 @export
 def assert_stamps(stamps):
@@ -62,7 +57,7 @@ def transfer(to, amount):
 
 @export
 def approve(spender, amount):
-    allowed.add_row(rt['origin'], spender, amount)
+    allowed[rt['origin']][spender] = amount
 
 @export
 def transfer_from(approver, amount):
@@ -74,12 +69,7 @@ def transfer_from(approver, amount):
 
 @export
 def allowance(approver, spender):
-    return allowed.find_one({
-        '$and': {
-            'approver': {'$exactly': approver},
-            'spender': {'$exactly': spender}
-        }
-    }, column='amount')
+    return allowed[approver][spender]
 
 # WARNING: Even the author shouldn't be able to mint
 # @export
@@ -89,9 +79,6 @@ def allowance(approver, spender):
 #
 #     balances[to] += amount
 
-########################################################################################
-#   Utilities
-########################################################################################
 @export
 def exchange_rate():
-    return xrate
+    return globals['xrate']

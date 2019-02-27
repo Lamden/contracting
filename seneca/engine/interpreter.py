@@ -1,4 +1,4 @@
-import redis, ast, marshal, array, copy, inspect, types, uuid, copy, ujson as json, sys, time
+import ast, marshal, array, copy, inspect, types, uuid, copy, ujson as json, sys, time
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SAFE_BUILTINS, SENECA_LIBRARY_PATH
 from seneca.constants.config import get_redis_port, get_redis_password, MASTER_DB, DB_OFFSET, CODE_OBJ_MAX_CACHE, MEMORY_LIMIT, RECURSION_LIMIT
 from functools import lru_cache
@@ -6,6 +6,8 @@ from seneca.libs.metering.tracer import Tracer
 import seneca, os
 from os.path import join
 from seneca.engine.book_keeper import BookKeeper
+from seneca.engine.interpret.driver import Driver
+
 
 class ReadOnlyException(Exception):
     pass
@@ -204,11 +206,11 @@ class SenecaNodeTransformer(ast.NodeTransformer):
 
 class SenecaInterpreter:
     def __init__(self, concurrent_mode=True, port=None, password=None, bypass_currency=False):
-        self.r = redis.StrictRedis(host='localhost',
-                                  port=get_redis_port(port=port),
-                                  db=MASTER_DB,
-                                  password=get_redis_password(password=password)
-                                  )
+        self.r = Driver(host='localhost',
+                        port=get_redis_port(port=port),
+                        db=MASTER_DB,
+                        password=get_redis_password(password=password)
+                        )
 
         self.bypass_currency = bypass_currency
         self.setup_tracer()

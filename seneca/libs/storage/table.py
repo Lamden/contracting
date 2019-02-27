@@ -1,5 +1,5 @@
 from seneca.libs.storage.datatype import DataType, NUMBER_TYPES, APPROVED_TYPES, SORTED_TYPE, TYPE_SEPARATOR, \
-    PROPERTY_KEY, POINTER
+    PROPERTY_KEY, POINTER, INDEX_SEPARATOR
 from seneca.libs.storage.registry import Registry
 from decimal import Decimal
 
@@ -75,16 +75,19 @@ class Table(DataType):
         if Table.schemas.get(resource_name):
             self.schema = Table.schemas[resource_name]
         elif self.schema:
+            column_idx = 0
             for k, v in self.schema.items():
                 if type(v) != TableProperty:
                     self.schema[k] = TableProperty(v)
+                self.driver.hset(self.properties_hash, k, column_idx)
+                column_idx += 1
             Table.schemas[resource_name] = self.schema
         else:
             raise AssertionError('Schema for {} is not found'.format(self.key))
 
     @property
     def row_id(self):
-        return self.driver.hget(self.table_properties_hash, 'ROW_ID')
+        return self.driver.hget(self.properties_hash, '__ROW_ID__')
 
     @property
     def count(self):
@@ -99,7 +102,7 @@ class Table(DataType):
         return '{}{}{}'.format(self.key, TYPE_SEPARATOR, SORTED_TYPE)
 
     @property
-    def table_properties_hash(self):
+    def properties_hash(self):
         return '{}{}{}'.format(self.key, TYPE_SEPARATOR, PROPERTY_KEY)
 
     def create_row(self, *args, **kwargs):
@@ -112,38 +115,33 @@ class Table(DataType):
             schema_arg = self.schema[k]
             arg = schema_arg.get_asserted_arg(arg)
             self.add_to_index(k, schema_arg, arg)
-            self.add_to_sort(k, schema_arg, arg)
             args_tuple += (arg,)
         for k in keys[len(args):]:
             schema_arg = self.schema[k]
             kwarg = kwargs.get(k)
             kwarg = schema_arg.get_asserted_arg(kwarg)
             self.add_to_index(k, schema_arg, kwarg)
-            self.add_to_sort(k, schema_arg, kwarg)
             kwargs_tuple += (kwarg,)
         data = args + kwargs_tuple
         return Table(self.resource, self.schema, data)
 
     def add_to_index(self, field, schema_arg, arg):
         # Populate index
-        if schema_arg.indexed:
-            index_hash = self.index_hash + field
-            self.driver.hset(index_hash, arg, self.row_id)
-
-    def add_to_sort(self, field, schema_arg, arg):
         if schema_arg.sort:
-            sort_hash = self.sort_hash + field
-            # print(sort_hash, field, arg)
-            # self.driver.zadd(sort_hash, arg, field)
+            index_hash = self.index_hash + field + INDEX_SEPARATOR + arg
+            self.driver.hset(index_hash, self.row_id, arg)
+        elif schema_arg.indexed:
+            index_hash = self.index_hash + field + INDEX_SEPARATOR + arg
+            self.driver.hset(index_hash, self.row_id, 1)
+
+    def remove_from_index(self):
+        pass
 
     def add_row(self, *args, **kwargs):
-        self.driver.hincrby(self.table_properties_hash, 'ROW_ID', 1)
+        self.driver.hincrby(self.properties_hash, '__ROW_ID__', 1)
         row = self.create_row(*args, **kwargs)
         self.driver.hset(self.key, self.row_id, self.encode(row.data))
         return row
-
-    def delete_rows(self, idx=None):
-        return self.driver.hdel(self.key, idx)
 
     def delete_table(self):
         # Delete indexes and sort
@@ -157,7 +155,7 @@ class Table(DataType):
 
         # Delete table list
         self.driver.delete(self.resource)
-        self.driver.delete(self.table_properties_hash)
+        self.driver.delete(self.properties_hash)
         self.driver.delete(self.key)
 
         # De-register schema
@@ -165,23 +163,70 @@ class Table(DataType):
         if Table.schemas.get(resource_name):
             del Table.schemas[resource_name]
 
-    def find(self, field=None, matches=None, exactly=None, limit=100):
-        if field:
-            if not self.schema.get(field):
-                raise AssertionError('No field named "{}"'.format(field))
-            if not self.schema[field].indexed:
-                raise AssertionError('Field "{}" is not indexed and hence not queryable'.format(field))
-            index_hash = self.index_hash + field
-            if exactly:
-                idx = self.driver.hget(index_hash, exactly)
-                res = [self.driver.hget(self.key, idx)]
-            elif matches:
-                _, idxs = self.driver.hscan(index_hash, match=matches, count=limit)
-                res = self.driver.hmget(self.key, idxs.values())
+    def _find_items(self, property=None, matches=None, exactly=None, limit=100):
+        if not self.schema.get(property):
+            raise AssertionError('No property named "{}"'.format(property))
+        if not self.schema[property].indexed:
+            raise AssertionError('Property "{}" is not indexed and hence not queryable'.format(property))
+        index_hash = self.index_hash + property
+        if exactly:
+            query_hash = index_hash + INDEX_SEPARATOR + exactly
+            idxs = list(self.driver.hgetall(query_hash).keys())[:limit]
+        elif matches:
+            _, idxs = self.driver.hscan(index_hash, match=matches, count=limit)
         else:
-            res = self.driver.hgetall(self.key)
-            return [self.decode(r) for k, r in res.items()]
-        return [self.decode(r) for r in res]
+            raise AssertionError('You specify matches or exactly for this property.')
+        return idxs
+
+    def _find_operation(self, fields):
+        if set(('$and', '$or')).intersection(fields.keys()):
+            all_idxs = None
+        else:
+            conditions = {f[1:]: val for f, val in fields.items() if f[0] == '$'}
+            return self._find_items(**conditions)
+        for op in fields:
+            for field, condition in fields[op].items():
+                condition['$property'] = field
+                idxs = self._find_operation(condition)
+                if not all_idxs: all_idxs = set(idxs)
+                if op == '$and':
+                    all_idxs = all_idxs.intersection(idxs)
+                elif op == '$or':
+                    all_idxs = all_idxs.union(idxs)
+        return all_idxs
+
+    def find(self, fields, columns=None, column=None):
+        idxs = self._find_operation(fields)
+        res = self.driver.hmget(self.key, idxs)
+        if column:
+            column_idx = int(self.driver.hget(self.properties_hash, column))
+            objs = []
+            for r in res:
+                r = self.decode(r)
+                objs.append(r[column_idx])
+        elif columns:
+            assert type(columns) == list, 'Columns must be list of properties'
+            column_idxs = [int(idx) for idx in self.driver.hmget(self.properties_hash, columns)]
+            objs = []
+            for r in res:
+                r = self.decode(r)
+                objs.append([r[idx] for idx in column_idxs])
+        else:
+            objs = [self.decode(r) for r in res if r]
+        return objs
+
+    def find_one(self, *args, **kwargs):
+        objs = self.find(*args, **kwargs)
+        return objs[0]
+
+    def delete(self, *args, **kwargs):
+        res = self._find_field(*args, **kwargs)
+        raise AssertionError('Not Implemented')
+        # return self.driver.hdel(self.key, idx)
+
+    def update(self, updates={}, *args, **kwargs):
+        res = self._find_field(*args, **kwargs)
+        raise AssertionError('Not Implemented')
 
 
 Registry.register_class('Table', Table)

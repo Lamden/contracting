@@ -125,19 +125,19 @@ class TestDataTypes(TestCase):
         Coin.delete_table()
         self.assertEqual(self.ex.driver.keys(), [])
 
-    def test_delete_row(self):
-        Coin = Table('Coin', {
-            'name': TableProperty(str, required=True, indexed=True),
-            'purpose': str,
-            'price': int
-        })
-        Coin.add_row('faltau', purpose='anarchy net')
-        Coin.add_row(purpose='anarchy net', name='stubucks', price=1)
-        Coin.add_row('falcoin', 'anarchy net')
-        Coin.add_row('falcoin', 'anarchy net')
-        Coin.add_row('falcoin', 'anarchy net')
-        Coin.delete_rows(idx=3)
-        self.assertEqual(Coin.count, 4)
+    # def test_delete_row(self):
+    #     Coin = Table('Coin', {
+    #         'name': TableProperty(str, required=True, indexed=True),
+    #         'purpose': str,
+    #         'price': int
+    #     })
+    #     Coin.add_row('faltau', purpose='anarchy net')
+    #     Coin.add_row(purpose='anarchy net', name='stubucks', price=1)
+    #     Coin.add_row('falcoin', 'anarchy net')
+    #     Coin.add_row('falcoin', 'anarchy net')
+    #     Coin.add_row('falcoin', 'anarchy net')
+    #     Coin.delete(idx=3)
+    #     self.assertEqual(Coin.count, 4)
 
     # def test_table_with_sorted_column(self):
     #     Coin = Table('Coin', {

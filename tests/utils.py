@@ -1,4 +1,5 @@
-import sys, redis
+import sys
+from seneca.engine.interpret.driver import Driver
 from contextlib import contextmanager
 from io import StringIO
 from unittest import TestCase
@@ -31,7 +32,7 @@ class TestExecutor(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.r = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
+        cls.r = Driver(host='localhost', port=REDIS_PORT, db=MASTER_DB)
         cls.reset()
 
     def setUp(self):

@@ -3,7 +3,16 @@ import ast, builtins
 ALLOWED_DATA_TYPES = {
     'Map',
     'Table',
-    'Resource'
+    'Resource',
+
+    'WHash',
+    'WSet',
+    'WZSet',
+    'WList',
+    'WHyperLogLog',
+    'WArray',
+    'WBitField',
+    'WBloomFilter'
 }
 
 ALLOWED_AST_TYPES = {
