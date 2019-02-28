@@ -22,7 +22,7 @@ class Executor:
         self.path = join(seneca.__path__[0], 'contracts')
         self.author = '__lamden_io__'
         self.official_contracts = [
-            # 'currency',
+            'currency',
             'smart_contract'
         ]
         self.setup_official_contracts()
@@ -158,6 +158,7 @@ class Executor:
         Parser.parser_scope['rt']['author'] = author
         Parser.parser_scope['callstack'] = []
         Scope.scope = Parser.parser_scope
+        stamps_used = 0
 
         if self.currency:
             error = None
@@ -171,6 +172,7 @@ class Executor:
                 # NOTE: Stamp submission is separated from the assertion and execution
                 # because we still want to subtract stamps if we run out of stamps.
                 self.tracer.stop()
+                stamps_used = Scope.scope.get('__stamps_used__', 0)
                 exec(Plugins.submit_stamps(), Parser.parser_scope)
                 if error:
                     raise error
@@ -183,7 +185,7 @@ class Executor:
         return {
             'status': 'success',
             'output': Scope.scope.get('__result__'),
-            'remaining_stamps': Scope.scope.get('__stamps_used__', 0)
+            'stamps_used': stamps_used
         }
 
     def publish_code_str(self, contract_name, author, code_str):

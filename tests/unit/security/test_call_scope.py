@@ -7,10 +7,10 @@ os.environ['CIRCLECI'] = 'true'
 test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
 c_1 = """
-from seneca.libs.datatypes import hmap
+from seneca.libs.storage.datatypes import Hash
 from seneca.contracts.c_2 import call_me_maybe
 
-my_number = hmap('my_number', str, str)
+my_number = Hash('my_number')
 
 @export
 def call_me():
@@ -19,9 +19,9 @@ def call_me():
 """
 
 c_2 = """
-from seneca.libs.datatypes import hmap
+from seneca.libs.storage.datatypes import Hash
 
-my_number = hmap('my_number', str, str)
+my_number = Hash('my_number')
 
 @export
 def call_me_maybe():
@@ -46,16 +46,16 @@ class TestCallScope(TestExecutor):
 from seneca.contracts.c_1 import call_me
 call_me()
         """)
-        self.assertEqual(self.ex.driver.get('c_1:my_number:{}'.format(AUTHOR)), b'"1234567890"')
-        self.assertEqual(self.ex.driver.get('c_2:my_number:c_1'), b'"1234"')
+        self.assertEqual(self.ex.driver.hget('Hash:c_1:my_number', AUTHOR), b'"1234567890"')
+        self.assertEqual(self.ex.driver.hget('Hash:c_2:my_number', 'c_1'), b'"1234"')
 
     def test_call_scope_execute_function(self):
         self.flush()
         self.ex.publish_code_str('c_2', AUTHOR, c_2)
         self.ex.publish_code_str('c_1', AUTHOR, c_1)
         self.ex.execute_function('c_1', 'call_me', AUTHOR, 10000)
-        self.assertEqual(self.ex.driver.get('c_1:my_number:{}'.format(AUTHOR)), b'"1234567890"')
-        self.assertEqual(self.ex.driver.get('c_2:my_number:c_1'), b'"1234"')
+        self.assertEqual(self.ex.driver.hget('Hash:c_1:my_number', AUTHOR), b'"1234567890"')
+        self.assertEqual(self.ex.driver.hget('Hash:c_2:my_number', 'c_1'), b'"1234"')
 
 if __name__ == '__main__':
     unittest.main()

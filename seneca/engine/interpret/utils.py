@@ -75,7 +75,7 @@ class Assert:
             raise CompilationException('Access denied for system variable: {}'.format(v))
 
     @staticmethod
-    def valid_import_path(import_path, module_name=None, contract_name=None):
+    def valid_import_path(import_path, module_name=None):
         if module_name == '*':
             raise ImportError('Not allowed to import *')
         elif module_name:
@@ -96,7 +96,8 @@ class Assert:
     @staticmethod
     def is_protected(target, scope):
         if type(target) == ast.Name:
-            if target.id in scope['protected']['global'].union(scope['protected'][scope['rt']['contract']]) \
+            contract_name = scope['rt']['contract']
+            if target.id in scope['protected']['global'].union(scope['protected'][contract_name]) \
                     or target.id in [k.rsplit('.', 1)[-1] for k in scope['imports'].keys()]:
                 raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
 

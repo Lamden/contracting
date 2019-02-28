@@ -1,18 +1,22 @@
-from seneca.libs.datatypes import hmap
+from seneca.libs.storage.datatypes import Hash
 
 # Declare Data Types
-xrate = hmap('xrate', str, float)
-balances = hmap('balances', str, int)
-allowed = hmap('allowed', str, hmap(key_type=str, value_type=int))
-
-# Initialization
-xrate['TAU_STP'] = 1.0
-balances['LamdenReserves'] = 0
+globals = Hash('globals')
+balances = Hash('balances', default_value=0)
+allowed = Hash('allowed')
 
 @seed
-def initialize_contract():
+def initalize_currency():
+
+    # Initialization
+    globals.update({
+        'xrate': 1.0,
+        'seed_amount': 1000000
+    })
+    balances['LamdenReserves'] = 0
+
     # Deposit to all network founders
-    ALL_WALLETS = [
+    founder_wallets = [
         '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502',
         'a103715914a7aae8dd8fddba945ab63a169dfe6e37f79b4a58bcf85bfd681694',
         '20da05fdba92449732b3871cc542a058075446fedb41430ee882e99f9091cc4d',
@@ -20,10 +24,9 @@ def initialize_contract():
         'cb9bfd4b57b243248796e9eb90bc4f0053d78f06ce68573e0fdca422f54bb0d2',
         'c1f845ad8967b93092d59e4ef56aef3eba49c33079119b9c856a5354e9ccdf84'
     ]
-    SEED_AMOUNT = 1000000
 
-    for w in ALL_WALLETS:
-        balances[w] = SEED_AMOUNT
+    for w in founder_wallets:
+        balances[w] = globals['seed_amount']
 
 @export
 def assert_stamps(stamps):
@@ -57,20 +60,25 @@ def approve(spender, amount):
     allowed[rt['origin']][spender] = amount
 
 @export
-def transfer_from(_from, to, amount):
-    assert allowed[_from][rt['sender']] >= amount
-    assert balances[_from] >= amount
-    allowed[_from][rt['sender']] -= amount
-    balances[_from] -= amount
-    balances[to] += amount
+def transfer_from(approver, amount):
+    assert allowed[approver][rt['sender']] >= amount
+    assert balances[approver] >= amount
+    allowed[approver][rt['sender']] -= amount
+    balances[approver] -= amount
+    balances[rt['origin']] += amount
 
 @export
 def allowance(approver, spender):
     return allowed[approver][spender]
 
+# WARNING: Even the author shouldn't be able to mint
 @export
 def mint(to, amount):
     # print("minting {} to wallet {}".format(amount, to))
     assert rt['sender'] == rt['author'], 'Only the original contract author can mint!'
 
     balances[to] += amount
+
+@export
+def exchange_rate():
+    return globals['xrate']

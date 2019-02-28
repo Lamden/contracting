@@ -448,7 +448,7 @@ class CRContext:
             self.input_hash[:16], len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
 
 
-class DriverProxy:
+class RedisProxy:
 
     def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, finalize=False):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis

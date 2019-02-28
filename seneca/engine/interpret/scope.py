@@ -7,6 +7,8 @@ class Scope:
         # Set contract name
         old_contract_name = self.scope['rt']['contract']
         contract_name = fn.__module__ or self.scope['rt']['contract']
+        if len(self.scope['callstack']) == 0 and old_contract_name != '__main__' and contract_name != 'currency':
+            contract_name = old_contract_name
         self.scope['rt']['contract'] = contract_name
         self.scope['callstack'].append('{}.{}'.format(contract_name, fn.__name__))
 
@@ -61,4 +63,9 @@ class Export(Scope):
 class Seed(Scope):
     def __call__(self, fn):
         if self.scope.get('__seed__'):
-            fn()
+            if self.scope.get('__executor__'):
+                driver = self.scope['__executor__'].driver
+                if not driver.hexists('contracts', self.scope['rt']['contract']):
+                    fn()
+            else:
+                fn()

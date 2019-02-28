@@ -4,7 +4,7 @@ from seneca.libs.storage.registry import Registry
 from decimal import Decimal
 
 
-class TableProperty(object):
+class Property(object):
     def __init__(self, value_type, required=False, default=None, indexed=False, sort=False, primary_key=False):
         self.value_type = value_type
         self.required = primary_key or required
@@ -64,8 +64,8 @@ class Table(DataType):
 
     schemas = {}
 
-    def __init__(self, resource, schema=None, data=None):
-        super().__init__(resource)
+    def __init__(self, resource, schema=None, data=None, *args, **kwargs):
+        super().__init__(resource, *args, **kwargs)
         self.schema = schema
         self.data = data
         self.register_schema()
@@ -77,8 +77,8 @@ class Table(DataType):
         elif self.schema:
             column_idx = 0
             for k, v in self.schema.items():
-                if type(v) != TableProperty:
-                    self.schema[k] = TableProperty(v)
+                if type(v) != Property:
+                    self.schema[k] = Property(v)
                 self.driver.hset(self.properties_hash, k, column_idx)
                 column_idx += 1
             Table.schemas[resource_name] = self.schema
@@ -123,7 +123,7 @@ class Table(DataType):
             self.add_to_index(k, schema_arg, kwarg)
             kwargs_tuple += (kwarg,)
         data = args + kwargs_tuple
-        return Table(self.resource, self.schema, data)
+        return Table(self.resource, self.schema, data, placeholder=True)
 
     def add_to_index(self, field, schema_arg, arg):
         # Populate index
@@ -154,9 +154,8 @@ class Table(DataType):
                 self.driver.delete(sort_hash)
 
         # Delete table list
-        self.driver.delete(self.resource)
-        self.driver.delete(self.properties_hash)
-        self.driver.delete(self.key)
+        keys = self.driver.keys(self.key+'*')
+        self.driver.delete(*keys)
 
         # De-register schema
         resource_name = self.top_level_key
@@ -173,7 +172,11 @@ class Table(DataType):
             query_hash = index_hash + INDEX_SEPARATOR + exactly
             idxs = list(self.driver.hgetall(query_hash).keys())[:limit]
         elif matches:
-            _, idxs = self.driver.hscan(index_hash, match=matches, count=limit)
+            query = '{}{}{}'.format(index_hash, INDEX_SEPARATOR, matches)
+            _, keys = self.driver.scan(match=query, count=limit)
+            idxs = set()
+            for k in keys:
+                idxs.update(self.driver.hgetall(k))
         else:
             raise AssertionError('You specify matches or exactly for this property.')
         return idxs

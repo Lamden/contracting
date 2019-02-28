@@ -4,15 +4,14 @@ import redis, unittest, seneca
 from os.path import dirname
 
 test_contracts_path = dirname(seneca.__path__[0]) + '/test_contracts'
-AUTHOR = '__lamden_io__'
+AUTHOR = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
 
 class TestCurrency(TestExecutor):
 
     def test_unauthorized_transfer(self):
-        self.ex.execute_function('currency', 'mint', AUTHOR, 0, kwargs={'to':'birb', 'amount':10000000})
+        self.ex.execute_function('currency', 'transfer', AUTHOR, 0, kwargs={'to': 'birb', 'amount': 10000000})
         code_str = """
-from seneca.libs.datatypes import hmap
-from seneca.contracts.currency import transfer, balance_of
+from seneca.contracts.currency import transfer
 
 @export
 def rm_mones():

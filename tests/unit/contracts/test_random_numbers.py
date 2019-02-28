@@ -15,7 +15,7 @@ MINT_WALLETS = {
 }
 
 
-class TestWhy(TestCase):
+class TestRandomNumbers(TestCase):
     CONTRACTS_TO_STORE = {'random_nums': 'random_nums_test.sen.py',
                           'importing_randoms': 'importing_randoms.sen.py',
                           'currency': 'currency.sen.py'}

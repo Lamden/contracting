@@ -1,6 +1,7 @@
 from seneca.engine.interpret.utils import ItemNotFoundException
 from seneca.libs.storage.datatype import DataType
 from seneca.libs.storage.registry import Registry
+from seneca.libs.storage.datatype import DELIMITER
 
 
 class ResourceObj:
@@ -9,10 +10,12 @@ class ResourceObj:
 
     def __set__(self, instance, value):
         k, v = instance.resource, value
-        instance.driver.hset(instance.rt['contract'], k, instance.encode(v))
+        hash_key = instance.key.rsplit(DELIMITER, 1)[0]
+        instance.driver.hset(hash_key, k, instance.encode(v))
 
     def __get__(self, instance, parent):
-        res = instance.driver.hget(instance.rt['contract'], instance.resource)
+        hash_key = instance.key.rsplit(DELIMITER, 1)[0]
+        res = instance.driver.hget(hash_key, instance.resource)
         if not res:
             raise ItemNotFoundException('Cannot find {} in {}'.format(instance.resource, instance.__repr__()))
         return instance.decode(res)

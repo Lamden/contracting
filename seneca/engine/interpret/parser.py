@@ -100,7 +100,8 @@ class NodeTransformer(ast.NodeTransformer):
         return self._visit_any_import(node, node.module, module_name=node.names[0].name)
 
     def _visit_any_import(self, node, import_path, module_name=None):
-        obj_name = Assert.valid_import_path(import_path, module_name, self.contract_name)
+        obj_name = Assert.valid_import_path(import_path, module_name)
+
         if obj_name:
             Assert.is_not_resource(obj_name, Parser.parser_scope)
             call_name = '{}.{}'.format(import_path.split('.')[-1], obj_name)

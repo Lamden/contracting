@@ -1,5 +1,6 @@
 from seneca.engine.interpret.parser import Parser
 from tests.utils import TestExecutor
+from seneca.libs.storage.datatypes import Map
 import redis, unittest, seneca, os
 from decimal import *
 
@@ -8,8 +9,7 @@ os.environ['CIRCLECI'] = 'true'
 test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
 c_3 = """
-from seneca.libs.storage.map import Map
-from seneca.libs.storage.resource import Resource
+from seneca.libs.storage.datatypes import Map, Resource
 resource = Map('resource')
 shared_name = Resource()
 sandles = Resource()
@@ -39,8 +39,7 @@ c_4 = """
 from seneca.contracts.c_3 import read_resource as r
 from seneca.contracts.c_3 import write_resource as w
 
-from seneca.libs.storage.map import Map
-from seneca.libs.storage.resource import Resource
+from seneca.libs.storage.datatypes import Map, Resource
 resource = Map('resource')
 shared_name = Resource()
 shoes = Resource()
@@ -66,6 +65,7 @@ def corrupt_resource(string, value):
 @export
 def read_shared_name():
     t = 7 + shared_name
+    print(t)
     return t
     
 @export
@@ -77,48 +77,57 @@ def read_shared_name_aug_assign():
 
 class TestConflict(TestExecutor):
 
+    def setUp(self):
+        super().setUp()
+        self.flush()
+
+    def test_upload_modify_upload(self):
+        self.ex.publish_code_str('c_3', 'anonymoose', c_3)
+        res = self.ex.execute_function('c_3', 'write_resource', 'anonymoose', kwargs={'string': 'stu', 'value': 3})
+        self.ex.publish_code_str('c_4', 'anonymoose', c_4)
+        res = self.ex.execute_function('c_3', 'read_resource', 'anonymoose', kwargs={'string': 'stu'})
+        self.assertEqual(res['output'], 3)
+
     def test_conflict(self):
         """
             Testing to see if the submission to Redis works.
         """
-        self.flush()
         self.ex.publish_code_str('c_3', 'anonymoose', c_3)
         self.ex.publish_code_str('c_4', 'anonymoose', c_4)
         self.ex.execute_code_str("""
 from seneca.contracts.c_3 import read_resource as rr1
 from seneca.contracts.c_4 import read_resource as rr2, read_other_resource as ror2, corrupt_resource as cr2
 
-cr2(string='stu', value=100)
-cr2(string='davis', value=123)
-
-res1 = rr1(string='stu')
-res2 = rr1(string='davis')
-res3 = rr2(string='stu')
-res4 = rr2(string='davis')
+@seed
+def init():
+    cr2(string='stu', value=100)
+    cr2(string='davis', value=123)
+    
+    res1 = rr1(string='stu')
+    res2 = rr1(string='davis')
+    res3 = rr2(string='stu')
+    res4 = rr2(string='davis')
 
         """)
-        self.assertEqual(Parser.parser_scope['res1'], Decimal(100))
-        self.assertEqual(Parser.parser_scope['res2'], Decimal(123))
-        self.assertEqual(Parser.parser_scope['res3'], Decimal(888))
-        self.assertEqual(Parser.parser_scope['res4'], Decimal(7777))
+        self.assertEqual(self.ex.driver.hget('Map:c_3:resource', 'stu'), b'100')
+        self.assertEqual(self.ex.driver.hget('Map:c_3:resource', 'davis'), b'123')
+        self.assertEqual(self.ex.driver.hget('Map:c_4:resource', 'stu'), b'888')
+        self.assertEqual(self.ex.driver.hget('Map:c_4:resource', 'davis'), b'7777')
 
     def test_repeated_variables_inside_different_contracts_set(self):
-        self.flush()
         self.ex.publish_code_str('c_3', 'anonymoose', c_3)
         self.ex.publish_code_str('c_4', 'anonymoose', c_4)
-        self.assertEqual(self.ex.driver.hget('c_3', 'shared_name'), '{}@Decimal'.format(3).encode())
-        self.assertEqual(self.ex.driver.hget('c_4', 'shared_name'), '{}@Decimal'.format(5).encode())
+        self.assertEqual(self.ex.driver.hget('Resource:c_3', 'shared_name'), b'3')
+        self.assertEqual(self.ex.driver.hget('Resource:c_4', 'shared_name'), b'5')
 
     def test_repeated_variables_inside_different_contracts_get(self):
-        self.flush()
         self.ex.publish_code_str('c_3', 'anonymoose', c_3)
         self.ex.publish_code_str('c_4', 'anonymoose', c_4)
         res = self.ex.execute_function('c_3', 'read_shared_name', 'anonymoose')
-        self.assertEqual(res['output'], 12)
+        self.assertEqual(res['output'], 10)
         self.assertEqual(type(res['output']), Decimal)
 
     def test_repeated_variables_inside_different_contracts_aug_set_get(self):
-        self.flush()
         self.ex.publish_code_str('c_3', 'anonymoose', c_3)
         self.ex.publish_code_str('c_4', 'anonymoose', c_4)
         res = self.ex.execute_function('c_4', 'read_shared_name_aug_assign', 'anonymoose')
@@ -127,6 +136,13 @@ res4 = rr2(string='davis')
         res = self.ex.execute_function('c_4', 'read_shared_name_aug_assign', 'anonymoose')
         self.assertEqual(res['output'], 11)
         self.assertEqual(type(res['output']), Decimal)
+
+    def test_map_collide(self):
+        with self.assertRaises(AssertionError) as context:
+            balances = Map('balances')
+            balances['hey'] = Map('palanaces')
+            balances['hey']['ok'] = 1
+            malances = Map('balances')
 
 if __name__ == '__main__':
     unittest.main()

@@ -52,9 +52,12 @@ from seneca.libs.datatypes import hmap
 @export
 def callit(a,b,c=1,d=2):
     return 1,2
-some_map = hmap('balance', str, int)
-t, r = 2,3
-x = 45
+    
+@seed
+def init():
+    some_map = hmap('balance', str, int)
+    t, r = 2,3
+    x = 45
             """)
 
 

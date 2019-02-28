@@ -3,6 +3,7 @@ import unittest, time
 
 CONTRACT_COUNT = 10000
 
+
 class TestTransfer(TestExecutor):
 
     def setUp(self):
