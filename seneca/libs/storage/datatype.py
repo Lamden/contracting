@@ -68,12 +68,14 @@ class DataTypeProperties:
 
 
 class DataType(Encoder, DataTypeProperties):
-    def __init__(self, resource, placeholder=False, *args, **kwargs):
+    def __init__(self, resource, default_value=None, placeholder=False, *args, **kwargs):
         self.resource = resource
+        if default_value is not None:
+            self.default_value = default_value
 
         if not placeholder:
             property_hash = '{}{}{}'.format(self.rt['contract'], INDEX_SEPARATOR, PROPERTY_KEY)
-            if not Parser.parser_scope['resources'][self.rt['contract']].get(resource):
+            if not Parser.parser_scope.get('resources', {}).get(self.rt['contract'], {}).get(resource):
                 assert not self.driver.hexists(property_hash, resource), 'A {} named "{}" has already been created'.format(self.__class__.__name__, resource)
                 self.driver.hset(property_hash, resource, self.__class__.__name__)
 

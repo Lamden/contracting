@@ -37,14 +37,18 @@ class TestDataTypes(TestCase):
         balances['hr'] = Map('hr')
         self.assertEqual(repr(balances['hr']), 'Map:{}:balances:hr'.format(self.contract_id))
 
+    def test_map_simple(self):
+        allowed = Map('allowed')
+        allowed['stu']['falcon'] = 100
+        self.assertEqual(allowed['stu']['falcon'], 100)
+
     def test_map_nested(self):
         balances = Map('balances')
         hooter = Map('hoot')
         hooter['res'] = 1234
         balances['hr'] = Map('hr')
         balances['hr']['hey'] = hooter
-        print(balances['hr']['hey']['res'])
-        # self.assertEqual(balances['hr']['hey']['res'], 1234)
+        self.assertEqual(balances['hr']['hey']['res'], 1234)
 
     def test_map_nested_different_type(self):
         Coin = Table('Coin', {
