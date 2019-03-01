@@ -1,6 +1,6 @@
-from seneca.libs.datatypes import hmap, table
+from seneca.libs.storage.datatypes import Hash, Table
+from seneca.contracts.smart_contract import execute_function
 from seneca.libs.crypto.hashing import hash_data
-from seneca.libs.importing import import_contract
 
 swaps = hmap('swaps', str, hmap(key_type=bytes, value_type=table(schema={
 	'initiator': str,
@@ -9,6 +9,7 @@ swaps = hmap('swaps', str, hmap(key_type=bytes, value_type=table(schema={
 	'token': str,
 	'expiration': int,
 })))
+
 
 def initiate(initiator,
 	participant,
@@ -31,6 +32,7 @@ def initiate(initiator,
 			'expiration': expiration
 		}
 
+
 def redeem(secret):
 	digest = hash_data(secret, 'sha3_256')
 	if swaps[rt['sender']][digest]:
@@ -39,6 +41,7 @@ def redeem(secret):
 
 		token = import_contract(s['token'])
 		token.transfer(rt['sender'], s['amount'])
+
 
 def refund(participant, secret):
 	digest = hash_data(secret, 'sha3_256')

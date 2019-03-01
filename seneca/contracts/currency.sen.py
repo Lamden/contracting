@@ -6,7 +6,7 @@ balances = Hash('balances', default_value=0)
 allowed = Hash('allowed')
 
 @seed
-def initalize_currency():
+def seed_wallets():
 
     # Initialization
     constants.update({
@@ -28,23 +28,19 @@ def initalize_currency():
     for w in founder_wallets:
         balances[w] = constants['seed_amount']
 
-@export
+
 def assert_stamps(stamps):
     # NOTE: This is run first before executing any lines from the core code block. No stamps will be
     #       subtracted if this assertion fails.
     assert balances[rt['origin']] >= stamps, "Not enough funds to submit stamps"
 
-@export
+
 def submit_stamps(stamps):
     # NOTE: Assertion is made before executing the core code block. The exact amount of used stamps is
     #       passed in from the executor as a separate exec() command. This will ensure that even if
     #       the core code block fails, stamps will be subtracted
     balances[rt['origin']] -= stamps
     balances['LamdenReserves'] += stamps
-
-@export
-def balance_of(wallet_id):
-    return balances[wallet_id]
 
 @export
 def transfer(to, amount):
@@ -68,17 +64,22 @@ def transfer_from(approver, amount):
     balances[rt['origin']] += amount
 
 @export
-def allowance(approver, spender):
-    return allowed[approver][spender]
-
-# WARNING: Even the author shouldn't be able to mint
-@export
 def mint(to, amount):
     # print("minting {} to wallet {}".format(amount, to))
     assert rt['sender'] == rt['author'], 'Only the original contract author can mint!'
 
     balances[to] += amount
 
+# TODO: Get rid of these
+
+@export
+def balance_of(wallet_id):
+    return balances[wallet_id]
+
 @export
 def exchange_rate():
     return constants['xrate']
+
+@export
+def allowance(approver, spender):
+    return allowed[approver][spender]

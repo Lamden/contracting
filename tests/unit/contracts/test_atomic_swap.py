@@ -1,6 +1,6 @@
 # from seneca.tooling import *
-# from decimal import Decimal
-# from unittest import TestCase, main
+# from tests.utils import TestExecutor
+# from unittest import TestCase
 # import seneca, os, json
 # from seneca.libs.crypto.hashing import hash_data
 #
@@ -11,7 +11,9 @@
 # hashlock = hash_data(secret, 'sha3_256')
 # expiration = 1800
 #
-# class TestAtomicSwap(TestCase):
+#
+# class TestAtomicSwap(TestExecutor):
+#
 #     def setUp(self):
 #         default_driver.r.flushdb()
 #         for contract in ['tau', 'atomic_swap', 'currency']:
@@ -85,5 +87,3 @@
 #         self.assertEqual(self.currency.balance_of(wallet_id=wallet_a)['output'], 1000000)
 #         self.assertEqual(self.currency.balance_of(wallet_id=wallet_b)['output'], 1000000)
 #
-# if __name__ == "__main__":
-# 	main()

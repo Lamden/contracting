@@ -1,7 +1,5 @@
 from tests.utils import TestExecutor
 import seneca
-from os.path import join, dirname
-import numpy
 
 PATH = seneca.__path__[0] + '/../test_contracts/'
 AUTHOR = '__lamden_io__'
@@ -17,77 +15,60 @@ founder = founder_wallets[0]
 seed_amount = 1000000
 
 
-class TestClassicCurrency(TestExecutor):
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        with open(join(PATH, 'new_currency.sen.py')) as f:
-            cls.ex.execute_function('smart_contract', 'submit_contract', AUTHOR, kwargs={
-                'contract_name': 'new_currency',
-                'code_str': f.read()
-            })
+class TestCurrency(TestExecutor):
 
     def test_seeding(self):
-        res = self.ex.execute_function('new_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': founder})
+        res = self.ex.execute_function('currency', 'balance_of', AUTHOR, kwargs={'wallet_id': founder})
         self.assertEqual(seed_amount, res['output'])
-        res = self.ex.execute_function('new_currency', 'exchange_rate', AUTHOR)
+        res = self.ex.execute_function('currency', 'exchange_rate', AUTHOR)
         self.assertEqual(1.0, res['output'])
 
     def test_transfer(self):
-        res = self.ex.execute_function('new_currency', 'transfer', wallets[0], kwargs={'to': wallets[1], 'amount': 100})
-        res = self.ex.execute_function('new_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[0]})
+        res = self.ex.execute_function('currency', 'transfer', wallets[0], kwargs={'to': wallets[1], 'amount': 100})
+        res = self.ex.execute_function('currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[0]})
         self.assertEqual(seed_amount-100, res['output'])
-        res = self.ex.execute_function('new_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
+        res = self.ex.execute_function('currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
         self.assertEqual(seed_amount+100, res['output'])
 
     def test_approve(self):
-        res = self.ex.execute_function('new_currency', 'approve', wallets[0], kwargs={'spender': wallets[1], 'amount': 100})
-        res = self.ex.execute_function('new_currency', 'approve', wallets[0], kwargs={'spender': wallets[2], 'amount': 100})
-        res = self.ex.execute_function('new_currency', 'approve', wallets[0], kwargs={'spender': wallets[3], 'amount': 100})
-        res = self.ex.execute_function('new_currency', 'allowance', wallets[0], kwargs={'approver': wallets[0], 'spender': wallets[1]})
-        self.assertEqual(res['output'], 100)
-
-
-class TestWalrusCurrency(TestExecutor):
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        with open(join(PATH, 'walrus_currency.sen.py')) as f:
-            cls.ex.execute_function('smart_contract', 'submit_contract', AUTHOR, kwargs={
-                'contract_name': 'walrus_currency',
-                'code_str': f.read()
-            })
-
-    def test_seeding(self):
-        res = self.ex.execute_function('walrus_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': founder})
-        self.assertEqual(seed_amount, res['output'])
-        res = self.ex.execute_function('walrus_currency', 'exchange_rate', AUTHOR)
-        self.assertEqual(1.0, res['output'])
-
-    def test_transfer(self):
-        res = self.ex.execute_function('walrus_currency', 'transfer', wallets[0], kwargs={'to': wallets[1], 'amount': 100})
-        res = self.ex.execute_function('walrus_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[0]})
-        self.assertEqual(seed_amount-100, res['output'])
-        res = self.ex.execute_function('walrus_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
-        self.assertEqual(seed_amount+100, res['output'])
-
-    def test_approve(self):
-        res = self.ex.execute_function('walrus_currency', 'approve', wallets[0], kwargs={'spender': wallets[1], 'amount': 100})
-        res = self.ex.execute_function('walrus_currency', 'allowance', wallets[0], kwargs={'approver': wallets[0], 'spender': wallets[1]})
+        res = self.ex.execute_function('currency', 'approve', wallets[0], kwargs={'spender': wallets[1], 'amount': 100})
+        res = self.ex.execute_function('currency', 'allowance', wallets[0], kwargs={'approver': wallets[0], 'spender': wallets[1]})
         self.assertEqual(res['output'], 100)
 
     def test_transfer_from(self):
-        res = self.ex.execute_function('walrus_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
+        res = self.ex.execute_function('currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
         original_balance = res['output']
-        res = self.ex.execute_function('walrus_currency', 'approve', wallets[0],
+        res = self.ex.execute_function('currency', 'approve', wallets[0],
                                        kwargs={'spender': wallets[1], 'amount': 100})
-        res = self.ex.execute_function('walrus_currency', 'transfer_from', wallets[1],
+        res = self.ex.execute_function('currency', 'transfer_from', wallets[1],
                                        kwargs={'approver': wallets[0], 'amount': 100})
-        res = self.ex.execute_function('walrus_currency', 'allowance', wallets[0], kwargs={'approver': wallets[0], 'spender': wallets[1]})
+        res = self.ex.execute_function('currency', 'allowance', wallets[0], kwargs={'approver': wallets[0], 'spender': wallets[1]})
         self.assertEqual(res['output'], 0)
-        res = self.ex.execute_function('walrus_currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
+        res = self.ex.execute_function('currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
         self.assertEqual(res['output'], original_balance+100)
 
 
+    # def test_custodial_remove(self):
+    #     self.contract.add_to_custodial(to='falcon', amount=420)
+    #     falcon_custodial = self.contract.get_custodial(owner='stu', spender='falcon')['output']
+    #     self.assertEqual(falcon_custodial, Decimal('420'))
+    #
+    #     self.contract.remove_from_custodial(to='falcon', amount=100)
+    #     falcon_custodial = self.contract.get_custodial(owner='stu', spender='falcon')['output']
+    #     self.assertEqual(falcon_custodial, Decimal('320'))
+    #
+    # def test_custodial_spend(self):
+    #     self.contract.add_to_custodial(to='falcon', amount=420)
+    #     self.contract.spend_custodial(_from='stu', to='davis', amount=123, sender='falcon')
+    #     davis_balance = self.contract.get_balance(account='davis')['output']
+    #
+    #     self.assertEqual(davis_balance, Decimal('123'))
+    #
+    # def test_unavailable_custodial_spend(self):
+    #     with self.assertRaises(AssertionError):
+    #         output = self.contract.spend_custodial(_from='stu', to='davis', amount=123, sender='falcon')
+    #
+    # def test_too_large_custodial_spend(self):
+    #     self.contract.add_to_custodial(to='falcon', amount=420)
+    #     with self.assertRaises(AssertionError):
+    #         self.contract.spend_custodial(_from='stu', to='davis', amount=500, sender='falcon')
