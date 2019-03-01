@@ -1,4 +1,5 @@
 from seneca.libs.storage.datatypes import Hash
+
 balances = Hash('hello')
 
 @export

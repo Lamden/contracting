@@ -102,6 +102,20 @@ class Assert:
                 raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
 
     @staticmethod
+    def is_within_scope(target, protected, resources, scope):
+        contract_name = scope['rt']['contract']
+        if scope.get(target) is not None and target not in protected and target not in resources \
+                and target not in scope['protected']['global'] and contract_name not in scope['exports'].get(target, {}):
+            if scope.get(target) and contract_name not in scope['exports'].get(target, {}):
+                return
+            print(contract_name, target)
+            print(protected)
+            print(resources)
+            print(scope['protected']['global'])
+            print(scope['exports'])
+            raise CompilationException('Not allowed to access "{}"'.format(target))
+
+    @staticmethod
     def is_not_resource(name, scope):
         if name in scope['resources']:
             raise ImportError('Cannot import "{}" as it is a resource variable'.format(name))
@@ -136,12 +150,12 @@ class Assert:
             raise CompilationException('You may only declare DataTypes or import modules in the global scope'
                                         ', line {}:{}, in {}'.format(node.lineno, node.col_offset, scope['rt']['contract']))
 
-
         return None, None
 
     @staticmethod
     def validate(imports, exports):
         for import_path in imports:
-            if not exports.get(import_path):
+            contract_name, module = import_path.split('.')
+            if not contract_name in exports.get(module, {}):
                 raise ImportError('Forbidden to import "{}"'.format(
                     import_path))

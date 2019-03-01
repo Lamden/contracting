@@ -27,6 +27,7 @@ class TestInterface(TestCase):
         print(self.id)
         print('{}\n'.format('#' * 128))
 
+
 class TestExecutor(TestCase):
 
     @classmethod

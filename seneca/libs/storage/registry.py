@@ -21,7 +21,8 @@ class Registry:
             'bool': bool,
             'bytes': bytes,
             'tuple': eval,
-            'dict': dict
+            'dict': dict,
+            'list': list
         }.get(value_type_name)
         assert value_type, 'DataType "{}" not found!'.format(value_type_name)
         return value_type

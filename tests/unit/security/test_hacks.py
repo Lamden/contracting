@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
+
 class TestBasicHacks(TestExecutor):
 
     def test_read_only_variables(self):
@@ -46,19 +47,15 @@ hmap = 'hacked'
 seed = 'hacked'
                 """)
 
-    def test_store_meta(self):
-        self.ex.execute_code_str("""
-from seneca.libs.datatypes import hmap
-@export
-def callit(a,b,c=1,d=2):
-    return 1,2
+    def test_declare_within_func(self):
+        with self.assertRaises(CompilationException) as context:
+            self.ex.execute_code_str("""
+from seneca.libs.storage.datatypes import Hash
     
 @seed
 def init():
-    some_map = hmap('balance', str, int)
-    t, r = 2,3
-    x = 45
-            """)
+    some_map = Hash('balance')
+                """)
 
 
 class TestMoreHacks(TestExecutor):

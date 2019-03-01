@@ -160,6 +160,7 @@ class Executor:
                 del Parser.parser_scope['__executor__']
         Parser.parser_scope['rt']['author'] = author
         Parser.parser_scope['callstack'] = []
+
         Scope.scope = Parser.parser_scope
         stamps_used = 0
 

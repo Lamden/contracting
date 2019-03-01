@@ -18,7 +18,6 @@ def do_that_thing():
 def test_global_namespace():
     print('sender: {}, author: {}'.format(rt['sender'], rt['author']))
     print("sbb_idx: {}".format(sbb_idx))
-    print("ALL GLOBALS: {}".format(globals()))
 
 def secret_call():
     okay_export()

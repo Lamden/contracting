@@ -85,10 +85,10 @@ class DataType(Encoder, DataTypeProperties):
             ValueType = Registry.get_value_type(type(kwargs['default_value']).__name__)
             if ValueType in NUMBER_TYPES:
                 ValueType = Decimal
-
             class_name = ValueType.__name__.capitalize() + cls.__name__
             new_class = type(class_name, (cls, ValueType), {})
             Registry.register_class(class_name, new_class)
+
             return cls.__new__(new_class)
 
         Registry.register_class(cls.__name__, cls)
@@ -109,22 +109,8 @@ class DataType(Encoder, DataTypeProperties):
     def __repr__(self):
         return self.key
 
-    # def __getitem__(self, k):
-    #     pointer = self.driver.hget(self.key, POINTER_KEY)
-    #     if pointer:
-    #         res = self.driver.hget(pointer.decode(), k)
-    #     else:
-    #         res = self.driver.hget(self.key, k)
-    #     if not res:
-    #         key = self.key.split(DELIMITER, 2)[-1]
-    #         default_obj = self.__class__(key, default_value=self.default_value, placeholder=True)
-    #         return default_obj
-    #     if res[0] == POINTER_KEY:
-    #         res = self.driver.hget(res.decode(), k)
-    #     return self.decode(res)
-    #
-    # def __setitem__(self, k, v):
-    #     self.driver.hset(self.key, k, self.encode(v))
+
+class SubscriptType:
 
     def __getitem__(self, key):
         resource = '{}{}{}'.format(self.key.split(DELIMITER, 2)[-1], DELIMITER, key)
@@ -134,4 +120,3 @@ class DataType(Encoder, DataTypeProperties):
         value = self.encode(value, key=key)
         if value:
             super().__setitem__(key, value)
-

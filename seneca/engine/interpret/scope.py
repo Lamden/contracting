@@ -56,8 +56,9 @@ class Export(Scope):
     def __call__(self, fn):
         contract_name = self.scope['rt']['contract']
         if contract_name != '__main__':
-            export_name = '{}.{}'.format(contract_name, fn.__name__)
-            self.scope['exports'][export_name] = True
+            if not self.scope['exports'].get(fn.__name__):
+                self.scope['exports'][fn.__name__] = set()
+            self.scope['exports'][fn.__name__].add(contract_name)
         return fn
 
 

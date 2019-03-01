@@ -65,7 +65,6 @@ def corrupt_resource(string, value):
 @export
 def read_shared_name():
     t = 7 + shared_name
-    print(t)
     return t
     
 @export
@@ -143,6 +142,19 @@ def init():
             balances['hey'] = Hash('palanaces')
             balances['hey']['ok'] = 1
             malances = Hash('balances')
+
+    def test_mixed_scope(self):
+        # NOTE: Should pass
+        self.ex.publish_code_str('msmsmsms_contract', 'AUTHOR', """
+@export
+def msmsmsms():
+    pass
+        """)
+        self.ex.execute_code_str("""
+@seed
+def init():
+    msmsmsms = 1
+        """)
 
 if __name__ == '__main__':
     unittest.main()

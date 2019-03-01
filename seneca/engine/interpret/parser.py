@@ -45,6 +45,7 @@ class Parser:
         })
         cls.parser_scope.update(cls.basic_scope)
         cls.parser_scope['protected']['global'].update(cls.basic_scope.keys())
+        cls.parser_scope['protected']['global'].update(('rt',))
         cls.seed_tree = None
 
     @staticmethod
@@ -65,15 +66,19 @@ class NodeTransformer(ast.NodeTransformer):
     def contract_name(self):
         return Parser.parser_scope['rt']['contract']
 
-    @property
-    def resource_list(self):
-        return [k for k, v in self.resource.items() if v == 'Resource']
 
     @property
     def resource(self):
+        return Parser.parser_scope['resources'].get(self.contract_name, {})
+
+    @property
+    def protected(self):
+        return Parser.parser_scope['protected'].get(self.contract_name, {})
+
+    def set_resource(self, resource_name, func_name):
         if not Parser.parser_scope['resources'].get(self.contract_name):  # Default dict not marshallable
             Parser.parser_scope['resources'][self.contract_name] = {}
-        return Parser.parser_scope['resources'][self.contract_name]
+        Parser.parser_scope['resources'][self.contract_name][resource_name] = func_name
 
     def generic_visit(self, node):
         Assert.ast_types(node)
@@ -81,8 +86,9 @@ class NodeTransformer(ast.NodeTransformer):
 
     def visit_Name(self, node):
         Assert.not_system_variable(node.id)
+        Assert.is_within_scope(node.id, self.protected, self.resource, Parser.parser_scope)
         if Parser.parser_scope['ast'] in ('seed', 'export', 'func') \
-                and node.id in self.resource_list:
+                and self.resource.get(node.id) == 'Resource':
             self.generic_visit(node)
             return Plugins.resource_reassignment(node.id, node.ctx)
         self.generic_visit(node)
@@ -94,19 +100,27 @@ class NodeTransformer(ast.NodeTransformer):
         return node
 
     def visit_Import(self, node):
-        return self._visit_any_import(node, node.names[0].name)
+        for n in node.names:
+            self.validate_imports( n.name, alias=n.asname)
+        return self._visit_any_import(node)
 
     def visit_ImportFrom(self, node):
-        return self._visit_any_import(node, node.module, module_name=node.names[0].name)
+        for n in node.names:
+            self.validate_imports(node.module, n.name, alias=n.asname)
+        return self._visit_any_import(node)
 
-    def _visit_any_import(self, node, import_path, module_name=None):
-        obj_name = Assert.valid_import_path(import_path, module_name)
-
-        if obj_name:
-            Assert.is_not_resource(obj_name, Parser.parser_scope)
-            call_name = '{}.{}'.format(import_path.split('.')[-1], obj_name)
+    def validate_imports(self, import_path, module_name=None, alias=None):
+        if Assert.valid_import_path(import_path, module_name):
+            Assert.is_not_resource(module_name, Parser.parser_scope)
+            path_name = import_path.split('.')[-1]
+            call_name = '{}.{}'.format(path_name, module_name)
             Parser.parser_scope['imports'][call_name] = True
+            self.set_resource(alias or module_name, True)
+        else:
+            self.set_resource(module_name, True)
         Parser.parser_scope['protected'][self.contract_name].add(module_name)
+
+    def _visit_any_import(self, node):
         if Parser.parser_scope['ast'] != '__system__':
             Parser.parser_scope['ast'] = 'import'
         Parser.seed_tree.body.append(node)
@@ -120,7 +134,7 @@ class NodeTransformer(ast.NodeTransformer):
         if resource_name and func_name:
             if func_name == 'Resource':
                 node.value.args = [ast.Str(resource_name)]
-            self.resource[resource_name] = func_name
+            self.set_resource(resource_name, func_name)
             Parser.seed_tree.body.append(node)
         self.generic_visit(node)
         return node
@@ -128,6 +142,7 @@ class NodeTransformer(ast.NodeTransformer):
     def visit_Call(self, node):
         if Parser.parser_scope['ast'] in ('seed', 'export', 'func'):
             Assert.not_datatype(node)
+            self.generic_visit(node)
             return node
         self.generic_visit(node)
         return node
