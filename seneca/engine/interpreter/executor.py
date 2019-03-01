@@ -1,13 +1,13 @@
-from seneca.engine.interpret.parser import Parser
-from seneca.engine.interpret.scope import Scope
+from seneca.engine.interpreter.parser import Parser
+from seneca.engine.interpreter.scope import Scope
 from seneca.libs.metering.tracer import Tracer
 from seneca.constants.config import MASTER_DB, REDIS_PORT, CODE_OBJ_MAX_CACHE
 import seneca, sys, marshal, os, ast
 from os.path import join
 from functools import lru_cache
-from seneca.engine.interpret.utils import Plugins, Assert
-from seneca.engine.interpret.module import SenecaFinder, RedisFinder
-from seneca.engine.interpret.driver import Driver
+from seneca.engine.interpreter.utils import Plugins, Assert
+from seneca.engine.interpreter.module import SenecaFinder, RedisFinder
+from seneca.engine.interpreter.driver import Driver
 
 
 class Executor:

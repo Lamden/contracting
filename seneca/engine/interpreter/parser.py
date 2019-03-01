@@ -1,8 +1,8 @@
-from seneca.engine.interpret.scope import Export, Seed, Function
-from seneca.constants.whitelists import SAFE_BUILTINS, ALLOWED_DATA_TYPES
-from seneca.engine.interpret.utils import Plugins, Assert, CompilationException
-from seneca.libs.decimal import make_decimal
-from seneca.libs.resource import set_resource_limits
+from seneca.engine.interpreter.scope import Export, Seed, Function
+from seneca.constants.whitelists import SAFE_BUILTINS
+from seneca.engine.interpreter.utils import Plugins, Assert
+from seneca.libs.math.decimal import to_decimal
+from seneca.libs.metering.resource import set_resource_limits
 from collections import defaultdict
 import ast, copy
 
@@ -12,7 +12,7 @@ class Parser:
         'export': Export(),
         'seed': Seed(),
         '__set_resources__': set_resource_limits,
-        '__decimal__': make_decimal,
+        '__decimal__': to_decimal,
         '__function__': Function(),
         '__builtins__': SAFE_BUILTINS
     }

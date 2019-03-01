@@ -5,7 +5,7 @@ from walrus.containers import Hash as WHash, Set as WSet, List as WList, ZSet as
 from walrus.containers import BloomFilter as WBloomFilter, Array as WArray, HyperLogLog as WHyperLogLog
 from walrus.containers import chainable_method
 
-from seneca.engine.interpret.parser import Parser
+from seneca.engine.interpreter.parser import Parser
 
 
 class Hash(DataType, SubscriptType, WHash):

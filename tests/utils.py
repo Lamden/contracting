@@ -1,11 +1,10 @@
 import sys
-from seneca.engine.interpret.driver import Driver
+from seneca.engine.interpreter.driver import Driver
 from contextlib import contextmanager
 from io import StringIO
 from unittest import TestCase
-from seneca.engine.interface import SenecaInterface
 from seneca.constants.config import get_redis_port, MASTER_DB, REDIS_PORT, get_redis_password
-from seneca.engine.interpret.executor import Executor
+from seneca.engine.interpreter.executor import Executor
 
 
 @contextmanager
@@ -17,15 +16,6 @@ def captured_output():
         yield sys.stdout, sys.stderr
     finally:
         sys.stdout, sys.stderr = old_out, old_err
-
-
-class TestInterface(TestCase):
-
-    def setUp(self):
-        self.si = SenecaInterface(False, port=get_redis_port(), password=get_redis_password())
-        print('\n{}'.format('#' * 128))
-        print(self.id)
-        print('{}\n'.format('#' * 128))
 
 
 class TestExecutor(TestCase):

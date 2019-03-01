@@ -1,4 +1,3 @@
-from seneca.libs.datatypes import *   # This code most be interpretted for the metaclass stuff to get run
 from seneca.engine.conflict_resolution import *
 from seneca.engine.cr_commands import *
 import redis

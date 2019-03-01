@@ -1,6 +1,6 @@
 from tests.utils import TestExecutor
-from seneca.engine.interpret.utils import CompilationException
-from seneca.engine.interpret.parser import Parser
+from seneca.engine.interpreter.utils import CompilationException
+from seneca.engine.interpreter.parser import Parser
 import unittest, seneca
 
 test_contracts_path = seneca.__path__[0] + '/test_contracts/'
@@ -29,7 +29,7 @@ print(good('there'))
 
     def test_precision(self):
         res = self.ex.execute_code_str("""
-from seneca.libs.decimal import Decimal
+from seneca.libs.math.decimal import Decimal
 def good():
     return Decimal("1") - Decimal("0.95")
 assert float(good()) == 0.05, 'Not equal'

@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 count=0
 while :
 do

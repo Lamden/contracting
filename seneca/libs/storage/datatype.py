@@ -1,4 +1,4 @@
-from seneca.engine.interpret.parser import Parser
+from seneca.engine.interpreter.parser import Parser
 from decimal import Decimal
 from seneca.libs.storage.registry import Registry
 import ujson as json

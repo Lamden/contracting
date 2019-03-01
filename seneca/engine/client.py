@@ -1,6 +1,6 @@
 import asyncio, redis
 from seneca.libs.logger import get_logger
-from seneca.engine.interpret.executor import Executor
+from seneca.engine.interpreter.executor import Executor
 from seneca.constants.config import *
 from seneca.engine.conflict_resolution import CRContext
 from seneca.engine.book_keeper import BookKeeper
@@ -190,13 +190,7 @@ class SenecaClient(Executor):
         cr_dict['fut'].cancel()
 
     def submit_contract(self, contract):
-        self.publish_code_str(contract.contract_name, contract.sender, contract.code, scope={
-            'rt': {
-                'author': contract.sender,
-                'sender': contract.sender,
-                'contract': contract.contract_name
-            }
-        })
+        self.publish_code_str(contract.contract_name, contract.sender, contract.code)
 
     def run_contract(self, contract):
         assert self.active_db, "active_db must be set to run a contract. Did you call _start_sb?"

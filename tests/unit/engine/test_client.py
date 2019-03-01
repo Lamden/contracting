@@ -698,7 +698,7 @@
 #         input_hash3 = '3' * 64
 #         input_hash4 = '4' * 64
 #
-#         with open(os.path.dirname(__file__) + '/' + 'stubucks.txt', 'r') as f:
+#         with open(os.path.dirname(__file__) + '/' + 'stubucks.sen.py', 'r') as f:
 #             code = f.read()
 #
 #         # print("got contract code {}".format(code))

@@ -1,8 +1,5 @@
 from unittest import TestCase
 from seneca.engine.book_keeper import BookKeeper
-from unittest.mock import patch
-from multiprocessing import Process
-import threading, unittest
 from seneca.engine.conflict_resolution import CRContext
 
 
@@ -37,6 +34,3 @@ class TestBookKeeper(TestCase):
         #
         #         print("Got key: {}".format(BookKeeper._get_cr_key()))
 
-
-if __name__ == '__main__':
-    unittest.main()

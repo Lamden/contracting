@@ -1,4 +1,4 @@
-from seneca.engine.interpret.utils import ReadOnlyException, CompilationException
+from seneca.engine.interpreter.utils import ReadOnlyException, CompilationException
 from os.path import join, dirname
 from tests.utils import TestExecutor, captured_output
 import redis, unittest, seneca

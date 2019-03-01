@@ -1,4 +1,4 @@
-from seneca.engine.interpret.utils import ItemNotFoundException
+from seneca.engine.interpreter.utils import ItemNotFoundException
 from seneca.libs.storage.datatype import DataType
 from seneca.libs.storage.datatype import DELIMITER
 

@@ -1,4 +1,4 @@
-from seneca.engine.interpret.parser import Parser
+from seneca.engine.interpreter.parser import Parser
 from tests.utils import TestExecutor
 from seneca.libs.storage.datatypes import Hash
 import redis, unittest, seneca, os

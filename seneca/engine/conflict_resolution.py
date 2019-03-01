@@ -1,7 +1,7 @@
 from collections import defaultdict
 from seneca.libs.logger import get_logger
 from typing import List
-from seneca.engine.interpret.driver import Driver
+from seneca.engine.interpreter.driver import Driver
 
 
 # TODO -- clean this file up

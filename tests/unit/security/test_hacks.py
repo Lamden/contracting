@@ -1,9 +1,6 @@
 from tests.utils import TestExecutor
-from seneca.engine.interpret.utils import ReadOnlyException, CompilationException
-from os.path import join
-from tests.utils import captured_output, TestInterface
-import redis, unittest, seneca
-from unittest.mock import MagicMock, patch
+from seneca.engine.interpreter.utils import ReadOnlyException, CompilationException
+import unittest, seneca
 
 test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
@@ -30,15 +27,15 @@ bird += 1
 
     def test_import_datatypes(self):
         self.ex.execute_code_str("""
-from seneca.libs.datatypes import hmap
-hmap('balance', str, int)
+from seneca.libs.storage.datatypes import Hash
+Hash('balance')
             """)
 
     def test_import_datatypes_reassign(self):
         with self.assertRaises(ReadOnlyException) as context:
             self.ex.execute_code_str("""
-from seneca.libs.datatypes import hmap
-hmap = 'hacked'
+from seneca.libs.storage.datatypes import Hash
+Hash = 'hacked'
                 """)
 
     def test_import_builtin_reassign(self):

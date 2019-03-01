@@ -3,7 +3,7 @@ import redis, unittest
 from seneca.constants.config import MASTER_DB, REDIS_PORT
 from seneca.libs.storage.datatypes import Hash
 from seneca.libs.storage.table import Table, Property
-from seneca.engine.interpret.parser import Parser
+from seneca.engine.interpreter.parser import Parser
 from decimal import Decimal
 
 

@@ -1,10 +1,10 @@
-import os, sys
-import encodings.idna, atexit
+import os
 from os.path import join, exists, isdir, basename
 from importlib.abc import Loader, MetaPathFinder
 from importlib.util import spec_from_file_location
-from seneca.engine.interpret.parser import Parser
+from seneca.engine.interpreter.parser import Parser
 from seneca.constants.config import SENECA_SC_PATH
+
 
 class SenecaFinder(MetaPathFinder):
 
@@ -38,6 +38,7 @@ class SenecaFinder(MetaPathFinder):
             return spec_from_file_location(fullname, filename, loader=SenecaLoader(filename),
                                            submodule_search_locations=submodule_locations)
         return None # we don't know how to import this
+
 
 class SenecaLoader(Loader):
 

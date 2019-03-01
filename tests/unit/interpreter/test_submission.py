@@ -1,5 +1,5 @@
 from tests.utils import TestExecutor
-from seneca.engine.interpret.utils import ReadOnlyException, CompilationException
+from seneca.engine.interpreter.utils import ReadOnlyException, CompilationException
 import unittest, seneca
 
 test_contracts_path = seneca.__path__[0] + '/test_contracts/'
