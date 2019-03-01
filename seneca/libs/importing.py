@@ -1,17 +1,10 @@
 import types
-from seneca.engine.interpreter import Seneca
+from seneca.engine.interpret.parser import Parser
 
 
-def import_contract(n):
-    code = Seneca.interface.get_code_obj(n)
-    m = types.ModuleType(n)
-
-    scope = {
-        'rt': {
-            'contract': m.__dict__['__name__']
-        }
-    }
-    m.__dict__.update(scope)
-    Seneca.interface.execute(code, m.__dict__, is_main=False)
-
-    return m
+def import_contract(contract_name):
+    contract = Parser.executor.get_contract(contract_name)
+    module = types.ModuleType(contract_name)
+    Parser.parser_scope['rt']['contract'] = contract_name
+    Parser.executor.execute(contract['code_obj'])
+    return module

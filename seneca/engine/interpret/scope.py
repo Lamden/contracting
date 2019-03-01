@@ -9,6 +9,7 @@ class Scope:
         contract_name = fn.__module__ or self.scope['rt']['contract']
         if len(self.scope['callstack']) == 0 and old_contract_name != '__main__' and contract_name != 'currency':
             contract_name = old_contract_name
+
         self.scope['rt']['contract'] = contract_name
         self.scope['callstack'].append('{}.{}'.format(contract_name, fn.__name__))
 
@@ -33,7 +34,8 @@ class Scope:
         return args, kwargs
 
     def reset_scope(self, fn):
-        self.scope['callstack'].pop(0)
+        if len(self.scope['callstack']) > 0:
+            self.scope['callstack'].pop(0)
 
 
 # Applies to Private, Export, and Seed functions

@@ -153,14 +153,16 @@ class Executor:
         })
         Parser.parser_scope.update(Parser.basic_scope)
         code_obj, author = self.get_contract_cache(contract_name, func_name)
-        if contract_name == 'smart_contract':
+        if contract_name in ('smart_contract', 'dynamic_import'):
             Parser.parser_scope['__executor__'] = self
+        else:
+            del Parser.parser_scope['__executor__']
         Parser.parser_scope['rt']['author'] = author
         Parser.parser_scope['callstack'] = []
         Scope.scope = Parser.parser_scope
         stamps_used = 0
 
-        if self.currency:
+        if self.currency and not self.tracer.started:
             error = None
             self.tracer.set_stamp(stamps)
             self.tracer.start()
