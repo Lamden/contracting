@@ -53,7 +53,8 @@ class Encoder(object):
             data_type = Registry.get_data_type(data_type_name)
             data_type_obj = data_type(key_parts[0], placeholder=True)
         else:
-            data_type_obj = json.loads(value)
+            try: data_type_obj = json.loads(value)
+            except: data_type_obj = value
             if type(data_type_obj) in NUMBER_TYPES:
                 data_type_obj = Decimal(value)
         return data_type_obj

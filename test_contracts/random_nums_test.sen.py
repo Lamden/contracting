@@ -9,10 +9,10 @@ cities = List('cities')
 @seed
 def initialize():
     random.seed()
-    cards = [1, 2, 3, 4, 5, 6, 7, 8]
-    cardinal_values = ['A', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
-    suits = ['S', 'C', 'H', 'D']
-    cities = ['Cleveland', 'Detroit', 'Chicago', 'New York', 'San Francisco']
+    cards.extend([1, 2, 3, 4, 5, 6, 7, 8])
+    cardinal_values.extend(['A', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'])
+    suits.extend(['S', 'C', 'H', 'D'])
+    cities.extend(['Cleveland', 'Detroit', 'Chicago', 'New York', 'San Francisco'])
 
 @export
 def shuffle_cards(**kwargs):

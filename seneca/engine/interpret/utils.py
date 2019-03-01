@@ -108,11 +108,11 @@ class Assert:
                 and target not in scope['protected']['global'] and contract_name not in scope['exports'].get(target, {}):
             if scope.get(target) and contract_name not in scope['exports'].get(target, {}):
                 return
-            print(contract_name, target)
-            print(protected)
-            print(resources)
-            print(scope['protected']['global'])
-            print(scope['exports'])
+            # print(contract_name, target)
+            # print(protected)
+            # print(resources)
+            # print(scope['protected']['global'])
+            # print(scope['exports'])
             raise CompilationException('Not allowed to access "{}"'.format(target))
 
     @staticmethod

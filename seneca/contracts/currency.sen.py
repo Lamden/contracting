@@ -1,7 +1,7 @@
 from seneca.libs.storage.datatypes import Hash
 
 # Declare Data Types
-globals = Hash('globals')
+constants = Hash('constants')
 balances = Hash('balances', default_value=0)
 allowed = Hash('allowed')
 
@@ -9,7 +9,7 @@ allowed = Hash('allowed')
 def initalize_currency():
 
     # Initialization
-    globals.update({
+    constants.update({
         'xrate': 1.0,
         'seed_amount': 1000000
     })
@@ -26,7 +26,7 @@ def initalize_currency():
     ]
 
     for w in founder_wallets:
-        balances[w] = globals['seed_amount']
+        balances[w] = constants['seed_amount']
 
 @export
 def assert_stamps(stamps):
@@ -81,4 +81,4 @@ def mint(to, amount):
 
 @export
 def exchange_rate():
-    return globals['xrate']
+    return constants['xrate']

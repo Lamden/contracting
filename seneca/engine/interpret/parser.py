@@ -168,13 +168,12 @@ class NodeTransformer(ast.NodeTransformer):
             for d in node.decorator_list:
                 if d.id in ('export', 'seed'):
                     Parser.parser_scope['ast'] = d.id
-                    ast_set = True
+                    ast_set = d.id
             if not ast_set:
                 Parser.parser_scope['ast'] = 'func'
             if Parser.parser_scope['ast'] in ('export', 'seed', 'func'):
                 self.generic_visit(node)
             Parser.parser_scope['ast'] = None
-
         node.decorator_list.append(
             ast.Name(id='__function__', ctx=ast.Load())
         )

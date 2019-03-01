@@ -13,7 +13,6 @@ class ResourceObj:
         instance.driver.hset(hash_key, k, instance.encode(v))
 
     def __get__(self, instance, parent):
-        print(instance)
         hash_key = instance.key.rsplit(DELIMITER, 1)[0]
         res = instance.driver.hget(hash_key, instance.resource)
         if not res:

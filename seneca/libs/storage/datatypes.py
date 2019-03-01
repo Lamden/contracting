@@ -22,31 +22,45 @@ class Set(DataType, WSet):
 
 
 class List(DataType, WList):
-    pass
-    # def __getitem__(self, item):
-    #     """
-    #     Retrieve an item from the list by index. In addition to
-    #     integer indexes, you can also pass a ``slice``.
-    #     """
-    #     print('get', Parser.parser_scope.get('suits'))
-    #     if isinstance(item, slice):
-    #         start = item.start or 0
-    #         stop = item.stop
-    #         if not stop:
-    #             stop = -1
-    #         else:
-    #             stop -= 1
-    #         return self.database.lrange(self.key, start, stop)
+
+    def __getitem__(self, key):
+        return self.decode(super().__getitem__(key))
+
+    def __setitem__(self, key, value):
+        return super().__setitem__(key, self.encode(value))
+
+    # def append(self, value):
+    #     return super().append(self.encode(value))
     #
-    #     return self.database.lindex(self.key, item)
+    # def prepend(self, value):
+    #     return super().prepend(self.encode(value))
     #
-    # def __setitem__(self, idx, value):
-    #     """Set the value of the given index."""
-    #     print('set', idx, value)
-    #     return self.database.lset(self.key, idx, value)
+    # def extend(self, value):
+    #     return super().extend(self.encode(value))
     #
-    # def __set__(self, instance, value):
-    #     print('huh', instance)
+    # def insert(self, value, *args, **kwargs):
+    #     return super().insert(self.encode(value), *args, **kwargs)
+    #
+    # def insert_before(self, value, *args, **kwargs):
+    #     return super().insert_before(self.encode(value), *args, **kwargs)
+    #
+    # def insert_after(self, value, *args, **kwargs):
+    #     return super().insert_after(self.encode(value), *args, **kwargs)
+
+    def popleft(self):
+        return self.decode(super().popleft())
+
+    def popright(self):
+        return self.decode(super().popright())
+
+    def pop(self, *args, **kwargs):
+        return self.popright(*args, **kwargs)
+
+    def bpopleft(self, *args, **kwargs):
+        return self.decode(super().bpopleft(*args, **kwargs))
+
+    def bpopright(self, *args, **kwargs):
+        return self.decode(super().bpopright(*args, **kwargs))
 
 
 class ZSet(DataType, WZSet):

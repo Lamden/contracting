@@ -31,7 +31,6 @@ class TestRandomNumbers(TestExecutor):
         for contract_name, file_name in self.CONTRACTS_TO_STORE.items():
             with open(test_contracts_path + file_name) as f:
                 code_str = f.read()
-                print('compiling...', contract_name)
                 self.ex.publish_code_str(contract_name, GENESIS_AUTHOR, code_str)
 
     def test_shuffle_cards(self):
@@ -78,7 +77,7 @@ class TestRandomNumbers(TestExecutor):
             }
         )
         self.assertEqual(f['output'], 790)
-        self.assertEqual(f2['output'], 571)
+        self.assertEqual(f2['output'], 220)
 
     def test_random_getrandbits(self):
         
@@ -91,7 +90,7 @@ class TestRandomNumbers(TestExecutor):
             }
         )
 
-        self.assertEqual(f['output'], 809526)
+        self.assertEqual(f['output'], 386311)
 
     def test_random_range_int(self):
         
@@ -115,8 +114,8 @@ class TestRandomNumbers(TestExecutor):
             }
         )
 
-        self.assertEqual(f['output'], 4672)
-        self.assertEqual(f2['output'], 30259)
+        self.assertEqual(f['output'], 2334)
+        self.assertEqual(f2['output'], 22879)
 
     def test_random_choice(self):
         
