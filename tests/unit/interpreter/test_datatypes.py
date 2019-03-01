@@ -131,19 +131,31 @@ class TestDataTypes(TestCase):
         for item in self.ex.driver.keys():
             self.assertFalse(item.decode().startswith(Coin.key))
 
-    # def test_delete_row(self):
-    #     Coin = Table('Coin', {
-    #         'name': Property(str, required=True, indexed=True),
-    #         'purpose': str,
-    #         'price': int
-    #     })
-    #     Coin.add_row('faltau', purpose='anarchy net')
-    #     Coin.add_row(purpose='anarchy net', name='stubucks', price=1)
-    #     Coin.add_row('falcoin', 'anarchy net')
-    #     Coin.add_row('falcoin', 'anarchy net')
-    #     Coin.add_row('falcoin', 'anarchy net')
-    #     Coin.delete(idx=3)
-    #     self.assertEqual(Coin.count, 4)
+    def test_delete_row(self):
+        Coin = Table('Coin', {
+            'name': Property(str, required=True, indexed=True),
+            'purpose': str,
+            'price': int
+        })
+        Coin.add_row('faltau', purpose='anarchy net', price=6)
+        Coin.add_row(purpose='anarchy net', name='stubucks', price=1)
+        Coin.add_row('falcoin', 'anarchy net', price=5)
+        Coin.add_row('falcore', 'anarchy net', price=4)
+        Coin.add_row('falcone', 'anarchy net', price=41)
+        Coin.delete({'$property': 'name', '$matches': 'falco*'})
+        self.assertEqual(Coin.count, 2)
+
+    def test_update_row(self):
+        Coin = Table('Coin', {
+            'name': Property(str, required=True, indexed=True),
+            'purpose': str,
+            'price': int
+        })
+        Coin.add_row('faltau', purpose='anarchy net', price=6)
+        Coin.update({'$property': 'name', '$exactly': 'faltau'}, {
+            'price': 12
+        })
+        self.assertEqual(Coin.find({'$property': 'name', '$exactly': 'faltau'}), [['faltau', 'anarchy net', 12]])
 
     # def test_table_with_sorted_column(self):
     #     Coin = Table('Coin', {

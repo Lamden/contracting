@@ -14,6 +14,7 @@ class Property(object):
         self.sort = sort
         self.resource = None
         self.fix_assert_attributes()
+        self.column_idx = None
 
     def fix_assert_attributes(self):
 
@@ -81,6 +82,7 @@ class Table(DataType):
                 if type(v) != Property:
                     self.schema[k] = Property(v)
                 self.driver.hset(self.properties_hash, k, column_idx)
+                self.schema[k].column_idx = column_idx
                 column_idx += 1
             Table.schemas[resource_name] = self.schema
         else:
@@ -184,14 +186,14 @@ class Table(DataType):
             raise AssertionError('You specify matches or exactly for this property.')
         return idxs
 
-    def _find_operation(self, fields):
-        if set(('$and', '$or')).intersection(fields.keys()):
+    def _find_operation(self, query):
+        if set(('$and', '$or')).intersection(query.keys()):
             all_idxs = None
         else:
-            conditions = {f[1:]: val for f, val in fields.items() if f[0] == '$'}
+            conditions = {f[1:]: val for f, val in query.items() if f[0] == '$'}
             return self._find_items(**conditions)
-        for op in fields:
-            for field, condition in fields[op].items():
+        for op in query:
+            for field, condition in query[op].items():
                 condition['$property'] = field
                 idxs = self._find_operation(condition)
                 if not all_idxs: all_idxs = set(idxs)
@@ -201,35 +203,46 @@ class Table(DataType):
                     all_idxs = all_idxs.union(idxs)
         return all_idxs
 
-    def find(self, fields, columns=None, column=None):
-        idxs = self._find_operation(fields)
-        res = self.driver.hmget(self.key, idxs)
-        if column:
-            column_idx = int(self.driver.hget(self.properties_hash, column))
-            objs = []
-            for r in res:
-                r = self.decode(r)
-                objs.append(r[column_idx])
-        elif columns:
-            assert type(columns) == list, 'Columns must be list of properties'
-            column_idxs = [int(idx) for idx in self.driver.hmget(self.properties_hash, columns)]
-            objs = []
-            for r in res:
-                r = self.decode(r)
-                objs.append([r[idx] for idx in column_idxs])
+    def find(self, query, columns=None, column=None, delete=False, updates=None):
+        idxs = self._find_operation(query)
+        if delete:
+            self.driver.hdel(self.key, *idxs)
+            for hash in self.driver.scan_iter(match='{}{}*'.format(self.index_hash, query.get('$property'))):
+                self.driver.hdel(hash, *idxs)
+        elif updates:
+            column_idxs = {self.schema[k].column_idx: v for k, v in updates.items()}
+            objs = {}
+            for idx in idxs:
+                obj = self.decode(self.driver.hget(self.key, idx))
+                for i, val in column_idxs.items():
+                    obj[i] = val
+                objs[idx] = self.encode(obj)
+            self.driver.hmset(self.key, objs)
         else:
-            objs = [self.decode(r) for r in res if r]
-        return objs
+            res = self.driver.hmget(self.key, idxs)
+            if column:
+                column_idx = int(self.driver.hget(self.properties_hash, column))
+                objs = []
+                for r in res:
+                    r = self.decode(r)
+                    objs.append(r[column_idx])
+            elif columns:
+                assert type(columns) == list, 'Columns must be list of properties'
+                column_idxs = [int(idx) for idx in self.driver.hmget(self.properties_hash, columns)]
+                objs = []
+                for r in res:
+                    r = self.decode(r)
+                    objs.append([r[idx] for idx in column_idxs])
+            else:
+                objs = [self.decode(r) for r in res if r]
+            return objs
 
     def find_one(self, *args, **kwargs):
         objs = self.find(*args, **kwargs)
         return objs[0]
 
-    def delete(self, *args, **kwargs):
-        res = self._find_field(*args, **kwargs)
-        raise AssertionError('Not Implemented')
-        # return self.driver.hdel(self.key, idx)
+    def delete(self, query):
+        self.find(query, delete=True)
 
-    def update(self, updates={}, *args, **kwargs):
-        res = self._find_field(*args, **kwargs)
-        raise AssertionError('Not Implemented')
+    def update(self, query, updates):
+        res = self.find(query, updates=updates)
