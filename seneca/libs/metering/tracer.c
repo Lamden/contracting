@@ -182,7 +182,8 @@ Tracer_get_stamp_used(Tracer *self, PyObject *args, PyObject *kwds)
 
 static PyMemberDef
 Tracer_members[] = {
-    { NULL }
+    { "started",       T_OBJECT, offsetof(Tracer, started), 0,
+            PyDoc_STR("Whether or not the tracer has been enabled") },
 };
 
 static PyMethodDef

@@ -14,11 +14,10 @@ MINT_WALLETS = {
 test_contracts_path = os.path.dirname(seneca.__path__[0]) + '/test_contracts/'
 
 
-class TestImporting(TestExecutor):
+class TestDynamicExecution(TestExecutor):
     CONTRACTS_TO_STORE = {
         'birb_bucks': 'birb_bucks.sen.py',
-        'cat_cash': 'cat_cash.sen.py',
-        'dynamic_import': 'dynamic_import.sen.py'
+        'cat_cash': 'cat_cash.sen.py'
     }
 
     def setUp(self):
@@ -30,7 +29,7 @@ class TestImporting(TestExecutor):
     def test_import(self):
         os.environ['IS_IMPORT'] = 'TTTT'
         f = self.ex.execute_function(
-            'dynamic_import', 'execute_function',
+            'smart_contract', 'execute_function',
             sender=GENESIS_AUTHOR,
             stamps=None,
             kwargs={
@@ -45,7 +44,7 @@ class TestImporting(TestExecutor):
         self.assertEqual(f['output'], 1000000)
 
         f = self.ex.execute_function(
-            'dynamic_import', 'execute_function',
+            'smart_contract', 'execute_function',
             sender=GENESIS_AUTHOR,
             stamps=None,
             kwargs={
@@ -60,7 +59,7 @@ class TestImporting(TestExecutor):
         self.assertEqual(f['output'], 1000000)
 
         f = self.ex.execute_function(
-            'dynamic_import', 'execute_function',
+            'smart_contract', 'execute_function',
             sender=GENESIS_AUTHOR,
             stamps=None,
             kwargs={

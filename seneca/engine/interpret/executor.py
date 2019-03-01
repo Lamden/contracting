@@ -153,10 +153,11 @@ class Executor:
         })
         Parser.parser_scope.update(Parser.basic_scope)
         code_obj, author = self.get_contract_cache(contract_name, func_name)
-        if contract_name in ('smart_contract', 'dynamic_import'):
+        if contract_name in ('smart_contract', ):
             Parser.parser_scope['__executor__'] = self
         else:
-            del Parser.parser_scope['__executor__']
+            if Parser.parser_scope.get('__executor__'):
+                del Parser.parser_scope['__executor__']
         Parser.parser_scope['rt']['author'] = author
         Parser.parser_scope['callstack'] = []
         Scope.scope = Parser.parser_scope

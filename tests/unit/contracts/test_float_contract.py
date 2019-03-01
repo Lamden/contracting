@@ -1,6 +1,5 @@
-# from unittest import TestCase
-# from unittest.mock import MagicMock
-# from seneca.engine.client import *
+# from tests.utils import TestExecutor
+# import seneca, os
 # from seneca.engine.interface import SenecaInterface
 # from decimal import *
 #
@@ -16,7 +15,7 @@
 # }
 #
 #
-# class TestStuCannotNameTestsIfHisLifeDependedOnIt(TestCase):
+# class TestStuCannotNameTestsIfHisLifeDependedOnIt(TestExecutor):
 #     CONTRACTS_TO_STORE = {'decimal_test': 'decimal_test.sen.py', 'currency': 'currency.sen.py'}
 #
 #     def setUp(self):
