@@ -1,7 +1,6 @@
-from seneca.engine.interpreter.utils import ReadOnlyException, CompilationException
 from os.path import join, dirname
-from tests.utils import TestExecutor, captured_output
-import redis, unittest, seneca
+from tests.utils import TestExecutor
+import unittest, seneca
 
 test_contracts_path = join(dirname(seneca.__path__[0]), 'test_contracts/')
 AUTHOR = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
@@ -19,9 +18,12 @@ class TestScope(TestExecutor):
         """
         self.ex.execute_code_str("""
 from test_contracts.good import one_you_can_export, one_you_can_also_export, one_you_can_also_also_export
-one_you_can_export()
-one_you_can_also_export()
-one_you_can_also_also_export()
+
+@seed
+def init():
+    one_you_can_export()
+    one_you_can_also_export()
+    one_you_can_also_also_export()
         """)
 
     def test_scope_fail(self):
@@ -32,27 +34,6 @@ one_you_can_also_also_export()
             self.ex.execute_code_str("""
 from test_contracts.good import one_you_cannot_export
             """)
-
-    def test_globals(self):
-        scope = {'rt': {'sender': '123'}}
-        with captured_output() as (out, err):
-            res = self.ex.execute_code_str("""
-from test_contracts.reasonable import reasonable_call
-print(reasonable_call())
-            """, scope)
-            self.assertEqual(out.getvalue().strip(), 'sender: 123, contract: reasonable')
-
-    def test_globals_redis(self):
-        all_info = {'sbb_idx': 2, 'contract_idx': 12}
-        with open(join(test_contracts_path, 'sample.sen.py')) as f:
-            self.ex.publish_code_str('sample', 'davis', f.read())
-
-        # with captured_output() as (out, err):
-        self.ex.execute_code_str("""
-from seneca.contracts.sample import do_that_thing
-print(do_that_thing())
-        """, all_info)
-            # self.assertEqual(out.getvalue().strip(), 'sender: davis, author: davis')
 
     def test_execute_function(self):
         contracts = ['reasonable']

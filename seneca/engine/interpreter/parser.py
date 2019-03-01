@@ -21,6 +21,7 @@ class Parser:
     seed_tree = None
     child = None
     initialized = False
+    assigning = False
 
     @classmethod
     def initialize(cls):
@@ -44,9 +45,11 @@ class Parser:
             '__kwargs__': {}
         })
         cls.parser_scope.update(cls.basic_scope)
-        cls.parser_scope['protected']['global'].update(cls.basic_scope.keys())
-        cls.parser_scope['protected']['global'].update(('rt',))
+        cls.parser_scope['protected']['__global__'].update(cls.basic_scope.keys())
+        cls.parser_scope['protected']['__global__'].update(('rt',))
         cls.seed_tree = None
+        cls.assigning = None
+        cls.parser_scope['ast'] = None
 
     @staticmethod
     def parse_ast(code_str):
@@ -75,10 +78,11 @@ class NodeTransformer(ast.NodeTransformer):
     def protected(self):
         return Parser.parser_scope['protected'].get(self.contract_name, {})
 
-    def set_resource(self, resource_name, func_name):
-        if not Parser.parser_scope['resources'].get(self.contract_name):  # Default dict not marshallable
-            Parser.parser_scope['resources'][self.contract_name] = {}
-        Parser.parser_scope['resources'][self.contract_name][resource_name] = func_name
+    def set_resource(self, resource_name, func_name, contract_name=None):
+        contract_name = contract_name or self.contract_name
+        if not Parser.parser_scope['resources'].get(contract_name):  # Default dict not marshallable
+            Parser.parser_scope['resources'][contract_name] = {}
+        Parser.parser_scope['resources'][contract_name][resource_name] = func_name
 
     def generic_visit(self, node):
         Assert.ast_types(node)
@@ -87,6 +91,8 @@ class NodeTransformer(ast.NodeTransformer):
     def visit_Name(self, node):
         Assert.not_system_variable(node.id)
         Assert.is_within_scope(node.id, self.protected, self.resource, Parser.parser_scope)
+        if Parser.assigning:
+            Assert.is_not_resource(Parser.assigning, node.id, Parser.parser_scope)
         if Parser.parser_scope['ast'] in ('seed', 'export', 'func') \
                 and self.resource.get(node.id) == 'Resource':
             self.generic_visit(node)
@@ -110,15 +116,17 @@ class NodeTransformer(ast.NodeTransformer):
         return self._visit_any_import(node)
 
     def validate_imports(self, import_path, module_name=None, alias=None):
-        if Assert.valid_import_path(import_path, module_name):
-            Assert.is_not_resource(module_name, Parser.parser_scope)
-            path_name = import_path.split('.')[-1]
-            call_name = '{}.{}'.format(path_name, module_name)
-            Parser.parser_scope['imports'][call_name] = True
-            self.set_resource(alias or module_name, True)
-        else:
-            self.set_resource(module_name, True)
-        Parser.parser_scope['protected'][self.contract_name].add(module_name)
+        contract_name = import_path.split('.')[-1]
+        module_type = Assert.valid_import_path(import_path, module_name)
+        if module_type == 'smart_contract':
+            if not Parser.parser_scope['imports'].get(module_name):
+                Parser.parser_scope['imports'][module_name] = set()
+            Parser.parser_scope['imports'][module_name].add(contract_name)
+            self.set_resource(alias or module_name, False)
+            Parser.parser_scope['protected'][module_name].add(contract_name)
+            return
+        elif module_type == 'lib_module':
+            Parser.parser_scope['protected']['__global__'].add(module_name)
 
     def _visit_any_import(self, node):
         if Parser.parser_scope['ast'] != '__system__':
@@ -136,7 +144,16 @@ class NodeTransformer(ast.NodeTransformer):
                 node.value.args = [ast.Str(resource_name)]
             self.set_resource(resource_name, func_name)
             Parser.seed_tree.body.append(node)
+        Parser.assigning = resource_name
         self.generic_visit(node)
+        Parser.assigning = None
+        return node
+
+    def visit_AugAssign(self, node):
+        Assert.is_protected(node.target, Parser.parser_scope)
+        Parser.assigning = node.target
+        self.generic_visit(node)
+        Parser.assigning = None
         return node
 
     def visit_Call(self, node):
@@ -144,11 +161,8 @@ class NodeTransformer(ast.NodeTransformer):
             Assert.not_datatype(node)
             self.generic_visit(node)
             return node
-        self.generic_visit(node)
-        return node
-
-    def visit_AugAssign(self, node):
-        Assert.is_protected(node.target, Parser.parser_scope)
+        if not Parser.parser_scope['ast']:
+            Assert.is_datatype(node)
         self.generic_visit(node)
         return node
 

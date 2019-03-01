@@ -71,7 +71,8 @@ class DataTypeProperties:
 
     @property
     def key(self):
-        return DELIMITER.join([self.__class__.__name__, self.rt['contract'], self.resource])
+        contract_name = self.contract_name if self.resource in Parser.parser_scope.get('imports', {}) else self.rt['contract']
+        return DELIMITER.join([self.__class__.__name__, contract_name, self.resource])
 
     @property
     def top_level_key(self):
@@ -98,6 +99,7 @@ class DataType(Encoder, DataTypeProperties):
     def __init__(self, resource, default_value=None, placeholder=False, *args, **kwargs):
         self.resource = resource
         self.database = self.driver
+        self.contract_name = self.rt['contract']
         if default_value is not None:
             self.default_value = default_value
 

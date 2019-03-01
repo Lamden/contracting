@@ -107,11 +107,11 @@ _SAFE_NAMES = [
     'chr',
     'complex',
     'divmod',
-    'float',
+    # 'float',
     'hash',
     'hex',
     'id',
-    'int',
+    # 'int',
 
     'len',
     'oct',
@@ -136,7 +136,7 @@ _SAFE_NAMES = [
     'print',
     # 'globals',
     # 'locals',
-    # 'type'
+    'type'
 ]
 
 _SAFE_EXCEPTIONS = [

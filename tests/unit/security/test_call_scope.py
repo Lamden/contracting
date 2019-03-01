@@ -1,6 +1,5 @@
-from tests.utils import captured_output, TestExecutor
+from tests.utils import TestExecutor
 import redis, unittest, seneca, os
-from decimal import *
 
 os.environ['CIRCLECI'] = 'true'
 
@@ -44,9 +43,12 @@ class TestCallScope(TestExecutor):
         self.ex.publish_code_str('c_1', AUTHOR, c_1)
         self.ex.execute_code_str("""
 from seneca.contracts.c_1 import call_me
-call_me()
+
+@seed
+def init():
+    call_me()
         """)
-        self.assertEqual(self.ex.driver.hget('Hash:c_1:my_number', AUTHOR), b'"1234567890"')
+        self.assertEqual(self.ex.driver.hget('Hash:c_1:my_number', '__main__'), b'"1234567890"')
         self.assertEqual(self.ex.driver.hget('Hash:c_2:my_number', 'c_1'), b'"1234"')
 
     def test_call_scope_execute_function(self):

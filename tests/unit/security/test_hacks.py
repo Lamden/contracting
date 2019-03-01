@@ -13,18 +13,6 @@ class TestBasicHacks(TestExecutor):
 __contract__ = 'hacks'
                 """)
 
-    def test_read_only_variables_custom(self):
-        with self.assertRaises(ReadOnlyException) as context:
-            self.ex.execute_code_str("""
-bird = 'hacks'
-                """, {'bird': '123'})
-
-    def test_read_only_variables_aug_assign(self):
-        with self.assertRaises(ReadOnlyException) as context:
-            self.ex.execute_code_str("""
-bird += 1
-                """, {'bird': 123})
-
     def test_import_datatypes(self):
         self.ex.execute_code_str("""
 from seneca.libs.storage.datatypes import Hash
@@ -35,7 +23,10 @@ Hash('balance')
         with self.assertRaises(ReadOnlyException) as context:
             self.ex.execute_code_str("""
 from seneca.libs.storage.datatypes import Hash
-Hash = 'hacked'
+
+@seed
+def init():
+    Hash = 'hacked'
                 """)
 
     def test_import_builtin_reassign(self):
@@ -76,7 +67,10 @@ good_call = bad_call
         with self.assertRaises(CompilationException) as context:
             self.ex.execute_code_str("""
 from test_contracts.sample import good_call
-del good_call
+
+@seed
+def init():
+    del good_call
             """)
 
     def test_access_underscore_attributes(self):
@@ -117,7 +111,10 @@ __import__('sys')
             self.ex.execute_code_str("""
 def recurse():
     return recurse()
-recurse()
+    
+@seed
+def init():
+    recurse()
             """)
 
 #     def test_overflow(self):

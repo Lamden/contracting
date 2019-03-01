@@ -22,7 +22,10 @@ def ok():
         self.ex.publish_code_str('crazy', 'anonymoose', code_str)
         self.ex.execute_code_str("""
 from seneca.contracts.crazy import ok
-ok()
+
+@seed
+def init():
+    ok()
         """)
         self.assertEqual(code_str, self.ex.get_contract('crazy')['code_str'])
 

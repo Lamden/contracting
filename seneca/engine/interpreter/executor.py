@@ -88,7 +88,6 @@ class Executor:
         Parser.reset()
         Executor.set_default_rt(Parser.parser_scope.get('rt', {}))
         Parser.parser_scope.update(scope)
-        Parser.parser_scope['protected']['global'].update(scope.keys())
         Parser.parser_scope['rt']['contract'] = contract_name
         seed_tree = Parser.parse_ast(code_str)
         seed_code_obj = compile(seed_tree, contract_name, 'exec')
@@ -96,7 +95,7 @@ class Executor:
         Parser.parser_scope['__seed__'] = True
         Scope.scope = Parser.parser_scope
         exec(seed_code_obj, Parser.parser_scope)
-        Assert.validate(Scope.scope['imports'], Scope.scope['exports'])
+        Assert.validate(Scope.scope['imports'], Scope.scope['exports'], Scope.scope['resources'])
         Parser.parser_scope.update(Scope.scope)  # Scope is updated for seeding purposes!
         return seed_code_obj, Parser.parser_scope['resources'], Parser.parser_scope['exports']
 
@@ -135,7 +134,7 @@ class Executor:
     def execute_code_str(self, code_str, scope={}):
         code_obj, _, _ = self.compile('__main__', code_str, scope)
         scope.update(Parser.basic_scope)
-        exec(code_str, scope)
+        exec(code_obj, scope)
         Parser.parser_scope.update(scope)
 
     def execute_function(self, contract_name, func_name, sender, stamps=0, args=tuple(), kwargs={}):

@@ -24,7 +24,9 @@ def dec(fn):
 def good(s1, s2):
     return s1 + s2
 
-print(good('there'))
+@seed
+def init():
+    print(good('there'))
         """)
 
     def test_precision(self):
@@ -32,7 +34,10 @@ print(good('there'))
 from seneca.libs.math.decimal import Decimal
 def good():
     return Decimal("1") - Decimal("0.95")
-assert float(good()) == 0.05, 'Not equal'
+    
+@seed
+def init():
+    assert good() == 0.05, 'Not equal'
         """)
 
 
@@ -52,11 +57,14 @@ a = 2
             """)
 
     def test_aug_assign_anything_other_than_datatype_in_global(self):
-        with self.assertRaises(TypeError) as context:
+        with self.assertRaises(UnboundLocalError) as context:
             res = self.ex.execute_code_str("""
 from seneca.libs.storage.datatypes import Hash
 a = Hash('a')
-a += 1
+
+@seed
+def init():
+    a += 1
             """)
 
 

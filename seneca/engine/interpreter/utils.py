@@ -81,12 +81,12 @@ class Assert:
         elif module_name:
             import_path = '.'.join([import_path, module_name])
         if import_path.startswith(SENECA_LIBRARY_PATH):
-            return
+            return 'lib_module'
         for path in ALLOWED_IMPORT_PATHS:
             if import_path.startswith(path):
                 path_parts = import_path.split('.')
                 if len(path_parts) - len(path.split('.')) == 2:
-                    return path_parts[-1]
+                    return 'smart_contract'
                 else:
                     raise ImportError(
                         'Instead of importing the entire "{}" module, you must import each functions directly.'.format(
@@ -97,34 +97,45 @@ class Assert:
     def is_protected(target, scope):
         if type(target) == ast.Name:
             contract_name = scope['rt']['contract']
-            if target.id in scope['protected']['global'].union(scope['protected'][contract_name]) \
-                    or target.id in [k.rsplit('.', 1)[-1] for k in scope['imports'].keys()]:
+            # print(contract_name, target.id, scope['protected']['__global__'])
+            # print(scope['imports'])
+            # print(scope['protected'])
+            if target.id in scope['protected']['__global__'] \
+                    or (scope['imports'].get(target.id) and contract_name not in scope['imports'].get(target.id, {})):
                 raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
 
     @staticmethod
     def is_within_scope(target, protected, resources, scope):
         contract_name = scope['rt']['contract']
-        if scope.get(target) is not None and target not in protected and target not in resources \
-                and target not in scope['protected']['global'] and contract_name not in scope['exports'].get(target, {}):
+        if (scope.get(target) is not None and target not in protected and target not in resources \
+                and target not in scope['protected']['__global__'] and contract_name not in scope['exports'].get(target, {})):
             if scope.get(target) and contract_name not in scope['exports'].get(target, {}):
                 return
             # print(contract_name, target)
             # print(protected)
             # print(resources)
-            # print(scope['protected']['global'])
+            # print(scope['protected']['__global__'])
             # print(scope['exports'])
             raise CompilationException('Not allowed to access "{}"'.format(target))
 
     @staticmethod
-    def is_not_resource(name, scope):
-        if name in scope['resources']:
-            raise ImportError('Cannot import "{}" as it is a resource variable'.format(name))
+    def is_not_resource(assigned_to, name, scope):
+        contract_name = scope['rt']['contract']
+        resource = scope.get('resources', {}).get(contract_name, {}).get(assigned_to)
+        if resource is False:
+            raise ReadOnlyException('Cannot modify resource "{}.{}"'.format(contract_name, assigned_to))
 
     @staticmethod
     def no_nested_imports(node):
         for item in node.body:
             if type(item) in [ast.ImportFrom, ast.Import]:
                 raise CompilationException('Not allowed to import inside a function definition')
+
+    @staticmethod
+    def is_datatype(node):
+        if type(node.func) == ast.Name:
+            if node.func.id not in ALLOWED_DATA_TYPES:
+                raise CompilationException('Not allowed to call non-datatype objects in the global scope')
 
     @staticmethod
     def not_datatype(node):
@@ -138,9 +149,14 @@ class Assert:
             Assert.is_protected(t, scope)
 
         invalid_assign = True
-        if type(node.value) == ast.Call:
-            assert len(node.targets) == 1, 'You can only declare one DataType at a time'
+        assert len(node.targets) == 1, 'Short-hand multi assignment is not allowed'
+
+        if type(node.targets[0]) == ast.Subscript:
+            resource_name = node.targets[0].value.id
+        elif type(node.targets[0]) == ast.Name:
             resource_name = node.targets[0].id
+
+        if type(node.value) == ast.Call:
             if type(node.value.func) == ast.Name:
                 func_name = node.value.func.id
                 if func_name in ALLOWED_DATA_TYPES:
@@ -150,12 +166,15 @@ class Assert:
             raise CompilationException('You may only declare DataTypes or import modules in the global scope'
                                         ', line {}:{}, in {}'.format(node.lineno, node.col_offset, scope['rt']['contract']))
 
-        return None, None
+        return resource_name, None
 
     @staticmethod
-    def validate(imports, exports):
-        for import_path in imports:
-            contract_name, module = import_path.split('.')
-            if not contract_name in exports.get(module, {}):
-                raise ImportError('Forbidden to import "{}"'.format(
-                    import_path))
+    def validate(imports, exports, resources):
+        # print(imports)
+        # print(exports)
+        # print(resources)
+        for module, contracts in imports.items():
+            for contract_name in contracts:
+                if contract_name not in exports.get(module, {}) and module not in resources.get(contract_name, {}):
+                    raise ImportError('Forbidden to import "{}.{}"'.format(
+                        contract_name, module))

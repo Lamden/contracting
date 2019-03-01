@@ -1,6 +1,6 @@
-from seneca.engine.interpreter.utils import CompilationException, ReadOnlyException
-from tests.utils import captured_output, TestExecutor
-import redis, unittest, seneca
+from seneca.engine.interpreter.utils import ReadOnlyException
+from tests.utils import TestExecutor
+import unittest, seneca
 
 test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
@@ -80,8 +80,34 @@ from test_contracts import sample
         """
         self.ex.execute_code_str("""
 from test_contracts.sample import good_call
-good_call()
+
+@seed
+def init():
+    good_call()
         """)
+
+    def test_import_modify_resource_of_another_contract(self):
+        with self.assertRaises(ReadOnlyException) as context:
+            self.ex.execute_code_str("""
+from seneca.contracts.currency import balances
+
+@seed
+def init():
+    balances['222'] = 11
+            """)
+
+    def test_import_read_resource_of_another_contract(self):
+
+        self.ex.publish_code_str('xrate', 'man', """
+from seneca.contracts.currency import constants
+
+@export
+def use_xrate():
+    return constants['xrate']
+        """)
+        res = self.ex.execute_function('xrate', 'use_xrate', 'haha')
+        self.assertEqual(res['output'], 1)
+
 
 if __name__ == '__main__':
     unittest.main()

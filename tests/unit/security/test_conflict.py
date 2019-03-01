@@ -74,6 +74,7 @@ def read_shared_name_aug_assign():
 
 """
 
+
 class TestConflict(TestExecutor):
 
     def setUp(self):
@@ -82,10 +83,10 @@ class TestConflict(TestExecutor):
 
     def test_upload_modify_upload(self):
         self.ex.publish_code_str('c_3', 'anonymoose', c_3)
-        res = self.ex.execute_function('c_3', 'write_resource', 'anonymoose', kwargs={'string': 'stu', 'value': 3})
+        res = self.ex.execute_function('c_3', 'write_resource', 'anonymoose', kwargs={'string': 'stu', 'value': 23})
         self.ex.publish_code_str('c_4', 'anonymoose', c_4)
         res = self.ex.execute_function('c_3', 'read_resource', 'anonymoose', kwargs={'string': 'stu'})
-        self.assertEqual(res['output'], 3)
+        self.assertEqual(res['output'], 23)
 
     def test_conflict(self):
         """
