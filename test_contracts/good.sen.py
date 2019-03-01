@@ -1,5 +1,5 @@
-from seneca.libs.storage.map import Map
-balances = Map('hello')
+from seneca.libs.storage.datatypes import Hash
+balances = Hash('hello')
 
 @export
 def one_you_can_export():

@@ -1,9 +1,9 @@
-from seneca.libs.storage.map import Map, Key, Table, SchemaArgs
+from seneca.libs.storage.datatypes import Hash, Key, Table, SchemaArgs
 
 michelin_stars = Key()
 restaurant_name = Key()
 address = Key()
-menu = Map('menu')
+menu = Hash('menu')
 cart = Table('cart', {
     'customer_id': SchemaArgs(str, primary_key=True),
     'item': SchemaArgs(str, required=True, indexed=True)

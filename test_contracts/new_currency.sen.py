@@ -1,11 +1,11 @@
-from seneca.libs.storage.map import Map
+from seneca.libs.storage.datatypes import Hash
 from seneca.libs.storage.resource import Resource
 from seneca.libs.storage.table import Table, Property
 
 # Declare Data Types
 xrate = Resource()
 seed_amount = Resource()
-balances = Map('balances')
+balances = Hash('balances')
 allowed = Table('allowed', {
     'approver': Property(str, indexed=True),
     'spender': Property(str, indexed=True),

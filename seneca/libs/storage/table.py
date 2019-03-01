@@ -7,6 +7,7 @@ from decimal import Decimal
 class Property(object):
     def __init__(self, value_type, required=False, default=None, indexed=False, sort=False, primary_key=False):
         self.value_type = value_type
+        self.primary_key = primary_key
         self.required = primary_key or required
         self.default = default
         self.indexed = primary_key or indexed
@@ -87,7 +88,7 @@ class Table(DataType):
 
     @property
     def row_id(self):
-        return self.driver.hget(self.properties_hash, '__ROW_ID__')
+        return self.driver.hget(self.properties_hash, '__ROW_ID__').decode()
 
     @property
     def count(self):
@@ -111,12 +112,14 @@ class Table(DataType):
         kwargs_tuple = tuple()
         for idx, arg in enumerate(args):
             k = keys[idx]
+            if k.startswith('_'): continue
             assert not kwargs.get(k), '{} already specified in named arguments'.format(k)
             schema_arg = self.schema[k]
             arg = schema_arg.get_asserted_arg(arg)
             self.add_to_index(k, schema_arg, arg)
             args_tuple += (arg,)
         for k in keys[len(args):]:
+            if k.startswith('_'): continue
             schema_arg = self.schema[k]
             kwarg = kwargs.get(k)
             kwarg = schema_arg.get_asserted_arg(kwarg)
@@ -140,7 +143,7 @@ class Table(DataType):
     def add_row(self, *args, **kwargs):
         self.driver.hincrby(self.properties_hash, '__ROW_ID__', 1)
         row = self.create_row(*args, **kwargs)
-        self.driver.hset(self.key, self.row_id, self.encode(row.data))
+        self.driver.hset(self.key, self.row_id, self.encode(row.data, key=row.row_id))
         return row
 
     def delete_table(self):
@@ -230,6 +233,3 @@ class Table(DataType):
     def update(self, updates={}, *args, **kwargs):
         res = self._find_field(*args, **kwargs)
         raise AssertionError('Not Implemented')
-
-
-Registry.register_class('Table', Table)

@@ -24,5 +24,3 @@ class ResourceObj:
 class Resource(DataType):
     resource_obj = ResourceObj()
 
-
-Registry.register_class('Resource', Resource)

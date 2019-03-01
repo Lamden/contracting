@@ -40,10 +40,10 @@ class TestGlobalInit(TestExecutor):
 
     def test_import(self):
         res = self.ex.execute_code_str("""
-from seneca.libs.storage.map import Map
-z = Map('z')
+from seneca.libs.storage.datatypes import Hash
+z = Hash('z')
         """)
-        self.assertEqual(repr(Parser.parser_scope['z']), 'Map:__main__:z')
+        self.assertEqual(repr(Parser.parser_scope['z']), 'Hash:__main__:z')
 
     def test_assign_anything_other_than_datatype_in_global(self):
         with self.assertRaises(CompilationException) as context:
@@ -54,8 +54,8 @@ a = 2
     def test_aug_assign_anything_other_than_datatype_in_global(self):
         with self.assertRaises(TypeError) as context:
             res = self.ex.execute_code_str("""
-from seneca.libs.storage.map import Map
-a = Map('a')
+from seneca.libs.storage.datatypes import Hash
+a = Hash('a')
 a += 1
             """)
 
@@ -65,33 +65,33 @@ class TestDecorators(TestExecutor):
     def test_func(self):
         with self.assertRaises(CompilationException) as context:
             res = self.ex.execute_code_str("""
-from seneca.libs.storage.map import Map
+from seneca.libs.storage.datatypes import Hash
 
 def init():
     b = []
-    b += [Map('ok')]
+    b += [Hash('ok')]
             """)
 
     def test_seed(self):
         with self.assertRaises(CompilationException) as context:
             res = self.ex.execute_code_str("""
-from seneca.libs.storage.map import Map
+from seneca.libs.storage.datatypes import Hash
 
 @seed
 def init():
     b = []
-    b += [Map('ok')]
+    b += [Hash('ok')]
             """)
 
     def test_export(self):
         with self.assertRaises(CompilationException) as context:
             res = self.ex.execute_code_str("""
-from seneca.libs.storage.map import Map
+from seneca.libs.storage.datatypes import Hash
 
 @export
 def init():
     b = []
-    b += [Map('ok')]
+    b += [Hash('ok')]
             """)
 
 if __name__ == '__main__':

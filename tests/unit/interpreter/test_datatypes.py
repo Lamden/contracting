@@ -2,7 +2,6 @@ from unittest import TestCase
 import redis, unittest
 from seneca.constants.config import MASTER_DB, REDIS_PORT
 from seneca.libs.storage.datatypes import Hash
-from seneca.libs.storage.map import Map
 from seneca.libs.storage.table import Table, Property
 from seneca.engine.interpret.parser import Parser
 from decimal import Decimal
@@ -33,20 +32,20 @@ class TestDataTypes(TestCase):
         print('#'*128)
 
     def test_map(self):
-        balances = Map('balances')
-        balances['hr'] = Map('hr')
-        self.assertEqual(repr(balances['hr']), 'Map:{}:balances:hr'.format(self.contract_id))
+        balances = Hash('balances')
+        balances['hr'] = Hash('hr')
+        self.assertEqual(repr(balances['hr']), 'Hash:{}:balances:hr'.format(self.contract_id))
 
     def test_map_simple(self):
-        allowed = Map('allowed')
-        allowed['stu']['falcon'] = 100
-        self.assertEqual(allowed['stu']['falcon'], 100)
+        balances = Hash('balances')
+        balances['hr']['employees']['stu'] = 100
+        self.assertEqual(balances['hr']['employees']['stu'], 100)
 
     def test_map_nested(self):
-        balances = Map('balances')
-        hooter = Map('hoot')
+        balances = Hash('balances')
+        hooter = Hash('hoot')
         hooter['res'] = 1234
-        balances['hr'] = Map('hr')
+        balances['hr'] = Hash('hr')
         balances['hr']['hey'] = hooter
         self.assertEqual(balances['hr']['hey']['res'], 1234)
 
@@ -56,8 +55,7 @@ class TestDataTypes(TestCase):
             'purpose': str
         })
         tau = Coin.add_row('tau', 'something')
-        balances = Map('balances')
-        balances['hr'] = Map('hr')
+        balances = Hash('balances')
         balances['hr']['hey'] = tau
         self.assertEqual(balances['hr']['hey'].schema, Coin.schema)
 

@@ -1,6 +1,6 @@
 from seneca.engine.interpret.parser import Parser
 from tests.utils import TestExecutor
-from seneca.libs.storage.datatypes import Map
+from seneca.libs.storage.datatypes import Hash
 import redis, unittest, seneca, os
 from decimal import *
 
@@ -9,8 +9,8 @@ os.environ['CIRCLECI'] = 'true'
 test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 
 c_3 = """
-from seneca.libs.storage.datatypes import Map, Resource
-resource = Map('resource')
+from seneca.libs.storage.datatypes import Hash, Resource
+resource = Hash('resource')
 shared_name = Resource()
 sandles = Resource()
 
@@ -39,8 +39,8 @@ c_4 = """
 from seneca.contracts.c_3 import read_resource as r
 from seneca.contracts.c_3 import write_resource as w
 
-from seneca.libs.storage.datatypes import Map, Resource
-resource = Map('resource')
+from seneca.libs.storage.datatypes import Hash, Resource
+resource = Hash('resource')
 shared_name = Resource()
 shoes = Resource()
 
@@ -109,10 +109,10 @@ def init():
     res4 = rr2(string='davis')
 
         """)
-        self.assertEqual(self.ex.driver.hget('Map:c_3:resource', 'stu'), b'100')
-        self.assertEqual(self.ex.driver.hget('Map:c_3:resource', 'davis'), b'123')
-        self.assertEqual(self.ex.driver.hget('Map:c_4:resource', 'stu'), b'888')
-        self.assertEqual(self.ex.driver.hget('Map:c_4:resource', 'davis'), b'7777')
+        self.assertEqual(self.ex.driver.hget('Hash:c_3:resource', 'stu'), b'100')
+        self.assertEqual(self.ex.driver.hget('Hash:c_3:resource', 'davis'), b'123')
+        self.assertEqual(self.ex.driver.hget('Hash:c_4:resource', 'stu'), b'888')
+        self.assertEqual(self.ex.driver.hget('Hash:c_4:resource', 'davis'), b'7777')
 
     def test_repeated_variables_inside_different_contracts_set(self):
         self.ex.publish_code_str('c_3', 'anonymoose', c_3)
@@ -139,10 +139,10 @@ def init():
 
     def test_map_collide(self):
         with self.assertRaises(AssertionError) as context:
-            balances = Map('balances')
-            balances['hey'] = Map('palanaces')
+            balances = Hash('balances')
+            balances['hey'] = Hash('palanaces')
             balances['hey']['ok'] = 1
-            malances = Map('balances')
+            malances = Hash('balances')
 
 if __name__ == '__main__':
     unittest.main()

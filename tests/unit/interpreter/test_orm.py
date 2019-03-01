@@ -38,7 +38,7 @@ class TestDataTypes(TestCase):
     #     balances['hr'] = Hash('hr')
     #     balances['hr']['sucks'] = 1
     #     print(balances['hr']['sucks'])
-    #     # self.assertEqual(repr(balances['hr']), 'Map:{}:balances:hr'.format(self.contract_id))
+    #     # self.assertEqual(repr(balances['hr']), 'Hash:{}:balances:hr'.format(self.contract_id))
 
     def test_set(self):
         s1 = Set('s1')

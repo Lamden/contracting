@@ -1,6 +1,3 @@
-from unittest import TestCase
-from seneca.engine.interface import SenecaInterface
-from seneca.constants.config import get_redis_port, get_redis_password
 import unittest, seneca
 from tests.utils import TestExecutor
 from os.path import dirname

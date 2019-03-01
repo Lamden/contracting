@@ -1,7 +1,6 @@
 import ast, builtins
 
 ALLOWED_DATA_TYPES = {
-    'Map',
     'Table',
     'Resource',
 
