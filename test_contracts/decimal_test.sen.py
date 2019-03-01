@@ -1,6 +1,6 @@
-from seneca.libs.datatypes import hmap
+from seneca.libs.storage.datatypes import Hash
 
-floats = hmap('floats', str, float)
+floats = Hash('floats', default_value=0.0)
 
 @export
 def store_float(s, f):

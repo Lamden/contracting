@@ -55,7 +55,7 @@ class Encoder(object):
         else:
             data_type_obj = json.loads(value)
             if type(data_type_obj) in NUMBER_TYPES:
-                data_type_obj = Decimal(data_type_obj)
+                data_type_obj = Decimal(value)
         return data_type_obj
 
 
@@ -83,6 +83,9 @@ class DataType(Encoder, DataTypeProperties):
     def __new__(cls, *args, **kwargs):
         if kwargs.get('default_value') is not None and not kwargs.get('placeholder'):
             ValueType = Registry.get_value_type(type(kwargs['default_value']).__name__)
+            if ValueType in NUMBER_TYPES:
+                ValueType = Decimal
+
             class_name = ValueType.__name__.capitalize() + cls.__name__
             new_class = type(class_name, (cls, ValueType), {})
             Registry.register_class(class_name, new_class)

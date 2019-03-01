@@ -135,7 +135,8 @@ _SAFE_NAMES = [
     # 'help',
     'print',
     # 'globals',
-    # 'locals'
+    # 'locals',
+    'type'
 ]
 
 _SAFE_EXCEPTIONS = [
