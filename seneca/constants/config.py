@@ -46,3 +46,8 @@ MAX_SB_QUEUE_SIZE = 8
 MEMORY_LIMIT = 32768 # 32kb
 RECURSION_LIMIT = 1024
 CPU_TIME_LIMIT = 10
+OFFICIAL_CONTRACTS = [
+    'smart_contract',
+    'currency',
+    # 'atomic_swap'
+]

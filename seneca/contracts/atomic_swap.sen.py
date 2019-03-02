@@ -1,36 +1,34 @@
 from seneca.libs.storage.datatypes import Hash, Table
-from seneca.contracts.smart_contract import execute_function
 from seneca.libs.crypto.hashing import hash_data
+from seneca.libs.math.decimal import Decimal
+from seneca.contracts.smart_contract import import_contract
 
-swaps = hmap('swaps', str, hmap(key_type=bytes, value_type=table(schema={
+swaps = Hash('swaps')
+swap = Table('swap', {
 	'initiator': str,
 	'participant': str,
-	'amount': int,
+	'amount': Decimal,
 	'token': str,
-	'expiration': int,
-})))
+	'expiration': Decimal,
+})
 
 
-def initiate(initiator,
-	participant,
-	expiration,
-	hashlock,
-	token,
-	amount):
+def initiate(initiator, participant, expiration, hashlock, token, amount):
 
 	if not swaps[participant][hashlock]:
 
 		token_contract = import_contract(token)
+		print('atommic_swap: ...')
 		assert token_contract.allowance(initiator, rt['contract']) >= amount, 'Not enough allowance to initiate swap.'
 		token_contract.transfer_from(initiator, rt['contract'], amount)
 
-		swaps[participant][hashlock] = {
+		swaps[participant][hashlock] = swap.add_row({
 			'initiator': initiator,
 			'participant': participant,
 			'amount': amount,
 			'token': token,
 			'expiration': expiration
-		}
+		})
 
 
 def redeem(secret):

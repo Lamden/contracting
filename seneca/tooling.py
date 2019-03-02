@@ -1,8 +1,14 @@
 from seneca.engine.interpreter.executor import Executor
+from seneca.engine.interpreter.parser import Parser
 import types
 
 
 class LocalInterface(Executor):
+
+    def reset_all_data(self):
+        Parser.initialized = False
+        default_interface.driver.flushall()
+        default_interface.setup_official_contracts()
 
     def delete_contract(self, name):
 
@@ -12,7 +18,7 @@ class LocalInterface(Executor):
             self.driver.delete(key)
 
 
-default_driver = LocalInterface()
+default_interface = LocalInterface(concurrency=False, currency=False)
 
 
 class SenecaFunction:
@@ -32,7 +38,7 @@ class SenecaFunction:
 
 
 class ContractWrapper:
-    def __init__(self, contract_name=None, driver=default_driver, default_sender=None):
+    def __init__(self, contract_name=None, driver=default_interface, default_sender=None):
         contract = driver.get_contract(contract_name)
         self.driver = driver
         self.author = contract['author']
@@ -48,5 +54,5 @@ class ContractWrapper:
 
 
 def publish_function(f, name, author):
-    default_driver.publish_function(f, contract_name=name, author=author)
-    return ContractWrapper(contract_name=name, driver=default_driver, default_sender=author)
+    default_interface.publish_function(f, contract_name=name, author=author)
+    return ContractWrapper(contract_name=name, driver=default_interface, default_sender=author)

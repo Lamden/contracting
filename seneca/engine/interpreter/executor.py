@@ -1,8 +1,8 @@
 from seneca.engine.interpreter.parser import Parser
 from seneca.engine.interpreter.scope import Scope
 from seneca.libs.metering.tracer import Tracer
-from seneca.constants.config import MASTER_DB, REDIS_PORT, CODE_OBJ_MAX_CACHE
-import seneca, sys, marshal, os, ast
+from seneca.constants.config import MASTER_DB, REDIS_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS
+import seneca, sys, marshal, os, types
 from os.path import join
 from functools import lru_cache
 from seneca.engine.interpreter.utils import Plugins, Assert
@@ -21,10 +21,7 @@ class Executor:
         if flushall: self.driver.flushall()
         self.path = join(seneca.__path__[0], 'contracts')
         self.author = '__lamden_io__'
-        self.official_contracts = [
-            'currency',
-            'smart_contract'
-        ]
+        self.official_contracts = OFFICIAL_CONTRACTS
         self.setup_official_contracts()
         self.currency = currency
         self.concurrency = concurrency
@@ -52,20 +49,17 @@ class Executor:
         Plugins.submit_stamps()
 
     def setup_official_contracts(self):
-        contracts = {}
         for name in self.official_contracts:
             with open(join(self.path, name+'.sen.py')) as f:
                 code_str = f.read()
-                code_obj, resources, methods = self.compile(name, code_str, {'ast': '__system__'})
-            contracts[name] = {
+                code_obj, resources, methods = self.compile(name, code_str, {'ast': '__system__', '__executor__': self})
+            self.set_contract(name, **{
                 'code_str': code_str,
                 'code_obj': code_obj,
                 'author': self.author,
                 'resources': resources,
                 'methods': methods,
-            }
-        for name, c in contracts.items():
-            self.set_contract(name, **c, driver=self.driver, override=True)
+            }, driver=self.driver, override=True)
 
     def get_contract(self, contract_name):
         return marshal.loads(self.driver.hget('contracts', contract_name))
@@ -75,6 +69,7 @@ class Executor:
             driver = self.driver
         if not override:
             assert not driver.hget('contracts', contract_name), 'Contract name "{}" already taken.'.format(contract_name)
+
         driver.hset('contracts', contract_name, marshal.dumps({
             'code_str': code_str,
             'code_obj': code_obj,
@@ -82,6 +77,7 @@ class Executor:
             'resources': resources,
             'methods': methods,
         }))
+
 
     @staticmethod
     def compile(contract_name, code_str, scope={}):
@@ -129,6 +125,7 @@ class Executor:
         scope.update(Parser.parser_scope)
         Scope.scope = scope
         exec(code_obj, scope)
+
         return scope.get('__result__')
 
     def execute_code_str(self, code_str, scope={}):
@@ -197,3 +194,10 @@ class Executor:
                                          'contract_name': contract_name,
                                          'code_str': code_str
                                      })
+
+    def dynamic_import(self, contract_name):
+        contract = self.get_contract(contract_name)
+        module = types.ModuleType(contract_name)
+        module.__dict__.update({'rt': {'contract': contract_name}})
+        self.execute(contract['code_obj'], module.__dict__)
+        return module
