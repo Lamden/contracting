@@ -47,28 +47,15 @@ class TestCurrency(TestExecutor):
         res = self.ex.execute_function('currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
         self.assertEqual(res['output'], original_balance+100)
 
+    def test_unavailable_allowance(self):
+        with self.assertRaises(AssertionError):
+            res = self.ex.execute_function('currency', 'transfer_from', 'stu', kwargs={
+                'approver': 'davis', 'amount': 123
+            })
 
-    # def test_custodial_remove(self):
-    #     self.contract.add_to_custodial(to='falcon', amount=420)
-    #     falcon_custodial = self.contract.get_custodial(owner='stu', spender='falcon')['output']
-    #     self.assertEqual(falcon_custodial, Decimal('420'))
-    #
-    #     self.contract.remove_from_custodial(to='falcon', amount=100)
-    #     falcon_custodial = self.contract.get_custodial(owner='stu', spender='falcon')['output']
-    #     self.assertEqual(falcon_custodial, Decimal('320'))
-    #
-    # def test_custodial_spend(self):
-    #     self.contract.add_to_custodial(to='falcon', amount=420)
-    #     self.contract.spend_custodial(_from='stu', to='davis', amount=123, sender='falcon')
-    #     davis_balance = self.contract.get_balance(account='davis')['output']
-    #
-    #     self.assertEqual(davis_balance, Decimal('123'))
-    #
-    # def test_unavailable_custodial_spend(self):
-    #     with self.assertRaises(AssertionError):
-    #         output = self.contract.spend_custodial(_from='stu', to='davis', amount=123, sender='falcon')
-    #
-    # def test_too_large_custodial_spend(self):
-    #     self.contract.add_to_custodial(to='falcon', amount=420)
-    #     with self.assertRaises(AssertionError):
-    #         self.contract.spend_custodial(_from='stu', to='davis', amount=500, sender='falcon')
+    def test_too_large_custodial_spend(self):
+        res = self.ex.execute_function('currency', 'approve', wallets[0], kwargs={'spender': wallets[1], 'amount': 100})
+        with self.assertRaises(AssertionError):
+            res = self.ex.execute_function('currency', 'transfer_from', wallets[1], kwargs={
+                'approver': wallets[0], 'amount': 500
+            })

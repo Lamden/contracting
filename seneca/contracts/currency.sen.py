@@ -3,7 +3,7 @@ from seneca.libs.storage.datatypes import Hash
 # Declare Data Types
 constants = Hash('constants')
 balances = Hash('balances', default_value=0)
-allowed = Hash('allowed')
+allowed = Hash('allowed', default_value=0)
 
 @seed
 def seed_wallets():
