@@ -2,12 +2,14 @@ from seneca.engine.interpreter.parser import Parser
 from seneca.engine.interpreter.scope import Scope
 from seneca.libs.metering.tracer import Tracer
 from seneca.constants.config import MASTER_DB, REDIS_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS
-import seneca, sys, marshal, os, types, copy
+import seneca, sys, marshal, os, types
 from os.path import join
 from functools import lru_cache
 from seneca.engine.interpreter.utils import Plugins, Assert
 from seneca.engine.interpreter.module import SenecaFinder, RedisFinder
 from seneca.engine.interpreter.driver import Driver
+from seneca.engine.book_keeper import BookKeeper
+from seneca.engine.conflict_resolution import RedisProxy
 
 
 class Executor:

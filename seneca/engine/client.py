@@ -4,7 +4,6 @@ from seneca.engine.interpreter.executor import Executor
 from seneca.constants.config import *
 from seneca.engine.conflict_resolution import CRContext
 from seneca.engine.book_keeper import BookKeeper
-from seneca.engine.util import module_path_for_contract
 from collections import deque
 from typing import Callable
 import traceback
@@ -225,15 +224,13 @@ class SenecaClient(Executor):
             # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
             if hasattr(contract, 'contract_code'):  # TODO not this pls
                 author = contract.sender
-                self.publish_code_str(fullname=contract.contract_name, author=author,
+                self.publish_code_str(contract_name=contract.contract_name, author=author,
                                       code_str=contract.contract_code)
             else:
-                mod_path = module_path_for_contract(contract)
-                run_info = self.execute_function(module_path=mod_path, sender=contract.sender,
-                                                 stamps=contract.stamps_supplied, **contract.kwargs)
+                run_info = self.execute_function(contract.contract_name, contract.func_name, contract.sender,
+                                                 contract.stamps_supplied, kwargs=contract.kwargs)
                 # The following is just for debug info
-                stamps_sup = contract.stamps_supplied if contract.stamps_supplied is not None else 0
-                stamps_spent = stamps_sup - run_info['remaining_stamps']
+                stamps_spent = run_info['stamps_used']
                 self.log.spam("Running contract from sender {} used {} stamps and returned run_info: {}"
                               .format(contract.sender, stamps_spent, run_info))
 
