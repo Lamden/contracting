@@ -23,4 +23,4 @@ def execute_function(contract_name, func_name, args=(), kwargs={}):
 
 @export
 def import_contract(contract_name):
-    return __executor__.dynamic_import(contract_name)
+    return __executor__.dynamic_import(contract_name, rt['sender'])

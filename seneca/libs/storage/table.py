@@ -145,6 +145,7 @@ class Table(DataType):
     def add_row(self, *args, **kwargs):
         self.driver.hincrby(self.properties_hash, '__ROW_ID__', 1)
         row = self.create_row(*args, **kwargs)
+        row.id = self.row_id
         self.driver.hset(self.key, self.row_id, self.encode(row.data, key=row.row_id))
         return row
 

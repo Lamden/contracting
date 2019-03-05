@@ -61,6 +61,7 @@ class SenecaLoader(Loader):
         Parser.parser_scope['rt']['contract'] = old_contract_name
         return module
 
+
 class RedisFinder:
 
     def find_module(self, fullname, path=None):

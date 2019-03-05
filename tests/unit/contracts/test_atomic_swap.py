@@ -42,15 +42,12 @@ class TestAtomicSwap(TestCaseHeader):
             token='currency',
             amount=100
         )
-        self.assertEqual(self.driver.get('currency:allowed.{}:atomic_swap'.format(wallet_a)), b'0')
-        self.assertEqual(self.driver.get('currency:balances:atomic_swap'), b'100')
+        self.assertEqual(self.driver.hget('DecimalHash:currency:allowed:{}'.format(wallet_a), 'atomic_swap'), b'0.0')
+        self.assertEqual(self.driver.hget('DecimalHash:currency:balances', 'atomic_swap'), b'100.0')
         self.assertEqual(
-            json.loads(self.driver.get('atomic_swap:swaps.{}:{}'.format(wallet_b, hashlock)).decode()), {
-                "initiator": wallet_a,
-                "participant": wallet_b,
-                "amount": 100,
-                "token": "currency",
-                "expiration": 1800
+            json.loads(self.driver.hget('DictHash:atomic_swap:swaps:{}'.format(wallet_b), hashlock).decode()), {
+                'initiator': wallet_a, 'participant': wallet_b,
+                'amount': 100, "token": "currency", "expiration": 1800
             })
         self.atomic_swap_b.redeem(
             secret=secret
@@ -63,7 +60,6 @@ class TestAtomicSwap(TestCaseHeader):
             spender='atomic_swap',
             amount=100
         )
-        self.assertEqual(self.driver.get('currency:allowed.{}:atomic_swap'.format(wallet_a)), b'100')
         self.atomic_swap_a.initiate(
             initiator=wallet_a,
             participant=wallet_b,
@@ -72,16 +68,6 @@ class TestAtomicSwap(TestCaseHeader):
             token='currency',
             amount=100
         )
-        self.assertEqual(self.driver.get('currency:allowed.{}:atomic_swap'.format(wallet_a)), b'0')
-        self.assertEqual(self.driver.get('currency:balances:atomic_swap'), b'100')
-        self.assertEqual(
-            json.loads(self.driver.get('atomic_swap:swaps.{}:{}'.format(wallet_b, hashlock)).decode()), {
-                "initiator": wallet_a,
-                "participant": wallet_b,
-                "amount": 100,
-                "token": "currency",
-                "expiration": 1800
-            })
         self.atomic_swap_a.refund(
             participant=wallet_b,
             secret=secret

@@ -2,7 +2,7 @@ from seneca.engine.interpreter.parser import Parser
 from seneca.engine.interpreter.scope import Scope
 from seneca.libs.metering.tracer import Tracer
 from seneca.constants.config import MASTER_DB, REDIS_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS
-import seneca, sys, marshal, os, types
+import seneca, sys, marshal, os, types, copy
 from os.path import join
 from functools import lru_cache
 from seneca.engine.interpreter.utils import Plugins, Assert
@@ -125,14 +125,11 @@ class Executor:
         scope.update(Parser.parser_scope)
         Scope.scope = scope
         exec(code_obj, scope)
-
         return scope.get('__result__')
 
     def execute_code_str(self, code_str, scope={}):
-        code_obj, _, _ = self.compile('__main__', code_str, scope)
-        scope.update(Parser.basic_scope)
-        exec(code_obj, scope)
-        Parser.parser_scope.update(scope)
+        self.set_default_rt()
+        self.compile('__main__', code_str, scope)
 
     def execute_function(self, contract_name, func_name, sender, stamps=0, args=tuple(), kwargs={}):
         Parser.parser_scope.update({
@@ -195,9 +192,11 @@ class Executor:
                                          'code_str': code_str
                                      })
 
-    def dynamic_import(self, contract_name):
+    def dynamic_import(self, contract_name, sender):
         contract = self.get_contract(contract_name)
         module = types.ModuleType(contract_name)
-        module.__dict__.update({'rt': {'contract': contract_name}})
+        Parser.parser_scope['rt']['contract'] = contract_name
+        Parser.parser_scope['rt']['sender'] = sender
+        Parser.parser_scope['__seed__'] = False
         self.execute(contract['code_obj'], module.__dict__)
         return module

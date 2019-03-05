@@ -35,6 +35,18 @@ def init():
 from test_contracts.good import one_you_cannot_export
             """)
 
+    def test_execute_imports(self):
+        """
+            Testing to see if the function can be called.
+        """
+        self.ex.execute_code_str("""
+from test_contracts.sample import assert_call
+
+@seed
+def init():
+    assert_call()
+        """)
+
     def test_execute_function(self):
         contracts = ['reasonable']
         for contract in contracts:

@@ -1,8 +1,7 @@
 from seneca.engine.interpreter.driver import Driver
 from unittest import TestCase
-from seneca.constants.config import get_redis_port, MASTER_DB, REDIS_PORT, get_redis_password
+from seneca.constants.config import MASTER_DB, REDIS_PORT
 from seneca.engine.interpreter.executor import Executor
-from seneca.tooling import *
 
 
 class TestCaseHeader(TestCase):

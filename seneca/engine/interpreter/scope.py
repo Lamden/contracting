@@ -1,3 +1,6 @@
+import copy
+
+
 class Scope:
 
     scope = {}
@@ -5,13 +8,15 @@ class Scope:
     def set_scope(self, fn, args, kwargs):
 
         # Set contract name
-        old_contract_name = self.scope['rt']['contract']
+
+        caller_contract = self.scope['rt']['contract']
         contract_name = fn.__module__ or self.scope['rt']['contract']
-        if len(self.scope['callstack']) == 0 and old_contract_name != '__main__' and contract_name != 'currency':
-            contract_name = old_contract_name
+        if len(self.scope['callstack']) == 0 and caller_contract != '__main__' and contract_name != 'currency':
+            contract_name = caller_contract
 
         self.scope['rt']['contract'] = contract_name
-        self.scope['callstack'].append('{}.{}'.format(contract_name, fn.__name__))
+        caller_rt = copy.deepcopy(self.scope['rt'])
+        self.scope['callstack'].append((contract_name, fn, caller_rt))
 
         # Set stamps for currency
         if contract_name == 'currency':
@@ -26,17 +31,19 @@ class Scope:
                 args = self.scope['__args__']
             if self.scope.get('__kwargs__'):
                 kwargs = self.scope['__kwargs__']
-        elif contract_name != old_contract_name:
-            self.scope['rt']['sender'] = old_contract_name
+        elif contract_name != caller_contract:
+            self.scope['rt']['sender'] = caller_contract
 
         fn.__globals__['rt'] = self.scope['rt']
 
         return args, kwargs
 
-    def reset_scope(self, fn):
+    def reset_scope(self):
         if len(self.scope['callstack']) > 0:
-            self.scope['callstack'].pop(0)
-
+            self.scope['callstack'].pop(-1)
+            if len(self.scope['callstack']) > 0:
+                contract_name, fn, caller_rt = self.scope['callstack'][-1]
+                fn.__globals__['rt'] = caller_rt
 
 # Applies to Private, Export, and Seed functions
 class Function(Scope):
@@ -44,7 +51,7 @@ class Function(Scope):
         def _fn(*args, **kwargs):
             args, kwargs = self.set_scope(fn, args, kwargs)
             res = fn(*args, **kwargs)
-            self.reset_scope(fn)
+            self.reset_scope()
             return res
         _fn.__name__ = fn.__name__
         fn.__module__ = self.scope['rt']['contract']

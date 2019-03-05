@@ -49,5 +49,5 @@ CPU_TIME_LIMIT = 10
 OFFICIAL_CONTRACTS = [
     'smart_contract',
     'currency',
-    # 'atomic_swap'
+    'atomic_swap'
 ]

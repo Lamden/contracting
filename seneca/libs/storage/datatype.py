@@ -26,7 +26,7 @@ class Encoder(object):
             new_key = DELIMITER.join([parent_key, self.resource, key])
             if self.driver.exists(original_key) and final_dump:
                 if value.__class__.__name__ == 'Table':
-                    new_value = '{}{}'.format(POINTER, original_key)
+                    new_value = '{}{}{}{}'.format(POINTER, original_key, INDEX_SEPARATOR, value.id)
                     self.driver.hset(self.key, key, new_value)
                 else:
                     self.driver.rename(original_key, new_key)
@@ -48,6 +48,9 @@ class Encoder(object):
             return self.default_value
         value = value.decode()
         if value[0] == POINTER:
+            # key_parts = value[1:].split(INDEX_SEPARATOR)
+            # if len(key_parts) > 1:
+            #     data_type_obj = self.decode(self.driver.hget(key_parts[0], key_parts[1]))
             data_type_name, _, key = value[1:].split(DELIMITER, 2)
             key_parts = key.split(INDEX_SEPARATOR)
             data_type = Registry.get_data_type(data_type_name)
@@ -70,8 +73,18 @@ class DataTypeProperties:
         return Parser.parser_scope['rt']
 
     @property
+    def callstack(self):
+        return Parser.parser_scope.get('callstack', [])
+
+    @property
     def key(self):
-        contract_name = self.contract_name if self.resource in Parser.parser_scope.get('imports', {}) else self.rt['contract']
+        if self.resource in Parser.parser_scope.get('imports', {}):
+            contract_name = self.contract_name
+        elif len(self.callstack) == 0:
+            contract_name = '__main__'
+        else:
+            contract_name = self.callstack[-1][0]
+        # contract_name = self.contract_name if self.resource in Parser.parser_scope.get('imports', {}) else self.rt['contract']
         return DELIMITER.join([self.__class__.__name__, contract_name, self.resource])
 
     @property

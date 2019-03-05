@@ -34,7 +34,7 @@ class TestDataTypes(TestCase):
     def test_map(self):
         balances = Hash('balances')
         balances['hr'] = Hash('hr')
-        self.assertEqual(repr(balances['hr']), 'Hash:{}:balances:hr'.format(self.contract_id))
+        self.assertEqual(repr(balances['hr']), 'Hash:__main__:balances:hr')
 
     def test_map_simple(self):
         balances = Hash('balances')
@@ -97,8 +97,8 @@ class TestDataTypes(TestCase):
         })
         tau = Coin.add_row('tau')
         lamden = Company.add_row('lamden', coin=tau, evaluation=0)
-        self.assertEqual(repr(tau), 'Table:{}:Coin'.format(self.contract_id))
-        self.assertEqual(repr(lamden), 'Table:{}:Company'.format(self.contract_id))
+        self.assertEqual(repr(tau), 'Table:__main__:Coin')
+        self.assertEqual(repr(lamden), 'Table:__main__:Company')
 
     def test_table_with_invalid_table_type(self):
         Coin = Table('Coin', {

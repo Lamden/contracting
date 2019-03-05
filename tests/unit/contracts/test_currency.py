@@ -41,7 +41,7 @@ class TestCurrency(TestExecutor):
         res = self.ex.execute_function('currency', 'approve', wallets[0],
                                        kwargs={'spender': wallets[1], 'amount': 100})
         res = self.ex.execute_function('currency', 'transfer_from', wallets[1],
-                                       kwargs={'approver': wallets[0], 'amount': 100})
+                                       kwargs={'approver': wallets[0], 'spender': wallets[1], 'amount': 100})
         res = self.ex.execute_function('currency', 'allowance', wallets[0], kwargs={'approver': wallets[0], 'spender': wallets[1]})
         self.assertEqual(res['output'], 0)
         res = self.ex.execute_function('currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
@@ -50,12 +50,12 @@ class TestCurrency(TestExecutor):
     def test_unavailable_allowance(self):
         with self.assertRaises(AssertionError):
             res = self.ex.execute_function('currency', 'transfer_from', 'stu', kwargs={
-                'approver': 'davis', 'amount': 123
+                'approver': 'davis', 'spender': wallets[1], 'amount': 123
             })
 
     def test_too_large_custodial_spend(self):
         res = self.ex.execute_function('currency', 'approve', wallets[0], kwargs={'spender': wallets[1], 'amount': 100})
         with self.assertRaises(AssertionError):
             res = self.ex.execute_function('currency', 'transfer_from', wallets[1], kwargs={
-                'approver': wallets[0], 'amount': 500
+                'approver': wallets[0], 'spender': wallets[1], 'amount': 500
             })

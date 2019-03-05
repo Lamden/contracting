@@ -44,24 +44,21 @@ def submit_stamps(stamps):
 
 @export
 def transfer(to, amount):
-    # print("transfering from {} to {} with amount {}".format(rt['sender'], to, amount))
-    assert balances[rt['sender']] > 0 and rt['origin'] == rt['sender'], 'Contract "{}" trying to initiate ' \
-                                                                               'unauthorized transfer to ' \
-                                                                               '"{}"'.format(rt['sender'], to)
+    assert balances[rt['sender']] > 0, 'Not enough funds'
     balances[rt['sender']] -= amount
     balances[to] += amount
 
 @export
 def approve(spender, amount):
-    allowed[rt['origin']][spender] = amount
+    allowed[rt['sender']][spender] = amount
 
 @export
-def transfer_from(approver, amount):
-    assert allowed[approver][rt['sender']] >= amount
+def transfer_from(approver, spender, amount):
+    assert allowed[approver][spender] >= amount
     assert balances[approver] >= amount
-    allowed[approver][rt['sender']] -= amount
+    allowed[approver][spender] -= amount
     balances[approver] -= amount
-    balances[rt['origin']] += amount
+    balances[spender] += amount
 
 @export
 def mint(to, amount):
