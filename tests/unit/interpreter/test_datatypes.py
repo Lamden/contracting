@@ -27,6 +27,7 @@ class TestDataTypes(TestCase):
         self.contract_id = self.id().split('.')[-1]
         self.ex = Executor()
         Parser.parser_scope['rt']['contract'] = self.contract_id
+        Table.schemas = {}
         print('#'*128)
         print('\t', self.contract_id)
         print('#'*128)
@@ -52,12 +53,15 @@ class TestDataTypes(TestCase):
     def test_map_nested_different_type(self):
         Coin = Table('Coin', {
             'name': Property(str, required=True),
-            'purpose': str
+            'purpose': str,
         })
         tau = Coin.add_row('tau', 'something')
         balances = Hash('balances')
         balances['hr']['hey'] = tau
         self.assertEqual(balances['hr']['hey'].schema, Coin.schema)
+        self.assertEqual(balances['hr']['hey'].data, ['tau', 'something'])
+        self.assertEqual(balances['hr']['hey'].name, 'tau')
+        self.assertEqual(balances['hr']['hey'].purpose, 'something')
 
     def test_table_append(self):
         Coin = Table('Coin', {
@@ -83,7 +87,6 @@ class TestDataTypes(TestCase):
 
         self.assertEqual(Coin.find({'$property': 'name', '$exactly': 'faltau'}), [['faltau', 'anarchy net', 0.0]])
         self.assertEqual(sorted(Coin.find({'$property': 'name', '$matches': 'fal*'})), sorted([['faltau', 'anarchy net', 0.0], ['falcoin', 'anarchy net', 0.0]]))
-
 
     def test_table_with_table_as_type(self):
         Coin = Table('Coin', {

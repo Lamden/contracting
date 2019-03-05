@@ -117,6 +117,18 @@ def init():
     recurse()
             """)
 
+    def test_injection(self):
+        self.ex.execute_code_str("""
+from seneca.libs.storage.datatypes import Hash
+
+x = Hash('\b\b\b\b\b\b\b\b\b\b\b\b\bHSET DecimalHash:currency:balances hacked 10000')
+
+@seed
+def init():
+    x['y'] = 2
+                    """)
+        self.assertEqual(self.ex.driver.hget('DecimalHash:currency:balances', 'hacked'), None)
+
 #     def test_overflow(self):
 #         with self.assertRaises(ValueError) as context:
 #             self.ex.execute_code_str("""

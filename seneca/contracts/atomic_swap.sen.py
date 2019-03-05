@@ -4,6 +4,7 @@ from seneca.contracts.smart_contract import import_contract
 
 swaps = Hash('swaps', default_value={})
 
+
 def initiate(initiator, participant, expiration, hashlock, token, amount):
 
 	if not swaps[participant][hashlock]:

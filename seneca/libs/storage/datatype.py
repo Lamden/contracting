@@ -18,25 +18,18 @@ class Encoder(object):
 
     default_value = None
 
-    def encode(self, value, key=None, final_dump=True):
+    def encode(self, value, key=None):
         if issubclass(type(value), DataType):
             original_key = repr(value)
-            key_parts = original_key.split(DELIMITER)
-            parent_key = DELIMITER.join(key_parts[:2])
-            new_key = DELIMITER.join([parent_key, self.resource, key])
-            if self.driver.exists(original_key) and final_dump:
-                if value.__class__.__name__ == 'Table':
-                    new_value = '{}{}{}{}'.format(POINTER, original_key, INDEX_SEPARATOR, value.id)
-                    self.driver.hset(self.key, key, new_value)
-                else:
-                    self.driver.rename(original_key, new_key)
+            new_key = DELIMITER.join([self.key, key])
+            if self.driver.exists(original_key) and not hasattr(value, 'no_rename'):
+                self.driver.rename(original_key, new_key)
                 return
+            elif hasattr(value, 'no_rename'):
+                return '{}{}{}{}'.format(POINTER, original_key, INDEX_SEPARATOR, value.id)
             else:
                 return '{}{}'.format(POINTER, new_key)
-        elif type(value) in (tuple, list):
-            value = [self.encode(v, key=key, final_dump=False) for v in value]
-            value = json.dumps(value)
-        elif final_dump:
+        else:
             value = json.dumps(value)
         return value
 
@@ -48,13 +41,12 @@ class Encoder(object):
             return self.default_value
         value = value.decode()
         if value[0] == POINTER:
-            # key_parts = value[1:].split(INDEX_SEPARATOR)
-            # if len(key_parts) > 1:
-            #     data_type_obj = self.decode(self.driver.hget(key_parts[0], key_parts[1]))
             data_type_name, _, key = value[1:].split(DELIMITER, 2)
             key_parts = key.split(INDEX_SEPARATOR)
             data_type = Registry.get_data_type(data_type_name)
             data_type_obj = data_type(key_parts[0], placeholder=True)
+            if len(key_parts) == 2:
+                data_type_obj.data = data_type_obj.decode(self.driver.hget(data_type_obj.key, key_parts[1]))
         else:
             try: data_type_obj = json.loads(value)
             except: data_type_obj = value
@@ -124,6 +116,10 @@ class DataType(Encoder, DataTypeProperties):
 
     def __repr__(self):
         return self.key
+
+    @property
+    def pointer_key(self):
+        return '{}{}'.format(POINTER, self.key)
 
 
 class SubscriptType:

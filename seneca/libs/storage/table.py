@@ -2,6 +2,7 @@ from seneca.libs.storage.datatype import DataType, NUMBER_TYPES, APPROVED_TYPES,
     PROPERTY_KEY, POINTER, INDEX_SEPARATOR
 from seneca.libs.storage.registry import Registry
 from decimal import Decimal
+import ujson as json
 
 
 class Property(object):
@@ -58,19 +59,35 @@ class Property(object):
             raise AssertionError('DataType {} must have the resource "{}"'.format(type(arg), self.resource))
         elif type(arg) != self.value_type:
             raise AssertionError('Arg {} must be of type {}'.format(arg, self.value_type))
-
+        elif issubclass(type(arg), DataType):
+            arg = arg.pointer_key
         return arg
 
 
 class Table(DataType):
 
     schemas = {}
+    no_rename = True
 
     def __init__(self, resource, schema=None, data=None, *args, **kwargs):
         super().__init__(resource, *args, **kwargs)
         self.schema = schema
         self.data = data
         self.register_schema()
+
+    def encode(self, value, *args, **kwargs):
+        return json.dumps(value)
+
+    def __getattr__(self, item):
+        # TODO restrict access for names used in this object
+        try:
+            return self.data[self.schema[item].column_idx]
+        except:
+            return None
+
+    @property
+    def pointer_key(self):
+        return '{}{}{}{}'.format(POINTER, self.key, INDEX_SEPARATOR, self.id)
 
     def register_schema(self):
         resource_name = self.top_level_key
