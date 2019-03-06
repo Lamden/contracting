@@ -51,3 +51,11 @@ OFFICIAL_CONTRACTS = [
     'currency',
     'atomic_swap'
 ]
+
+DELIMITER = ':'
+POINTER = '&'
+SORTED_TYPE = '~'
+TYPE_SEPARATOR = '@'
+RESOURCE_KEY = '__resources__'
+PROPERTY_KEY = '__properties__'
+INDEX_SEPARATOR = '.'

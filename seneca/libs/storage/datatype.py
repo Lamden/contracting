@@ -1,17 +1,9 @@
 from seneca.engine.interpreter.parser import Parser
 from decimal import Decimal
 from seneca.libs.storage.registry import Registry
+from seneca.constants.config import *
+from seneca.constants.whitelists import NUMBER_TYPES
 import ujson as json
-
-DELIMITER = ':'
-POINTER = '&'
-SORTED_TYPE = '~'
-TYPE_SEPARATOR = '@'
-NUMBER_TYPES = (int, float)
-APPROVED_TYPES = (Decimal, str, bool, bytes)
-RESOURCE_KEY = '__resources__'
-PROPERTY_KEY = '__properties__'
-INDEX_SEPARATOR = '.'
 
 
 class Encoder(object):

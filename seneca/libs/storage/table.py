@@ -1,7 +1,7 @@
-from seneca.libs.storage.datatype import DataType, NUMBER_TYPES, APPROVED_TYPES, SORTED_TYPE, TYPE_SEPARATOR, \
+from seneca.libs.storage.datatype import DataType
+from seneca.constants.config import SORTED_TYPE, TYPE_SEPARATOR, \
     PROPERTY_KEY, POINTER, INDEX_SEPARATOR
-from seneca.libs.storage.registry import Registry
-from types import MethodType
+from seneca.constants.whitelists import NUMBER_TYPES, APPROVED_TYPES
 from decimal import Decimal
 import ujson as json
 

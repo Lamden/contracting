@@ -1,10 +1,13 @@
 import ast, builtins
+from decimal import Decimal
 
+NUMBER_TYPES = (int, float)
+APPROVED_TYPES = (Decimal, str, bool, bytes)
 ALLOWED_DATA_TYPES = {
     'Table',
     'Resource',
-
     'Hash',
+
     'Set',
     'ZSet',
     'List',

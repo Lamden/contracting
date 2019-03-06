@@ -1,18 +1,16 @@
-from seneca.libs.storage.datatypes import Hash
+from seneca.libs.storage.datatypes import Hash, Resource
 
 # Declare Data Types
-constants = Hash('constants')
+xrate = Resource()
+seed_amount = Resource()
 balances = Hash('balances', default_value=0)
 allowed = Hash('allowed', default_value=0)
 
 @seed
 def seed_wallets():
-
     # Initialization
-    constants.update({
-        'xrate': 1.0,
-        'seed_amount': 1000000
-    })
+    xrate = 1.0
+    seed_amount = 1000000
     balances['LamdenReserves'] = 0
 
     # Deposit to all network founders
@@ -26,7 +24,7 @@ def seed_wallets():
     ]
 
     for w in founder_wallets:
-        balances[w] = constants['seed_amount']
+        balances[w] = seed_amount
 
 
 def assert_stamps(stamps):
@@ -39,6 +37,7 @@ def submit_stamps(stamps):
     # NOTE: Assertion is made before executing the core code block. The exact amount of used stamps is
     #       passed in from the executor as a separate exec() command. This will ensure that even if
     #       the core code block fails, stamps will be subtracted
+    stamps *= xrate
     balances[rt['origin']] -= stamps
     balances['LamdenReserves'] += stamps
 
@@ -75,7 +74,7 @@ def balance_of(wallet_id):
 
 @export
 def exchange_rate():
-    return constants['xrate']
+    return xrate
 
 @export
 def allowance(approver, spender):

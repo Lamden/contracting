@@ -54,7 +54,7 @@ class Executor:
         for name in self.official_contracts:
             with open(join(self.path, name+'.sen.py')) as f:
                 code_str = f.read()
-                code_obj, resources, methods = self.compile(name, code_str, {'ast': '__system__', '__executor__': self})
+                code_obj, resources, methods = self.compile(name, code_str, {'ast': None, '__system__': True, '__executor__': self})
             self.set_contract(name, **{
                 'code_str': code_str,
                 'code_obj': code_obj,
@@ -90,6 +90,7 @@ class Executor:
         seed_tree = Parser.parse_ast(code_str)
         seed_code_obj = compile(seed_tree, contract_name, 'exec')
         Parser.parser_scope['ast'] = None
+        Parser.parser_scope['__system__'] = None
         Parser.parser_scope['__seed__'] = True
         Scope.scope = Parser.parser_scope
         exec(seed_code_obj, Parser.parser_scope)

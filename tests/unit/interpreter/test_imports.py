@@ -93,20 +93,35 @@ from seneca.contracts.currency import balances
 
 @seed
 def init():
-    balances['222'] = 11
+    balances['222'].value = 11
+            """)
+        with self.assertRaises(ReadOnlyException) as context:
+            self.ex.execute_code_str("""
+from seneca.contracts.currency import balances
+
+@seed
+def init():
+    balances = 11
+            """)
+        self.ex.execute_code_str("""
+from seneca.contracts.currency import balances
+
+@seed
+def init():
+    print(balances['stu'])
             """)
 
     def test_import_read_resource_of_another_contract(self):
 
-        self.ex.publish_code_str('xrate', 'man', """
-from seneca.contracts.currency import constants
+        self.ex.publish_code_str('xrate_sc', 'man', """
+from seneca.contracts.currency import xrate
 
 @export
 def use_xrate():
-    return constants['xrate']
+    return xrate + 1
         """)
-        res = self.ex.execute_function('xrate', 'use_xrate', 'haha')
-        self.assertEqual(res['output'], 1)
+        res = self.ex.execute_function('xrate_sc', 'use_xrate', 'haha')
+        self.assertEqual(res['output'], 2)
 
 
 if __name__ == '__main__':

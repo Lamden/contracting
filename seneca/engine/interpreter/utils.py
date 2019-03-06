@@ -1,6 +1,6 @@
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SENECA_LIBRARY_PATH, ALLOWED_DATA_TYPES
 import ast
-from functools import lru_cache
+from seneca.constants.config import *
 
 
 class Plugins:
@@ -43,7 +43,7 @@ __result__ = {func}()
 global {variables}
         '''.format(
             variables=','.join(resource_list)
-        ))
+        )).body
 
 
 class ReadOnlyException(Exception):
@@ -95,11 +95,13 @@ class Assert:
 
     @staticmethod
     def is_protected(target, scope):
+        contract_name = scope['rt']['contract']
+        if scope.get('__system__'):
+            return
         if type(target) == ast.Name:
-            contract_name = scope['rt']['contract']
-            # print(contract_name, target.id, scope['protected']['__global__'])
-            # print(scope['imports'])
-            # print(scope['protected'])
+            # print(target.id)
+            # print('\t', scope['protected']['__global__'])
+            # print('\t', scope['imports'])
             if target.id in scope['protected']['__global__'] \
                     or (scope['imports'].get(target.id) and contract_name not in scope['imports'].get(target.id, {})):
                 raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
@@ -107,9 +109,12 @@ class Assert:
     @staticmethod
     def is_within_scope(target, protected, resources, scope):
         contract_name = scope['rt']['contract']
-        if (scope.get(target) is not None and target not in protected and target not in resources \
+
+        if (scope.get(target) is not None and target not in protected and target not in resources
                 and target not in scope['protected']['__global__'] and contract_name not in scope['exports'].get(target, {})):
             if scope.get(target) and contract_name not in scope['exports'].get(target, {}):
+                return
+            if not scope.get(target):
                 return
             # print(contract_name, target)
             # print(protected)
@@ -119,11 +124,12 @@ class Assert:
             raise CompilationException('Not allowed to access "{}"'.format(target))
 
     @staticmethod
-    def is_not_resource(assigned_to, name, scope):
-        contract_name = scope['rt']['contract']
-        resource = scope.get('resources', {}).get(contract_name, {}).get(assigned_to)
-        if resource is False:
-            raise ReadOnlyException('Cannot modify resource "{}.{}"'.format(contract_name, assigned_to))
+    def is_not_resource(resource_names, name, scope):
+        for assigned_to in resource_names:
+            contract_name = scope['rt']['contract']
+            resource = scope.get('resources', {}).get(contract_name, {}).get(assigned_to)
+            if resource is False:
+                raise ReadOnlyException('Cannot modify resource "{}.{}"'.format(contract_name, assigned_to))
 
     @staticmethod
     def no_nested_imports(node):
@@ -144,29 +150,38 @@ class Assert:
                 raise CompilationException('Not allowed to instantiate DataTypes inside functions')
 
     @staticmethod
+    def check_assignment_targets(node):
+        resource_names = []
+        if type(node) == ast.Assign:
+            for n in node.targets:
+                resource_names += Assert.check_assignment_targets(n)
+        elif type(node) == ast.Name:
+            resource_names.append(node.id)
+        elif type(node) in (ast.Subscript, ast.Attribute):
+            resource_names += Assert.check_assignment_targets(node.value)
+        elif type(node) == ast.Tuple:
+            for n in node.elts:
+                resource_names += Assert.check_assignment_targets(n)
+        return resource_names
+
+    @staticmethod
     def valid_assign(node, scope):
         for t in node.targets:
             Assert.is_protected(t, scope)
 
-        invalid_assign = True
-        assert len(node.targets) == 1, 'Short-hand multi assignment is not allowed'
-
-        if type(node.targets[0]) == ast.Subscript:
-            resource_name = node.targets[0].value.id
-        elif type(node.targets[0]) == ast.Name:
-            resource_name = node.targets[0].id
+        resource_names = Assert.check_assignment_targets(node)
 
         if type(node.value) == ast.Call:
             if type(node.value.func) == ast.Name:
                 func_name = node.value.func.id
                 if func_name in ALLOWED_DATA_TYPES:
-                    return resource_name, func_name
+                    return resource_names, func_name
 
-        if invalid_assign and not scope['ast']:
+        if not scope['ast']:
             raise CompilationException('You may only declare DataTypes or import modules in the global scope'
                                         ', line {}:{}, in {}'.format(node.lineno, node.col_offset, scope['rt']['contract']))
 
-        return resource_name, None
+        return resource_names, None
 
     @staticmethod
     def validate(imports, exports, resources):
