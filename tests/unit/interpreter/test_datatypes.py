@@ -59,9 +59,9 @@ class TestDataTypes(TestCase):
         balances = Hash('balances')
         balances['hr']['hey'] = tau
         self.assertEqual(balances['hr']['hey'].schema, Coin.schema)
-        self.assertEqual(balances['hr']['hey'].data, ['tau', 'something'])
-        self.assertEqual(balances['hr']['hey'].name, 'tau')
-        self.assertEqual(balances['hr']['hey'].purpose, 'something')
+        print(tau.data)
+        self.assertEqual(balances['hr']['hey'].data.name, 'tau')
+        self.assertEqual(balances['hr']['hey'].data.purpose, 'something')
 
     def test_table_append(self):
         Coin = Table('Coin', {
@@ -74,6 +74,13 @@ class TestDataTypes(TestCase):
         Coin.add_row('falcoin', 'anarchy net')
 
         self.assertEqual(Coin.count, 3)
+
+    def test_table_invalid_property_name(self):
+        Coin = Table('Coin', {
+            'data': Property(str, required=True)
+        })
+        tau = Coin.add_row(data='anarchy net')
+        self.assertEqual(tau.data.data, 'anarchy net')
 
     def test_table_indexed(self):
         Coin = Table('Coin', {

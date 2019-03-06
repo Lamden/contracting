@@ -46,7 +46,7 @@ class Encoder(object):
             data_type = Registry.get_data_type(data_type_name)
             data_type_obj = data_type(key_parts[0], placeholder=True)
             if len(key_parts) == 2:
-                data_type_obj.data = data_type_obj.decode(self.driver.hget(data_type_obj.key, key_parts[1]))
+                data_type_obj.set_data(data_type_obj.decode(self.driver.hget(data_type_obj.key, key_parts[1])))
         else:
             try: data_type_obj = json.loads(value)
             except: data_type_obj = value
@@ -105,6 +105,7 @@ class DataType(Encoder, DataTypeProperties):
         self.resource = resource
         self.database = self.driver
         self.contract_name = self.rt['contract']
+        self.data = None
         if default_value is not None:
             self.default_value = default_value
 
@@ -116,6 +117,9 @@ class DataType(Encoder, DataTypeProperties):
 
     def __repr__(self):
         return self.key
+
+    def set_data(self, data):
+        self.data = data
 
     @property
     def pointer_key(self):

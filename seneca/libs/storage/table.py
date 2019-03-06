@@ -1,6 +1,7 @@
 from seneca.libs.storage.datatype import DataType, NUMBER_TYPES, APPROVED_TYPES, SORTED_TYPE, TYPE_SEPARATOR, \
     PROPERTY_KEY, POINTER, INDEX_SEPARATOR
 from seneca.libs.storage.registry import Registry
+from types import MethodType
 from decimal import Decimal
 import ujson as json
 
@@ -72,22 +73,14 @@ class Table(DataType):
     def __init__(self, resource, schema=None, data=None, *args, **kwargs):
         super().__init__(resource, *args, **kwargs)
         self.schema = schema
-        self.data = data
+        self.set_data(data)
         self.register_schema()
 
     def encode(self, value, *args, **kwargs):
         return json.dumps(value)
 
-    def __getattr__(self, item):
-        # TODO restrict access for names used in this object
-        try:
-            return self.data[self.schema[item].column_idx]
-        except:
-            return None
-
-    @property
-    def pointer_key(self):
-        return '{}{}{}{}'.format(POINTER, self.key, INDEX_SEPARATOR, self.id)
+    def set_data(self, data):
+        self.data = RowData(self, data)
 
     def register_schema(self):
         resource_name = self.top_level_key
@@ -112,6 +105,10 @@ class Table(DataType):
     @property
     def count(self):
         return self.driver.hlen(self.key)
+
+    @property
+    def pointer_key(self):
+        return '{}{}{}{}'.format(POINTER, self.key, INDEX_SEPARATOR, self.id)
 
     @property
     def index_hash(self):
@@ -163,7 +160,7 @@ class Table(DataType):
         self.driver.hincrby(self.properties_hash, '__ROW_ID__', 1)
         row = self.create_row(*args, **kwargs)
         row.id = self.row_id
-        self.driver.hset(self.key, self.row_id, self.encode(row.data, key=row.row_id))
+        self.driver.hset(self.key, self.row_id, self.encode(row.data._data, key=row.row_id))
         return row
 
     def delete_table(self):
@@ -264,3 +261,24 @@ class Table(DataType):
 
     def update(self, query, updates):
         res = self.find(query, updates=updates)
+
+
+class RowData:
+
+    def __init__(self, table, data):
+        self._data = data
+        self._table = table
+
+    def __repr__(self):
+        obj = {}
+        for k in self._table.schema:
+            obj[k] = getattr(self, k)
+        return '<{}.{}> = {}'.format(self._table.key, self._table.id, json.dumps(obj, indent=4))
+
+    def __getattr__(self, item):
+        try:
+            table = super().__getattribute__('_table')
+            column_idx = table.schema[item].column_idx
+            return self._data[column_idx]
+        except:
+            return

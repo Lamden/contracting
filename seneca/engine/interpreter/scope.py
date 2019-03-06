@@ -75,7 +75,8 @@ class Seed(Scope):
         if self.scope.get('__seed__'):
             if self.scope.get('__executor__'):
                 driver = self.scope['__executor__'].driver
-                if not driver.hexists('contracts', self.scope['rt']['contract']):
+                if not driver.hget('contracts', self.scope['rt']['contract']):
+                # if not driver.hexists('contracts', self.scope['rt']['contract']): # TODO change back to this after CR
                     fn()
             else:
                 fn()
