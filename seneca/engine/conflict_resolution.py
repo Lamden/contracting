@@ -257,10 +257,9 @@ class CRDataDelete(CRDataBase, set):
 
 class CRContext:
 
-    def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, finalize=False):
+    def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, cr_enabled=True):
         self.log = get_logger(type(self).__name__)
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
-        self.finalize = finalize
         self.working_db, self.master_db = working_db, master_db
         self.sbb_idx = sbb_idx
 
