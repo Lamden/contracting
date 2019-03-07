@@ -2,7 +2,7 @@ from seneca.engine.interpreter.parser import Parser
 from seneca.engine.interpreter.scope import Scope
 from seneca.libs.metering.tracer import Tracer
 from seneca.constants.config import MASTER_DB, REDIS_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS
-import seneca, sys, marshal, os, types
+import seneca, sys, marshal, os, types, copy
 from os.path import join
 from functools import lru_cache
 from seneca.engine.interpreter.utils import Plugins, Assert
@@ -63,6 +63,7 @@ class Executor:
                 'methods': methods,
             }, driver=self.driver, override=True)
 
+    @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
     def get_contract(self, contract_name):
         return marshal.loads(self.driver.hget('contracts', contract_name))
 
@@ -109,7 +110,7 @@ class Executor:
         Parser.parser_scope['rt'] = default_rt
 
     @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
-    def get_contract_cache(self, contract_name, func_name):
+    def get_contract_func(self, contract_name, func_name):
         import_path = 'seneca.contracts.{}.{}'.format(contract_name, func_name)
         Assert.valid_import_path(import_path)
         code_str = ''
@@ -134,6 +135,21 @@ class Executor:
         self.set_default_rt()
         self.compile('__main__', code_str, scope)
 
+    def get_resource(self, contract_name, resource_name):
+        meta = self.get_contract(contract_name)
+        try:
+            exec(meta['code_obj'], Parser.parser_scope)
+        except:
+            pass
+        resource = Parser.parser_scope.get(resource_name)
+        resource.contract_name = contract_name
+        if not Parser.parser_scope['imports'].get(resource_name):
+            Parser.parser_scope['imports'][resource_name] = set()
+        Parser.parser_scope['imports'][resource_name].add(contract_name)
+        if resource.__class__.__name__ == 'Resource':
+            resource = resource.resource_obj
+        return resource
+
     def execute_function(self, contract_name, func_name, sender, stamps=0, args=tuple(), kwargs={}):
         Parser.parser_scope.update({
             'rt': {
@@ -148,7 +164,7 @@ class Executor:
             '__is_main__': True
         })
         Parser.parser_scope.update(Parser.basic_scope)
-        code_obj, author = self.get_contract_cache(contract_name, func_name)
+        code_obj, author = self.get_contract_func(contract_name, func_name)
         if contract_name in ('smart_contract', ):
             Parser.parser_scope['__executor__'] = self
         else:
@@ -172,8 +188,9 @@ class Executor:
                 # NOTE: Stamp submission is separated from the assertion and execution
                 # because we still want to subtract stamps if we run out of stamps.
                 self.tracer.stop()
-                stamps_used = Scope.scope.get('__stamps_used__', 0)
+                Parser.parser_scope['rt']['contract'] = 'currency'
                 exec(Plugins.submit_stamps(), Parser.parser_scope)
+                stamps_used = Scope.scope.get('__stamps_used__', 0)
                 if error:
                     raise error
         else:

@@ -9,7 +9,7 @@ def initiate(initiator, participant, expiration, hashlock, token, amount):
 
 	if not swaps[participant][hashlock]:
 		token_contract = import_contract(token)
-		assert token_contract.allowance(initiator, rt['contract']) >= amount, 'Not enough allowance to initiate swap.'
+		assert token_contract.allowed[initiator][rt['contract']] >= amount, 'Not enough allowance to initiate swap.'
 		token_contract.transfer_from(initiator, rt['contract'], amount)
 		swaps[participant][hashlock] = {
 			'initiator': initiator,

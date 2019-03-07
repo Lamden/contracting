@@ -16,7 +16,7 @@ class ResourceObj:
         hash_key = instance.key.rsplit(DELIMITER, 1)[0]
         res = instance.driver.hget(hash_key, instance.resource)
         if not res:
-            raise ItemNotFoundException('Cannot find {} in {}'.format(instance.resource, instance.__repr__()))
+            raise ItemNotFoundException('Cannot find {} in {}'.format(instance.resource, hash_key))
         return instance.decode(res)
 
 

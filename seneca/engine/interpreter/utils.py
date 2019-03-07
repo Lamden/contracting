@@ -18,7 +18,7 @@ assert_stamps(__stamps__)
         if not cls.__submit_stamps__:
             cls.__submit_stamps__ = compile('''
 __stamps_used__ = __tracer__.get_stamp_used()
-submit_stamps()
+submit_stamps(__stamps_used__)
         ''', 'currency', 'exec')
         return cls.__submit_stamps__
 

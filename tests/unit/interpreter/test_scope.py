@@ -12,7 +12,7 @@ class TestScope(TestExecutor):
         self.ex.currency = False
         self.reset()
 
-    def test_scope(self):
+    def test_execute_importables(self):
         """
             Importing exported functions should pass
         """
@@ -26,7 +26,7 @@ def init():
     one_you_can_also_also_export()
         """)
 
-    def test_scope_fail(self):
+    def test_import_non_importables(self):
         """
             Importing protected functions should fail
         """
@@ -35,7 +35,19 @@ def init():
 from test_contracts.good import one_you_cannot_export
             """)
 
-    def test_execute_imports(self):
+    def test_execute_nested_importables(self):
+        """
+            Testing to see if the function can be called.
+        """
+        self.ex.execute_code_str("""
+from test_contracts.sample import good_call
+
+@seed
+def init():
+    good_call()
+        """)
+
+    def test_execute_nested_importables_assert_contract_and_sender(self):
         """
             Testing to see if the function can be called.
         """

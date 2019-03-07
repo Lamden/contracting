@@ -1,5 +1,6 @@
 from tests.utils import TestExecutor
 import seneca
+from decimal import Decimal
 
 PATH = seneca.__path__[0] + '/../test_contracts/'
 AUTHOR = '__lamden_io__'
@@ -17,35 +18,34 @@ seed_amount = 1000000
 
 class TestCurrency(TestExecutor):
 
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.balances = cls.ex.get_resource('currency', 'balances')
+        cls.xrate = cls.ex.get_resource('currency', 'xrate')
+        cls.allowed = cls.ex.get_resource('currency', 'allowed')
+
     def test_seeding(self):
-        res = self.ex.execute_function('currency', 'balance_of', AUTHOR, kwargs={'wallet_id': founder})
-        self.assertEqual(seed_amount, res['output'])
-        res = self.ex.execute_function('currency', 'exchange_rate', AUTHOR)
-        self.assertEqual(1.0, res['output'])
+        self.assertEqual(seed_amount, self.balances[founder])
+        self.assertEqual(1.0, self.xrate)
 
     def test_transfer(self):
         res = self.ex.execute_function('currency', 'transfer', wallets[0], kwargs={'to': wallets[1], 'amount': 100})
-        res = self.ex.execute_function('currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[0]})
-        self.assertEqual(seed_amount-100, res['output'])
-        res = self.ex.execute_function('currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
-        self.assertEqual(seed_amount+100, res['output'])
+        self.assertEqual(seed_amount-100, self.balances[wallets[0]])
+        self.assertEqual(seed_amount+100, self.balances[wallets[1]])
 
     def test_approve(self):
         res = self.ex.execute_function('currency', 'approve', wallets[0], kwargs={'spender': wallets[1], 'amount': 100})
-        res = self.ex.execute_function('currency', 'allowance', wallets[0], kwargs={'approver': wallets[0], 'spender': wallets[1]})
-        self.assertEqual(res['output'], 100)
+        self.assertEqual(self.allowed[wallets[0]][wallets[1]], 100)
 
     def test_transfer_from(self):
-        res = self.ex.execute_function('currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
-        original_balance = res['output']
+        original_balance = Decimal(self.balances[wallets[1]])
         res = self.ex.execute_function('currency', 'approve', wallets[0],
                                        kwargs={'spender': wallets[1], 'amount': 100})
         res = self.ex.execute_function('currency', 'transfer_from', wallets[1],
                                        kwargs={'approver': wallets[0], 'spender': wallets[1], 'amount': 100})
-        res = self.ex.execute_function('currency', 'allowance', wallets[0], kwargs={'approver': wallets[0], 'spender': wallets[1]})
-        self.assertEqual(res['output'], 0)
-        res = self.ex.execute_function('currency', 'balance_of', AUTHOR, kwargs={'wallet_id': wallets[1]})
-        self.assertEqual(res['output'], original_balance+100)
+        self.assertEqual(self.allowed[wallets[0]][wallets[1]], 0)
+        self.assertEqual(self.balances[wallets[1]], original_balance+100)
 
     def test_unavailable_allowance(self):
         with self.assertRaises(AssertionError):
@@ -54,8 +54,8 @@ class TestCurrency(TestExecutor):
             })
 
     def test_too_large_custodial_spend(self):
-        res = self.ex.execute_function('currency', 'approve', wallets[0], kwargs={'spender': wallets[1], 'amount': 100})
+        self.ex.execute_function('currency', 'approve', wallets[0], kwargs={'spender': wallets[1], 'amount': 100})
         with self.assertRaises(AssertionError):
-            res = self.ex.execute_function('currency', 'transfer_from', wallets[1], kwargs={
+            self.ex.execute_function('currency', 'transfer_from', wallets[1], kwargs={
                 'approver': wallets[0], 'spender': wallets[1], 'amount': 500
             })

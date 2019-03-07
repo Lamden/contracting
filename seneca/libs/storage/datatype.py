@@ -44,7 +44,9 @@ class Encoder(object):
         if not value:
             if resource:
                 cls = self.__class__
-                return cls(resource, cls.default_value, placeholder=True)
+                obj = cls(resource, cls.default_value, placeholder=True)
+                obj.contract_name = self.contract_name
+                return obj
             return self.default_value
         value = value.decode()
         if value[0] == POINTER:
@@ -63,6 +65,7 @@ class Encoder(object):
 
 
 class DataTypeProperties:
+
     @property
     def driver(self):
         return Parser.executor.driver
@@ -77,13 +80,16 @@ class DataTypeProperties:
 
     @property
     def key(self):
-        if self.resource in Parser.parser_scope.get('imports', {}):
+        if len(self.callstack) == 0 or self.resource.split(DELIMITER)[0] in Parser.parser_scope.get('imports', {}):
             contract_name = self.contract_name
-        elif len(self.callstack) == 0:
-            contract_name = '__main__'
         else:
             contract_name = self.callstack[-1][0]
-        # contract_name = self.contract_name if self.resource in Parser.parser_scope.get('imports', {}) else self.rt['contract']
+        # if self.resource.split(DELIMITER)[0] in Parser.parser_scope.get('imports', {}):
+        #     contract_name = self.contract_name
+        # elif len(self.callstack) == 0:
+        #     contract_name = '__main__'
+        # else:
+        #     contract_name = self.callstack[-1][0]
         return DELIMITER.join([self.__class__.__name__, contract_name, self.resource])
 
     @property

@@ -40,7 +40,7 @@ import json
             and other such libraries. Only ones from the whitelist
         """
 
-        with self.assertRaises(ImportError) as context:
+        with self.assertRaises(ReadOnlyException) as context:
             self.ex.execute_code_str("""
 from test_contracts.good import balances
             """)
@@ -73,55 +73,6 @@ import test_contracts.sample
             self.ex.execute_code_str("""
 from test_contracts import sample
             """)
-
-    def test_execute_valid(self):
-        """
-            Testing to see if the function can be called.
-        """
-        self.ex.execute_code_str("""
-from test_contracts.sample import good_call
-
-@seed
-def init():
-    good_call()
-        """)
-
-    def test_import_modify_resource_of_another_contract(self):
-        with self.assertRaises(ReadOnlyException) as context:
-            self.ex.execute_code_str("""
-from seneca.contracts.currency import balances
-
-@seed
-def init():
-    balances['222'].value = 11
-            """)
-        with self.assertRaises(ReadOnlyException) as context:
-            self.ex.execute_code_str("""
-from seneca.contracts.currency import balances
-
-@seed
-def init():
-    balances = 11
-            """)
-        self.ex.execute_code_str("""
-from seneca.contracts.currency import balances
-
-@seed
-def init():
-    print(balances['stu'])
-            """)
-
-    def test_import_read_resource_of_another_contract(self):
-
-        self.ex.publish_code_str('xrate_sc', 'man', """
-from seneca.contracts.currency import xrate
-
-@export
-def use_xrate():
-    return xrate + 1
-        """)
-        res = self.ex.execute_function('xrate_sc', 'use_xrate', 'haha')
-        self.assertEqual(res['output'], 2)
 
 
 if __name__ == '__main__':

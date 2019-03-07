@@ -1,56 +1,11 @@
-from unittest import TestCase
-import redis, unittest
-from seneca.constants.config import MASTER_DB, REDIS_PORT
 from seneca.libs.storage.datatypes import Hash
 from seneca.libs.storage.table import Table, Property
-from seneca.engine.interpreter.parser import Parser
-from decimal import Decimal
+from tests.utils import TestDataTypes
 
 
-class Executor:
-    def __init__(self):
-        self.driver = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
-        self.driver.flushall()
-        Parser.executor = self
-        Parser.parser_scope = {
-            'rt': {
-                'contract': 'sample',
-                'sender': 'falcon',
-                'author': '__lamden_io__'
-            }
-        }
+class TestTable(TestDataTypes):
 
-
-class TestDataTypes(TestCase):
-
-    def setUp(self):
-        self.contract_id = self.id().split('.')[-1]
-        self.ex = Executor()
-        Parser.parser_scope['rt']['contract'] = self.contract_id
-        Table.schemas = {}
-        print('#'*128)
-        print('\t', self.contract_id)
-        print('#'*128)
-
-    def test_map(self):
-        balances = Hash('balances')
-        balances['hr'] = Hash('hr')
-        self.assertEqual(repr(balances['hr']), 'Hash:__main__:balances:hr')
-
-    def test_map_simple(self):
-        balances = Hash('balances')
-        balances['hr']['employees']['stu'] = 100
-        self.assertEqual(balances['hr']['employees']['stu'], 100)
-
-    def test_map_nested(self):
-        balances = Hash('balances')
-        hooter = Hash('hoot')
-        hooter['res'] = 1234
-        balances['hr'] = Hash('hr')
-        balances['hr']['hey'] = hooter
-        self.assertEqual(balances['hr']['hey']['res'], 1234)
-
-    def test_map_nested_different_type(self):
+    def test_hash_nested_different_type(self):
         Coin = Table('Coin', {
             'name': Property(str, required=True),
             'purpose': str,
@@ -59,7 +14,6 @@ class TestDataTypes(TestCase):
         balances = Hash('balances')
         balances['hr']['hey'] = tau
         self.assertEqual(balances['hr']['hey'].schema, Coin.schema)
-        print(tau.data)
         self.assertEqual(balances['hr']['hey'].data.name, 'tau')
         self.assertEqual(balances['hr']['hey'].data.purpose, 'something')
 
@@ -107,8 +61,8 @@ class TestDataTypes(TestCase):
         })
         tau = Coin.add_row('tau')
         lamden = Company.add_row('lamden', coin=tau, evaluation=0)
-        self.assertEqual(repr(tau), 'Table:__main__:Coin')
-        self.assertEqual(repr(lamden), 'Table:__main__:Company')
+        self.assertEqual(repr(tau), 'Table:test_table_with_table_as_type:Coin')
+        self.assertEqual(repr(lamden), 'Table:test_table_with_table_as_type:Company')
 
     def test_table_with_invalid_table_type(self):
         Coin = Table('Coin', {
@@ -176,7 +130,3 @@ class TestDataTypes(TestCase):
     #     Coin.add_row('faltau', purpose='anarchy net', price=6)
     #     Coin.add_row(purpose='anarchy net', name='stubucks', price=10)
     #     Coin.add_row('falcoin', 'anarchy net', price=100)
-
-
-if __name__ == '__main__':
-    unittest.main()

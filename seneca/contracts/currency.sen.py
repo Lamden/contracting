@@ -65,17 +65,3 @@ def mint(to, amount):
     assert rt['sender'] == rt['author'], 'Only the original contract author can mint!'
 
     balances[to] += amount
-
-# TODO: Get rid of these
-
-@export
-def balance_of(wallet_id):
-    return balances[wallet_id]
-
-@export
-def exchange_rate():
-    return xrate
-
-@export
-def allowance(approver, spender):
-    return allowed[approver][spender]
