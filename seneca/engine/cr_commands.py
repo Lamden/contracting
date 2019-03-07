@@ -91,12 +91,10 @@ class CRCmdExists(CRCmdBase):
     COMMAND_NAME = 'exists'
 
     def __call__(self, key):
+        # TODO do we need to add book keeping information on this
         # TODO this could be made more modular. Current implementation will not scale well --davis
         # First check if key exists in getset
         if key in self.data['getset']:
-            return True
-        # Next check if key is in HMap
-        if key in self.data['hm']:
             return True
         # Then check if it exists in the common layer...
         if self.working.exists(key):
@@ -184,59 +182,19 @@ class CRCmdSet(CRCmdGetSetBase):
         self.data['getset'].outputs[self.contract_idx] += 'SET {} {};'.format(key, value.decode())
 
 
-class CRCmdHMapBase(CRCmdBase):
-    # MOD_DELIM is used to delimeter the 'key' and 'field' for storing key-fields in the modifications list
-    # (key is the name of the hash table, and field is the field on that hash table)
-    # TODO this sketches me out. Can people name their keys in such a way that they can do 'sql injection like' attacks?  -- davis
-    MOD_DELIM = '*-*'
-    DATA_NAME = 'hm'
-
-    def _db_original_exists(self, db, key, field) -> bool:
-        return db.hexists(key, field)
-
-    def _sbb_original_exists(self, key, field) -> bool:
-        return key in self.data['hm'] and field in self.data['hm'][key]
-
-    def _copy_key_to_sbb_data(self, db, key, field):
-        val = db.hget(key, field) if db else None
-        self.data['hm'][key][field] = {'og': val, 'mod': None}
-
-    def _get_key_field_name(self, key, field):
-        return key + self.MOD_DELIM + field
-
-
-class CRCmdHGet(CRCmdHMapBase):
+class CRCmdHGet(CRCmdGet):
     COMMAND_NAME = 'hget'
 
     def __call__(self, key, field):
-        self._copy_og_key_if_not_exists(key, field)
-
-        # TODO make all this DRYer so you can abstract
-
-        # First, try and return the local modified key
-        mod_val = self.data['hm'][key][field]['mod']
-        if mod_val is not None:
-            self.log.spam("SBB specific MODIFIED key found for key named <{}>".format(key))
-            return mod_val
-
-        # Otherwise, default to the local original key
-        self.log.spam("SBB specific ORIGINAL key found for key named <{}>".format(key))
-        return self.data['hm'][key][field]['og']
-        # TODO add the read list
+        prefixed_key = "{}:{}".format(key, field)
+        return super().__call__(prefixed_key)
 
 
-class CRCmdHSet(CRCmdHMapBase):
+
+class CRCmdHSet(CRCmdSet):
     COMMAND_NAME = 'hset'
 
     def __call__(self, key, field, value):
-        assert type(value) in (str, bytes), "Attempted to use 'hset' with a value that is not str or bytes (val={}). " \
-                                            "This is not supported currently.".format(value)
-        self._copy_og_key_if_not_exists(key, field)
-        if type(value) is str:
-            value = value.encode()
+        prefixed_key = "{}:{}".format(key, field)
+        return super().__call__(prefixed_key, value)
 
-        self.log.spam("Setting SBB specific key <{}> to value {}".format(key, value))
-        self.data['hm'][key][field]['mod'] = value
-
-        # self._add_key_to_mod_list(self._get_key_field_name(key, field))
-        # TODO add the write list

@@ -32,7 +32,7 @@
 #     @classmethod
 #     def setUpClass(cls):
 #         sys.meta_path = [sys.meta_path[2], SenecaFinder(), RedisFinder()]
-#         SenecaInterpreter.setup(concurrent_mode=False)
+#         SenecaInterpreter.setup(cr_enabled=False)
 #         SenecaInterpreter.r.flushdb()
 #
 #         # Store all smart contracts in CONTRACTS_TO_STORE

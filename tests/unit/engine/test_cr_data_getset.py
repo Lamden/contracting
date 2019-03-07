@@ -16,7 +16,7 @@ class TestCRCommandsBase(TestCase):
         self.working.flushdb()
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
-        cr = CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, finalize=finalize)
+        cr = CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx)
         cr.locked = False
         return cr
 
