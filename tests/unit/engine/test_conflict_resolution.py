@@ -202,25 +202,32 @@ class TestConflictResolution(TestCase):
         NEW_VAL3 = b'v3_NEW'
 
         # Seed keys on master
-        self.master.hset(KEY1, FIELD1, VAL1)
-        self.master.hset(KEY1, FIELD2, VAL2)
-        self.master.hset(KEY2, FIELD3, b'val 3 on master that should be ignored in presence of KEY3 on common layer')
-        self.working.hset(KEY2, FIELD3, VAL3)
+        # self.master.hset(KEY1, FIELD1, VAL1)
+        # self.master.hset(KEY1, FIELD2, VAL2)
+        # self.master.hset(KEY2, FIELD3, b'val 3 on master that should be ignored in presence of KEY3 on common layer')
+        # self.working.hset(KEY2, FIELD3, VAL3)
+        self.master.set("{}:{}".format(KEY1, FIELD1), VAL1)
+        self.master.set("{}:{}".format(KEY1, FIELD2), VAL2)
+        self.master.set("{}:{}".format(KEY2, FIELD3), b'val 3 on master that should be ignored in presence of KEY3 on common layer')
+        self.working.set("{}:{}".format(KEY2, FIELD3), VAL3)
 
-        self.r.hset(KEY1, FIELD1, NEW_VAL1)
+        self.r.set("{}:{}".format(KEY1, FIELD1), NEW_VAL1)
         self.r.contract_idx = 2
-        self.r.hget(KEY1, FIELD2)  # To trigger a copy to sbb specific layer
+        self.r.get("{}:{}".format(KEY1, FIELD2))  # To trigger a copy to sbb specific layer
         self.r.contract_idx = 2
-        self.r.hset(KEY2, FIELD3, NEW_VAL3)  # To trigger a copy to sbb specific layer
+        self.r.set("{}:{}".format(KEY2, FIELD3), NEW_VAL3)  # To trigger a copy to sbb specific layer
 
         # Check the modified and original values
-        hm = self.r.data['hm']
-        k1_expected = {'og': VAL1, 'mod': NEW_VAL1}
-        k2_expected = {'og': VAL2, 'mod': None}
-        k3_expected = {'og': VAL3, 'mod': NEW_VAL3}
-        self.assertEqual(hm[KEY1][FIELD1], k1_expected)
-        self.assertEqual(hm[KEY1][FIELD2], k2_expected)
-        self.assertEqual(hm[KEY2][FIELD3], k3_expected)
+        getset = self.r.data['getset']
+        k1_expected = {'contracts': {0}, 'og': VAL1, 'mod': NEW_VAL1}
+        k2_expected = {'contracts': {2}, 'og': VAL2, 'mod': None}
+        k3_expected = {'contracts': {2}, 'og': VAL3, 'mod': NEW_VAL3}
+        self.assertEqual(getset["{}:{}".format(KEY1, FIELD1)], k1_expected)
+        self.assertEqual(getset["{}:{}".format(KEY1, FIELD2)], k2_expected)
+        self.assertEqual(getset["{}:{}".format(KEY2, FIELD3)], k3_expected)
+        # self.assertEqual(hm[KEY1][FIELD1], k1_expected)
+        # self.assertEqual(hm[KEY1][FIELD2], k2_expected)
+        # self.assertEqual(hm[KEY2][FIELD3], k3_expected)
 
         print("Type of key k1: {}".format(self.master.type(KEY1)))
 
