@@ -14,13 +14,28 @@ class Encoder(object):
         if issubclass(type(value), DataType):
             original_key = repr(value)
             new_key = DELIMITER.join([self.key, key])
-            if self.driver.exists(original_key) and not hasattr(value, 'no_rename'):
-                self.driver.rename(original_key, new_key)
-                return
-            elif hasattr(value, 'no_rename'):
+            # TODO START: remove when CR includes other commands
+            # *** ORIGINAL CODE START ***
+            # if self.driver.exists(original_key) and not hasattr(value, 'no_rename'):
+            #     self.driver.rename(original_key, new_key)
+            #     return
+            # elif hasattr(value, 'no_rename'):
+            #     return '{}{}{}{}'.format(POINTER, original_key, INDEX_SEPARATOR, value.id)
+            # else:
+            #     return '{}{}'.format(POINTER, new_key)
+            # *** ORIGINAL CODE END ***
+            try:
+                if not hasattr(value, 'no_rename'):
+                    self.driver.rename(original_key, new_key)
+                    return
+            except:
+                pass
+            if hasattr(value, 'no_rename'):
                 return '{}{}{}{}'.format(POINTER, original_key, INDEX_SEPARATOR, value.id)
             else:
                 return '{}{}'.format(POINTER, new_key)
+            # TODO END: remove when CR includes other commands
+
         else:
             value = json.dumps(value)
         return value

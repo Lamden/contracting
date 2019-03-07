@@ -43,8 +43,7 @@ class ConcurrentDriver(Driver):
         raise NotImplementedException('Not implemented in concurrent mode yet!')
 
     def exists(self, *args, **kwargs):
-        warnings.warn('Not implemented in concurrent mode yet!')
-        return False
+        raise NotImplementedException('Not implemented in concurrent mode yet!')
 
     def rename(self, *args, **kwargs):
         raise NotImplementedException('Not implemented in concurrent mode yet!')
