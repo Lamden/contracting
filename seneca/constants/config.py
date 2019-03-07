@@ -60,3 +60,6 @@ RESOURCE_KEY = '__resources__'
 PROPERTY_KEY = '__properties__'
 RESOURCE_KEY = '__resource__'
 INDEX_SEPARATOR = '.'
+
+READ_WRITE_MODE = 'rw'
+READ_ONLY_MODE = 'r'

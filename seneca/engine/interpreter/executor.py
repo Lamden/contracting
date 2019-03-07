@@ -1,7 +1,7 @@
 from seneca.engine.interpreter.parser import Parser
 from seneca.engine.interpreter.scope import Scope
 from seneca.libs.metering.tracer import Tracer
-from seneca.constants.config import MASTER_DB, REDIS_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS
+from seneca.constants.config import MASTER_DB, REDIS_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS, READ_ONLY_MODE
 import seneca, sys, marshal, os, types, copy
 from os.path import join
 from functools import lru_cache
@@ -146,6 +146,7 @@ class Executor:
         if not Parser.parser_scope['imports'].get(resource_name):
             Parser.parser_scope['imports'][resource_name] = set()
         Parser.parser_scope['imports'][resource_name].add(contract_name)
+        resource.access_mode = READ_ONLY_MODE
         if resource.__class__.__name__ == 'Resource':
             resource = resource.resource_obj
         return resource
@@ -161,7 +162,7 @@ class Executor:
             '__args__': args,
             '__kwargs__': kwargs,
             '__tracer__': self.tracer,
-            '__is_main__': True
+            '__safe_execution__': True
         })
         Parser.parser_scope.update(Parser.basic_scope)
         code_obj, author = self.get_contract_func(contract_name, func_name)
@@ -199,6 +200,7 @@ class Executor:
             except Exception as e:
                 raise
         Parser.parser_scope.update(Scope.scope)
+        Parser.parser_scope['__safe_execution__'] = False
         return {
             'status': 'success',
             'output': Scope.scope.get('__result__'),

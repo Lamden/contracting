@@ -14,15 +14,15 @@ class TestResource(TestExecutor):
 
     # NOTE: just don't modify the resources, it's not a security issue because you can ultimately modify the Redis
     #       data anyways. It will simply not pass on consensus
-    # def test_direct_resource_modify(self):
-    #     balances = self.ex.get_resource('currency', 'balances')
-    #     with self.assertRaises(AssertionError) as context:
-    #         balances['black_hole'] = 1
-    #
-    # def test_indirect_resource_modify(self):
-    #     balances = self.ex.get_resource('atomic_swap', 'balances')
-    #     with self.assertRaises(AssertionError) as context:
-    #         balances['black_hole'] = 1
+    def test_direct_resource_modify(self):
+        balances = self.ex.get_resource('currency', 'balances')
+        with self.assertRaises(AssertionError) as context:
+            balances['black_hole'] = 1
+
+    def test_indirect_resource_modify(self):
+        balances = self.ex.get_resource('atomic_swap', 'balances')
+        with self.assertRaises(AssertionError) as context:
+            balances['black_hole'] = 1
 
     def test_import_modify_resource_of_another_contract(self):
         with self.assertRaises(ReadOnlyException) as context:

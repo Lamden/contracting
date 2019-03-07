@@ -119,6 +119,7 @@ class DataType(Encoder, DataTypeProperties):
         self.database = self.driver
         self.contract_name = self.rt['contract']
         self.data = None
+        self.access_mode = READ_WRITE_MODE
         if default_value is not None:
             self.default_value = default_value
 
@@ -149,6 +150,8 @@ class SubscriptType:
         return self.decode(super().__getitem__(key), resource=resource)
 
     def __setitem__(self, key, value):
+        if not Parser.parser_scope.get('__safe_execution__'):
+            assert self.access_mode == READ_WRITE_MODE, 'Not allowed to write to resource "{}" in this scope'.format(self.key)
         value = self.encode(value, key=key)
         if value:
             super().__setitem__(key, value)
