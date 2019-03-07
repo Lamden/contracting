@@ -60,6 +60,7 @@ class SenecaClient(Executor):
         self.sbb_idx = sbb_idx
         self.num_sb_builders = num_sbb
         self.cr_enabled = cr_enabled
+        self.concurrency = cr_enabled
         self.max_number_workers = NUM_CACHES
 
         self.master_db = None  # A redis.StrictRedis instance

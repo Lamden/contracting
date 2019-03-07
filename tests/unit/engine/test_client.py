@@ -67,7 +67,7 @@ def create_currency_tx(sender: str, receiver: str, amount: int, contract_name: s
 
 class TestSenecaClient(TestExecutor):
 
-    LOG_LVL = 20
+    LOG_LVL = 1
 
     @classmethod
     def setUpClass(cls):

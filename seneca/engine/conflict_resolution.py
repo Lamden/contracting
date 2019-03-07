@@ -443,10 +443,15 @@ class RedisProxy:
         self.working_db, self.master_db = data.working_db, data.master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
         self.cmds = {}
+        self.log = get_logger("RedisProxy")
 
     def __getattr__(self, item):
         from seneca.engine.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
         assert item in CRCmdBase.registry, "redis operation {} not implemented for conflict resolution".format(item)
+
+        # debug
+        self.log.critical("RedisProxy called for item {}".format(item))
+        # end debug
 
         t = CRCmdBase.registry[item]
         if t not in self.cmds:

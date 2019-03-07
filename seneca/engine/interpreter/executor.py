@@ -31,8 +31,10 @@ class Executor:
 
     @property
     def driver(self):
+        print('cr_enabled:::', self.concurrency)
         if self.concurrency:
             info = BookKeeper.get_cr_info()
+            # TODO -- this should not create a new one every time
             return RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
         else:
             return Driver(host='localhost', port=REDIS_PORT, db=MASTER_DB)
