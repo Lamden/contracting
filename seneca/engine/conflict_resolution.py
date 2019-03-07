@@ -415,33 +415,3 @@ class RedisProxy:
 #     print("{}: {}".format(k, v))
 
 
-"""
-THOUGHT
-
-each CRData has state variables for this rerun process, including
-- internal list of contracts that HAVE been rerun?
-- 
-
-SHOULD WE ALSO MAINTAIN a mapping of keys to contracts that read/write them? Otherwise we have to do this o(n) 
-everytime.. 
-
-JUST RAISE AN ASSERTION FOR NOW IF A NEW KEY IS MODIFIED 
-
-1) at start of rerun, CRData gets all contracts that have had their original values changed (on common or master)
-2) copy over new values into effected key's original values (prioritize master if master is diff). Set mod value to None
-3) if 
-
-       # build a set of all reads/write that have their original value changed
-        # copy, from common layer, to the new original value, and set the modified value to None
-        # build a min heap of contract indexes that need to be run by check contract's mod list
-        # reset_db the contract data before you rerun it
-        # loop
-
-        # PREFER MASTER VALUE when copying keys over. if og should have been copied from master during exec phase,
-        # so if master is diff from og that means another block changed master, and that value should be prefered
-
-        # what if both master and common differ from the orig values? which ones do you use?
-        # we would need to track original master value (at time of the read). or just ignore this problem until
-        # we implement proper chaining of db reads
-
-"""
