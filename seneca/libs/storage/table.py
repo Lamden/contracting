@@ -95,6 +95,9 @@ class Table(DataType):
                 self.schema[k].column_idx = column_idx
                 column_idx += 1
             Table.schemas[resource_name] = self.schema
+            # TODO START: remove when CR includes other commands
+            self.driver.hset(self.properties_hash, '__all_cols__', json.dumps(self.schema.keys()))
+            # TODO END: remove when CR includes other commands
         else:
             raise AssertionError('Schema for {} is not found'.format(self.key))
 
@@ -117,10 +120,6 @@ class Table(DataType):
     @property
     def sort_hash(self):
         return '{}{}{}'.format(self.key, TYPE_SEPARATOR, SORTED_TYPE)
-
-    @property
-    def properties_hash(self):
-        return '{}{}{}'.format(self.key, TYPE_SEPARATOR, PROPERTY_KEY)
 
     def create_row(self, *args, **kwargs):
         keys = list(self.schema.keys())
@@ -152,6 +151,13 @@ class Table(DataType):
         elif schema_arg.indexed:
             index_hash = self.index_hash + field + INDEX_SEPARATOR + arg
             self.driver.hset(index_hash, self.row_id, 1)
+            # TODO START: remove when CR includes other commands
+            res = self.driver.hget(index_hash, '__all_rows__')
+            if res: res = json.loads(res)
+            else: res = []
+            res.append(self.row_id)
+            self.driver.hset(index_hash, '__all_rows__', json.dumps(res))
+            # TODO END: remove when CR includes other commands
 
     def remove_from_index(self):
         pass
@@ -190,7 +196,14 @@ class Table(DataType):
         index_hash = self.index_hash + property
         if exactly:
             query_hash = index_hash + INDEX_SEPARATOR + exactly
-            idxs = list(self.driver.hgetall(query_hash).keys())[:limit]
+            # TODO START: remove when CR includes other commands
+            # *** ORIGINAL CODE START ***
+            # idxs = list(self.driver.hgetall(query_hash).keys())[:limit]
+            # *** ORIGINAL CODE END ***
+            res = self.driver.hget(query_hash, '__all_rows__')
+            if res: idxs = json.loads(res)
+            else: idxs = []
+            # TODO END: remove when CR includes other commands
         elif matches:
             query = '{}{}{}'.format(index_hash, INDEX_SEPARATOR, matches)
             _, keys = self.driver.scan(match=query, count=limit)

@@ -1,7 +1,6 @@
 from collections import defaultdict
 from seneca.libs.logger import get_logger
 from typing import List
-from seneca.engine.interpreter.driver import Driver
 
 
 # TODO -- clean this file up
@@ -25,7 +24,7 @@ class CRDataMeta(type):
 
 
 class CRDataBase(metaclass=CRDataMeta):
-    def __init__(self, master_db: Driver, working_db: Driver):
+    def __init__(self, master_db, working_db):
         super().__init__()
         self.log = get_logger(type(self).__name__)
         self.master, self.working = master_db, working_db
@@ -87,7 +86,7 @@ class CRDataGetSet(CRDataBase, dict):
             self.working.set(key, self[key]['mod'])
 
     @classmethod
-    def merge_to_master(cls, working_db: Driver, master_db: Driver, key: str):
+    def merge_to_master(cls, working_db, master_db, key: str):
         assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
         val = working_db.get(key)
         master_db.set(key, val)
@@ -234,7 +233,7 @@ class CRDataHMap(CRDataBase, defaultdict):
         raise NotImplementedError()
 
     @classmethod
-    def merge_to_master(cls, working_db: Driver, master_db: Driver, key: str):
+    def merge_to_master(cls, working_db, master_db, key: str):
         assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
 
         all_fields = working_db.hkeys(key)
@@ -257,7 +256,7 @@ class CRDataDelete(CRDataBase, set):
 
 class CRContext:
 
-    def __init__(self, working_db: Driver, master_db: Driver, sbb_idx: int, finalize=False):
+    def __init__(self, working_db, master_db, sbb_idx: int, finalize=False):
         self.log = get_logger(type(self).__name__)
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
         self.finalize = finalize
@@ -418,7 +417,7 @@ class CRContext:
         self.merged_to_common = True
 
     @classmethod
-    def merge_to_master(cls, working_db: Driver, master_db: Driver):
+    def merge_to_master(cls, working_db, master_db):
         from seneca.engine.client import Macros  # to avoid cyclic imports
 
         for key in working_db.keys():

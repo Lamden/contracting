@@ -102,10 +102,9 @@ class DataType(Encoder, DataTypeProperties):
             self.default_value = default_value
 
         if not placeholder:
-            property_hash = '{}{}{}'.format(self.rt['contract'], INDEX_SEPARATOR, PROPERTY_KEY)
             if not Parser.parser_scope.get('resources', {}).get(self.rt['contract'], {}).get(resource):
-                assert not self.driver.hexists(property_hash, resource), 'A {} named "{}" has already been created'.format(self.__class__.__name__, resource)
-                self.driver.hset(property_hash, resource, self.__class__.__name__)
+                assert not self.driver.hexists(self.properties_hash, RESOURCE_KEY), 'A {} named "{}" has already been created'.format(self.__class__.__name__, resource)
+                self.driver.hset(self.properties_hash, RESOURCE_KEY, resource)
 
     def __repr__(self):
         return self.key
@@ -116,6 +115,10 @@ class DataType(Encoder, DataTypeProperties):
     @property
     def pointer_key(self):
         return '{}{}'.format(POINTER, self.key)
+
+    @property
+    def properties_hash(self):
+        return '{}{}{}'.format(self.key, TYPE_SEPARATOR, PROPERTY_KEY)
 
 
 class SubscriptType:
