@@ -59,7 +59,7 @@ class SenecaClient(Executor):
 
         self.sbb_idx = sbb_idx
         self.num_sb_builders = num_sbb
-        self.concurrent_mode = concurrent_mode
+        self.cr_enabled = cr_enabled
         self.max_number_workers = NUM_CACHES
 
         self.master_db = None  # A redis.StrictRedis instance
@@ -400,6 +400,10 @@ class SenecaClient(Executor):
                         .format(elapsed, input_hash))
 
     async def _wait_for_cr_and_merge(self, cr_data: CRContext):
+        if not self.cr_enabled:
+            self.log.debug("Concurrent mode disabled. Skipping wait for conflict resolution")
+            return
+
         self.log.debug("Waiting for other SBBs to finish conflict resolution ({})...".format(cr_data))
         await self._wait_for_phase_variable(db=cr_data.working_db, key=Macros.CONFLICT_RESOLUTION, value=self.sbb_idx,
                                             timeout=(len(self.pending_dbs) + 1) * Phase.CR_TIMEOUT)

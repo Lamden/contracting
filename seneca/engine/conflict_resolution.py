@@ -44,9 +44,8 @@ class CRDataBase(metaclass=CRDataMeta):
 
     def get_state_for_idx(self, contract_idx: int) -> str:
         """
-        Gets a state representation string for a particular contract index. This should be overwritten by all subclasses
-        that track any sort of state modifications """
-        return ''
+        Gets a state representation string for a particular contract index. """
+        return self.outputs[contract_idx]
 
     def reset_contract_data(self, contract_idx: int):
         """ Resets the reads list and modification list for the contract at index idx. """
@@ -125,9 +124,6 @@ class CRDataGetSet(CRDataBase, dict):
             if key in self and contract_idx in self[key]['contracts']:
                 self[key]['contracts'].remove(contract_idx)
 
-    def get_state_for_idx(self, contract_idx: int) -> str:
-        return self.outputs[contract_idx]
-
     def revert_contract(self, contract_idx: int):
         assert contract_idx in self.redo_log, "Contract index {} not found in redo log!".format(contract_idx)
 
@@ -184,11 +180,6 @@ class CRDataGetSet(CRDataBase, dict):
                 self._add_adjacent_keys(k, key_set)
 
     def reset_key(self, key):
-        # TODO I  think we are going to have problems when the key is different on both master AND common.
-        # this is because if this context was built on top of another pending_db, and we are not the first subblock,
-        # should we use the common layer (which presumably a prior sb copied from the updated master), or do we use
-        # the updated master? I think we need some special logic for if this is subblock 0 then use master, otherwise
-        # use common
         self.log.debugv("Resetting key {}".format(key))
         og_val = self[key]['og']
 
@@ -259,7 +250,6 @@ class CRContext:
     def __init__(self, working_db, master_db, sbb_idx: int, finalize=False):
         self.log = get_logger(type(self).__name__)
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
-        self.finalize = finalize
         self.working_db, self.master_db = working_db, master_db
         self.sbb_idx = sbb_idx
 
@@ -429,8 +419,6 @@ class CRContext:
 
             if t == b'string':
                 CRDataGetSet.merge_to_master(working_db, master_db, key)
-            elif t == b'hash':
-                CRDataHMap.merge_to_master(working_db, master_db, key)
             else:
                 raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, t))
 
@@ -438,8 +426,7 @@ class CRContext:
         assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}" \
             .format(item, list(self.cr_data.keys()))
         if self.locked:
-            raise Exception("CRData attempted to be accessed while it was locked!! Interpreter layer is likely being "
-                            "bad")
+            raise Exception("CRData attempted to be accessed while it was locked!! Bug in interpreter layer")
         return self.cr_data[item]
 
     def __repr__(self):
@@ -449,9 +436,9 @@ class CRContext:
 
 class RedisProxy:
 
-    def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, finalize=False):
+    def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, cr_enabled=True):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
-        self.finalize = finalize
+        self.cr_enabled = cr_enabled
         self.data = data
         self.working_db, self.master_db = data.working_db, data.master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
@@ -470,7 +457,7 @@ class RedisProxy:
         cmd.set_params(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
                        contract_idx=self.contract_idx, data=self.data)
         return cmd
-    
+
     def hexists(self, *args, **kwargs):
         return bool(self.hget(*args, **kwargs))
 
@@ -513,35 +500,3 @@ class RedisProxy:
 # print("CRDataMetaRegistery")
 # for k, v in CRDataBase.registry.items():
 #     print("{}: {}".format(k, v))
-
-
-"""
-THOUGHT
-
-each CRData has state variables for this rerun process, including
-- internal list of contracts that HAVE been rerun?
-- 
-
-SHOULD WE ALSO MAINTAIN a mapping of keys to contracts that read/write them? Otherwise we have to do this o(n) 
-everytime.. 
-
-JUST RAISE AN ASSERTION FOR NOW IF A NEW KEY IS MODIFIED 
-
-1) at start of rerun, CRData gets all contracts that have had their original values changed (on common or master)
-2) copy over new values into effected key's original values (prioritize master if master is diff). Set mod value to None
-3) if 
-
-       # build a set of all reads/write that have their original value changed
-        # copy, from common layer, to the new original value, and set the modified value to None
-        # build a min heap of contract indexes that need to be run by check contract's mod list
-        # reset_db the contract data before you rerun it
-        # loop
-
-        # PREFER MASTER VALUE when copying keys over. if og should have been copied from master during exec phase,
-        # so if master is diff from og that means another block changed master, and that value should be prefered
-
-        # what if both master and common differ from the orig values? which ones do you use?
-        # we would need to track original master value (at time of the read). or just ignore this problem until
-        # we implement proper chaining of db reads
-
-"""
