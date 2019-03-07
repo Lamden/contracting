@@ -45,9 +45,8 @@ class CRDataBase(metaclass=CRDataMeta):
 
     def get_state_for_idx(self, contract_idx: int) -> str:
         """
-        Gets a state representation string for a particular contract index. This should be overwritten by all subclasses
-        that track any sort of state modifications """
-        return ''
+        Gets a state representation string for a particular contract index. """
+        return self.outputs[contract_idx]
 
     def reset_contract_data(self, contract_idx: int):
         """ Resets the reads list and modification list for the contract at index idx. """
@@ -126,9 +125,6 @@ class CRDataGetSet(CRDataBase, dict):
             if key in self and contract_idx in self[key]['contracts']:
                 self[key]['contracts'].remove(contract_idx)
 
-    def get_state_for_idx(self, contract_idx: int) -> str:
-        return self.outputs[contract_idx]
-
     def revert_contract(self, contract_idx: int):
         assert contract_idx in self.redo_log, "Contract index {} not found in redo log!".format(contract_idx)
 
@@ -185,11 +181,6 @@ class CRDataGetSet(CRDataBase, dict):
                 self._add_adjacent_keys(k, key_set)
 
     def reset_key(self, key):
-        # TODO I  think we are going to have problems when the key is different on both master AND common.
-        # this is because if this context was built on top of another pending_db, and we are not the first subblock,
-        # should we use the common layer (which presumably a prior sb copied from the updated master), or do we use
-        # the updated master? I think we need some special logic for if this is subblock 0 then use master, otherwise
-        # use common
         self.log.debugv("Resetting key {}".format(key))
         og_val = self[key]['og']
 
@@ -204,55 +195,6 @@ class CRDataGetSet(CRDataBase, dict):
             self[key]['og'] = self.master.get(key)
         else:
             self.log.spam("No updated value found for key {}. Clearing modified and leaving original val".format(key))
-
-
-class CRDataHMap(CRDataBase, defaultdict):
-    NAME = 'hm'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.default_factory = dict
-
-    def _get_modified_keys(self) -> dict:
-        """
-        Returns a dict of sets. Key is key in the hmap, and set is a list of modified fields for that key
-        """
-        mods_dict = defaultdict(set)
-        for key in self:
-            for field in self[key]:
-                if self[key][field]['og'] != self[key][field]['mod']:
-                    mods_dict[key].add(field)
-
-        return mods_dict
-
-    def merge_to_common(self):
-        return False  # TODO implement
-        raise NotImplementedError()
-
-    def get_state_rep(self):
-        return False  # TODO implement
-        raise NotImplementedError()
-
-    @classmethod
-    def merge_to_master(cls, working_db: redis.StrictRedis, master_db: redis.StrictRedis, key: str):
-        assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
-
-        all_fields = working_db.hkeys(key)
-        for field in all_fields:
-            val = working_db.hget(key, field)
-            master_db.hset(key, field, val)
-
-
-class CRDataDelete(CRDataBase, set):
-    NAME = 'del'
-
-    def merge_to_common(self):
-        return False  # TODO implement
-        raise NotImplementedError()
-
-    def get_state_rep(self):
-        return False  # TODO implement
-        raise NotImplementedError()
 
 
 class CRContext:
@@ -429,8 +371,6 @@ class CRContext:
 
             if t == b'string':
                 CRDataGetSet.merge_to_master(working_db, master_db, key)
-            elif t == b'hash':
-                CRDataHMap.merge_to_master(working_db, master_db, key)
             else:
                 raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, t))
 
@@ -438,8 +378,7 @@ class CRContext:
         assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}" \
             .format(item, list(self.cr_data.keys()))
         if self.locked:
-            raise Exception("CRData attempted to be accessed while it was locked!! Interpreter layer is likely being "
-                            "bad")
+            raise Exception("CRData attempted to be accessed while it was locked!! Bug in interpreter layer")
         return self.cr_data[item]
 
     def __repr__(self):
@@ -449,9 +388,9 @@ class CRContext:
 
 class RedisProxy:
 
-    def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, finalize=False):
+    def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, cr_enabled=True):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
-        self.finalize = finalize
+        self.cr_enabled = cr_enabled
         self.data = data
         self.working_db, self.master_db = data.working_db, data.master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
