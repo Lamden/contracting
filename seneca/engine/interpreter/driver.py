@@ -41,3 +41,7 @@ class Driver(ConcurrentDriver):
     Connects to the Walrus ORM with Ledis as back-end. We will only allow items that use sets because
     conflict resolution currently does not support
     """
+
+    def __init__(self, *args, **kwargs):
+        kwargs['port'] = 6379
+        super().__init__(*args, **kwargs)

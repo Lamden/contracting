@@ -4,6 +4,7 @@ from seneca.engine.client import *
 from seneca.libs.logger import overwrite_logger_level, get_logger
 from collections import OrderedDict, defaultdict
 import random, uuid, os
+from seneca.constants.config import SENECA_PATH
 
 
 log = get_logger("TestSenecaClient")
@@ -684,7 +685,7 @@ class TestSenecaClient(TestExecutor):
         input_hash3 = '3' * 64
         input_hash4 = '4' * 64
 
-        with open(os.path.dirname(__file__) + '/' + 'stubucks.sen.py', 'r') as f:
+        with open(os.path.join(os.path.dirname(SENECA_PATH), 'test_contracts', 'stubucks.sen.py'), 'r') as f:
             code = f.read()
 
         # print("got contract code {}".format(code))

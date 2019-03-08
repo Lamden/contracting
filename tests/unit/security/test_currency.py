@@ -8,7 +8,7 @@ AUTHOR = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
 class TestCurrency(TestExecutor):
 
     def test_unauthorized_transfer(self):
-        self.ex.execute_function('currency', 'transfer', AUTHOR, 0, kwargs={'to': 'birb', 'amount': 10000000})
+        self.ex.execute_function('currency', 'transfer', AUTHOR, 0, kwargs={'to': 'birb', 'amount': 100000})
         code_str = """
 from seneca.contracts.currency import transfer
 
