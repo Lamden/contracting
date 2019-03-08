@@ -27,6 +27,7 @@ def redeem(secret):
 		s = swaps[rt['sender']][hashlock]
 		assert s['participant'] == rt['sender'], 'Not authorized to redeem'
 		token = import_contract(s['token'])
+		print(rt['sender'], s['amount'])
 		token.transfer(rt['sender'], s['amount'])
 
 

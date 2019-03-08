@@ -43,7 +43,7 @@ def submit_stamps(stamps):
 
 @export
 def transfer(to, amount):
-    assert balances[rt['sender']] - amount > 0, 'Sender balance must be non-negative!!!'
+    assert balances[rt['sender']] - amount >= 0, 'Sender balance must be non-negative!!!'
     # assert balances[rt['sender']] > 0, '{} <> Sender {} has amount {} but tried to transfer {}. Not enough funds'.format(balances.key, rt['sender'], balances[rt['sender']], amount)
     # print("xfering from {} to {} with amount {}".format(rt['sender'], to, amount))
     balances[rt['sender']] -= amount
