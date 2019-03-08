@@ -11,6 +11,7 @@ from seneca.engine.interpreter.parser import Parser
 class Hash(DataType, SubscriptType, WHash):
 
     default_value = {}
+    super_class = WHash
 
     @chainable_method
     def update(self, kwargs):

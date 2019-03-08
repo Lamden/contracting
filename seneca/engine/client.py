@@ -4,6 +4,7 @@ from seneca.engine.interpreter.executor import Executor
 from seneca.constants.config import *
 from seneca.engine.conflict_resolution import CRContext
 from seneca.engine.book_keeper import BookKeeper
+from seneca.engine.interpreter.driver import Driver
 from collections import deque
 from typing import Callable
 import traceback
@@ -46,9 +47,9 @@ class Phase:
 
 
 class SenecaClient(Executor):
-    def __init__(self, sbb_idx, num_sbb, cr_enabled=True, loop=None):
+    def __init__(self, sbb_idx, num_sbb, cr_enabled=True, loop=None, *args, **kwargs):
         # TODO do we even need to bother with the concurrent_mode flag? We are treating that its always true --davis
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
         name = self.__class__.__name__ + "[sbb-{}]".format(sbb_idx)
         self.log = get_logger(name)
@@ -78,10 +79,12 @@ class SenecaClient(Executor):
 
         self._setup_dbs()
 
+        self.log.important3("---- SENECA CLIENT CREATION FINISHED -----")
+
     def _setup_dbs(self):
-        self.master_db = redis.StrictRedis(host='localhost', port=self.port, db=MASTER_DB, password=self.password)
+        self.master_db = Driver(host='localhost', port=self.port, db=MASTER_DB, password=self.password)
         for db_num in range(self.max_number_workers):
-            db_client = redis.StrictRedis(host='localhost', port=self.port, db=db_num+DB_OFFSET, password=self.password)
+            db_client = Driver(host='localhost', port=self.port, db=db_num+DB_OFFSET, password=self.password)
             Phase.reset_keys(db_client)
             cr_data = CRContext(working_db=db_client, master_db=self.master_db, sbb_idx=self.sbb_idx)
             self.available_dbs.append(cr_data)

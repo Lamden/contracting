@@ -450,7 +450,7 @@ class RedisProxy:
         assert item in CRCmdBase.registry, "redis operation {} not implemented for conflict resolution".format(item)
 
         # debug
-        self.log.critical("RedisProxy called for item {}".format(item))
+        self.log.notice("RedisProxy called for item {}".format(item))
         # end debug
 
         t = CRCmdBase.registry[item]

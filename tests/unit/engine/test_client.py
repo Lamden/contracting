@@ -232,7 +232,7 @@ class TestSenecaClient(TestExecutor):
         expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
                             (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
 
-        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop, currency=False)
         client.currency = False
         client._start_sb(input_hash)
 

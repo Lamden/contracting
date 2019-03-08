@@ -1,3 +1,4 @@
+from seneca.libs.logger import get_logger
 from seneca.engine.interpreter.parser import Parser
 from decimal import Decimal
 from seneca.libs.storage.registry import Registry
@@ -71,6 +72,10 @@ class DataTypeProperties:
         return Parser.executor.driver
 
     @property
+    def database(self):
+        return Parser.executor.driver
+
+    @property
     def rt(self):
         return Parser.parser_scope['rt']
 
@@ -84,12 +89,6 @@ class DataTypeProperties:
             contract_name = self.contract_name
         else:
             contract_name = self.callstack[-1][0]
-        # if self.resource.split(DELIMITER)[0] in Parser.parser_scope.get('imports', {}):
-        #     contract_name = self.contract_name
-        # elif len(self.callstack) == 0:
-        #     contract_name = '__main__'
-        # else:
-        #     contract_name = self.callstack[-1][0]
         return DELIMITER.join([self.__class__.__name__, contract_name, self.resource])
 
     @property
@@ -99,6 +98,8 @@ class DataTypeProperties:
 
 
 class DataType(Encoder, DataTypeProperties):
+
+    super_class = None
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get('default_value') is not None and not kwargs.get('placeholder'):
@@ -116,7 +117,6 @@ class DataType(Encoder, DataTypeProperties):
 
     def __init__(self, resource, default_value=None, placeholder=False, *args, **kwargs):
         self.resource = resource
-        self.database = self.driver
         self.contract_name = self.rt['contract']
         self.data = None
         self.access_mode = READ_WRITE_MODE
@@ -154,4 +154,9 @@ class SubscriptType:
             assert self.access_mode == READ_WRITE_MODE, 'Not allowed to write to resource "{}" in this scope'.format(self.key)
         value = self.encode(value, key=key)
         if value:
+            # debug
+            self.log = get_logger(self.__class__.__name__)
+            self.log.info("DataType with resource {} and key {} created with driver {}".format(self.resource, self.key,
+                                                                                               self.driver))
+            # end debug
             super().__setitem__(key, value)
