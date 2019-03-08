@@ -73,7 +73,7 @@ class DataTypeProperties:
 
     @property
     def database(self):
-        return Parser.executor.driver
+        return self.driver
 
     @property
     def rt(self):
@@ -154,9 +154,4 @@ class SubscriptType:
             assert self.access_mode == READ_WRITE_MODE, 'Not allowed to write to resource "{}" in this scope'.format(self.key)
         value = self.encode(value, key=key)
         if value:
-            # debug
-            self.log = get_logger(self.__class__.__name__)
-            self.log.info("DataType with resource {} and key {} created with driver {}".format(self.resource, self.key,
-                                                                                               self.driver))
-            # end debug
             super().__setitem__(key, value)

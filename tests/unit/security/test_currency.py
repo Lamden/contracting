@@ -1,5 +1,4 @@
 from tests.utils import TestExecutor
-from seneca.constants.config import get_redis_port, get_redis_password
 import redis, unittest, seneca
 from os.path import dirname
 

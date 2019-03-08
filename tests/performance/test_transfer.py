@@ -1,7 +1,7 @@
 from tests.utils import TestExecutor
 import unittest, time
 
-CONTRACT_COUNT = 10000
+CONTRACT_COUNT = 100
 
 
 class TestTransfer(TestExecutor):

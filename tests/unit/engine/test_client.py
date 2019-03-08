@@ -19,8 +19,8 @@ MINT_WALLETS = {
 }
 
 # Add a bunch of other random wallet
-for _ in range(359):
-    MINT_WALLETS[str(uuid.uuid4())] = 2 ** 63
+# for _ in range(359):
+#     MINT_WALLETS[str(uuid.uuid4())] = 2 ** 63
 
 
 TEST_CONTRACT = \
@@ -80,6 +80,13 @@ class TestSenecaClient(TestExecutor):
         if cls.LOG_LVL:
             overwrite_logger_level(999999)  # re-enable all logging
 
+    def setUp(self):
+        # overwrite_logger_level(0)
+        self.ex = Executor(currency=False, concurrency=False)
+        self.r.flushall()
+        self._mint_wallets()
+        self.completed_hashes = defaultdict(list)
+
     def assert_completion(self, expected_sbb_rep=None, input_hash='', merge_master=False, client=None, merge_wait=1):
         if merge_master:
             assert client is not None, "if merge_master=True then client must be passed in"
@@ -128,11 +135,6 @@ class TestSenecaClient(TestExecutor):
             self.ex.execute_function('currency', 'mint', GENESIS_AUTHOR, STAMP_AMOUNT, kwargs={
                 'to': wallet, 'amount': seed_amount or amount
             })
-
-    def setUp(self):
-        # overwrite_logger_level(0)
-        self._mint_wallets()
-        self.completed_hashes = defaultdict(list)
 
     def test_setup_dbs(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
@@ -204,7 +206,7 @@ class TestSenecaClient(TestExecutor):
         input_hash = 'A' * 64
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = MockPublishTransaction(sender='anonymoose', contract_name='test', contract_code=TEST_CONTRACT)
-        expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
+        expected_sbb_rep = [(c1, "SUCC", "SET DecimalHash:currency:balances:anonymoose 9986.0;SET DecimalHash:currency:balances:stu 83.0;"),
                             (c2, "SUCC", "")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
@@ -229,8 +231,8 @@ class TestSenecaClient(TestExecutor):
         input_hash = 'A' * 64
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
-        expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
-                            (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
+        expected_sbb_rep = [(c1, "SUCC", "SET DecimalHash:currency:balances:anonymoose 9986.0;SET DecimalHash:currency:balances:stu 83.0;"),
+                            (c2, "SUCC", "SET DecimalHash:currency:balances:stu 43.0;SET DecimalHash:currency:balances:anonymoose 10026.0;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop, currency=False)
         client.currency = False
@@ -254,8 +256,8 @@ class TestSenecaClient(TestExecutor):
         input_hash = 'A' * 64
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
-        expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
-                            (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
+        expected_sbb_rep = [(c1, "SUCC", "SET DecimalHash:currency:balances:anonymoose 9986.0;SET DecimalHash:currency:balances:stu 83.0;"),
+                            (c2, "SUCC", "SET DecimalHash:currency:balances:stu 43.0;SET DecimalHash:currency:balances:anonymoose 10026.0;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
         client.currency = False
@@ -293,8 +295,8 @@ class TestSenecaClient(TestExecutor):
 
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
-        expected_sbb1_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
-                             (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
+        expected_sbb1_rep = [(c1, "SUCC", "SET DecimalHash:currency:balances:anonymoose 9986.0;SET DecimalHash:currency:balances:stu 83.0;"),
+                             (c2, "SUCC", "SET DecimalHash:currency:balances:stu 43.0;SET DecimalHash:currency:balances:anonymoose 10026.0;")]
         expected_sbb2_rep = []
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
@@ -317,9 +319,9 @@ class TestSenecaClient(TestExecutor):
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 9000)
         c3 = create_currency_tx('stu', 'anonymoose', 40)
-        expected_sbb_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
+        expected_sbb_rep = [(c1, "SUCC", "SET DecimalHash:currency:balances:anonymoose 9986.0;SET DecimalHash:currency:balances:stu 83.0;"),
                             (c2, "FAIL -- Sender balance must be non-negative!!!", ""),
-                            (c3, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
+                            (c3, "SUCC", "SET DecimalHash:currency:balances:stu 43.0;SET DecimalHash:currency:balances:anonymoose 10026.0;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
         client.currency = False
@@ -348,10 +350,10 @@ class TestSenecaClient(TestExecutor):
         c2 = create_currency_tx('stu', 'anonymoose', 40)
         c3 = create_currency_tx('ghu', 'anonymoose', 15)
         c4 = create_currency_tx('tj', 'birb', 90)
-        expected_sbb1_rep = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
-                             (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
-        expected_sbb2_rep = [(c3, "SUCC", "SET currency:balances:ghu 8985;SET currency:balances:anonymoose 10041;"),
-                             (c4, "SUCC", "SET currency:balances:tj 7910;SET currency:balances:birb 8090;")]
+        expected_sbb1_rep = [(c1, "SUCC", "SET DecimalHash:currency:balances:anonymoose 9986.0;SET DecimalHash:currency:balances:stu 83.0;"),
+                             (c2, "SUCC", "SET DecimalHash:currency:balances:stu 43.0;SET DecimalHash:currency:balances:anonymoose 10026.0;")]
+        expected_sbb2_rep = [(c3, "SUCC", "SET DecimalHash:currency:balances:ghu 8985.0;SET DecimalHash:currency:balances:anonymoose 10041.0;"),
+                             (c4, "SUCC", "SET DecimalHash:currency:balances:tj 7910.0;SET DecimalHash:currency:balances:birb 8090.0;")]
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
         client1.currency = False
@@ -390,14 +392,14 @@ class TestSenecaClient(TestExecutor):
         c6 = create_currency_tx('stu', 'anonymoose', 10)
         c7 = create_currency_tx('ghu', 'tj', 50)
         c8 = create_currency_tx('birb', 'anonymoose', 100)
-        expected_sbb1_1 = [(c1, "SUCC", "SET currency:balances:anonymoose 9986;SET currency:balances:stu 83;"),
-                           (c2, "SUCC", "SET currency:balances:stu 43;SET currency:balances:anonymoose 10026;")]
-        expected_sbb2_1 = [(c3, "SUCC", "SET currency:balances:ghu 8985;SET currency:balances:anonymoose 10041;"),
-                           (c4, "SUCC", "SET currency:balances:tj 7910;SET currency:balances:birb 8090;")]
-        expected_sbb1_2 = [(c5, "SUCC", "SET currency:balances:ethan 7940;SET currency:balances:birb 8150;"),
-                           (c6, "SUCC", "SET currency:balances:stu 33;SET currency:balances:anonymoose 10051;")]
-        expected_sbb2_2 = [(c7, "SUCC", "SET currency:balances:ghu 8935;SET currency:balances:tj 7960;"),
-                           (c8, "SUCC", "SET currency:balances:birb 8050;SET currency:balances:anonymoose 10151;")]
+        expected_sbb1_1 = [(c1, "SUCC", "SET DecimalHash:currency:balances:anonymoose 9986.0;SET DecimalHash:currency:balances:stu 83.0;"),
+                           (c2, "SUCC", "SET DecimalHash:currency:balances:stu 43.0;SET DecimalHash:currency:balances:anonymoose 10026.0;")]
+        expected_sbb2_1 = [(c3, "SUCC", "SET DecimalHash:currency:balances:ghu 8985.0;SET DecimalHash:currency:balances:anonymoose 10041.0;"),
+                           (c4, "SUCC", "SET DecimalHash:currency:balances:tj 7910.0;SET DecimalHash:currency:balances:birb 8090.0;")]
+        expected_sbb1_2 = [(c5, "SUCC", "SET DecimalHash:currency:balances:ethan 7940.0;SET DecimalHash:currency:balances:birb 8150.0;"),
+                           (c6, "SUCC", "SET DecimalHash:currency:balances:stu 33.0;SET DecimalHash:currency:balances:anonymoose 10051.0;")]
+        expected_sbb2_2 = [(c7, "SUCC", "SET DecimalHash:currency:balances:ghu 8935.0;SET DecimalHash:currency:balances:tj 7960.0;"),
+                           (c8, "SUCC", "SET DecimalHash:currency:balances:birb 8050.0;SET DecimalHash:currency:balances:anonymoose 10151.0;")]
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)

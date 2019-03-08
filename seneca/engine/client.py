@@ -55,9 +55,6 @@ class SenecaClient(Executor):
         self.log = get_logger(name)
         self.loop = loop or asyncio.get_event_loop()
 
-        self.port = get_redis_port()
-        self.password = get_redis_password()
-
         self.sbb_idx = sbb_idx
         self.num_sb_builders = num_sbb
         self.cr_enabled = cr_enabled
@@ -82,9 +79,9 @@ class SenecaClient(Executor):
         self.log.important3("---- SENECA CLIENT CREATION FINISHED -----")
 
     def _setup_dbs(self):
-        self.master_db = Driver(host='localhost', port=self.port, db=MASTER_DB, password=self.password)
+        self.master_db = Driver(host='localhost', db=MASTER_DB)
         for db_num in range(self.max_number_workers):
-            db_client = Driver(host='localhost', port=self.port, db=db_num+DB_OFFSET, password=self.password)
+            db_client = Driver(host='localhost', db=db_num+DB_OFFSET)
             Phase.reset_keys(db_client)
             cr_data = CRContext(working_db=db_client, master_db=self.master_db, sbb_idx=self.sbb_idx)
             self.available_dbs.append(cr_data)

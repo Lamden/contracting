@@ -1,34 +1,8 @@
-import random, seneca, resource, sys
-from os import getenv as env
-from dotenv import load_dotenv
+import seneca
 
-
-def load_env():
-    load_dotenv(dotenv_path='{}/../docker/redis.env'.format(SENECA_PATH), override=True)
-
-
-def get_redis_port(port=None):
-    if port is not None:
-        return port
-
-    if env('CIRCLECI'):
-        return 6379
-
-    return env('REDIS_PORT', 6379)
-
-
-def get_redis_password(password=None):
-    if password is not None:
-        return password
-
-    if env('CIRCLECI'):
-        return ''
-
-    return env('REDIS_PASSWORD', '')
 
 SENECA_PATH = seneca.__path__[0]
 SENECA_SC_PATH = 'seneca.contracts'
-load_env()
 
 REDIS_PORT = 6379
 MASTER_DB = 0
