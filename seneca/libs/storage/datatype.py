@@ -1,4 +1,3 @@
-from seneca.libs.logger import get_logger
 from seneca.engine.interpreter.parser import Parser
 from decimal import Decimal
 from seneca.libs.storage.registry import Registry
