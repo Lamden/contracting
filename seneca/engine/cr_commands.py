@@ -185,7 +185,6 @@ class CRCmdSet(CRCmdGetSetBase):
         self.log.spam("Setting SBB specific key <{}> to value {}".format(key, value))
         self.data['getset'][key]['mod'] = value
         self.data['getset'][key]['contracts'].add(self.contract_idx)
-        self.data['getset'].writes[self.contract_idx].add(key)
         self.data['getset'].outputs[self.contract_idx] += 'SET {} {};'.format(key, value.decode())
 
 

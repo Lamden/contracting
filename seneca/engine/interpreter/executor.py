@@ -2,7 +2,8 @@ from seneca.engine.interpreter.parser import Parser
 from seneca.engine.interpreter.scope import Scope
 from seneca.libs.metering.tracer import Tracer
 from seneca.constants.config import MASTER_DB, REDIS_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS, READ_ONLY_MODE
-import seneca, sys, marshal, os, types, copy
+import seneca, sys, marshal, os, types, ujson as json
+from base64 import b64encode, b64decode
 from os.path import join
 from functools import lru_cache
 from seneca.engine.interpreter.utils import Plugins, Assert
@@ -75,17 +76,18 @@ class Executor:
 
     @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
     def get_contract(self, contract_name):
-        return marshal.loads(self.driver.hget('contracts', contract_name))
+        contract = json.loads(self.driver.hget('contracts', contract_name))
+        contract['code_obj'] = marshal.loads(b64decode(contract['code_obj']))
+        return contract
 
     def set_contract(self, contract_name, code_str, code_obj, author, resources, methods, driver=None, override=False):
         if not driver:
             driver = self.driver
         if not override:
             assert not driver.hget('contracts', contract_name), 'Contract name "{}" already taken.'.format(contract_name)
-
-        driver.hset('contracts', contract_name, marshal.dumps({
+        driver.hset('contracts', contract_name, json.dumps({
             'code_str': code_str,
-            'code_obj': code_obj,
+            'code_obj': b64encode(marshal.dumps(code_obj)),
             'author': author,
             'resources': resources,
             'methods': methods,
