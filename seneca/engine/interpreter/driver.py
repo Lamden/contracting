@@ -9,7 +9,7 @@ from walrus import Walrus
 #     """
 
 
-class ConcurrentDriver(Walrus):
+class ConcurrentDriver(WalrusLedis):
 
     def hget(self, hash_key, key):
         return self.get(hash_key+':'+key)

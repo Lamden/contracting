@@ -72,7 +72,7 @@ class DataTypeProperties:
 
     @property
     def database(self):
-        return self.driver
+        return Parser.executor.driver
 
     @property
     def rt(self):
@@ -97,8 +97,6 @@ class DataTypeProperties:
 
 
 class DataType(Encoder, DataTypeProperties):
-
-    super_class = None
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get('default_value') is not None and not kwargs.get('placeholder'):
