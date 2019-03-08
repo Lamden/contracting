@@ -20,6 +20,8 @@ class Executor:
         self.currency = False
         self.concurrency = False
         self.reset_syspath()
+        self.driver_base = Driver(host='localhost', port=REDIS_PORT, db=MASTER_DB)
+        self.driver_proxy = None
         if flushall: self.driver.flushall()
         self.path = join(seneca.__path__[0], 'contracts')
         self.author = '__lamden_io__'
@@ -32,11 +34,18 @@ class Executor:
     @property
     def driver(self):
         if self.concurrency:
-            info = BookKeeper.get_cr_info()
-            # TODO -- this should not create a new one every time
-            return RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'], data=info['data'])
+            if not self.driver_proxy:
+                info = BookKeeper.get_cr_info()
+                self.driver_proxy = RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
+                                               data=info['data'])
+            else:
+                info = BookKeeper.get_cr_info()
+                self.driver_proxy.sbb_idx = info['sbb_idx']
+                self.driver_proxy.contract_idx = info['contract_idx']
+                self.driver_proxy.data = info['data']
+            return self.driver_proxy
         else:
-            return Driver(host='localhost', port=REDIS_PORT, db=MASTER_DB)
+            return self.driver_base
 
     def reset_syspath(self):
         if not isinstance(sys.meta_path[-1], RedisFinder):
