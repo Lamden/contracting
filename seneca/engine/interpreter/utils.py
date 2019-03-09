@@ -188,10 +188,9 @@ class Assert:
         for module, contracts in imports.items():
             for contract_name in contracts:
                 if contract_name not in exports.get(module, {}) and module not in resources.get(contract_name, {}):
-                    print(contract_name, module)
-                    print(imports)
-                    print(exports)
-                    print(resources)
-                    if resources.get(current_contract, {}).get(module) != POINTER+contract_name:
-                        raise ImportError('Forbidden to import "{}.{}"'.format(
-                            contract_name, module))
+                    # print(contract_name, module)
+                    # print(imports)
+                    # print(exports)
+                    # print(resources)
+                    raise ImportError('Forbidden to import "{}.{}"'.format(
+                        contract_name, module))

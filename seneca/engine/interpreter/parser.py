@@ -18,30 +18,37 @@ class Parser:
         '__function__': Function(),
         '__builtins__': SAFE_BUILTINS
     }
-
-    parser_scope = None
+    parser_scope = {
+        'ast': None,
+        'callstack': [],
+        'exports': {},
+        'imports': {},
+        'resources': {},
+        'methods': defaultdict(dict),
+        'protected': defaultdict(set)
+    }
     seed_tree = None
     child = None
     initialized = False
     assigning = False
 
-    @classmethod
-    def initialize(cls):
-        if not cls.initialized:
-            cls.parser_scope = {
-                'ast': None,
-                'callstack': [],
-                'exports': {},
-                'imports': {},
-                'resources': {},
-                'methods': defaultdict(dict),
-                'protected': defaultdict(set)
-            }
-            cls.initialized = True
+    # @classmethod
+    # def initialize(cls):
+    #     if not cls.initialized:
+    #         cls.parser_scope = {
+    #             'ast': None,
+    #             'callstack': [],
+    #             'exports': {},
+    #             'imports': {},
+    #             'resources': {},
+    #             'methods': defaultdict(dict),
+    #             'protected': defaultdict(set)
+    #         }
+    #         cls.initialized = True
 
     @classmethod
     def reset(cls):
-        cls.initialize()
+        # cls.initialize()
         cls.parser_scope.update({
             'imports': {},
             '__args__': (),
@@ -142,17 +149,8 @@ class NodeTransformer(ast.NodeTransformer):
         if module_type == 'smart_contract':
             if not Parser.parser_scope['imports'].get(module_name):
                 Parser.parser_scope['imports'][module_name] = set()
-            if contract_name in Parser.parser_scope['exports'].get(module_name, {}):
-                print('xxx', alias, module_name, contract_name)
-                print(Parser.parser_scope['protected'])
-                print(Parser.parser_scope['exports'])
-                print(Parser.parser_scope['imports'])
-                print(Parser.parser_scope['resources'])
-                print('\n\n\n')
-                Parser.parser_scope['imports'][module_name].add(contract_name)
-            # if contract_name in Parser.parser_scope['exports'].get(module_name, {}):
+            Parser.parser_scope['imports'][module_name].add(contract_name)
             self.set_resource(alias or module_name, '{}{}'.format(POINTER, contract_name))
-            # self.set_resource(alias or module_name, module_name, contract_name=contract_name)
             Parser.parser_scope['protected'][module_name].add(contract_name)
             return
         elif module_type == 'lib_module':

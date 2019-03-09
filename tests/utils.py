@@ -4,7 +4,7 @@ from seneca.constants.config import MASTER_DB, REDIS_PORT
 from seneca.engine.interpreter.executor import Executor
 from seneca.engine.interpreter.parser import Parser
 from seneca.libs.storage.table import Table
-import redis
+import redis, pickle
 
 
 class TestCaseHeader(TestCase):
@@ -25,16 +25,17 @@ class TestExecutor(TestCaseHeader):
 
     @classmethod
     def reset(cls, currency=False, concurrency=False):
+        print('xxxx')
         cls.r.flushall()
         cls.ex = Executor(currency=currency, concurrency=concurrency)
 
     @classmethod
     def flush(cls):
         cls.r.flushall()
-
-    @classmethod
-    def tearDownClass(cls):
-        Parser.initialized = False
+    #
+    # @classmethod
+    # def tearDownClass(cls):
+    #     Parser.initialized = False
 
 
 class MockExecutor:
@@ -42,13 +43,13 @@ class MockExecutor:
         self.driver = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
         self.driver.flushall()
         Parser.executor = self
-        Parser.parser_scope = {
-            'rt': {
-                'contract': 'sample',
-                'sender': 'falcon',
-                'author': '__lamden_io__'
-            }
-        }
+        if not Parser.parser_scope.get('rt'):
+            Parser.parser_scope['rt'] = {}
+        Parser.parser_scope['rt'].update({
+            'contract': 'sample',
+            'sender': 'falcon',
+            'author': '__lamden_io__'
+        })
 
 
 class TestDataTypes(TestCaseHeader):

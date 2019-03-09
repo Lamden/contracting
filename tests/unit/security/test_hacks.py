@@ -58,9 +58,15 @@ import sys
         with self.assertRaises(ReadOnlyException) as context:
             self.ex.execute_code_str("""
 from test_contracts.sample import good_call
+
 def bad_call():
     return 'hacked'
-good_call = bad_call
+
+@seed
+def init():
+    good_call = bad_call
+    print(good_call())
+
             """)
 
     def test_del_variables(self):
