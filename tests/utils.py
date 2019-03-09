@@ -32,6 +32,10 @@ class TestExecutor(TestCaseHeader):
     def flush(cls):
         cls.r.flushall()
 
+    @classmethod
+    def tearDownClass(cls):
+        Parser.initialized = False
+
 
 class MockExecutor:
     def __init__(self, *args, **kwargs):

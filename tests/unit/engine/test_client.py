@@ -1,9 +1,12 @@
-from tests.utils import TestExecutor, TestCaseHeader
+from tests.utils import TestExecutor
 from unittest import mock
 from seneca.engine.client import *
+from seneca.engine.interpreter.parser import Parser
 from seneca.libs.logger import overwrite_logger_level, get_logger
 from collections import OrderedDict, defaultdict
-import random, uuid, os
+import random, os, marshal
+import ujson as json
+from base64 import b64encode
 from seneca.constants.config import SENECA_PATH
 
 
@@ -33,6 +36,7 @@ balances = Hash('balances')
 @seed
 def init():
     balances['hello'] = 'world'
+    
 @export
 def one_you_can_export():
     print('Running one_you_can_export()')
@@ -80,6 +84,7 @@ class TestSenecaClient(TestExecutor):
     def tearDownClass(cls):
         if cls.LOG_LVL:
             overwrite_logger_level(999999)  # re-enable all logging
+        super().tearDownClass()
 
     def setUp(self):
         # overwrite_logger_level(0)
@@ -201,14 +206,23 @@ class TestSenecaClient(TestExecutor):
         self.assertEqual(client.active_db.next_contract_idx, 2)
 
     def test_with_publish_transactions(self):
+
+        self.ex.concurrency = False
+        code_obj, resources, methods = self.ex.compile('test', TEST_CONTRACT)
+        contract_str = json.dumps({
+            'code_str': TEST_CONTRACT,
+            'code_obj': b64encode(marshal.dumps(code_obj)),
+            'author': "anonymoose",
+            'resources': resources.get('test', {}),
+            'methods': methods.get('test', {}),
+        })
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
         input_hash = 'A' * 64
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = MockPublishTransaction(sender='anonymoose', contract_name='test', contract_code=TEST_CONTRACT)
-        expected_sbb_rep = [(c1, "SUCC", "SET DecimalHash:currency:balances:anonymoose 9986.0;SET DecimalHash:currency:balances:stu 83.0;"),
-                            (c2, "SUCC", "")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
         client.currency = False
@@ -216,6 +230,10 @@ class TestSenecaClient(TestExecutor):
 
         client.run_contract(c1)
         client.run_contract(c2)
+
+        expected_sbb_rep = [(c1, "SUCC",
+                             "SET DecimalHash:currency:balances:anonymoose 9986.0;SET DecimalHash:currency:balances:stu 83.0;"),
+                            (c2, "SUCC", 'SET Hash:test:balances:hello "world";SET contracts:test ' + contract_str + ';')]
 
         client._end_sb(self.assert_completion(expected_sbb_rep, input_hash))
         self.assertTrue(input_hash in client.pending_futures)

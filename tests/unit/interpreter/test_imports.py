@@ -34,17 +34,6 @@ from test_contracts.bad import innocent_function
 import json
             """)
 
-    def test_import_global_variable_invalid(self):
-        """
-            This is a valid way to import, but you cannot import "importlib"
-            and other such libraries. Only ones from the whitelist
-        """
-
-        with self.assertRaises(ReadOnlyException) as context:
-            self.ex.execute_code_str("""
-from test_contracts.good import balances
-            """)
-
     def test_import_star(self):
         """
             Import * is currently not allowed

@@ -1,9 +1,10 @@
 from os.path import join, dirname
 from tests.utils import TestExecutor
-import unittest, seneca
+import seneca
 
 test_contracts_path = join(dirname(seneca.__path__[0]), 'test_contracts/')
 AUTHOR = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
+
 
 class TestScope(TestExecutor):
 
@@ -89,6 +90,3 @@ def init():
         with self.assertRaises(AssertionError) as context:
             result = self.ex.execute_function('reasonable', 'call_with_args',
                                               AUTHOR, 5, args=('it is required',), kwargs={'not_required':'it is not requried'})
-
-if __name__ == '__main__':
-    unittest.main()

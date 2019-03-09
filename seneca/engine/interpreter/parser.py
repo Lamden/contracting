@@ -34,6 +34,7 @@ class Parser:
                 'exports': {},
                 'imports': {},
                 'resources': {},
+                'methods': defaultdict(dict),
                 'protected': defaultdict(set)
             }
             cls.initialized = True
@@ -89,7 +90,7 @@ class NodeTransformer(ast.NodeTransformer):
 
     def set_resource(self, resource_name, func_name, contract_name=None):
         contract_name = contract_name or self.contract_name
-        if not Parser.parser_scope['resources'].get(contract_name):  # Default dict not marshallable
+        if not Parser.parser_scope['resources'].get(contract_name):
             Parser.parser_scope['resources'][contract_name] = {}
         Parser.parser_scope['resources'][contract_name][resource_name] = func_name
 
@@ -100,7 +101,6 @@ class NodeTransformer(ast.NodeTransformer):
     @property
     def protected(self):
         return Parser.parser_scope['protected'].get(self.contract_name, {})
-
 
     def generic_visit(self, node):
         Assert.ast_types(node)
@@ -142,8 +142,17 @@ class NodeTransformer(ast.NodeTransformer):
         if module_type == 'smart_contract':
             if not Parser.parser_scope['imports'].get(module_name):
                 Parser.parser_scope['imports'][module_name] = set()
-            Parser.parser_scope['imports'][module_name].add(contract_name)
+            if contract_name in Parser.parser_scope['exports'].get(module_name, {}):
+                print('xxx', alias, module_name, contract_name)
+                print(Parser.parser_scope['protected'])
+                print(Parser.parser_scope['exports'])
+                print(Parser.parser_scope['imports'])
+                print(Parser.parser_scope['resources'])
+                print('\n\n\n')
+                Parser.parser_scope['imports'][module_name].add(contract_name)
+            # if contract_name in Parser.parser_scope['exports'].get(module_name, {}):
             self.set_resource(alias or module_name, '{}{}'.format(POINTER, contract_name))
+            # self.set_resource(alias or module_name, module_name, contract_name=contract_name)
             Parser.parser_scope['protected'][module_name].add(contract_name)
             return
         elif module_type == 'lib_module':

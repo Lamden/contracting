@@ -89,8 +89,8 @@ class Executor:
             'code_str': code_str,
             'code_obj': b64encode(marshal.dumps(code_obj)),
             'author': author,
-            'resources': resources,
-            'methods': methods,
+            'resources': resources.get(contract_name, {}),
+            'methods': methods.get(contract_name, {}),
         }))
 
 
@@ -107,9 +107,9 @@ class Executor:
         Parser.parser_scope['__seed__'] = True
         Scope.scope = Parser.parser_scope
         exec(seed_code_obj, Parser.parser_scope)
-        Assert.validate(Scope.scope['imports'], Scope.scope['exports'], Scope.scope['resources'])
+        Assert.validate(Scope.scope['imports'], Scope.scope['exports'], Scope.scope['resources'], contract_name)
         Parser.parser_scope.update(Scope.scope)  # Scope is updated for seeding purposes!
-        return seed_code_obj, Parser.parser_scope['resources'], Parser.parser_scope['exports']
+        return seed_code_obj, Parser.parser_scope['resources'], Parser.parser_scope['methods']
 
     @staticmethod
     def set_default_rt(rt={}):

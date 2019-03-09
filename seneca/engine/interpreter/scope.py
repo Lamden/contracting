@@ -53,8 +53,10 @@ class Function(Scope):
             res = fn(*args, **kwargs)
             self.reset_scope()
             return res
+        contract_name = self.scope['rt']['contract']
         _fn.__name__ = fn.__name__
-        fn.__module__ = self.scope['rt']['contract']
+        fn.__module__ = contract_name
+        self.scope['methods'][contract_name][fn.__name__] = fn.__code__.co_varnames
         return _fn
 
 
