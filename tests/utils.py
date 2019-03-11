@@ -25,7 +25,6 @@ class TestExecutor(TestCaseHeader):
 
     @classmethod
     def reset(cls, currency=False, concurrency=False):
-        print('xxxx')
         cls.r.flushall()
         cls.ex = Executor(currency=currency, concurrency=concurrency)
 

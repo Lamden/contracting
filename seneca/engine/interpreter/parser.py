@@ -32,20 +32,6 @@ class Parser:
     initialized = False
     assigning = False
 
-    # @classmethod
-    # def initialize(cls):
-    #     if not cls.initialized:
-    #         cls.parser_scope = {
-    #             'ast': None,
-    #             'callstack': [],
-    #             'exports': {},
-    #             'imports': {},
-    #             'resources': {},
-    #             'methods': defaultdict(dict),
-    #             'protected': defaultdict(set)
-    #         }
-    #         cls.initialized = True
-
     @classmethod
     def reset(cls):
         # cls.initialize()

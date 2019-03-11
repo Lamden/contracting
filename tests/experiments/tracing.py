@@ -13,12 +13,10 @@ t = Tracer()
 t.set_stamp(1000)
 t.start()
 
-print('xxx\n\n\n')
 a = 1
 b = 2
 a = b
 measure_this()
-print('\n\n\nxxx')
 
 t.stop()
 cost = t.get_stamp_used()

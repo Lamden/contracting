@@ -46,7 +46,7 @@ from seneca.contracts.currency import balances
 
 @seed
 def init():
-    print(balances['stu'])
+    balances['stu']
             """)
 
     def test_import_read_resource_of_another_contract(self):

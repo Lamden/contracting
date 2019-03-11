@@ -158,6 +158,7 @@ class Executor:
         if not Parser.parser_scope['imports'].get(resource_name):
             Parser.parser_scope['imports'][resource_name] = set()
         Parser.parser_scope['imports'][resource_name].add(contract_name)
+        Parser.parser_scope['__safe_execution__'] = False
         resource.access_mode = READ_ONLY_MODE
         if resource.__class__.__name__ == 'Resource':
             resource = resource.resource_obj
