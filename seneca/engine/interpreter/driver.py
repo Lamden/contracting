@@ -35,6 +35,10 @@ class ConcurrentDriver(WalrusLedis):
         for key, obj in objs.items():
             self.hset(hash_key, key, obj)
 
+    def keys(self):
+        keys_count, keys = self.scan_generic('SCAN')
+        return keys
+
 
 class Driver(ConcurrentDriver):
     """

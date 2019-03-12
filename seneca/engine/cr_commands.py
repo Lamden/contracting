@@ -39,8 +39,8 @@ class CRCmdBase(metaclass=CRCmdMeta):
         """
 
         # debug
-        self.log.info("key {} and master is {}".format(key, self.master))
-        self.log.notice("master has keys:\n{}".format(self.master.keys()))
+        # self.log.info("key {} and master is {}".format(key, self.master))
+        # self.log.notice("master has keys:\n{}".format(self.master.keys()))
         # end debug
 
         # If the key already exists, bounce out of this method immediately

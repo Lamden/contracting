@@ -228,7 +228,7 @@ class TestConflictResolution(TestCase):
         # self.assertEqual(hm[KEY1][FIELD2], k2_expected)
         # self.assertEqual(hm[KEY2][FIELD3], k3_expected)
 
-        print("Type of key k1: {}".format(self.master.type(KEY1)))
+        # print("Type of key k1: {}".format(self.master.type(KEY1)))
 
         # Check modifications list
         # TOFO fix and implement mod list for hmaps

@@ -409,18 +409,18 @@ class CRContext:
     @classmethod
     def merge_to_master(cls, working_db, master_db):
         from seneca.engine.client import Macros  # to avoid cyclic imports
-
-        for key in working_db.keys():
+        _, keys = working_db.scan_generic('SCAN', count=10000)
+        for key in keys:
             # Ignore Phase keys
             if key in Macros.ALL_MACROS:
                 continue
 
-            t = working_db.type(key)
-
-            if t == b'string':
-                CRDataGetSet.merge_to_master(working_db, master_db, key)
-            else:
-                raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, t))
+            CRDataGetSet.merge_to_master(working_db, master_db, key)
+            # t = working_db.type(key)
+            # if t == b'string':
+            #     CRDataGetSet.merge_to_master(working_db, master_db, key)
+            # else:
+            #     raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, t))
 
     def __getitem__(self, item):
         assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}" \
