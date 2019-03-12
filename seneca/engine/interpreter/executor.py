@@ -51,7 +51,10 @@ class Executor:
     def reset_syspath(self):
         if not isinstance(sys.meta_path[-1], LedisFinder):
             self.old_sys_path = sys.meta_path
-            self.new_sys_path = [sys.meta_path[-1], SenecaFinder(), LedisFinder()]
+            #self.new_sys_path = [sys.meta_path[-1], SenecaFinder(), LedisFinder()]
+            # self.new_sys_path = [*sys.meta_path, SenecaFinder(), LedisFinder()]
+            self.new_sys_path = [*sys.meta_path, SenecaFinder(), LedisFinder()]
+
             sys.meta_path = self.new_sys_path
 
     def setup_tracer(self):
