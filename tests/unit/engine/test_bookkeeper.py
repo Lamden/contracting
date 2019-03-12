@@ -6,8 +6,8 @@ from seneca.engine.conflict_resolution import CRContext
 class TestBookKeeper(TestCase):
 
     def _build_info_dict(self, sbb_idx=0, contract_idx=0, master_db='', working_db=''):
-        master_db = master_db or 'some placeholder that irl would be a redis client cursor'
-        working_db = working_db or 'another placeholder that irl would be a redis client cursor'
+        master_db = master_db or 'some placeholder that irl would be a ledis client cursor'
+        working_db = working_db or 'another placeholder that irl would be a ledis client cursor'
         data = CRContext(working_db=working_db, master_db=master_db, sbb_idx=sbb_idx)
 
         info = {'sbb_idx': sbb_idx, 'contract_idx': contract_idx, 'data': data}

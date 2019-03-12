@@ -1,5 +1,5 @@
 from tests.utils import TestExecutor
-import redis, unittest, seneca
+import ledis, unittest, seneca
 from os.path import dirname
 
 test_contracts_path = dirname(seneca.__path__[0]) + '/test_contracts'

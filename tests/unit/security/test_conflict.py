@@ -1,7 +1,7 @@
 from seneca.engine.interpreter.parser import Parser
 from tests.utils import TestExecutor
 from seneca.libs.storage.datatypes import Hash
-import redis, unittest, seneca, os
+import ledis, unittest, seneca, os
 from decimal import *
 
 os.environ['CIRCLECI'] = 'true'
@@ -90,7 +90,7 @@ class TestConflict(TestExecutor):
 
     def test_conflict(self):
         """
-            Testing to see if the submission to Redis works.
+            Testing to see if the submission to Ledis works.
         """
         self.ex.publish_code_str('c_3', 'anonymoose', c_3)
         self.ex.publish_code_str('c_4', 'anonymoose', c_4)

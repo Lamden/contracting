@@ -1,6 +1,6 @@
 from seneca.engine.conflict_resolution import *
 from seneca.engine.cr_commands import *
-import redis
+import ledis
 from unittest import TestCase
 import unittest
 
@@ -8,8 +8,8 @@ import unittest
 class TestCRGetSet(TestCase):
 
     def setUp(self):
-        self.master = redis.StrictRedis(host='localhost', port=6379, db=0)
-        self.working = redis.StrictRedis(host='localhost', port=6379, db=1)
+        self.master = ledis.Ledis(host='localhost', port=6379, db=0)
+        self.working = ledis.Ledis(host='localhost', port=6379, db=1)
         self.sbb_data = {}
 
     def tearDown(self):

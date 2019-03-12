@@ -92,8 +92,8 @@ class CRDataGetSet(CRDataBase, dict):
 
     def get_state_rep(self) -> str:
         """
-        Return a representation of all redis DB commands to update to the absolute state in minimum operations
-        :return: A string with all redis command in raw executable form, delimited by semicolons
+        Return a representation of all ledis DB commands to update to the absolute state in minimum operations
+        :return: A string with all ledis command in raw executable form, delimited by semicolons
         """
         modified_keys = self._get_modified_keys()
         # Need to sort the modified_keys so state output is deterministic
@@ -295,7 +295,7 @@ class CRContext:
         """ Resets all state held by this container. """
 
         # TODO this is likely very sketch in terms of memory leaks but YOLO this is python bro whats a memory leak
-        # TODO -- we should if hard_reset=False, we should also reset_db all redis keys EXCLUDING phase variables
+        # TODO -- we should if hard_reset=False, we should also reset_db all ledis keys EXCLUDING phase variables
         def _is_subclass(obj, subs: tuple):
             """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
             for s in subs:
@@ -434,7 +434,7 @@ class CRContext:
             self.input_hash[:16], len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
 
 
-class RedisProxy:
+class LedisProxy:
 
     def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, cr_enabled=True):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
@@ -443,14 +443,14 @@ class RedisProxy:
         self.working_db, self.master_db = data.working_db, data.master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
         self.cmds = {}
-        self.log = get_logger("RedisProxy")
+        self.log = get_logger("LedisProxy")
 
     def __getattr__(self, item):
         from seneca.engine.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
-        assert item in CRCmdBase.registry, "redis operation {} not implemented for conflict resolution".format(item)
+        assert item in CRCmdBase.registry, "ledis operation {} not implemented for conflict resolution".format(item)
 
         # debug
-        self.log.notice("RedisProxy called for item {}".format(item))
+        self.log.notice("LedisProxy called for item {}".format(item))
         # end debug
 
         t = CRCmdBase.registry[item]

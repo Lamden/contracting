@@ -62,15 +62,15 @@ class SenecaLoader(Loader):
         return module
 
 
-class RedisFinder:
+class LedisFinder:
 
     def find_module(self, fullname, path=None):
         if fullname.startswith(SENECA_SC_PATH):
-            return RedisLoader(fullname)
+            return LedisLoader(fullname)
         return None
 
 
-class RedisLoader(SenecaLoader):
+class LedisLoader(SenecaLoader):
 
     def __init__(self, fullname):
         self.fullname = fullname

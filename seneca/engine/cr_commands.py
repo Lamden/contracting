@@ -1,4 +1,4 @@
-import redis
+import ledis
 from seneca.libs.logger import get_logger
 from seneca.engine.conflict_resolution import CRDataGetSet, CRContext, CRDataBase, CR_EXCLUDED_KEYS
 

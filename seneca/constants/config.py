@@ -4,7 +4,7 @@ import seneca
 SENECA_PATH = seneca.__path__[0]
 SENECA_SC_PATH = 'seneca.contracts'
 
-REDIS_PORT = 6379
+LEDIS_PORT = 6379
 MASTER_DB = 0
 DB_OFFSET = 1
 CODE_OBJ_MAX_CACHE = 64

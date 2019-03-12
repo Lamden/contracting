@@ -1,6 +1,6 @@
 from seneca.engine.conflict_resolution import *
 from seneca.engine.cr_commands import *
-import redis
+import ledis
 from unittest import TestCase
 import unittest
 
@@ -8,8 +8,8 @@ import unittest
 class TestConflictResolution(TestCase):
 
     def setUp(self):
-        self.master = redis.StrictRedis(host='localhost', port=6379, db=0)
-        self.working = redis.StrictRedis(host='localhost', port=6379, db=1)
+        self.master = ledis.Ledis(host='localhost', port=6379, db=0)
+        self.working = ledis.Ledis(host='localhost', port=6379, db=1)
         self.sbb_data = {}
         self._set_rp()
 
@@ -24,7 +24,7 @@ class TestConflictResolution(TestCase):
             data = self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize)
             self.sbb_data[contract_idx] = data
 
-        self.r = RedisProxy(sbb_idx=sbb_idx, contract_idx=contract_idx, data=data)
+        self.r = LedisProxy(sbb_idx=sbb_idx, contract_idx=contract_idx, data=data)
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
         cr = CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx)

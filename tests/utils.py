@@ -1,10 +1,10 @@
 from seneca.engine.interpreter.driver import Driver
 from unittest import TestCase
-from seneca.constants.config import MASTER_DB, REDIS_PORT
+from seneca.constants.config import MASTER_DB, LEDIS_PORT
 from seneca.engine.interpreter.executor import Executor
 from seneca.engine.interpreter.parser import Parser
 from seneca.libs.storage.table import Table
-import redis, pickle
+import ledis, pickle
 
 
 class TestCaseHeader(TestCase):
@@ -19,7 +19,7 @@ class TestExecutor(TestCaseHeader):
 
     @classmethod
     def setUpClass(cls):
-        cls.r = Driver(host='localhost', port=REDIS_PORT, db=MASTER_DB)
+        cls.r = Driver(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
         cls.r.flushall()
         cls.reset()
 
@@ -39,7 +39,7 @@ class TestExecutor(TestCaseHeader):
 
 class MockExecutor:
     def __init__(self, *args, **kwargs):
-        self.driver = redis.StrictRedis(host='localhost', port=REDIS_PORT, db=MASTER_DB)
+        self.driver = ledis.Ledis(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
         self.driver.flushall()
         Parser.executor = self
         if not Parser.parser_scope.get('rt'):

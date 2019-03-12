@@ -1,16 +1,16 @@
 from seneca.engine.interpreter.parser import Parser
 from seneca.engine.interpreter.scope import Scope
 from seneca.libs.metering.tracer import Tracer
-from seneca.constants.config import MASTER_DB, REDIS_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS, READ_ONLY_MODE
+from seneca.constants.config import MASTER_DB, LEDIS_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS, READ_ONLY_MODE
 import seneca, sys, marshal, os, types, ujson as json
 from base64 import b64encode, b64decode
 from os.path import join
 from functools import lru_cache
 from seneca.engine.interpreter.utils import Plugins, Assert
-from seneca.engine.interpreter.module import SenecaFinder, RedisFinder
+from seneca.engine.interpreter.module import SenecaFinder, LedisFinder
 from seneca.engine.interpreter.driver import Driver
 from seneca.engine.book_keeper import BookKeeper
-from seneca.engine.conflict_resolution import RedisProxy
+from seneca.engine.conflict_resolution import LedisProxy
 
 
 class Executor:
@@ -21,7 +21,7 @@ class Executor:
         self.currency = False
         self.concurrency = False
         self.reset_syspath()
-        self.driver_base = Driver(host='localhost', port=REDIS_PORT, db=MASTER_DB)
+        self.driver_base = Driver(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
         self.driver_proxy = None
         if flushall: self.driver.flushall()
         self.path = join(seneca.__path__[0], 'contracts')
@@ -37,7 +37,7 @@ class Executor:
         if self.concurrency:
             if not self.driver_proxy:
                 info = BookKeeper.get_cr_info()
-                self.driver_proxy = RedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
+                self.driver_proxy = LedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
                                                data=info['data'])
             else:
                 info = BookKeeper.get_cr_info()
@@ -49,9 +49,9 @@ class Executor:
             return self.driver_base
 
     def reset_syspath(self):
-        if not isinstance(sys.meta_path[-1], RedisFinder):
+        if not isinstance(sys.meta_path[-1], LedisFinder):
             self.old_sys_path = sys.meta_path
-            self.new_sys_path = [sys.meta_path[-1], SenecaFinder(), RedisFinder()]
+            self.new_sys_path = [sys.meta_path[-1], SenecaFinder(), LedisFinder()]
             sys.meta_path = self.new_sys_path
 
     def setup_tracer(self):

@@ -12,7 +12,7 @@ class TestSubmission(TestExecutor):
 
     def test_publish_code_str(self):
         """
-            Testing to see if the submission to Redis works.
+            Testing to see if the submission to Ledis works.
         """
         code_str = """
 @export

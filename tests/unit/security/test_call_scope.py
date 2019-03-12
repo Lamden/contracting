@@ -1,5 +1,5 @@
 from tests.utils import TestExecutor
-import redis, unittest, seneca, os
+import ledis, unittest, seneca, os
 
 os.environ['CIRCLECI'] = 'true'
 

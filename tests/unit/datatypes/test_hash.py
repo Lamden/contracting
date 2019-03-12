@@ -16,13 +16,14 @@ class TestHash(TestDataTypes):
         balances['hr']['employees']['stu'] = 100
         self.assertEqual(balances['hr']['employees']['stu'], 100)
 
-    def test_hash_nested(self):
-        balances = Hash('balances')
-        hooter = Hash('hoot')
-        hooter['res'] = 1234
-        balances['hr'] = Hash('hr')
-        balances['hr']['hey'] = hooter
-        self.assertEqual(balances['hr']['hey']['res'], 1234)
+    # TODO: Pointers currently not supported by CR
+    # def test_hash_nested(self):
+    #     balances = Hash('balances')
+    #     hooter = Hash('hoot')
+    #     hooter['res'] = 1234
+    #     balances['hr'] = Hash('hr')
+    #     balances['hr']['hey'] = hooter
+    #     self.assertEqual(balances['hr']['hey']['res'], 1234)
 
     def test_hash_nested_different_type(self):
         Coin = Table('Coin', {

@@ -12,7 +12,7 @@ class TestResource(TestExecutor):
         seed_amount = self.ex.get_resource('currency', 'seed_amount')
         self.assertEqual(balances['324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'], seed_amount)
 
-    # NOTE: just don't modify the resources, it's not a security issue because you can ultimately modify the Redis
+    # NOTE: just don't modify the resources, it's not a security issue because you can ultimately modify the Ledis
     #       data anyways. It will simply not pass on consensus
     def test_direct_resource_modify(self):
         balances = self.ex.get_resource('currency', 'balances')
