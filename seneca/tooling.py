@@ -18,7 +18,7 @@ class LocalInterface(Executor):
             self.driver.delete(key)
 
 
-default_interface = LocalInterface(concurrency=False, currency=False)
+default_interface = LocalInterface(concurrency=False, metering=False)
 
 
 class SenecaFunction:

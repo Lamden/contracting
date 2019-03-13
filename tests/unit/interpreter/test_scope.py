@@ -10,7 +10,7 @@ class TestScope(TestExecutor):
 
     def setUp(self):
         super().setUp()
-        self.ex.currency = False
+        self.ex.metering = False
         self.reset()
 
     def test_execute_importables(self):
@@ -66,7 +66,7 @@ def init():
             with open('{}/{}.sen.py'.format(test_contracts_path, contract)) as f:
                 self.ex.publish_code_str(contract, AUTHOR, f.read())
 
-        self.ex.currency = True
+        self.ex.metering = True
         result = self.ex.execute_function('reasonable', 'call_with_args',
                                           AUTHOR, stamps=10000, args=('it is required',), kwargs={
                                             'not_required': 'it is not requried'
@@ -86,7 +86,7 @@ def init():
             with open('{}/{}.sen.py'.format(test_contracts_path, contract)) as f:
                 self.ex.publish_code_str(contract, AUTHOR, f.read())
 
-        self.ex.currency = True
+        self.ex.metering = True
         with self.assertRaises(AssertionError) as context:
             result = self.ex.execute_function('reasonable', 'call_with_args',
                                               AUTHOR, 5, args=('it is required',), kwargs={'not_required':'it is not requried'})

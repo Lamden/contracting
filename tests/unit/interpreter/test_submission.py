@@ -8,7 +8,7 @@ test_contracts_path = seneca.__path__[0] + '/test_contracts/'
 class TestSubmission(TestExecutor):
 
     def tearDown(self):
-        self.ex.currency = False
+        self.ex.metering = False
         self.reset()
 
     def test_publish_code_str(self):

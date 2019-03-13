@@ -88,7 +88,7 @@ class TestSenecaClient(TestExecutor):
 
     def setUp(self):
         # overwrite_logger_level(0)
-        self.ex = Executor(currency=False, concurrency=False)
+        self.ex = Executor(metering=False, concurrency=False)
         self.r.flushall()
         self._mint_wallets()
         self.completed_hashes = defaultdict(list)
@@ -154,7 +154,7 @@ class TestSenecaClient(TestExecutor):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
-        client.currency = False
+        client.metering = False
 
         c1 = create_currency_tx('anonymoose', 'stu', 14)
         c2 = create_currency_tx('stu', 'anonymoose', 40)
@@ -178,7 +178,7 @@ class TestSenecaClient(TestExecutor):
         c2 = create_currency_tx('stu', 'anonymoose', 40)
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
-        client.currency = False
+        client.metering = False
 
         client.execute_sb(input_hash=input_hash, contracts=[c1, c2],
                           completion_handler=self.assert_completion(None, input_hash))
@@ -191,7 +191,7 @@ class TestSenecaClient(TestExecutor):
 
     def test_run_tx_increments_contract_idx(self):
         client = SenecaClient(sbb_idx=0, num_sbb=1)
-        client.currency = False
+        client.metering = False
         client._start_sb('A' * 64)
 
         self.assertEqual(client.active_db.next_contract_idx, 0)
@@ -225,7 +225,7 @@ class TestSenecaClient(TestExecutor):
         c2 = MockPublishTransaction(sender='anonymoose', contract_name='test', contract_code=TEST_CONTRACT)
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
-        client.currency = False
+        client.metering = False
         client._start_sb(input_hash)
 
         client.run_contract(c1)
@@ -253,8 +253,8 @@ class TestSenecaClient(TestExecutor):
         expected_sbb_rep = [(c1, "SUCC", "SET DecimalHash:currency:balances:anonymoose 9986.0;SET DecimalHash:currency:balances:stu 83.0;"),
                             (c2, "SUCC", "SET DecimalHash:currency:balances:stu 43.0;SET DecimalHash:currency:balances:anonymoose 10026.0;")]
 
-        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop, currency=False)
-        client.currency = False
+        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop, metering=False)
+        client.metering = False
         client._start_sb(input_hash)
 
         client.run_contract(c1)
@@ -279,7 +279,7 @@ class TestSenecaClient(TestExecutor):
                             (c2, "SUCC", "SET DecimalHash:currency:balances:stu 43.0;SET DecimalHash:currency:balances:anonymoose 10026.0;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
-        client.currency = False
+        client.metering = False
 
         client.execute_sb(input_hash=input_hash, contracts=[c1, c2],
                           completion_handler=self.assert_completion(expected_sbb_rep, input_hash))
@@ -298,7 +298,7 @@ class TestSenecaClient(TestExecutor):
         input_hash = 'A' * 64
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
-        client.currency = False
+        client.metering = False
         client.execute_sb(input_hash=input_hash, contracts=[],
                           completion_handler=self.assert_completion(expected_sbb_rep, input_hash))
 
@@ -319,9 +319,9 @@ class TestSenecaClient(TestExecutor):
         expected_sbb2_rep = []
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
-        client1.currency = False
+        client1.metering = False
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
-        client2.currency = False
+        client2.metering = False
         client1.execute_sb(input_hash=input_hash1, contracts=[c1, c2], completion_handler=self.assert_completion(expected_sbb1_rep, input_hash1))
         client2.execute_sb(input_hash=input_hash2, contracts=[], completion_handler=self.assert_completion(expected_sbb2_rep, input_hash2))
 
@@ -343,7 +343,7 @@ class TestSenecaClient(TestExecutor):
                             (c3, "SUCC", "SET DecimalHash:currency:balances:stu 43.0;SET DecimalHash:currency:balances:anonymoose 10026.0;")]
 
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
-        client.currency = False
+        client.metering = False
         client._start_sb(input_hash)
 
         client.run_contract(c1)
@@ -375,9 +375,9 @@ class TestSenecaClient(TestExecutor):
                              (c4, "SUCC", "SET DecimalHash:currency:balances:tj 7910.0;SET DecimalHash:currency:balances:birb 8090.0;")]
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
-        client1.currency = False
+        client1.metering = False
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
-        client2.currency = False
+        client2.metering = False
         client1._start_sb(input_hash1)
         client2._start_sb(input_hash2)
 
@@ -424,9 +424,9 @@ class TestSenecaClient(TestExecutor):
         asyncio.set_event_loop(loop)
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
-        client1.currency = False
+        client1.metering = False
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
-        client2.currency = False
+        client2.metering = False
 
         client1._start_sb(input_hash1)
         client2._start_sb(input_hash2)
@@ -486,9 +486,9 @@ class TestSenecaClient(TestExecutor):
         asyncio.set_event_loop(loop)
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
-        client1.currency = False
+        client1.metering = False
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
-        client2.currency = False
+        client2.metering = False
 
         client1._start_sb(input_hash1)
         client2._start_sb(input_hash2)
@@ -668,9 +668,9 @@ class TestSenecaClient(TestExecutor):
         asyncio.set_event_loop(loop)
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
-        client1.currency = False
+        client1.metering = False
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
-        client2.currency = False
+        client2.metering = False
 
         client1.execute_sb(input_hash1, contracts=[c1, c2], completion_handler=self.assert_completion(None, input_hash1))
         client2.execute_sb(input_hash2, contracts=[c3, c4], completion_handler=self.assert_completion(None, input_hash2))
@@ -695,7 +695,7 @@ class TestSenecaClient(TestExecutor):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
-        client.currency = False
+        client.metering = False
 
         contract_name = 'stubucks'
         input_hash1 = '1' * 64

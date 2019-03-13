@@ -20,7 +20,7 @@ class TestTransfer(TestExecutor):
         self.print_balance()
 
     def print_balance(self):
-        self.ex.currency = False
+        self.ex.metering = False
         stu = self.balances['stu']
         ass = self.balances['ass']
         print('stu has a balance of: {}'.format(stu))
@@ -34,7 +34,7 @@ class TestTransfer(TestExecutor):
             })
 
     def test_transfer_template_with_metering(self):
-        self.ex.currency = True
+        self.ex.metering = True
         for i in range(CONTRACT_COUNT):
             self.ex.execute_function('currency', 'transfer', 'stu', 3000, kwargs={
                 'to': 'ass',
@@ -42,7 +42,7 @@ class TestTransfer(TestExecutor):
             })
 
     def test_transfer_template_with_metering_all_fail(self):
-        self.ex.currency = True
+        self.ex.metering = True
         for i in range(CONTRACT_COUNT):
             try:
                 self.ex.execute_function('currency', 'transfer', 'stu', 100, kwargs={

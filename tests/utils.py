@@ -24,9 +24,9 @@ class TestExecutor(TestCaseHeader):
         cls.reset()
 
     @classmethod
-    def reset(cls, currency=False, concurrency=False):
+    def reset(cls, metering=False, concurrency=False):
         cls.r.flushall()
-        cls.ex = Executor(currency=currency, concurrency=concurrency)
+        cls.ex = Executor(metering=metering, concurrency=concurrency)
 
     @classmethod
     def flush(cls):

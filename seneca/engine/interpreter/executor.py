@@ -15,10 +15,10 @@ from seneca.engine.conflict_resolution import LedisProxy
 
 class Executor:
 
-    def __init__(self, currency=True, concurrency=True, flushall=False):
+    def __init__(self, metering=True, concurrency=True, flushall=False):
 
         Parser.executor = self
-        self.currency = False
+        self.metering = False
         self.concurrency = False
         self.reset_syspath()
         self.driver_base = Driver(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
@@ -28,7 +28,7 @@ class Executor:
         self.author = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
         self.official_contracts = OFFICIAL_CONTRACTS
         self.setup_official_contracts()
-        self.currency = currency
+        self.metering = metering
         self.concurrency = concurrency
         self.setup_tracer()
 
@@ -136,7 +136,7 @@ class Executor:
             author = meta['author']
         except Exception as e:
             author = self.author
-        if self.currency:
+        if self.metering:
             code_str = Plugins.assert_stamps(code_str)
         code_str = Plugins.import_module(code_str, contract_name, func_name)
         code_obj = compile(code_str, import_path, 'exec')
@@ -195,7 +195,7 @@ class Executor:
         Scope.scope = Parser.parser_scope
         stamps_used = 0
 
-        if self.currency and not self.tracer.started:
+        if self.metering and not self.tracer.started:
             error = None
             self.tracer.set_stamp(stamps)
             self.tracer.start()

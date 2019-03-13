@@ -29,7 +29,7 @@ def add_floats(s1, s2):
 class TestSenecaTooling(TestCase):
 
     def setUp(self):
-        self.driver = Executor(currency=False, concurrency=False, flushall=True)
+        self.driver = Executor(metering=False, concurrency=False, flushall=True)
 
     def test_submission(self):
         self.driver.publish_code_str(
