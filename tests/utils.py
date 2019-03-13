@@ -47,7 +47,7 @@ class MockExecutor:
         Parser.parser_scope['rt'].update({
             'contract': 'sample',
             'sender': 'falcon',
-            'author': '__lamden_io__'
+            'author': '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
         })
 
 

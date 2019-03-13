@@ -8,7 +8,7 @@ class TestTransfer(TestExecutor):
 
     def setUp(self):
         super().setUp()
-        self.ex.execute_function('currency', 'mint', '__lamden_io__', kwargs={'to': 'stu', 'amount': CONTRACT_COUNT ** 2})
+        self.ex.execute_function('currency', 'mint', '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502', kwargs={'to': 'stu', 'amount': CONTRACT_COUNT ** 2})
         self.balances = self.ex.get_resource('currency', 'balances')
         self.print_balance()
         self.start = time.time()

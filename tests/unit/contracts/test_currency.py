@@ -3,7 +3,7 @@ import seneca
 from decimal import Decimal
 
 PATH = seneca.__path__[0] + '/../test_contracts/'
-AUTHOR = '__lamden_io__'
+AUTHOR = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
 founder_wallets = wallets = [
     '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502',
     'a103715914a7aae8dd8fddba945ab63a169dfe6e37f79b4a58bcf85bfd681694',

@@ -25,7 +25,7 @@ class Executor:
         self.driver_proxy = None
         if flushall: self.driver.flushall()
         self.path = join(seneca.__path__[0], 'contracts')
-        self.author = '__lamden_io__'
+        self.author = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
         self.official_contracts = OFFICIAL_CONTRACTS
         self.setup_official_contracts()
         self.currency = currency

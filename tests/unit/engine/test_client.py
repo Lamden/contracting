@@ -11,7 +11,7 @@ from seneca.constants.config import SENECA_PATH
 
 
 log = get_logger("TestSenecaClient")
-GENESIS_AUTHOR = '__lamden_io__'
+GENESIS_AUTHOR = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
 STAMP_AMOUNT = 0
 MINT_WALLETS = {
     'anonymoose': 10000,
