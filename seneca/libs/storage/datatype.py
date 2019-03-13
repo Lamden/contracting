@@ -100,13 +100,15 @@ class DataType(Encoder, DataTypeProperties):
 
     def __new__(cls, *args, **kwargs):
         if kwargs.get('default_value') is not None and not kwargs.get('placeholder'):
+            resource_name = args[0]
             ValueType = Registry.get_value_type(type(kwargs['default_value']).__name__)
             if ValueType in NUMBER_TYPES:
                 ValueType = Decimal
             class_name = ValueType.__name__.capitalize() + cls.__name__
             new_class = type(class_name, (cls, ValueType), {})
             Registry.register_class(class_name, new_class)
-
+            contract_name = Parser.parser_scope['rt']['contract']
+            Parser.parser_scope['resources'][contract_name][resource_name] = class_name
             return cls.__new__(new_class)
 
         Registry.register_class(cls.__name__, cls)
