@@ -7,7 +7,7 @@ jobs:
   build:
     docker:
       - image: circleci/python:3.6.5
-      - image: lamden/cilantro_ee_base:circleci
+      - image: lamden/ledis:circleci
 
     working_directory: ~/seneca
 
