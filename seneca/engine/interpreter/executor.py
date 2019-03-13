@@ -66,6 +66,8 @@ class Executor:
 
     def setup_official_contracts(self):
         for name in self.official_contracts:
+            if self.driver.hexists('contracts', name):
+                continue
             with open(join(self.path, name+'.sen.py')) as f:
                 code_str = f.read()
                 code_obj, resources, methods = self.compile(name, code_str, {'ast': None, '__system__': True, '__executor__': self})
