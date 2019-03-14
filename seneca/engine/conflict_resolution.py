@@ -447,10 +447,6 @@ class LedisProxy:
         from seneca.engine.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
         assert item in CRCmdBase.registry, "ledis operation {} not implemented for conflict resolution".format(item)
 
-        # debug
-        self.log.notice("LedisProxy called for item {}".format(item))
-        # end debug
-
         t = CRCmdBase.registry[item]
         if t not in self.cmds:
             self.cmds[t] = t(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
