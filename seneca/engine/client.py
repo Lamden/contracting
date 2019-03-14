@@ -222,18 +222,12 @@ class SenecaClient(Executor):
             })
             data.locked = False
 
-            # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
-            if hasattr(contract, 'contract_code'):  # TODO not this pls
-                author = contract.sender
-                self.publish_code_str(contract_name=contract.contract_name, author=author,
-                                      code_str=contract.contract_code)
-            else:
-                run_info = self.execute_function(contract.contract_name, contract.func_name, contract.sender,
-                                                 contract.stamps_supplied, kwargs=contract.kwargs)
-                # The following is just for debug info
-                stamps_spent = run_info['stamps_used']
-                self.log.spam("Running contract from sender {} used {} stamps and returned run_info: {}"
-                              .format(contract.sender, stamps_spent, run_info))
+            run_info = self.execute_function(contract.contract_name, contract.func_name, contract.sender,
+                                             contract.stamps_supplied, kwargs=contract.kwargs)
+            # The following is just for debug info
+            stamps_spent = run_info['stamps_used']
+            self.log.spam("Running contract from sender {} used {} stamps and returned run_info: {}"
+                          .format(contract.sender, stamps_spent, run_info))
 
             result = SUCC_FLAG
 
