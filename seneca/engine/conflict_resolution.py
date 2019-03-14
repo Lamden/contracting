@@ -434,9 +434,9 @@ class CRContext:
 
 class LedisProxy:
 
-    def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, cr_enabled=True):
+    def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, concurrency=True):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
-        self.cr_enabled = cr_enabled
+        self.concurrency = concurrency
         self.data = data
         self.working_db, self.master_db = data.working_db, data.master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx

@@ -47,7 +47,7 @@ class Phase:
 
 
 class SenecaClient(Executor):
-    def __init__(self, sbb_idx, num_sbb, cr_enabled=True, loop=None, *args, **kwargs):
+    def __init__(self, sbb_idx, num_sbb, concurrency=True, loop=None, *args, **kwargs):
         # TODO do we even need to bother with the concurrent_mode flag? We are treating that its always true --davis
         super().__init__(*args, **kwargs)
 
@@ -57,8 +57,7 @@ class SenecaClient(Executor):
 
         self.sbb_idx = sbb_idx
         self.num_sb_builders = num_sbb
-        self.cr_enabled = cr_enabled
-        self.concurrency = cr_enabled
+        self.concurrency = concurrency
         self.max_number_workers = NUM_CACHES
 
         self.master_db = None  # A ledis.Ledis instance
@@ -395,7 +394,7 @@ class SenecaClient(Executor):
                         .format(elapsed, input_hash))
 
     async def _wait_for_cr_and_merge(self, cr_data: CRContext):
-        if not self.cr_enabled:
+        if not self.concurrency:
             self.log.debug("Concurrent mode disabled. Skipping wait for conflict resolution")
             return
 
