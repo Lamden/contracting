@@ -169,7 +169,7 @@ class Executor:
             resource = resource.resource_obj
         return resource
 
-    def execute_function(self, contract_name, func_name, sender, stamps=0, args=tuple(), kwargs={}):
+    def execute_function(self, contract_name, func_name, sender, stamps=0, kwargs={}):
         Parser.parser_scope.update({
             'rt': {
                 'sender': sender,
@@ -177,7 +177,6 @@ class Executor:
                 'contract': contract_name
             },
             '__stamps__': stamps,
-            '__args__': args,
             '__kwargs__': kwargs,
             '__tracer__': self.tracer,
             '__safe_execution__': True

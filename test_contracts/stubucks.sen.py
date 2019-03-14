@@ -1,17 +1,17 @@
-from seneca.libs.datatypes import hmap
+from seneca.libs.datatypes import Hash
 
-balances = hmap('balances', str, int)
+balances = Hash('balances', default_value=0)
+custodials = Hash('custodials', default_value=0)
+
+@seed
+def seed():
+    balances['435e3264395e24eb37a0eb6c322421e701dc332db45536d25eac67924b9321aa'] = 1000000
 
 @export
 def transfer(to, amount):
-    print('transfer', balances[rt['sender']], rt['sender'])
     assert balances[rt['sender']] >= amount, 'oh nooo i blew up'
     balances[to] += amount
     balances[rt['sender']] -= amount
-
-# a better way to deal with 'allowances' which are dumb af
-# and don't reflect real life business operations
-custodials = hmap('custodials', str, hmap(key_type=str, value_type=int))
 
 @export
 def add_to_custodial(to, amount):
@@ -39,7 +39,3 @@ def get_balance(account):
 @export
 def get_custodial(owner, spender):
     return custodials[owner][spender]
-
-@seed
-def seed():
-    balances['435e3264395e24eb37a0eb6c322421e701dc332db45536d25eac67924b9321aa'] = 1000000

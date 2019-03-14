@@ -27,8 +27,6 @@ class Scope:
 
         # Set args and kwargs for top level run
         if len(self.scope['callstack']) == 1:
-            if self.scope.get('__args__'):
-                args = self.scope['__args__']
             if self.scope.get('__kwargs__'):
                 kwargs = self.scope['__kwargs__']
         elif contract_name != caller_contract:
@@ -44,6 +42,7 @@ class Scope:
             if len(self.scope['callstack']) > 0:
                 contract_name, fn, caller_rt = self.scope['callstack'][-1]
                 fn.__globals__['rt'] = caller_rt
+
 
 # Applies to Private, Export, and Seed functions
 class Function(Scope):
@@ -77,8 +76,9 @@ class Seed(Scope):
         if self.scope.get('__seed__'):
             if self.scope.get('__executor__'):
                 driver = self.scope['__executor__'].driver
-                if not driver.hget('contracts', self.scope['rt']['contract']):
                 # if not driver.hexists('contracts', self.scope['rt']['contract']): # TODO change back to this after CR
+                if not driver.hget('contracts', self.scope['rt']['contract']):
                     fn()
             else:
                 fn()
+

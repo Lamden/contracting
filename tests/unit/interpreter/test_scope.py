@@ -68,7 +68,8 @@ def init():
 
         self.ex.metering = True
         result = self.ex.execute_function('reasonable', 'call_with_args',
-                                          AUTHOR, stamps=10000, args=('it is required',), kwargs={
+                                          AUTHOR, stamps=10000, kwargs={
+                                            'required': 'it is required',
                                             'not_required': 'it is not requried'
                                           })
 
@@ -77,7 +78,7 @@ def init():
     def test_execute_function_invalid(self):
         with self.assertRaises(ImportError) as context:
             result = self.ex.execute_function('seneca.engine.util.make_n_tup',
-                                              'also_me', 10000, args=({'x': 'y'},))
+                                              'also_me', 10000, kwargs={'ntup': ({'x': 'y'},)})
             print('Should not print this: ', result)
 
     def test_execute_function_out_of_gas(self):
@@ -89,4 +90,4 @@ def init():
         self.ex.metering = True
         with self.assertRaises(AssertionError) as context:
             result = self.ex.execute_function('reasonable', 'call_with_args',
-                                              AUTHOR, 5, args=('it is required',), kwargs={'not_required':'it is not requried'})
+                                              AUTHOR, 5, kwargs={'required': 'it is required', 'not_required':'it is not requried'})
