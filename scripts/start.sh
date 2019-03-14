@@ -2,7 +2,7 @@
 # Configure env files
 export PYTHONPATH=$(pwd)
 
-echo "Starting Redis server..."
+echo "Starting Ledis server..."
 #pkill -9 redis-server
 #redis-server 2>/dev/null >/dev/null &
 pkill -9 ledis-server
