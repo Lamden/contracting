@@ -65,5 +65,4 @@ def transfer_from(approver, spender, amount):
 def mint(to, amount):
     # print("minting {} to wallet {}".format(amount, to))
     assert rt['sender'] == rt['author'], 'Only the original contract author can mint! (AUTHOR:{}, SENDER:{})'.format(rt['author'], rt['sender'])
-
     balances[to] += amount

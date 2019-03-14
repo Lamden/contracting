@@ -196,6 +196,7 @@ class Executor:
         stamps_used = 0
 
         if self.metering and not self.tracer.started:
+            print('METERING IS ENABLED')
             error = None
             self.tracer.set_stamp(stamps)
             self.tracer.start()
@@ -213,6 +214,7 @@ class Executor:
                 if error:
                     raise error
         else:
+            print('METERING IS DISABLED')
             try:
                 exec(code_obj, Scope.scope)
             except Exception as e:
