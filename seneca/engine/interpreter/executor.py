@@ -196,7 +196,7 @@ class Executor:
         Scope.scope = Parser.parser_scope
         stamps_used = 0
 
-        print('[SENECA] Executing function in concurrency mode = {} with {}'.format(self.concurrency, Parser.executor.driver))
+        print('[SENECA] Executing function in concurrency mode = {} with {}'.format(self.concurrency, Parser.parser_scope.get('__executor__')))
 
         if self.metering and not self.tracer.started:
             error = None
