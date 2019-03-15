@@ -182,9 +182,11 @@ class Executor:
             '__safe_execution__': True
         })
         Parser.parser_scope.update(Parser.basic_scope)
+        current_executor = Parser.executor
         code_obj, author = self.get_contract_func(contract_name, func_name)
         if contract_name in ('smart_contract', ):
             Parser.parser_scope['__executor__'] = self
+            Parser.executor = self
         else:
             if Parser.parser_scope.get('__executor__'):
                 del Parser.parser_scope['__executor__']
@@ -220,6 +222,7 @@ class Executor:
                 raise
         Parser.parser_scope.update(Scope.scope)
         Parser.parser_scope['__safe_execution__'] = False
+        Parser.executor = current_executor
         return {
             'status': 'success',
             'output': Scope.scope.get('__result__'),

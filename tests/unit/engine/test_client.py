@@ -237,7 +237,6 @@ class TestSenecaClient(TestExecutor):
         loop.close()
 
     def test_with_just_a_lone_publish_transaction_but_two_clients_but_one_of_them_has_no_transactions(self):
-        # TODO finish this
         self.ex.concurrency = False
         code_obj, resources, methods = self.ex.compile('test', TEST_CONTRACT)
         contract_str = json.dumps({
@@ -257,21 +256,18 @@ class TestSenecaClient(TestExecutor):
 
         client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
         client1.metering = False
-        client1._start_sb(input_hash1)
 
         client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
         client2.metering = False
-        client2._start_sb(input_hash1)
-
-        client1.run_contract(c1)
 
         expected_sbb_rep = [(c1, "SUCC", 'SET Hash:test:balances:hello "world";SET contracts:test ' + contract_str + ';')]
-
-        client1._end_sb(self.assert_completion(expected_sbb_rep, input_hash1))
-        self.assertTrue(input_hash1 in client1.pending_futures)
+        client1.execute_sb(input_hash1, [], self.assert_completion(None, input_hash1, merge_master=True,
+                           client=client1, merge_wait=0))
+        client2.execute_sb(input_hash2, [c1], self.assert_completion(expected_sbb_rep, input_hash2, merge_master=True,
+                           client=client2, merge_wait=0))
 
         # We must run the future manually, since the event loop is not currently running
-        loop.run_until_complete(client1.pending_futures[input_hash1]['fut'])
+        loop.run_until_complete(asyncio.gather(client1.pending_futures[input_hash1]['fut'], client2.pending_futures[input_hash2]['fut']))
 
         loop.close()
 

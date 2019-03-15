@@ -1,6 +1,5 @@
 @export
 def submit_contract(contract_name, code_str):
-    # __executor__.concurrency = True
     code_obj, resources, methods = __executor__.compile(contract_name, code_str)
     contract = {
         'code_str': code_str,
