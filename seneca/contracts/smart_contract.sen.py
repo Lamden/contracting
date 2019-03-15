@@ -1,5 +1,6 @@
 @export
 def submit_contract(contract_name, code_str):
+    print('[SC] before compile... {}'.format(__executor__.driver))
     code_obj, resources, methods = __executor__.compile(contract_name, code_str)
     contract = {
         'code_str': code_str,

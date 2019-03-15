@@ -187,7 +187,6 @@ class Executor:
         code_obj, author = self.get_contract_func(contract_name, func_name)
         if contract_name in ('smart_contract', ):
             Parser.parser_scope['__executor__'] = self
-            Parser.executor = self
         else:
             if Parser.parser_scope.get('__executor__'):
                 del Parser.parser_scope['__executor__']
