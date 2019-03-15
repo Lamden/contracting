@@ -186,7 +186,9 @@ class Executor:
         current_executor = Parser.executor
         code_obj, author = self.get_contract_func(contract_name, func_name)
         if contract_name in ('smart_contract', ):
+            print('[SENECA] reassigned __executor__ to {} with driver {}'.format(self, self.driver))
             Parser.parser_scope['__executor__'] = self
+            Parser.executor = self
         else:
             if Parser.parser_scope.get('__executor__'):
                 del Parser.parser_scope['__executor__']
@@ -196,7 +198,7 @@ class Executor:
         Scope.scope = Parser.parser_scope
         stamps_used = 0
 
-        print('[SENECA] Executing function in concurrency mode = {} with {}'.format(self.concurrency, Parser.executor.driver))
+        print('[SENECA] Executing function in concurrency mode = {} with {}'.format(self.concurrency, self.driver))
 
         if self.metering and not self.tracer.started:
             error = None
