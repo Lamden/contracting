@@ -76,8 +76,7 @@ class CRDataGetSet(CRDataBase, dict):
 
     def _get_modified_keys(self):
         # TODO this needs to return READs that have had their original values changed too!
-        return set().union(
-            (key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
+        return set().union((key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
 
     def merge_to_common(self):
         modified_keys = self._get_modified_keys()
