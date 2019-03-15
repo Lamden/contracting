@@ -1,5 +1,6 @@
 @export
 def submit_contract(contract_name, code_str):
+    __executor__.concurrency = __concurrency__
     print('[SC] before compile... {}'.format(__executor__.driver))
     code_obj, resources, methods = __executor__.compile(contract_name, code_str)
     contract = {
