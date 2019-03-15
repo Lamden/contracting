@@ -88,6 +88,7 @@ class Executor:
     def set_contract(self, contract_name, code_str, code_obj, author, resources, methods, driver=None, override=False):
         if not driver:
             driver = self.driver
+        print('[SENECA] using inside set_contract... {}'.format(driver))
         if not override:
             assert not driver.hget('contracts', contract_name), 'Contract name "{}" already taken.'.format(contract_name)
         driver.hset('contracts', contract_name, json.dumps({
@@ -196,7 +197,7 @@ class Executor:
         Scope.scope = Parser.parser_scope
         stamps_used = 0
 
-        print('[SENECA] Executing function in concurrency mode = {} with {}'.format(self.concurrency, Parser.parser_scope.get('__executor__')))
+        print('[SENECA] Executing function in concurrency mode = {} with {}'.format(self.concurrency, Parser.executor.driver))
 
         if self.metering and not self.tracer.started:
             error = None

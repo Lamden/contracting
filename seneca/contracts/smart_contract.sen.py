@@ -8,6 +8,7 @@ def submit_contract(contract_name, code_str):
         'resources': resources,
         'methods': methods
     }
+    print('[SC] before set_contract... {}'.format(__executor__.driver))
     __executor__.set_contract(contract_name, **contract, override=False)
     return contract
 
