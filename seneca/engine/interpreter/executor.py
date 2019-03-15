@@ -81,8 +81,7 @@ class Executor:
 
     @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
     def get_contract(self, contract_name):
-        contract = json.loads(b64decode(self.driver.hget('contracts', contract_name)))
-        contract['code_obj'] = marshal.loads(b64decode(contract['code_obj']))
+        contract = marshal.loads(b64decode(self.driver.hget('contracts', contract_name)))
         return contract
 
     def set_contract(self, contract_name, code_str, code_obj, author, resources, methods, driver=None, override=False):
@@ -91,13 +90,13 @@ class Executor:
         print('[SENECA] using inside set_contract... {}'.format(driver))
         if not override:
             assert not driver.hget('contracts', contract_name), 'Contract name "{}" already taken.'.format(contract_name)
-        driver.hset('contracts', contract_name, b64encode(json.dumps({
+        driver.hset('contracts', contract_name, b64encode(marshal.dumps({
             'code_str': code_str,
-            'code_obj': b64encode(marshal.dumps(code_obj)),
+            'code_obj': code_obj,
             'author': author,
             'resources': resources.get(contract_name, {}),
             'methods': methods.get(contract_name, {}),
-        }).encode()))
+        })))
 
 
     @staticmethod
