@@ -194,6 +194,8 @@ class Executor:
         Scope.scope = Parser.parser_scope
         stamps_used = 0
 
+        print('[SENECA] Executing function in concurrency mode = {}'.format(self.concurrency))
+
         if self.metering and not self.tracer.started:
             error = None
             self.tracer.set_stamp(stamps)
@@ -239,3 +241,4 @@ class Executor:
         Parser.parser_scope['__seed__'] = False
         self.execute(contract['code_obj'], module.__dict__)
         return module
+

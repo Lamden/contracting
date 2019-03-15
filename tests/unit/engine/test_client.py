@@ -206,6 +206,40 @@ class TestSenecaClient(TestExecutor):
         client.run_contract(c2)
         self.assertEqual(client.active_db.next_contract_idx, 2)
 
+    def test_with_just_a_lone_publish_transaction(self):
+
+        self.ex.concurrency = False
+        code_obj, resources, methods = self.ex.compile('test', TEST_CONTRACT)
+        contract_str = json.dumps({
+            'code_str': TEST_CONTRACT,
+            'code_obj': b64encode(marshal.dumps(code_obj)),
+            'author': "anonymoose",
+            'resources': resources.get('test', {}),
+            'methods': methods.get('test', {}),
+        })
+
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        input_hash = 'A' * 64
+        c1 = MockPublishTransaction(sender='anonymoose', contract_name='test', contract_code=TEST_CONTRACT)
+
+        client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
+        client.metering = False
+        client._start_sb(input_hash)
+
+        client.run_contract(c1)
+
+        expected_sbb_rep = [(c1, "SUCC", 'SET Hash:test:balances:hello "world";SET contracts:test ' + contract_str + ';')]
+
+        client._end_sb(self.assert_completion(expected_sbb_rep, input_hash))
+        self.assertTrue(input_hash in client.pending_futures)
+
+        # We must run the future manually, since the event loop is not currently running
+        loop.run_until_complete(client.pending_futures[input_hash]['fut'])
+
+        loop.close()
+
     def test_with_publish_transactions(self):
 
         self.ex.concurrency = False

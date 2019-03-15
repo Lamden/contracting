@@ -418,7 +418,7 @@ class CRContext:
                 if key_type == 'KV':
                     CRDataGetSet.merge_to_master(working_db, master_db, key)
                 else:
-                    raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, t))
+                    raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, key_type))
 
     def __getitem__(self, item):
         assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}" \
