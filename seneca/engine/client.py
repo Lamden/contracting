@@ -203,7 +203,7 @@ class SenecaClient(Executor):
 
         # DEBUG
         kwargs = 'contract_name=' + contract.contract_name if hasattr(contract, 'contract_code') else contract.kwargs
-        self.log.spam("[EXEC PHASE #{}] exec from sender {} with kwargs {} resulted in state {}"
+        self.log.notice("[EXEC PHASE #{}] exec from sender {} with kwargs {} resulted in state {}"
                       .format(contract_idx, contract.sender, kwargs, data.get_state_for_idx(contract_idx)))
         # END DEBUG
 
