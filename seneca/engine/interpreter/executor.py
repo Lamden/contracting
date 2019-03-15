@@ -181,7 +181,10 @@ class Executor:
             '__kwargs__': kwargs,
             '__tracer__': self.tracer,
             '__safe_execution__': True,
-            '__concurrency__': False
+            '__flags__': {
+                'concurrency': self.concurrency,
+                'metering': self.metering
+            }
         })
         Parser.parser_scope.update(Parser.basic_scope)
         current_executor = Parser.executor
@@ -194,7 +197,6 @@ class Executor:
                 del Parser.parser_scope['__executor__']
         Parser.parser_scope['rt']['author'] = author
         Parser.parser_scope['callstack'] = []
-        Parser.parser_scope['__concurrency__'] = self.concurrency
 
         Scope.scope = Parser.parser_scope
         stamps_used = 0
