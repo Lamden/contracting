@@ -39,6 +39,10 @@ class ConcurrentDriver(WalrusLedis):
         keys_count, keys = self.scan_generic('SCAN')
         return keys
 
+    def __getattribute__(self, name):
+        print("CONCURRENT DRIVER RETURNING ATTR {}".format(name))
+        return object.__getattribute__(self, name)
+
 
 class Driver(ConcurrentDriver):
     """
