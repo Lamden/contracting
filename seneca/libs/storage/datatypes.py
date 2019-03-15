@@ -8,7 +8,7 @@ from walrus.containers import chainable_method
 
 class Hash(DataType, SubscriptType, WHash):
 
-    default_value = {}
+    base_default_value = {}
 
     @chainable_method
     def update(self, kwargs):

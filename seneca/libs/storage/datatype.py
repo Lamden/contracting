@@ -8,7 +8,8 @@ import ujson as json
 
 class Encoder(object):
 
-    default_value = None
+    default_value = {}
+    base_default_value = None
 
     def encode(self, value, key=None):
         if issubclass(type(value), DataType):
@@ -44,10 +45,11 @@ class Encoder(object):
         if not value:
             if resource:
                 cls = self.__class__
-                obj = cls(resource, cls.default_value, placeholder=True)
+                print('using...', resource, cls.default_value, self.contract_name)
+                obj = cls(resource, cls.default_value.get(self.contract_name), placeholder=True)
                 obj.contract_name = self.contract_name
                 return obj
-            return self.default_value
+            return self.default_value.get(self.contract_name, self.base_default_value)
         value = value.decode()
         if value[0] == POINTER:
             data_type_name, _, key = value[1:].split(DELIMITER, 2)
@@ -120,7 +122,7 @@ class DataType(Encoder, DataTypeProperties):
         self.data = None
         self.access_mode = READ_WRITE_MODE
         if default_value is not None:
-            self.default_value = default_value
+            self.default_value[self.contract_name] = default_value
 
         if not placeholder:
             if not Parser.parser_scope.get('resources', {}).get(self.rt['contract'], {}).get(resource):

@@ -31,11 +31,11 @@ TEST_CONTRACT = \
 """
 from seneca.libs.storage.datatypes import Hash
 
-balances = Hash('balances')
+sample = Hash('sample')
 
 @seed
 def init():
-    balances['hello'] = 'world'
+    sample['hello'] = 'world'
     
 @export
 def one_you_can_export():
@@ -227,7 +227,7 @@ class TestSenecaClient(TestExecutor):
         client = SenecaClient(sbb_idx=0, num_sbb=1, loop=loop)
         client.metering = False
 
-        expected_sbb_rep = [(c1, "SUCC", 'SET Hash:test:balances:hello "world";SET contracts:test ' + contract_str + ';')]
+        expected_sbb_rep = [(c1, "SUCC", 'SET Hash:test:sample:hello "world";SET contracts:test ' + contract_str + ';')]
         client.execute_sb(input_hash, [c1], self.assert_completion(expected_sbb_rep, input_hash, merge_master=True, client=client, merge_wait=0))
 
         self.assertTrue(input_hash in client.pending_futures)
@@ -254,13 +254,10 @@ class TestSenecaClient(TestExecutor):
         input_hash2 = 'B' * 64
         c1 = MockPublishTransaction(sender='anonymoose', contract_name='test', contract_code=TEST_CONTRACT)
 
-        client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop)
-        client1.metering = False
+        client1 = SenecaClient(sbb_idx=0, num_sbb=2, loop=loop, metering=False)
+        client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop, metering=False)
 
-        client2 = SenecaClient(sbb_idx=1, num_sbb=2, loop=loop)
-        client2.metering = False
-
-        expected_sbb_rep = [(c1, "SUCC", 'SET Hash:test:balances:hello "world";SET contracts:test ' + contract_str + ';')]
+        expected_sbb_rep = [(c1, "SUCC", 'SET Hash:test:sample:hello "world";SET contracts:test ' + contract_str + ';')]
         client1.execute_sb(input_hash1, [], self.assert_completion(None, input_hash1, merge_master=True,
                            client=client1, merge_wait=0))
         client2.execute_sb(input_hash2, [c1], self.assert_completion(expected_sbb_rep, input_hash2, merge_master=True,
@@ -299,7 +296,7 @@ class TestSenecaClient(TestExecutor):
 
         expected_sbb_rep = [(c1, "SUCC",
                              "SET DecimalHash:currency:balances:anonymoose 9986.0;SET DecimalHash:currency:balances:stu 83.0;"),
-                            (c2, "SUCC", 'SET Hash:test:balances:hello "world";SET contracts:test ' + contract_str + ';')]
+                            (c2, "SUCC", 'SET Hash:test:sample:hello "world";SET contracts:test ' + contract_str + ';')]
 
         client._end_sb(self.assert_completion(expected_sbb_rep, input_hash))
         self.assertTrue(input_hash in client.pending_futures)

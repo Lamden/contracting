@@ -175,7 +175,9 @@ class Executor:
             'rt': {
                 'sender': sender,
                 'origin': sender,
-                'contract': contract_name
+                'contract': contract_name,
+                'concurrency': self.concurrency,
+                'metering': self.metering
             },
             '__stamps__': stamps,
             '__kwargs__': kwargs,
@@ -188,14 +190,9 @@ class Executor:
         if contract_name in ('smart_contract', ):
             print('[SENECA] reassigned __executor__ to {} with driver {}'.format(self, self.driver))
             Parser.parser_scope['__executor__'] = self
-            Parser.parser_scope['__flags__'] = {
-                'concurrency': self.concurrency,
-                'metering': self.metering
-            }
         else:
             if Parser.parser_scope.get('__executor__'):
                 del Parser.parser_scope['__executor__']
-                del Parser.parser_scope['__flags__']
         Parser.parser_scope['rt']['author'] = author
         Parser.parser_scope['callstack'] = []
 
