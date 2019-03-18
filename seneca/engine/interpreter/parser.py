@@ -21,6 +21,7 @@ class Parser:
     parser_scope = {
         'ast': None,
         'callstack': [],
+        'namespace': defaultdict(dict),
         'exports': {},
         'imports': {},
         'resources': {},
@@ -121,7 +122,7 @@ class NodeTransformer(ast.NodeTransformer):
 
     def visit_Import(self, node):
         for n in node.names:
-            self.validate_imports( n.name, alias=n.asname)
+            self.validate_imports(n.name, alias=n.asname)
         return self._visit_any_import(node)
 
     def visit_ImportFrom(self, node):
@@ -203,8 +204,6 @@ class NodeTransformer(ast.NodeTransformer):
             if Parser.parser_scope['ast'] in ('export', 'seed', 'func'):
                 self.generic_visit(node)
             Parser.parser_scope['ast'] = original_ast_scope
-        # if self.constants:
-        #     node.body = Plugins.global_reassignment(self.constants) + node.body
         node.decorator_list.append(
             ast.Name(id='__function__', ctx=ast.Load())
         )

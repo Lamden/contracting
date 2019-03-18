@@ -47,14 +47,22 @@ class Scope:
 # Applies to Private, Export, and Seed functions
 class Function(Scope):
     def __call__(self, fn):
+
         def _fn(*args, **kwargs):
+            contract_name = self.scope['rt']['contract']
+            if self.scope['namespace'].get(contract_name, {}).get(fn.__name__):
+                new_fn = self.scope['namespace'][contract_name][fn.__name__]
+            else:
+                new_fn = fn
             args, kwargs = self.set_scope(fn, args, kwargs)
-            res = fn(*args, **kwargs)
+            res = new_fn(*args, **kwargs)
             self.reset_scope()
             return res
+
         contract_name = self.scope['rt']['contract']
         _fn.__name__ = fn.__name__
         fn.__module__ = contract_name
+        self.scope['namespace'][contract_name][fn.__name__] = fn
         self.scope['methods'][contract_name][fn.__name__] = fn.__code__.co_varnames
         return _fn
 

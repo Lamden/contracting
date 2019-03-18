@@ -81,7 +81,7 @@ class Executor:
 
     @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
     def get_contract(self, contract_name):
-        contract = marshal.loads(b64decode(self.driver.hget('contracts', contract_name)))
+        contract = marshal.loads(b64decode(self.driver.hget('contracts', contract_name).decode()))
         return contract
 
     def set_contract(self, contract_name, code_str, code_obj, author, resources, methods, driver=None, override=False):
@@ -89,6 +89,13 @@ class Executor:
             driver = self.driver
         if not override:
             assert not driver.hget('contracts', contract_name), 'Contract name "{}" already taken.'.format(contract_name)
+        sss = b64encode(marshal.dumps({
+            'code_str': code_str,
+            'code_obj': code_obj,
+            'author': author,
+            'resources': resources.get(contract_name, {}),
+            'methods': methods.get(contract_name, {}),
+        }))
         driver.hset('contracts', contract_name, b64encode(marshal.dumps({
             'code_str': code_str,
             'code_obj': code_obj,

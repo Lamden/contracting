@@ -421,7 +421,7 @@ class CRContext:
                     raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, key_type))
 
     def __getitem__(self, item):
-            assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}" \
+        assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}" \
             .format(item, list(self.cr_data.keys()))
         if self.locked:
             raise Exception("CRData attempted to be accessed while it was locked!! Bug in interpreter layer")
