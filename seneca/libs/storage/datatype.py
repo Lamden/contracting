@@ -45,7 +45,6 @@ class Encoder(object):
         if not value:
             if resource:
                 cls = self.__class__
-                print('using...', resource, cls.default_value, self.contract_name)
                 obj = cls(resource, cls.default_value.get(self.contract_name), placeholder=True)
                 obj.contract_name = self.contract_name
                 return obj
