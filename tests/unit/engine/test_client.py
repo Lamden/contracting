@@ -206,6 +206,7 @@ class TestSenecaClient(TestExecutor):
         client.run_contract(c2)
         self.assertEqual(client.active_db.next_contract_idx, 2)
 
+    # TODO: Davis!
     # def test_with_just_a_lone_publish_transaction(self):
     #
     #     self.ex.concurrency = False
