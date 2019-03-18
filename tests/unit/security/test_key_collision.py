@@ -6,7 +6,7 @@ from decimal import *
 
 os.environ['CIRCLECI'] = 'true'
 
-test_contracts_path = seneca.__path__[0] + '/test_contracts/'
+test_contracts_path = os.path.dirname(seneca.__path__[0]) + '/test_contracts/'
 
 restaurant_a = """
 from seneca.libs.storage.datatypes import Hash
@@ -61,6 +61,9 @@ def change_bread(bread, amount):
 
 """
 
+STU = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
+DAVIS = 'a103715914a7aae8dd8fddba945ab63a169dfe6e37f79b4a58bcf85bfd681694'
+
 
 class TestKeyCollision(TestExecutor):
 
@@ -85,6 +88,17 @@ class TestKeyCollision(TestExecutor):
         self.ex.publish_code_str('restaurant_c', 'anonymoose', restaurant_c)
         res = self.ex.execute_function('restaurant_c', 'this_bread', 'anonymoose', kwargs={'bread': 'rye'})
         self.assertEqual(res['output'], Decimal('33.9'))
+
+    def test_stubucks_collision(self):
+        with open('{}/new_stubucks.sen.py'.format(test_contracts_path)) as f:
+            self.ex.publish_code_str('stubucks', 'anonymoose', f.read())
+        res = self.ex.execute_function('stubucks', 'transfer', STU, kwargs={
+            'to': DAVIS,
+            'amount': 1337
+        })
+        balances = self.ex.get_resource('stubucks', 'balances')
+        self.assertEqual(balances[STU], Decimal('998663'))
+        self.assertEqual(balances[DAVIS], Decimal('1337'))
 
 
 if __name__ == '__main__':
