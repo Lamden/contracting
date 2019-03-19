@@ -1,5 +1,5 @@
 from seneca.libs.logger import get_logger
-import redis
+import ledis
 from multiprocessing import Process
 
 KEY = 'that_key'
@@ -9,7 +9,7 @@ COUNT = 10 ** 5
 
 def do_that(proc_name, total_procs):
     num_resets = 0
-    r = redis.StrictRedis(host='127.0.0.1', db=0, password='')
+    r = ledis.Ledis(host='127.0.0.1', db=0, password='')
 
     for _ in range(COUNT):
         r.incr(KEY)
@@ -23,13 +23,13 @@ def do_that(proc_name, total_procs):
 
 def test_incr():
     print("starting incr...")
-    r = redis.StrictRedis(host='127.0.0.1', db=0, password='')
+    r = ledis.Ledis(host='127.0.0.1', db=0, password='')
     for _ in range(COUNT):
         r.incr(KEY)
 
 
 if __name__ == '__main__':
-    r = redis.StrictRedis(host='127.0.0.1', db=0, password='')
+    r = ledis.Ledis(host='127.0.0.1', db=0, password='')
     r.set(KEY, 0)
 
     x = 8

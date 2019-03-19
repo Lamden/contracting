@@ -12,3 +12,4 @@ dump.rdb
 *.log
 *.log_color
 *.csv
+var

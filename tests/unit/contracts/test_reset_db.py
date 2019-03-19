@@ -1,30 +1,18 @@
-from unittest import TestCase
-from seneca.engine.interface import SenecaInterface
-from seneca.constants.config import get_redis_port, get_redis_password
-import redis, unittest, seneca
+import unittest, seneca
+from tests.utils import TestExecutor
 from os.path import dirname
 
 test_contracts_path = dirname(seneca.__path__[0]) + '/test_contracts'
-AUTHOR = 'anonymoose'
+AUTHOR = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
 
-class TestResetDB(TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.si = SenecaInterface(False, port=get_redis_port(), password=get_redis_password())
-        cls.si.bypass_currency = True
-        cls.si.r.flushall()
-
-    def setUp(self):
-        print('\n{}'.format('#' * 128))
-        print(self.id)
-        print('{}\n'.format('#' * 128))
+class TestNoResetDB(TestExecutor):
 
     def test_1_no_reset_in_between(self):
         code_str = """
-from seneca.libs.datatypes import hmap
+from seneca.libs.storage.datatypes import Hash
 
-balances = hmap('balances', str, int)
+balances = Hash('balances')
 
 @seed
 def gv_mones():
@@ -38,116 +26,75 @@ def ad_mones():
 def ls_mones():
     return balances['birb']
         """
-        self.si.publish_code_str('mones', AUTHOR, code_str)
-        self.si.execute_function('seneca.contracts.mones.ad_mones', 'mones', 0)
-        self.si.execute_function('seneca.contracts.mones.ad_mones', 'mones', 0)
-        self.si.execute_function('seneca.contracts.mones.ad_mones', 'mones', 0)
-        self.si.execute_function('seneca.contracts.mones.ad_mones', 'mones', 0)
-        res = self.si.execute_function('seneca.contracts.mones.ls_mones', 'mones', 0)
+        self.ex.publish_code_str('mones', AUTHOR, code_str)
+        self.ex.execute_function('mones', 'ad_mones', 'mones', 0)
+        self.ex.execute_function('mones', 'ad_mones', 'mones', 0)
+        self.ex.execute_function('mones', 'ad_mones', 'mones', 0)
+        self.ex.execute_function('mones', 'ad_mones', 'mones', 0)
+        res = self.ex.execute_function('mones', 'ls_mones', 'mones', 0)
         self.assertEqual(res['output'], 1000400)
 
     def test_2_no_reset_in_between(self):
-        self.si.execute_function('seneca.contracts.mones.ad_mones', 'mones', 0)
-        res = self.si.execute_function('seneca.contracts.mones.ls_mones', 'mones', 0)
+        self.ex.execute_function('mones', 'ad_mones', 'mones', 0)
+        res = self.ex.execute_function('mones', 'ls_mones', 'mones', 0)
         self.assertEqual(res['output'], 1000500)
 
 
-class TestResetDBWithStamps(TestCase):
+class TestResetDBWithStamps(TestExecutor):
 
     @classmethod
     def setUpClass(cls):
-        cls.si = SenecaInterface(False, port=get_redis_port(), password=get_redis_password())
-        cls.si.r.flushall()
-        cls.si.bypass_currency = True
-        with open('{}/currency.sen.py'.format(test_contracts_path)) as f:
-            cls.si.publish_code_str('currency', AUTHOR, f.read())
-        cls.si.execute_function('seneca.contracts.currency.mint', AUTHOR, 0, to='birb', amount=10000000)
+        super().setUpClass()
         code_str = """
-from seneca.libs.datatypes import hmap
-from seneca.contracts.currency import balance_of
+from seneca.libs.storage.datatypes import Hash
 
-monay = hmap('balances', str, int)
+monay = Hash('balances', default_value=0)
 
 @export
 def ad_mones():
-    monay[rt['origin']] += 100
+    monay['birb'] += 100
     
 @export
 def ls_mones():
-    return monay[rt['origin']]
+    return monay['birb']
     
             """
-        cls.si.publish_code_str('rad_mones', AUTHOR, code_str)
-        cls.si.bypass_currency = False
-
-
-    def setUp(self):
-        print('\n{}'.format('#' * 128))
-        print(self.id)
-        print('{}\n'.format('#' * 128))
+        cls.ex.publish_code_str('rad_mones', AUTHOR, code_str)
+        cls.ex.currency = True
+        cls.balances = cls.ex.get_resource('currency', 'balances')
+        cls.seed_amount = cls.ex.get_resource('currency', 'seed_amount')
+        cls.stamps_used = 0
 
     def test_1_no_reset_in_between(self):
-        TestResetDBWithStamps.balance = self.si.execute_function('seneca.contracts.currency.balance_of', 'birb', 10000, wallet_id="birb")['output']
-        res = self.si.execute_function('seneca.contracts.rad_mones.ls_mones', 'birb', 10000)
+        TestResetDBWithStamps.balance = self.balances['birb']
+        stamps_used = 0
+        res = self.ex.execute_function('rad_mones', 'ls_mones', AUTHOR, 10000)
         self.assertEqual(res['output'], 0)
-        self.si.execute_function('seneca.contracts.rad_mones.ad_mones', 'birb', 10000)
-        self.si.execute_function('seneca.contracts.rad_mones.ad_mones', 'birb', 10000)
-        self.si.execute_function('seneca.contracts.rad_mones.ad_mones', 'birb', 10000)
-        self.si.execute_function('seneca.contracts.rad_mones.ad_mones', 'birb', 10000)
-        res = self.si.execute_function('seneca.contracts.rad_mones.ls_mones', 'birb', 10000)
+        stamps_used += res['stamps_used']
+        res = self.ex.execute_function('rad_mones', 'ad_mones', AUTHOR, 10000)
+        stamps_used += res['stamps_used']
+        res = self.ex.execute_function('rad_mones', 'ad_mones', AUTHOR, 10000)
+        stamps_used += res['stamps_used']
+        res = self.ex.execute_function('rad_mones', 'ad_mones', AUTHOR, 10000)
+        stamps_used += res['stamps_used']
+        res = self.ex.execute_function('rad_mones', 'ad_mones', AUTHOR, 10000)
+        stamps_used += res['stamps_used']
+        res = self.ex.execute_function('rad_mones', 'ls_mones', AUTHOR, 10000)
+        stamps_used += res['stamps_used']
         self.assertEqual(res['output'], 400)
-        res = self.si.execute_function('seneca.contracts.currency.balance_of', 'birb', 10000, wallet_id="birb")
-        self.assertEqual(res['output'], TestResetDBWithStamps.balance - 70000)
+        self.assertEqual(self.balances[AUTHOR]+stamps_used, self.seed_amount)
+        TestResetDBWithStamps.stamps_used += stamps_used
 
     def test_2_no_reset_in_between(self):
-        self.si.execute_function('seneca.contracts.rad_mones.ad_mones', 'birb', 10000)
-        res = self.si.execute_function('seneca.contracts.rad_mones.ls_mones', 'birb', 10000)
+        stamps_used = 0
+        res = self.ex.execute_function('rad_mones', 'ad_mones', AUTHOR, 10000)
+        stamps_used += res['stamps_used']
+        res = self.ex.execute_function('rad_mones', 'ls_mones', AUTHOR, 10000)
+        stamps_used += res['stamps_used']
         self.assertEqual(res['output'], 500)
-        res = self.si.execute_function('seneca.contracts.currency.balance_of', 'birb', 10000, wallet_id="birb")
-        self.assertEqual(res['output'], TestResetDBWithStamps.balance - 100000)
+        TestResetDBWithStamps.stamps_used += stamps_used
+        self.assertEqual(self.balances[AUTHOR]+TestResetDBWithStamps.stamps_used, self.seed_amount)
 
-
-class TestResetDB(TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.si = SenecaInterface(False, port=get_redis_port(), password=get_redis_password())
-        cls.si.bypass_currency = True
-
-    def setUp(self):
-        print('\n{}'.format('#' * 128))
-        print(self.id)
-        print('{}\n'.format('#' * 128))
-
-    @property
-    def code_str(self):
-        return """
-from seneca.libs.datatypes import hmap
-from seneca.contracts.currency import balance_of
-
-monay = hmap('balances', str, int)
-
-@export
-def ad_mones():
-    monay[rt['origin']] += 100
-
-@export
-def ls_mones():
-    return monay[rt['origin']]
-        """
-
-    def test_1_republish_in_between_runs(self):
-        self.si.r.flushall()
-        with open('{}/currency.sen.py'.format(test_contracts_path)) as f:
-            self.si.publish_code_str('currency', AUTHOR, f.read())
-        self.si.execute_function('seneca.contracts.currency.mint', AUTHOR, 0, to='birb', amount=10000000)
-        self.si.publish_code_str('rad_name', AUTHOR, self.code_str)
-        self.si.execute_function('seneca.contracts.rad_name.ad_mones', 'birb', 10000)
-
-    def test_2_republish_in_between_runs(self):
-        self.si.r.flushall()
-        with self.assertRaises(Exception) as context:
-            self.si.execute_function('seneca.contracts.rad_name.ad_mones', 'birb', 10000)
 
 if __name__ == '__main__':
     unittest.main()

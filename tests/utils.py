@@ -1,32 +1,61 @@
-import sys, redis
-from contextlib import contextmanager
-from io import StringIO
+from seneca.engine.interpreter.driver import Driver
 from unittest import TestCase
-from seneca.engine.interface import SenecaInterface
-from seneca.constants.config import get_redis_port, MASTER_DB, DB_OFFSET, get_redis_password
-
-def recur_fibo(n):
-    if n <= 1:
-        return n
-    else:
-        return(recur_fibo(n-1) + recur_fibo(n-2))
-
-@contextmanager
-def captured_output():
-    new_out, new_err = StringIO(), StringIO()
-    old_out, old_err = sys.stdout, sys.stderr
-    try:
-        sys.stdout, sys.stderr = new_out, new_err
-        yield sys.stdout, sys.stderr
-    finally:
-        sys.stdout, sys.stderr = old_out, old_err
+from seneca.constants.config import MASTER_DB, LEDIS_PORT
+from seneca.engine.interpreter.executor import Executor
+from seneca.engine.interpreter.parser import Parser
+from seneca.libs.storage.table import Table
+import ledis, pickle
 
 
-class TestInterface(TestCase):
+class TestCaseHeader(TestCase):
 
     def setUp(self):
-        self.si = SenecaInterface(False, port=get_redis_port(), password=get_redis_password())
-        self.si.r.flushall()
         print('\n{}'.format('#' * 128))
-        print(self.id)
+        print('\t', self.id)
         print('{}\n'.format('#' * 128))
+
+
+class TestExecutor(TestCaseHeader):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.r = Driver(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
+        cls.r.flushall()
+        cls.reset()
+
+    @classmethod
+    def reset(cls, metering=False, concurrency=False):
+        cls.r.flushall()
+        cls.ex = Executor(metering=metering, concurrency=concurrency)
+
+    @classmethod
+    def flush(cls):
+        cls.r.flushall()
+    #
+    # @classmethod
+    # def tearDownClass(cls):
+    #     Parser.initialized = False
+
+
+class MockExecutor:
+    def __init__(self, *args, **kwargs):
+        self.driver = ledis.Ledis(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
+        self.driver.flushall()
+        Parser.executor = self
+        if not Parser.parser_scope.get('rt'):
+            Parser.parser_scope['rt'] = {}
+        Parser.parser_scope['rt'].update({
+            'contract': 'sample',
+            'sender': 'falcon',
+            'author': '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
+        })
+
+
+class TestDataTypes(TestCaseHeader):
+
+    def setUp(self):
+        self.contract_id = self.id().split('.')[-1]
+        self.ex = MockExecutor()
+        Parser.parser_scope['rt']['contract'] = self.contract_id
+        Table.schemas = {}
+        super().setUp()

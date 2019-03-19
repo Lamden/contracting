@@ -1,12 +1,12 @@
-import time, asyncio, ujson as json, redis, traceback
+import asyncio, ledis
 from seneca.libs.logger import get_logger
-from seneca.engine.interface import SenecaInterface
+from seneca.engine.interpreter.executor import Executor
 from seneca.constants.config import *
 from seneca.engine.conflict_resolution import CRContext
 from seneca.engine.book_keeper import BookKeeper
-from seneca.engine.util import module_path_for_contract
-from collections import deque, defaultdict
-from typing import Callable, List
+from seneca.engine.interpreter.driver import Driver
+from collections import deque
+from typing import Callable
 import traceback
 
 
@@ -46,24 +46,21 @@ class Phase:
             db.delete(key)
 
 
-class SenecaClient(SenecaInterface):
-    def __init__(self, sbb_idx, num_sbb, cr_enabled=True, loop=None):
-        # TODO do we even need to bother with the cr_enabled flag? We are treating that its always true --davis
-        super().__init__()
+class SenecaClient(Executor):
+    def __init__(self, sbb_idx, num_sbb, concurrency=True, loop=None, *args, **kwargs):
+        # TODO do we even need to bother with the concurrent_mode flag? We are treating that its always true --davis
+        super().__init__(*args, **kwargs)
 
         name = self.__class__.__name__ + "[sbb-{}]".format(sbb_idx)
         self.log = get_logger(name)
         self.loop = loop or asyncio.get_event_loop()
 
-        self.port = get_redis_port()
-        self.password = get_redis_password()
-
         self.sbb_idx = sbb_idx
         self.num_sb_builders = num_sbb
-        self.cr_enabled = cr_enabled
+        self.concurrency = concurrency
         self.max_number_workers = NUM_CACHES
 
-        self.master_db = None  # A redis.StrictRedis instance
+        self.master_db = None  # A ledis.Ledis instance
         self.active_db = None  # Set to a CRContext instance
         self.available_dbs = deque()  # List of CRContext instances
         self.pending_dbs = deque()  # List of CRContext instances
@@ -76,17 +73,14 @@ class SenecaClient(SenecaInterface):
         # it is a deque of dicts, containing keys 'input_hash': str, and 'fut': asyncio.Future
         self.queued_futures = deque()
 
-        # DEBUG -- TODO DELETE
-        # self.log.important2("\n\n\n this is using the latest code \n\n\n")
-        # self.log.important("num caches {}".format(NUM_CACHES))
-        # END DEBUG
-
         self._setup_dbs()
 
+        self.log.important3("---- SENECA CLIENT CREATION FINISHED -----")
+
     def _setup_dbs(self):
-        self.master_db = redis.StrictRedis(host='localhost', port=self.port, db=MASTER_DB, password=self.password)
+        self.master_db = Driver(host='localhost', db=MASTER_DB)
         for db_num in range(self.max_number_workers):
-            db_client = redis.StrictRedis(host='localhost', port=self.port, db=db_num+DB_OFFSET, password=self.password)
+            db_client = Driver(host='localhost', db=db_num+DB_OFFSET)
             Phase.reset_keys(db_client)
             cr_data = CRContext(working_db=db_client, master_db=self.master_db, sbb_idx=self.sbb_idx)
             self.available_dbs.append(cr_data)
@@ -143,7 +137,7 @@ class SenecaClient(SenecaInterface):
         self.log.debugv("Resetting run data for input hash {}".format(cr_data.input_hash))
         cr_data.reset_run_data()
 
-        # Only hard reset_db (meaning flush redis data) if all other SBBs have finished updating to master db
+        # Only hard reset_db (meaning flush ledis data) if all other SBBs have finished updating to master db
         reset_var = Phase.incr(cr_data.working_db, Macros.RESET)  # this will do an atomic incr and get
         if reset_var == self.num_sb_builders:
             self.log.debug("RESET phase finished. Resetting db for input hash {}".format(input_hash))
@@ -195,14 +189,7 @@ class SenecaClient(SenecaInterface):
         cr_dict['fut'].cancel()
 
     def submit_contract(self, contract):
-        self.publish_code_str(contract.contract_name, contract.sender, contract.code, scope={
-            'rt': {
-                'author': contract.sender,
-                'sender': contract.sender,
-                'contract': contract.contract_name
-            }
-        })
-        self.log.notice("Successfully published contract named {}".format(contract.contract_name))
+        self.publish_code_str(contract.contract_name, contract.sender, contract.code)
 
     def run_contract(self, contract):
         assert self.active_db, "active_db must be set to run a contract. Did you call _start_sb?"
@@ -216,7 +203,7 @@ class SenecaClient(SenecaInterface):
 
         # DEBUG
         kwargs = 'contract_name=' + contract.contract_name if hasattr(contract, 'contract_code') else contract.kwargs
-        self.log.spam("[EXEC PHASE #{}] exec from sender {} with kwargs {} resulted in state {}"
+        self.log.notice("[EXEC PHASE #{}] exec from sender {} with kwargs {} resulted in state {}"
                       .format(contract_idx, contract.sender, kwargs, data.get_state_for_idx(contract_idx)))
         # END DEBUG
 
@@ -234,20 +221,13 @@ class SenecaClient(SenecaInterface):
             })
             data.locked = False
 
-            # Super sketch hack to differentiate between ContractTransactions and PublishTransactions
-            if hasattr(contract, 'contract_code'):  # TODO not this pls
-                author = contract.sender
-                self.publish_code_str(fullname=contract.contract_name, author=author,
-                                      code_str=contract.contract_code)
-            else:
-                mod_path = module_path_for_contract(contract)
-                run_info = self.execute_function(module_path=mod_path, sender=contract.sender,
-                                                 stamps=contract.stamps_supplied, **contract.kwargs)
-                # The following is just for debug info
-                stamps_sup = contract.stamps_supplied if contract.stamps_supplied is not None else 0
-                stamps_spent = stamps_sup - run_info['remaining_stamps']
-                self.log.spam("Running contract from sender {} used {} stamps and returned run_info: {}"
-                              .format(contract.sender, stamps_spent, run_info))
+            run_info = self.execute_function(contract.contract_name, contract.func_name, contract.sender,
+                                             contract.stamps_supplied, kwargs=contract.kwargs)
+
+            # The following is just for debug info
+            stamps_spent = run_info['stamps_used']
+            self.log.spam("Running contract from sender {} used {} stamps and returned run_info: {}"
+                          .format(contract.sender, stamps_spent, run_info))
 
             result = SUCC_FLAG
 
@@ -415,7 +395,7 @@ class SenecaClient(SenecaInterface):
                         .format(elapsed, input_hash))
 
     async def _wait_for_cr_and_merge(self, cr_data: CRContext):
-        if not self.cr_enabled:
+        if not self.concurrency:
             self.log.debug("Concurrent mode disabled. Skipping wait for conflict resolution")
             return
 
@@ -464,7 +444,7 @@ class SenecaClient(SenecaInterface):
                                             value=self.num_sb_builders, timeout=Phase.CR_TIMEOUT)
         self.log.debug("Conflict resolution complete for ALL sub blocks ({})".format(cr_data))
 
-    async def _wait_for_phase_variable(self, db: redis.StrictRedis, key: str, value: int, timeout: int):
+    async def _wait_for_phase_variable(self, db: ledis.Ledis, key: str, value: int, timeout: int):
         elapsed = 0
         while Phase.get(db, key) != value:
             await asyncio.sleep(Phase.POLL_INTERVAL)

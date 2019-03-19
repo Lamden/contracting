@@ -1,13 +1,18 @@
 from seneca.libs.math import random
+from seneca.libs.storage.datatypes import List
 
-random.seed()
+cards = List('cards')
+cardinal_values = List('cardinal_values')
+suits = List('suits')
+cities = List('cities')
 
-cards = [1, 2, 3, 4, 5, 6, 7, 8]
-
-cardinal_values = ['A', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K']
-suits = ['S', 'C', 'H', 'D']
-
-cities = ['Cleveland', 'Detroit', 'Chicago', 'New York', 'San Francisco']
+@seed
+def initialize():
+    random.seed()
+    cards.extend([1, 2, 3, 4, 5, 6, 7, 8])
+    cardinal_values.extend(['A', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'])
+    suits.extend(['S', 'C', 'H', 'D'])
+    cities.extend(['Cleveland', 'Detroit', 'Chicago', 'New York', 'San Francisco'])
 
 @export
 def shuffle_cards(**kwargs):

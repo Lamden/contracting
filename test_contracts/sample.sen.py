@@ -1,14 +1,19 @@
-from test_contracts.good import one_you_can_export as good
-from test_contracts.okay import one_you_can_export as okay
+from test_contracts.good import one_you_can_export as good_export, assert_export_to_sample
+from test_contracts.okay import one_you_can_export as okay_export
 
 @export
 def good_call():
-    good()
-    okay()
+    good_export()
+    okay_export()
+
+@export
+def assert_call():
+    assert_export_to_sample()
+    assert rt['contract'] == 'sample' and rt['sender'] == '__main__', 'Contract not maintained'
 
 @export
 def reasonable_call():
-    good()
+    good_export()
 
 @export
 def do_that_thing():
@@ -18,7 +23,6 @@ def do_that_thing():
 def test_global_namespace():
     print('sender: {}, author: {}'.format(rt['sender'], rt['author']))
     print("sbb_idx: {}".format(sbb_idx))
-    print("ALL GLOBALS: {}".format(globals()))
 
 def secret_call():
-    okay()
+    okay_export()

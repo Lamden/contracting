@@ -1,8 +1,8 @@
-import redis
+import ledis
 
 
 # The maximum idle time (in milisecond) in any moment during the communication with the destination db when copying
-# key values. See docs on https://redis.io/commands/migrate for more info
+# key values. See docs on https://ledis.io/commands/migrate for more info
 
 
 def copy_key(key, new_key, source_db, destination_db, replace=False):
@@ -13,8 +13,8 @@ def copy_key(key, new_key, source_db, destination_db, replace=False):
     destination_db.restore(new_key, 0, value, replace=replace)
 
 
-r1 = redis.StrictRedis(host='localhost', port=6379, db=0)
-r2 = redis.StrictRedis(host='localhost', port=6379, db=1)
+r1 = ledis.Ledis(host='localhost', port=6379, db=0)
+r2 = ledis.Ledis(host='localhost', port=6379, db=1)
 
 r1.flushdb()
 r2.flushdb()

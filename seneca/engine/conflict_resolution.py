@@ -1,4 +1,3 @@
-import redis
 from collections import defaultdict
 from seneca.libs.logger import get_logger
 from typing import List
@@ -25,7 +24,7 @@ class CRDataMeta(type):
 
 
 class CRDataBase(metaclass=CRDataMeta):
-    def __init__(self, master_db: redis.StrictRedis, working_db: redis.StrictRedis):
+    def __init__(self, master_db, working_db):
         super().__init__()
         self.log = get_logger(type(self).__name__)
         self.master, self.working = master_db, working_db
@@ -77,8 +76,7 @@ class CRDataGetSet(CRDataBase, dict):
 
     def _get_modified_keys(self):
         # TODO this needs to return READs that have had their original values changed too!
-        return set().union(
-            (key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
+        return set().union((key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
 
     def merge_to_common(self):
         modified_keys = self._get_modified_keys()
@@ -86,15 +84,15 @@ class CRDataGetSet(CRDataBase, dict):
             self.working.set(key, self[key]['mod'])
 
     @classmethod
-    def merge_to_master(cls, working_db: redis.StrictRedis, master_db: redis.StrictRedis, key: str):
+    def merge_to_master(cls, working_db, master_db, key: str):
         assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
         val = working_db.get(key)
         master_db.set(key, val)
 
     def get_state_rep(self) -> str:
         """
-        Return a representation of all redis DB commands to update to the absolute state in minimum operations
-        :return: A string with all redis command in raw executable form, delimited by semicolons
+        Return a representation of all ledis DB commands to update to the absolute state in minimum operations
+        :return: A string with all ledis command in raw executable form, delimited by semicolons
         """
         modified_keys = self._get_modified_keys()
         # Need to sort the modified_keys so state output is deterministic
@@ -197,9 +195,58 @@ class CRDataGetSet(CRDataBase, dict):
             self.log.spam("No updated value found for key {}. Clearing modified and leaving original val".format(key))
 
 
+class CRDataHMap(CRDataBase, defaultdict):
+    NAME = 'hm'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.default_factory = dict
+
+    def _get_modified_keys(self) -> dict:
+        """
+        Returns a dict of sets. Key is key in the hmap, and set is a list of modified fields for that key
+        """
+        mods_dict = defaultdict(set)
+        for key in self:
+            for field in self[key]:
+                if self[key][field]['og'] != self[key][field]['mod']:
+                    mods_dict[key].add(field)
+
+        return mods_dict
+
+    def merge_to_common(self):
+        return False  # TODO implement
+        raise NotImplementedError()
+
+    def get_state_rep(self):
+        return False  # TODO implement
+        raise NotImplementedError()
+
+    @classmethod
+    def merge_to_master(cls, working_db, master_db, key: str):
+        assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
+
+        all_fields = working_db.hkeys(key)
+        for field in all_fields:
+            val = working_db.hget(key, field)
+            master_db.hset(key, field, val)
+
+
+class CRDataDelete(CRDataBase, set):
+    NAME = 'del'
+
+    def merge_to_common(self):
+        return False  # TODO implement
+        raise NotImplementedError()
+
+    def get_state_rep(self):
+        return False  # TODO implement
+        raise NotImplementedError()
+
+
 class CRContext:
 
-    def __init__(self, working_db: redis.StrictRedis, master_db: redis.StrictRedis, sbb_idx: int, cr_enabled=True):
+    def __init__(self, working_db, master_db, sbb_idx: int, finalize=False):
         self.log = get_logger(type(self).__name__)
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
         self.working_db, self.master_db = working_db, master_db
@@ -247,7 +294,7 @@ class CRContext:
         """ Resets all state held by this container. """
 
         # TODO this is likely very sketch in terms of memory leaks but YOLO this is python bro whats a memory leak
-        # TODO -- we should if hard_reset=False, we should also reset_db all redis keys EXCLUDING phase variables
+        # TODO -- we should if hard_reset=False, we should also reset_db all ledis keys EXCLUDING phase variables
         def _is_subclass(obj, subs: tuple):
             """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
             for s in subs:
@@ -359,20 +406,18 @@ class CRContext:
         self.merged_to_common = True
 
     @classmethod
-    def merge_to_master(cls, working_db: redis.StrictRedis, master_db: redis.StrictRedis):
+    def merge_to_master(cls, working_db, master_db):
         from seneca.engine.client import Macros  # to avoid cyclic imports
-
-        for key in working_db.keys():
-            # Ignore Phase keys
-            if key in Macros.ALL_MACROS:
-                continue
-
-            t = working_db.type(key)
-
-            if t == b'string':
-                CRDataGetSet.merge_to_master(working_db, master_db, key)
-            else:
-                raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, t))
+        for key_type in ('KV', 'LIST', 'HASH', 'ZSET', 'SET'):
+            _, keys = working_db.xscan(ktype=key_type, count=10000)
+            for key in keys:
+                # Ignore Phase keys
+                if key in Macros.ALL_MACROS:
+                    continue
+                if key_type == 'KV':
+                    CRDataGetSet.merge_to_master(working_db, master_db, key)
+                else:
+                    raise NotImplementedError("No logic implemented for copying key <{}> of type <{}>".format(key, key_type))
 
     def __getitem__(self, item):
         assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}" \
@@ -386,19 +431,20 @@ class CRContext:
             self.input_hash[:16], len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
 
 
-class RedisProxy:
+class LedisProxy:
 
-    def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, cr_enabled=True):
+    def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, concurrency=True):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
-        self.cr_enabled = cr_enabled
+        self.concurrency = concurrency
         self.data = data
         self.working_db, self.master_db = data.working_db, data.master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
         self.cmds = {}
+        self.log = get_logger("LedisProxy")
 
     def __getattr__(self, item):
         from seneca.engine.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
-        assert item in CRCmdBase.registry, "redis operation {} not implemented for conflict resolution".format(item)
+        assert item in CRCmdBase.registry, "ledis operation {} not implemented for conflict resolution".format(item)
 
         t = CRCmdBase.registry[item]
         if t not in self.cmds:
@@ -410,8 +456,28 @@ class RedisProxy:
                        contract_idx=self.contract_idx, data=self.data)
         return cmd
 
+    def hlen(self, *args, **kwargs):
+        raise NotImplementedError('Not implemented in concurrent mode yet!')
+
+    def scan(self, *args, **kwargs):
+        raise NotImplementedError('Not implemented in concurrent mode yet!')
+
+    def keys(self, *args, **kwargs):
+        raise NotImplementedError('Not implemented in concurrent mode yet!')
+
+    def exists(self, *args, **kwargs):
+        raise NotImplementedError('Not implemented in concurrent mode yet!')
+
+    def rename(self, *args, **kwargs):
+        raise NotImplementedError('Not implemented in concurrent mode yet!')
+
+    def hdel(self, *args, **kwargs):
+        raise NotImplementedError('Not implemented in concurrent mode yet!')
+
+    def delete(self, *args, **kwargs):
+        raise NotImplementedError('Not implemented in concurrent mode yet!')
+
+
 # print("CRDataMetaRegistery")
 # for k, v in CRDataBase.registry.items():
 #     print("{}: {}".format(k, v))
-
-

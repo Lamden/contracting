@@ -1,6 +1,6 @@
 from seneca.tooling import *
-from decimal import Decimal
-from unittest import TestCase, main
+from seneca.engine.interpreter.parser import Parser
+from tests.utils import TestCaseHeader
 import seneca, os, json
 from seneca.libs.crypto.hashing import hash_data
 
@@ -11,25 +11,34 @@ secret = b'12345678'
 hashlock = hash_data(secret, 'sha3_256')
 expiration = 1800
 
-class TestAtomicSwap(TestCase):
+
+class TestAtomicSwap(TestCaseHeader):
+
     def setUp(self):
-        default_driver.r.flushdb()
-        for contract in ['tau', 'atomic_swap', 'currency']:
+        super().setUp()
+
+        self.driver = default_interface.driver
+        self.ex = default_interface
+        default_interface.reset_all_data()
+        for contract in ['tau']:
             with open('{}/{}.sen.py'.format(path, contract)) as f:
-                default_driver.publish_code_str(fullname=contract, author='falcon', code_str=f.read())
+                default_interface.publish_code_str(contract, 'falcon', f.read())
 
+        self.balances = self.ex.get_resource('currency', 'balances')
+        self.allowed = self.ex.get_resource('currency', 'allowed')
+        self.swaps = self.ex.get_resource('atomic_swap', 'swaps')
 
-        self.tau = ContractWrapper(contract_name='tau', driver=default_driver, default_sender=wallet_a)
-        self.currency = ContractWrapper(contract_name='currency', driver=default_driver, default_sender=wallet_a)
-        self.atomic_swap_a = ContractWrapper(contract_name='atomic_swap', driver=default_driver, default_sender=wallet_a)
-        self.atomic_swap_b = ContractWrapper(contract_name='atomic_swap', driver=default_driver, default_sender=wallet_b)
+        self.tau = ContractWrapper(contract_name='tau', driver=default_interface, default_sender=wallet_a)
+        self.currency = ContractWrapper(contract_name='currency', driver=default_interface, default_sender=wallet_a)
+        self.atomic_swap_a = ContractWrapper(contract_name='atomic_swap', driver=default_interface, default_sender=wallet_a)
+        self.atomic_swap_b = ContractWrapper(contract_name='atomic_swap', driver=default_interface, default_sender=wallet_b)
 
     def test_redeem(self):
         self.currency.approve(
             spender='atomic_swap',
             amount=100
         )
-        self.assertEqual(default_driver.r.get('currency:allowed.{}:atomic_swap'.format(wallet_a)), b'100')
+        self.assertEqual(self.allowed[wallet_a]['atomic_swap'], 100)
         self.atomic_swap_a.initiate(
             initiator=wallet_a,
             participant=wallet_b,
@@ -38,28 +47,23 @@ class TestAtomicSwap(TestCase):
             token='currency',
             amount=100
         )
-        self.assertEqual(default_driver.r.get('currency:allowed.{}:atomic_swap'.format(wallet_a)), b'0')
-        self.assertEqual(default_driver.r.get('currency:balances:atomic_swap'), b'100')
-        self.assertEqual(
-            json.loads(default_driver.r.get('atomic_swap:swaps.{}:{}'.format(wallet_b, hashlock)).decode()), {
-            	"initiator": wallet_a,
-            	"participant": wallet_b,
-            	"amount": 100,
-            	"token": "currency",
-            	"expiration": 1800
-            })
+        self.assertEqual(self.allowed[wallet_a]['atomic_swap'], 0)
+        self.assertEqual(self.balances['atomic_swap'], 100)
+        self.assertEqual(self.swaps[wallet_b][hashlock], {
+            'initiator': wallet_a, 'participant': wallet_b,
+            'amount': 100, "token": "currency", "expiration": 1800
+        })
         self.atomic_swap_b.redeem(
             secret=secret
         )
-        self.assertEqual(self.currency.balance_of(wallet_id=wallet_a)['output'], 999900)
-        self.assertEqual(self.currency.balance_of(wallet_id=wallet_b)['output'], 1000100)
+        self.assertEqual(self.balances[wallet_a], 999900)
+        self.assertEqual(self.balances[wallet_b], 1000100)
 
     def test_refund(self):
         self.currency.approve(
             spender='atomic_swap',
             amount=100
         )
-        self.assertEqual(default_driver.r.get('currency:allowed.{}:atomic_swap'.format(wallet_a)), b'100')
         self.atomic_swap_a.initiate(
             initiator=wallet_a,
             participant=wallet_b,
@@ -68,22 +72,10 @@ class TestAtomicSwap(TestCase):
             token='currency',
             amount=100
         )
-        self.assertEqual(default_driver.r.get('currency:allowed.{}:atomic_swap'.format(wallet_a)), b'0')
-        self.assertEqual(default_driver.r.get('currency:balances:atomic_swap'), b'100')
-        self.assertEqual(
-            json.loads(default_driver.r.get('atomic_swap:swaps.{}:{}'.format(wallet_b, hashlock)).decode()), {
-            	"initiator": wallet_a,
-            	"participant": wallet_b,
-            	"amount": 100,
-            	"token": "currency",
-            	"expiration": 1800
-            })
         self.atomic_swap_a.refund(
             participant=wallet_b,
             secret=secret
         )
-        self.assertEqual(self.currency.balance_of(wallet_id=wallet_a)['output'], 1000000)
-        self.assertEqual(self.currency.balance_of(wallet_id=wallet_b)['output'], 1000000)
+        self.assertEqual(self.balances[wallet_a], 1000000)
+        self.assertEqual(self.balances[wallet_b], 1000000)
 
-if __name__ == "__main__":
-	main()

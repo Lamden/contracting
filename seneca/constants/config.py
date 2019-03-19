@@ -1,34 +1,10 @@
-import random, seneca, resource, sys
-from os import getenv as env
-from dotenv import load_dotenv
+import seneca
 
 
-def load_env():
-    load_dotenv(dotenv_path='{}/../docker/redis.env'.format(path), override=True)
+SENECA_PATH = seneca.__path__[0]
+SENECA_SC_PATH = 'seneca.contracts'
 
-
-def get_redis_port(port=None):
-    if port is not None:
-        return port
-
-    if env('CIRCLECI'):
-        return 6379
-
-    return env('REDIS_PORT', 6379)
-
-
-def get_redis_password(password=None):
-    if password is not None:
-        return password
-
-    if env('CIRCLECI'):
-        return ''
-
-    return env('REDIS_PASSWORD', '')
-
-path = seneca.__path__[0]
-load_env()
-
+LEDIS_PORT = 6379
 MASTER_DB = 0
 DB_OFFSET = 1
 CODE_OBJ_MAX_CACHE = 64
@@ -44,3 +20,20 @@ MAX_SB_QUEUE_SIZE = 8
 MEMORY_LIMIT = 32768 # 32kb
 RECURSION_LIMIT = 1024
 CPU_TIME_LIMIT = 10
+OFFICIAL_CONTRACTS = [
+    'smart_contract',
+    'currency',
+    'atomic_swap'
+]
+
+DELIMITER = ':'
+POINTER = '&'
+SORTED_TYPE = '~'
+TYPE_SEPARATOR = '@'
+RESOURCE_KEY = '__resources__'
+PROPERTY_KEY = '__properties__'
+RESOURCE_KEY = '__resource__'
+INDEX_SEPARATOR = '.'
+
+READ_WRITE_MODE = 'rw'
+READ_ONLY_MODE = 'r'

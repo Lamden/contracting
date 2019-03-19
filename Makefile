@@ -26,6 +26,9 @@ install:
 build-image:
 	docker build -t seneca_base -f ./docker/seneca_base .
 
+build-ledis:
+	docker build -t ledis -f ./docker/ledis .
+
 start-server:
 	bash ./scripts/start.sh
 

@@ -1,4 +1,4 @@
-import redis
+import ledis
 from seneca.libs.logger import get_logger
 from seneca.engine.conflict_resolution import CRDataGetSet, CRContext, CRDataBase, CR_EXCLUDED_KEYS
 
@@ -37,6 +37,12 @@ class CRCmdBase(metaclass=CRCmdMeta):
         Copies the key from either master db or common layer (working db) to the sub-block specific layer, if it does
         not exist already
         """
+
+        # debug
+        # self.log.info("key {} and master is {}".format(key, self.master))
+        # self.log.notice("master has keys:\n{}".format(self.master.keys()))
+        # end debug
+
         # If the key already exists, bounce out of this method immediately
         if self._sbb_original_exists(key, *args, **kwargs):
             self.log.spam("Key <{}> already exists in sub-block specific data, thus not recopying".format(key))
@@ -54,6 +60,7 @@ class CRCmdBase(metaclass=CRCmdMeta):
 
         # Otherwise, if key not found in common or master layer, mark the original as None
         else:
+            self.log.spam("Key {} not found in master layer. Defaulting original to None.".format(key))
             self._copy_key_to_sbb_data(None, key, *args, **kwargs)
 
     def _add_key_to_redo_log(self, key, *args, **kwargs):

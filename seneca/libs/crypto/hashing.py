@@ -16,7 +16,7 @@ supported_hashing_functions.remove('shake_256')
 supported_hashing_functions.remove('blake2s')
 
 
-def hash_data(d: bytes, algo: str, as_hex=False):
+def hash_data(d: bytes, algo: str, as_hex=True):
     assert algo in supported_hashing_functions
     assert type(d) == bytes, 'd must be of type bytes.'
 

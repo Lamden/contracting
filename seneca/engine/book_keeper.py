@@ -1,5 +1,4 @@
 import os, threading
-import redis
 from multiprocessing import Lock
 from seneca.engine.conflict_resolution import CRContext
 
