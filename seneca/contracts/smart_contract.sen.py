@@ -1,6 +1,7 @@
 @export
 def submit_contract(contract_name, code_str):
-    print('[SC] before compile... {}'.format(__executor__.driver))
+    __executor__.concurrency = rt['concurrency']
+    __executor__.metering = rt['metering']
     code_obj, resources, methods = __executor__.compile(contract_name, code_str)
     contract = {
         'code_str': code_str,
@@ -9,7 +10,6 @@ def submit_contract(contract_name, code_str):
         'resources': resources,
         'methods': methods
     }
-    print('[SC] before set_contract... {}'.format(__executor__.driver))
     __executor__.set_contract(contract_name, **contract, override=False)
     return contract
 

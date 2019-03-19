@@ -223,6 +223,7 @@ class SenecaClient(Executor):
 
             run_info = self.execute_function(contract.contract_name, contract.func_name, contract.sender,
                                              contract.stamps_supplied, kwargs=contract.kwargs)
+
             # The following is just for debug info
             stamps_spent = run_info['stamps_used']
             self.log.spam("Running contract from sender {} used {} stamps and returned run_info: {}"
