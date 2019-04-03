@@ -221,6 +221,8 @@ class SenecaClient(Executor):
             })
             data.locked = False
 
+            # raghu todo ? clarify with Davis - this is a transaction which is also a contract ? if so, txn.sender is what is inside contract.sender while contract.contract_name and contract.func_name are the previously submitted code ?
+            # and if this is a submit_contract, contract_name is smart_contract, func_name = submit_contract, kwargs will have contract_name for new contract and code-str and contract.sender is the author of new contract?
             run_info = self.execute_function(contract.contract_name, contract.func_name, contract.sender,
                                              contract.stamps_supplied, kwargs=contract.kwargs)
 

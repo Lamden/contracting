@@ -17,9 +17,11 @@ class Executor:
 
     def __init__(self, metering=True, concurrency=True, flushall=False):
 
+        # raghu todo why do we need this link
         Parser.executor = self
         self.metering = False
         self.concurrency = False
+        # raghu todo should be simple setup syspath
         self.reset_syspath()
         self.driver_base = Driver(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
         self.driver_proxy = None
@@ -56,6 +58,7 @@ class Executor:
             self.new_sys_path = [*sys.meta_path, SenecaFinder(), LedisFinder()]
 
             sys.meta_path = self.new_sys_path
+            print("raghu sys path old {} new {}".format(self.old_sys_path, self.new_sys_path))
 
     def setup_tracer(self):
         seneca_path = seneca.__path__[0]
@@ -65,12 +68,16 @@ class Executor:
         Plugins.submit_stamps()
 
     def setup_official_contracts(self):
+        # raghu todo should this be traversing the library and reading all the files ?
+        # it's fine as it is now as it gives us control on what to load and what not to load and the order
         for name in self.official_contracts:
             if self.driver.hexists('contracts', name):
                 continue
             with open(join(self.path, name+'.sen.py')) as f:
                 code_str = f.read()
                 code_obj, resources, methods = self.compile(name, code_str, {'ast': None, '__system__': True, '__executor__': self})
+            
+            # raghu todo should be under with open? otherwise, we store contract and its name, but not code_str or obj?
             self.set_contract(name, **{
                 'code_str': code_str,
                 'code_obj': code_obj,

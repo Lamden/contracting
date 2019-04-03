@@ -64,6 +64,7 @@ class SenecaLoader(Loader):
 
 class LedisFinder:
 
+    # raghu todo this is a deprecated method. will work for now according to python docs
     def find_module(self, fullname, path=None):
         if fullname.startswith(SENECA_SC_PATH):
             return LedisLoader(fullname)
