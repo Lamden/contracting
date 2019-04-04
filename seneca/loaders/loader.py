@@ -5,14 +5,27 @@ from importlib import invalidate_caches
 
 from redis import Redis
 
-
+'''
+    Is this where interaction with the database occurs with the interface of code strings, etc?
+    IE: pushing a contract does sanity checks here?
+'''
 class Database:
-    def __init__(self, host='localhost', port=6379, delimiter=':'):
-        self.conn = Redis(host=host, port=port)
+    def __init__(self, host='localhost', port=6379, delimiter=':', db=0, code_key='code'):
+        self.conn = Redis(host=host, port=port, db=db)
         self.delimiter = delimiter
+        self.code_key = code_key
+
+        # Tests if access to the DB is available
+        self.conn.ping()
 
     def get_contract(self, name):
-        return self.conn.hget(name, 'code').decode()
+        return self.conn.hget(name, self.code_key).decode()
+
+    def push_contract(self, name, code):
+        self.conn.hset(name, self.code_key, code)
+
+    def flush(self):
+        self.conn.flushdb()
 
 
 class DatabaseFinder(MetaPathFinder):
