@@ -49,6 +49,9 @@ class DatabaseLoader(Loader):
         return '<module {!r} (smart contract)>'.format(module.__name__)
 
 
+'''
+    This module will remain untested and unused until we decide how we want to 'forget' importing.
+'''
 def uninstall_builtins():
     sys.meta_path.clear()
     sys.path_hooks.clear()
@@ -59,3 +62,7 @@ def uninstall_builtins():
 
 def install_database_loader():
     sys.meta_path.append(DatabaseFinder)
+
+
+def uninstall_database_loader():
+    sys.meta_path.remove(DatabaseFinder)

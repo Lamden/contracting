@@ -87,5 +87,25 @@ class TestDatabaseFinder(TestCase):
         self.assertTrue(isinstance(d.find_module(None, None), DatabaseLoader), 'Database Finder does not return \
             a Database Loader')
 
-class TestUninstallBuiltins(TestCase):
-    pass
+
+class TestInstallLoader(TestCase):
+    def test_install_loader(self):
+        self.assertNotIn(DatabaseFinder, sys.meta_path)
+
+        install_database_loader()
+
+        self.assertIn(DatabaseFinder, sys.meta_path)
+
+        uninstall_database_loader()
+
+        self.assertNotIn(DatabaseFinder, sys.meta_path)
+
+    def test_integration_and_importing(self):
+        dl = DatabaseLoader()
+        dl.d.push_contract('testing', 'a = 1234567890')
+
+        install_database_loader()
+
+        import testing
+
+        self.assertEqual(testing.a, 1234567890)
