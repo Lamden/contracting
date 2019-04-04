@@ -1,4 +1,4 @@
-import asyncio, ledis
+import asyncio
 from seneca.libs.logger import get_logger
 from seneca.engine.interpreter.executor import Executor
 from seneca.constants.config import *
@@ -446,7 +446,7 @@ class SenecaClient(Executor):
                                             value=self.num_sb_builders, timeout=Phase.CR_TIMEOUT)
         self.log.debug("Conflict resolution complete for ALL sub blocks ({})".format(cr_data))
 
-    async def _wait_for_phase_variable(self, db: ledis.Ledis, key: str, value: int, timeout: int):
+    async def _wait_for_phase_variable(self, db: Driver, key: str, value: int, timeout: int):
         elapsed = 0
         while Phase.get(db, key) != value:
             await asyncio.sleep(Phase.POLL_INTERVAL)
