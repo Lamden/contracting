@@ -1,6 +1,8 @@
 from unittest import TestCase
 from seneca.loaders.loader import *
 import types
+
+
 class TestDatabase(TestCase):
     def setUp(self):
         self.d = Database(host='localhost', port=6379, db=10)
@@ -26,7 +28,7 @@ class TestDatabase(TestCase):
         self.d.push_contract(name, code)
         _code = self.d.get_contract(name)
 
-        self.assertEqual(code, _code, 'Pushing and getting contracts is not working.')
+        self.assertEqual(code, _code.decode(), 'Pushing and getting contracts is not working.')
 
     def test_flush(self):
         code = 'a = 123'
@@ -35,8 +37,7 @@ class TestDatabase(TestCase):
         self.d.push_contract(name, code)
         self.d.flush()
 
-        with self.assertRaises(Exception):
-            self.d.get_contract(name)
+        self.assertIsNone(self.d.get_contract(name))
 
 
 class TestDatabaseLoader(TestCase):
@@ -78,3 +79,13 @@ class TestDatabaseLoader(TestCase):
         module = types.ModuleType('howdy')
 
         self.assertEqual(self.dl.module_repr(module), "<module 'howdy' (smart contract)>")
+
+
+class TestDatabaseFinder(TestCase):
+    def test_find_module(self):
+        d = DatabaseFinder()
+        self.assertTrue(isinstance(d.find_module(None, None), DatabaseLoader), 'Database Finder does not return \
+            a Database Loader')
+
+class TestUninstallBuiltins(TestCase):
+    pass
