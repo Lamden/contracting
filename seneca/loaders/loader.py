@@ -19,7 +19,7 @@ class Database:
         self.conn.ping()
 
     def get_contract(self, name):
-        return self.conn.hget(name, self.code_key).decode()
+        return self.conn.hget(name, self.code_key)
 
     def push_contract(self, name, code):
         self.conn.hset(name, self.code_key, code)
