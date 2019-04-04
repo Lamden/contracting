@@ -1,6 +1,6 @@
 import sys
 
-from importlib.abc import Loader, MetaPathFinder
+from importlib.abc import Loader, ResourceLoader, PathEntryFinder, MetaPathFinder, Finder
 from importlib.machinery import ModuleSpec
 from importlib import invalidate_caches
 from importlib.util import spec_from_file_location
@@ -12,48 +12,38 @@ class Database:
 		self.conn = Redis(host=host, port=port)
 		self.delimiter = delimiter
 
-	def get_contracts(self, name):
-		# Scans through all contracts on Redis with the provided prefix.
-		# Contracts are stored as <name>:*
-		contracts = []
-		cursor = -1
-		while cursor != 0:
-			cursor = 0
-			# Cursor will be returned as 0 if there are not many contracts stored
-			cursor, _contracts = self.conn.scan(cursor, '{}{}*'.format(name, self.delimiter))
-			contracts.extend(_contracts)
-			print(cursor)
-		return contracts
+	def get_contract(self, name):
+		return self.conn.hget(name, 'code').decode()
 
 d = Database()
 
 class DatabaseFinder(MetaPathFinder):
-	def find_module(fullname, path):
+	def find_module(fullname, path, target=None):
+		print('path: {}'.format(path))
+		print(fullname)
 		return DatabaseLoader()
 
 
 class DatabaseLoader(Loader):
 	def create_module(self, spec):
 		# try to grab all of the subdirectories on a VK and stuff them in the spec
-
-		print(spec.name)
 		#assert len(contracts) > 0
-
+		#print(spec.__dict__)
 		return None
 
-	def exec_module(self, module):
-		print(dir(module))
-		print(module.__doc__)
-		print(module.__loader__)
-		print(module.__name__)
-		print(module.__package__)
-		print(module.__spec__)
+	def find_spec(self, spec):
+		pass
 
+	def exec_module(self, module):
 		# fetch the individual contract
-		#exec("poopoo = 1", vars(module))
+		code = d.get_contract(module.__name__)
+		exec(code, vars(module))
 
 	def module_repr(self, module):
 		return '<module {!r} (smart contract)>'.format(module.__name__)
+
+	def get_data(self, path):
+		print('p: ' + path)
 
 def uninstall_builtins():
 	sys.meta_path.clear()
@@ -63,8 +53,11 @@ def uninstall_builtins():
 	invalidate_caches()
 
 def install_database_loader():
-	sys.path_hooks.append(DatabaseFinder)
-	sys.meta_path.insert(0, DatabaseFinder)
+	#sys.path_hooks.append(DatabaseFinder)
+	sys.meta_path.append(DatabaseFinder)
 
-uninstall_builtins()
+#uninstall_builtins()
 install_database_loader()
+
+import testing
+print(testing.a)
