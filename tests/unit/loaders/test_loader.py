@@ -13,7 +13,7 @@ class TestDatabase(TestCase):
 
     def test_init(self):
         self.assertEqual(self.d.delimiter, ':', 'Delimiter default not :.')
-        self.assertEqual(self.d.code_key, 'code', 'Code Key default not "code"')
+        self.assertEqual(self.d.code_key, '__code__', 'Code Key default not "code"')
 
     def test_dynamic_init(self):
         d = Database(host='localhost', port=6379, delimiter='*', db=9, code_key='jam')
@@ -107,5 +107,7 @@ class TestInstallLoader(TestCase):
         install_database_loader()
 
         import testing
+
+        dl.d.flush()
 
         self.assertEqual(testing.a, 1234567890)

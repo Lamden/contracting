@@ -10,10 +10,11 @@ from redis import Redis
     IE: pushing a contract does sanity checks here?
 '''
 class Database:
-    def __init__(self, host='localhost', port=6379, delimiter=':', db=0, code_key='code'):
+    def __init__(self, host='localhost', port=6379, delimiter=':', db=0, code_key='__code__', type_key='__type__'):
         self.conn = Redis(host=host, port=port, db=db)
         self.delimiter = delimiter
         self.code_key = code_key
+        self.type_key = type_key
 
         # Tests if access to the DB is available
         self.conn.ping()
@@ -21,8 +22,12 @@ class Database:
     def get_contract(self, name):
         return self.conn.hget(name, self.code_key)
 
-    def push_contract(self, name, code):
-        self.conn.hset(name, self.code_key, code)
+    def push_contract(self, name, code, _type='user'):
+        d = {
+            self.code_key: code,
+            self.type_key: _type
+        }
+        self.conn.hmset(name, d)
 
     def flush(self):
         self.conn.flushdb()
