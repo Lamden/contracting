@@ -1,15 +1,14 @@
 from seneca.engine.conflict_resolution import *
 from seneca.engine.cr_commands import *
-import ledis
 from unittest import TestCase
 import unittest
-
+from seneca.engine.interpreter.driver import Driver
 
 class TestConflictResolution(TestCase):
 
     def setUp(self):
-        self.master = ledis.Ledis(host='localhost', port=6379, db=0)
-        self.working = ledis.Ledis(host='localhost', port=6379, db=1)
+        self.master = Driver(host='localhost', port=6379, db=0)
+        self.working = Driver(host='localhost', port=6379, db=1)
         self.sbb_data = {}
         self._set_rp()
 

@@ -1,6 +1,6 @@
 from walrus.tusks.ledisdb import WalrusLedis
 from walrus import Walrus
-
+from redis import Redis
 
 # class Driver(WalrusLedis):
 #     """
@@ -9,7 +9,28 @@ from walrus import Walrus
 #     """
 
 
-class ConcurrentDriver(WalrusLedis):
+class RawDriver:
+    def get(self, key):
+        raise NotImplementedError
+
+    def set(self, key, value):
+        raise NotImplementedError
+
+
+class RedisLikeDriver(RawDriver):
+    def hget(self, field, key):
+        raise NotImplementedError
+
+    def hset(self, field, key, value):
+        raise NotImplementedError
+
+    def hexists(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def hincrby(self, field, key, value):
+        raise NotImplementedError
+
+class ConcurrentDriver(Redis):
 
     def hget(self, hash_key, key):
         return self.get(hash_key+':'+key)
@@ -35,9 +56,12 @@ class ConcurrentDriver(WalrusLedis):
         for key, obj in objs.items():
             self.hset(hash_key, key, obj)
 
-    def keys(self):
-        keys_count, keys = self.scan_generic('SCAN')
-        return keys
+    # def keys(self):
+    #     keys_count, keys = self.scan_generic('SCAN')
+    #     return keys
+
+    def xscan(self, *args, **kwargs):
+        return self.keys(pattern='*')
 
     # def __getattribute__(self, name):
     #     print("CONCURRENT DRIVER RETURNING ATTR {}".format(name))

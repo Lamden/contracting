@@ -108,6 +108,6 @@ class TestInstallLoader(TestCase):
 
         import testing
 
-        dl.d.flush()
+        #dl.d.flush()
 
         self.assertEqual(testing.a, 1234567890)
