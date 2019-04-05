@@ -1,5 +1,32 @@
+import abc
+
 from redis import Redis
 from seneca.constants.config import DB_PORT, DB_URL, DB_DELIMITER, MASTER_DB
+
+
+class AbstractDriver:
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def get(self, key):
+        return
+
+    @abc.abstractmethod
+    def set(self, key, value):
+        return
+
+    @abc.abstractmethod
+    def delete(self, key):
+        return
+
+    @abc.abstractmethod
+    def flush(self, db):
+        return
+
+    @abc.abstractmethod
+    def iter(self, prefix):
+        return
+
 
 class Driver:
     def __init__(self, host=DB_URL, port=DB_PORT, db=MASTER_DB, delimiter=DB_DELIMITER):

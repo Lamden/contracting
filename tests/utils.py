@@ -13,26 +13,26 @@ class TestCaseHeader(TestCase):
         print('{}\n'.format('#' * 128))
 
 
-class TestExecutor(TestCaseHeader):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.r = Driver(host='localhost', port=DB_PORT, db=MASTER_DB)
-        cls.r.flush()
-        cls.reset()
-
-    @classmethod
-    def reset(cls, metering=False, concurrency=False):
-        cls.r.flush()
-        cls.ex = Executor(metering=metering, concurrency=concurrency)
-
-    @classmethod
-    def flush(cls):
-        cls.r.flush()
-    #
-    # @classmethod
-    # def tearDownClass(cls):
-    #     Parser.initialized = False
+# class TestExecutor(TestCaseHeader):
+#
+#     @classmethod
+#     def setUpClass(cls):
+#         cls.r = Driver(host='localhost', port=DB_PORT, db=MASTER_DB)
+#         cls.r.flush()
+#         cls.reset()
+#
+#     @classmethod
+#     def reset(cls, metering=False, concurrency=False):
+#         cls.r.flush()
+#         cls.ex = Executor(metering=metering, concurrency=concurrency)
+#
+#     @classmethod
+#     def flush(cls):
+#         cls.r.flush()
+#     #
+#     # @classmethod
+#     # def tearDownClass(cls):
+#     #     Parser.initialized = False
 
 
 class MockExecutor:
