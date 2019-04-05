@@ -1,5 +1,5 @@
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SENECA_LIBRARY_PATH, ALLOWED_DATA_TYPES
-from seneca.libs.logger import get_logger
+from seneca.logger import get_logger
 import ast
 # from seneca.constants.config import *
 

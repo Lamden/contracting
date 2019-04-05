@@ -1,4 +1,4 @@
-from seneca.libs.logger import get_logger
+from seneca.logger import get_logger
 from seneca.parallelism.conflict_resolution import CRContext, CR_EXCLUDED_KEYS
 
 

@@ -1,5 +1,5 @@
 from collections import defaultdict
-from seneca.libs.logger import get_logger
+from seneca.logger import get_logger
 from typing import List
 
 

@@ -1,5 +1,5 @@
 import asyncio
-from seneca.libs.logger import get_logger
+from seneca.logger import get_logger
 from seneca.engine.interpreter.executor import Executor
 from seneca.config import *
 from seneca.parallelism.conflict_resolution import CRContext

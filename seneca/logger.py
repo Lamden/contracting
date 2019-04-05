@@ -18,8 +18,7 @@ req_log.setLevel(logging.WARNING)
 req_log.propagate = True
 
 def get_main_log_path():
-    from seneca.libs import logger
-
+    from seneca import logger
     root = logger.__file__  # resolves to '/Users/davishaba/Developer/seneca/seneca/logger/__init__.py'
     log_path = '/'.join(root.split('/')[:-3]) + '/logs/seneca.log'
 
