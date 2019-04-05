@@ -65,35 +65,12 @@ class Linter(ast.NodeVisitor):
             if type(item) in [ast.ImportFrom, ast.Import]:
                 raise CompilationException('Not allowed to import inside a function definition')
 
-    # @staticmethod
-    # def check_assignment_targets(node):
-    #     resource_names = []
-    #     if type(node) == ast.Assign:
-    #         for n in node.targets:
-    #             resource_names += Assert.check_assignment_targets(n)
-    #     elif type(node) == ast.Name:
-    #         resource_names.append(node.id)
-    #     elif type(node) in (ast.Subscript, ast.Attribute):
-    #         resource_names += Assert.check_assignment_targets(node.value)
-    #     elif type(node) == ast.Tuple:
-    #         for n in node.elts:
-    #             resource_names += Assert.check_assignment_targets(n)
-    #     return resource_names
-
     def generic_visit(self, node):
         self.ast_types(node)
         return super().generic_visit(node)
 
     def visit_Name(self, node):
-        # self.is_protected(node, Parser.parser_scope)
         self.not_system_variable(node.id)
-        # Assert.is_within_scope(node.id, self.protected, self.resource, Parser.parser_scope)
-        # if Parser.assigning:
-            # Assert.is_not_resource(Parser.assigning, node.id, Parser.parser_scope)
-        # if Parser.parser_scope['ast'] in ('seed', 'export', 'func') \
-                # and self.get_resource(node.id) == 'Resource':
-            # self.generic_visit(node)
-            # return Plugins.resource_reassignment(node.id, node.ctx)
         self.generic_visit(node)
         return node
 

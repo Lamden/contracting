@@ -112,3 +112,14 @@ def a():
         with self.assertRaises(CompilationException):
             c = ast.parse(code)
             self.l.visit(c)
+
+    def test_accessing_attribute(self):
+        code = '''
+@seneca_export
+def a():
+    ruh_roh = 'shaggy'
+    ruh_roh.capitalize()
+    '''
+
+        c = ast.parse(code)
+        self.l.visit(c)
