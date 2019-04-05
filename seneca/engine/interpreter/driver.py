@@ -60,7 +60,6 @@ class Driver:
 
     def hlen(self, key):
         return self.conn.hlen(key)
-        # return self.conn.hlen('{}{}{}'.format(field, self.delimiter, key))
 
     def exists(self, key):
         if self.get(key) is not None:
