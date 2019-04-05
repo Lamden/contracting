@@ -1,5 +1,5 @@
 from unittest import TestCase
-from seneca.loaders.loader import *
+from seneca.engine.interpreter.module import *
 import types
 
 
