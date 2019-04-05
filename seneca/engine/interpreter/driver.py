@@ -1,29 +1,7 @@
 from redis import Redis
 
 
-class RawDriver:
-    def get(self, key):
-        raise NotImplementedError
-
-    def set(self, key, value):
-        raise NotImplementedError
-
-
-class RedisLikeDriver(RawDriver):
-    def hget(self, field, key):
-        raise NotImplementedError
-
-    def hset(self, field, key, value):
-        raise NotImplementedError
-
-    def hexists(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def hincrby(self, field, key, value):
-        raise NotImplementedError
-
-
-class Driver(RedisLikeDriver):
+class Driver:
     def __init__(self, host='localhost', port=6379, db=0, delimiter=':'):
         self.conn = Redis(host=host, port=port, db=db)
         self.delimiter = delimiter
@@ -35,6 +13,9 @@ class Driver(RedisLikeDriver):
     def set(self, key, value):
         self.conn.set(key, value)
 
+    def delete(self, key):
+        self.conn.delete(key)
+
     def hget(self, field, key):
         return self.get('{}{}{}'.format(field, self.delimiter, key))
 
@@ -45,8 +26,7 @@ class Driver(RedisLikeDriver):
         return bool(self.hget(*args, **kwargs))
 
     def hincrby(self, field, key, value):
-        res = self.hget(field, key)
-        self.hset(field, key, int(res) + value)
+        self.incr('{}{}{}'.format(field, self.delimiter, key), value)
 
     def hmget(self, field, keys):
         res = []
@@ -70,9 +50,6 @@ class Driver(RedisLikeDriver):
 
     def hlen(self, field, key):
         self.conn.hlen('{}{}{}'.format(field, self.delimiter, key))
-
-    def delete(self, key):
-        self.conn.delete(key)
 
     def exists(self, key):
         if self.get(key) is not None:
