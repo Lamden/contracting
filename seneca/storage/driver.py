@@ -53,10 +53,7 @@ class Driver:
 
         return k
 
-    def flush(self):
-        self.conn.flushall()
-
-    def flushdb(self):
+    def flush(self, db=None):
         self.conn.flushdb()
 
     def hget(self, field, key):

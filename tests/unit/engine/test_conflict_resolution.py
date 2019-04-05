@@ -13,8 +13,8 @@ class TestConflictResolution(TestCase):
         self._set_rp()
 
     def tearDown(self):
-        self.master.flushdb()
-        self.working.flushdb()
+        self.master.flush()
+        self.working.flush()
 
     def _set_rp(self, sbb_idx=0, contract_idx=0, finalize=False):
         if contract_idx in self.sbb_data:
