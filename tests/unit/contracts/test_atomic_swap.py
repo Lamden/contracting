@@ -1,15 +1,15 @@
-from seneca.tooling import *
-from seneca.engine.interpreter.parser import Parser
-from tests.utils import TestCaseHeader
-import seneca, os, json
-from seneca.libs.crypto.hashing import hash_data
+# from seneca.tooling import *
+# from seneca.engine.interpreter.parser import Parser
+# from tests.utils import TestCaseHeader
+# import seneca, os, json
+# from seneca.libs.crypto.hashing import hash_data
 
-path = os.path.abspath('{}/../test_contracts'.format(seneca.__path__[0]))
-wallet_a = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
-wallet_b = 'a103715914a7aae8dd8fddba945ab63a169dfe6e37f79b4a58bcf85bfd681694'
-secret = b'12345678'
-hashlock = hash_data(secret, 'sha3_256')
-expiration = 1800
+# path = os.path.abspath('{}/../test_contracts'.format(seneca.__path__[0]))
+# wallet_a = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
+# wallet_b = 'a103715914a7aae8dd8fddba945ab63a169dfe6e37f79b4a58bcf85bfd681694'
+# secret = b'12345678'
+# hashlock = hash_data(secret, 'sha3_256')
+# expiration = 1800
 
 #
 # class TestAtomicSwap(TestCaseHeader):
