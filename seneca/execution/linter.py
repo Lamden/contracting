@@ -83,19 +83,6 @@ class Linter(ast.NodeVisitor):
             if type(item) in [ast.ImportFrom, ast.Import]:
                 raise CompilationException('Not allowed to import inside a function definition')
 
-    def is_datatype(self, node):
-        if type(node.func) == ast.Name:
-            if node.func.id not in ALLOWED_DATA_TYPES and node.func.id not in self._functions:
-                self.log.error('{}: Not allowed to call non-datatype objects in the global scope'.format(node.func.id))
-                self._is_success = False
-
-    @staticmethod
-    def not_datatype(node):
-        if type(node.func) == ast.Name:
-            if node.func.id in ALLOWED_DATA_TYPES:
-                self.log.error('{}: Not allowed to instantiate DataTypes inside functions'.format(node.func.id))
-                self._is_success = False
-
     @staticmethod
     def check_assignment_targets(node):
         resource_names = []
@@ -110,25 +97,6 @@ class Linter(ast.NodeVisitor):
             for n in node.elts:
                 resource_names += Assert.check_assignment_targets(n)
         return resource_names
-
-    @staticmethod
-    def valid_assign(node, scope):
-        for t in node.targets:
-            self.is_protected(t, scope)
-
-        resource_names = Assert.check_assignment_targets(node)
-
-        if type(node.value) == ast.Call:
-            if type(node.value.func) == ast.Name:
-                func_name = node.value.func.id
-                if func_name in ALLOWED_DATA_TYPES:
-                    return resource_names, func_name
-
-        if not scope['ast']:
-            raise CompilationException('You may only declare DataTypes or import modules in the global scope'
-                                        ', line {}:{}, in {}'.format(node.lineno, node.col_offset, scope['rt']['contract']))
-
-        return resource_names, None
 
     @staticmethod
     def validate(imports, exports, resources, current_contract):
