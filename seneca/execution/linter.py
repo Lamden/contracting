@@ -4,12 +4,13 @@ import ast
 from ast import Assert
 from seneca.utils import CompilationException, ReadOnlyException
 # from seneca.constants.config import *
-
+from seneca.execution.module import ContractDriver
 
 class Linter(ast.NodeVisitor):
     def __init__(self):
         self.log = get_logger('Seneca.Parser')
         self._reset()
+        self.driver = ContractDriver()
 
     @staticmethod
     def ast_types(t):
@@ -41,18 +42,21 @@ class Linter(ast.NodeVisitor):
         self.generic_visit(node)
         return node
 
+    # def validate_imports(self, name, alias):
+    #     if self.driver.get_contract(name) is None:
+    #         raise ImportError
+
     def visit_Import(self, node):
         for n in node.names:
             self.validate_imports(n.name, alias=n.asname)
         return self._visit_any_import(node)
 
     def visit_ImportFrom(self, node):
-        for n in node.names:
-            self.validate_imports(node.module, n.name, alias=n.asname)
-        return self._visit_any_import(node)
+        raise ImportError('ImportFrom ast nodes not yet supported.')
 
     def validate_imports(self, import_path, module_name=None, alias=None):
-        self.valid_import_path(import_path, module_name)
+        if self.driver.get_contract(import_path) is None:
+            raise ImportError('Contract named "{}" does not exist in state.'.format(import_path))
 
     def _visit_any_import(self, node):
         self.generic_visit(node)

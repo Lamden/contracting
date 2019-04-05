@@ -135,6 +135,17 @@ def a():
             c = ast.parse(code)
             self.l.visit(c)
 
+    def test_no_nested_imports_works(self):
+        code = '''
+@seneca_export
+def a():
+    ruh_roh = 'shaggy'
+    ruh_roh.capitalize()
+            '''
+
+        c = ast.parse(code)
+        self.l.no_nested_imports(c)
+
     def test_augassign(self):
         code = '''
 @seneca_export
@@ -144,3 +155,17 @@ def a():
 '''
         c = ast.parse(code)
         self.l.visit(c)
+
+    def test_import_works(self):
+        self.l.driver.push_contract('something', 'a = 10')
+        code = '''
+import something
+@seneca_export
+def a():
+    b = 0
+    b += 1
+        '''
+
+        c = ast.parse(code)
+        self.l.visit(c)
+        self.l.driver.flush()

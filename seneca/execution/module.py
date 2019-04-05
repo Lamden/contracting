@@ -111,9 +111,6 @@ class ContractDriver(Driver):
         }
         self.conn.hmset(name, d)
 
-    def flush(self):
-        self.conn.flushdb()
-
 
 class DatabaseFinder(MetaPathFinder):
     def find_module(fullname, path, target=None):
