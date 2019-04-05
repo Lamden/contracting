@@ -5,6 +5,7 @@ from ast import Assert
 from seneca.utils import CompilationException, ReadOnlyException
 # from seneca.constants.config import *
 
+
 class Linter(ast.NodeVisitor):
     def __init__(self):
         self.log = get_logger('Seneca.Parser')
@@ -19,25 +20,6 @@ class Linter(ast.NodeVisitor):
     def not_system_variable(v):
         if v.startswith('__') and v.endswith('__'):
             raise CompilationException('Access denied for system variable: {}'.format(v))
-
-    @staticmethod
-    def valid_import_path(import_path, module_name=None):
-        if module_name == '*':
-            raise ImportError('Not allowed to import *')
-        elif module_name:
-            import_path = '.'.join([import_path, module_name])
-        if import_path.startswith(SENECA_LIBRARY_PATH):
-            return 'lib_module'
-        for path in ALLOWED_IMPORT_PATHS:
-            if import_path.startswith(path):
-                path_parts = import_path.split('.')
-                if len(path_parts) - len(path.split('.')) == 2:
-                    return 'smart_contract'
-                else:
-                    raise ImportError(
-                        'Instead of importing the entire "{}" module, you must import each functions directly.'.format(
-                            import_path))
-        raise ImportError('Cannot find module "{}" in allowed protected_imports'.format(import_path))
 
     @staticmethod
     def is_protected(target, scope):
@@ -98,17 +80,17 @@ class Linter(ast.NodeVisitor):
                 resource_names += Assert.check_assignment_targets(n)
         return resource_names
 
-    @staticmethod
-    def validate(imports, exports, resources, current_contract):
-        for module, contracts in imports.items():
-            for contract_name in contracts:
-                if contract_name not in exports.get(module, {}) and module not in resources.get(contract_name, {}):
-                    # print(contract_name, module)
-                    # print(imports)
-                    # print(exports)
-                    # print(resources)
-                    raise ImportError('Forbidden to import "{}.{}"'.format(
-                        contract_name, module))
+    # @staticmethod
+    # def validate(imports, exports, resources, current_contract):
+    #     for module, contracts in imports.items():
+    #         for contract_name in contracts:
+    #             if contract_name not in exports.get(module, {}) and module not in resources.get(contract_name, {}):
+    #                 # print(contract_name, module)
+    #                 # print(imports)
+    #                 # print(exports)
+    #                 # print(resources)
+    #                 raise ImportError('Forbidden to import "{}.{}"'.format(
+    #                     contract_name, module))
 
     def generic_visit(self, node):
         self.ast_types(node)
@@ -177,7 +159,6 @@ class Linter(ast.NodeVisitor):
 
     def visit_Call(self, node):
         # raghu todo do we need any other checks against calling some system functions here?
-        self.is_datatype(node)
         self.generic_visit(node)
         return node
 
