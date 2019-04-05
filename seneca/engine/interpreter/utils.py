@@ -1,6 +1,5 @@
 from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SENECA_LIBRARY_PATH, ALLOWED_DATA_TYPES
 import ast
-from seneca.constants.config import *
 
 
 class Plugins:

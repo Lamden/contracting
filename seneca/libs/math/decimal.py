@@ -1,5 +1,5 @@
-from decimal import Context, getcontext, Decimal
-from seneca.constants.config import DECIMAL_PRECISION
+from decimal import getcontext, Decimal
+from seneca.config import DECIMAL_PRECISION
 
 getcontext().prec = DECIMAL_PRECISION
 

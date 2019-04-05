@@ -1,7 +1,7 @@
 import abc
 
 from redis import Redis
-from seneca.constants.config import DB_PORT, DB_URL, DB_DELIMITER, MASTER_DB
+from seneca.config import DB_PORT, DB_URL, DB_DELIMITER, MASTER_DB
 
 
 class AbstractDriver:

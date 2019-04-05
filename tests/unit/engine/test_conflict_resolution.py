@@ -2,7 +2,7 @@ from seneca.engine.conflict_resolution import *
 from seneca.engine.cr_commands import *
 from unittest import TestCase
 import unittest
-from seneca.engine.interpreter.driver import Driver
+from seneca.storage.driver import Driver
 
 class TestConflictResolution(TestCase):
 

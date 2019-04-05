@@ -1,5 +1,6 @@
-import sys, signal, resource
-from seneca.constants.config import MEMORY_LIMIT, RECURSION_LIMIT, CPU_TIME_LIMIT
+import sys
+from seneca.config import RECURSION_LIMIT
+
 
 def set_resource_limits():
     # resource.setrlimit(resource.RLIMIT_STACK, (MEMORY_LIMIT, MEMORY_LIMIT))

@@ -2,15 +2,15 @@ import os
 from os.path import join, exists, isdir, basename
 from importlib.util import spec_from_file_location
 from seneca.engine.interpreter.parser import Parser
-from seneca.constants.config import SENECA_SC_PATH
+from seneca.config import SENECA_SC_PATH
 
 import sys
 
 from importlib.abc import Loader, MetaPathFinder
 from importlib import invalidate_caches
 
-from seneca.engine.interpreter.driver import Driver
-from seneca.constants.config import DB_URL, DB_PORT, DB_DELIMITER
+from seneca.storage.driver import Driver
+from seneca.config import DB_URL, DB_PORT, DB_DELIMITER
 
 
 class SenecaFinder(MetaPathFinder):
