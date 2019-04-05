@@ -2,7 +2,7 @@ import asyncio
 from seneca.libs.logger import get_logger
 from seneca.engine.interpreter.executor import Executor
 from seneca.config import *
-from seneca.engine.conflict_resolution import CRContext
+from seneca.parallelism.conflict_resolution import CRContext
 from seneca.engine.book_keeper import BookKeeper
 from seneca.storage.driver import Driver
 from collections import deque

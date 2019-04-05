@@ -440,7 +440,7 @@ class StateProxy:
         self.log = get_logger("StateProxy")
 
     def __getattr__(self, item):
-        from seneca.engine.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
+        from seneca.parallelism.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
         assert item in CRCmdBase.registry, "ledis operation {} not implemented for conflict resolution".format(item)
 
         t = CRCmdBase.registry[item]

@@ -1,5 +1,4 @@
-from seneca.engine.conflict_resolution import *
-from seneca.engine.cr_commands import *
+from seneca.parallelism.cr_commands import *
 import ledis
 from unittest import TestCase
 import unittest

@@ -11,7 +11,7 @@ from seneca.engine.interpreter.utils import Plugins, Assert
 from seneca.engine.interpreter.module import SenecaFinder, LedisFinder
 from seneca.storage.driver import Driver
 from seneca.engine.book_keeper import BookKeeper
-from seneca.engine.conflict_resolution import StateProxy
+from seneca.parallelism.conflict_resolution import StateProxy
 
 
 class Executor:

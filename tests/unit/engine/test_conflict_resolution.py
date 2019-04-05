@@ -1,5 +1,5 @@
-from seneca.engine.conflict_resolution import *
-from seneca.engine.cr_commands import *
+from seneca.parallelism.conflict_resolution import *
+from seneca.parallelism.cr_commands import *
 from unittest import TestCase
 import unittest
 from seneca.storage.driver import Driver
