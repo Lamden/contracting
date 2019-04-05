@@ -23,7 +23,7 @@ class TestConflictResolution(TestCase):
             data = self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize)
             self.sbb_data[contract_idx] = data
 
-        self.r = LedisProxy(sbb_idx=sbb_idx, contract_idx=contract_idx, data=data)
+        self.r = StateProxy(sbb_idx=sbb_idx, contract_idx=contract_idx, data=data)
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
         cr = CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx)

@@ -10,7 +10,7 @@ from seneca.engine.interpreter.utils import Plugins, Assert
 from seneca.engine.interpreter.module import SenecaFinder, LedisFinder
 from seneca.engine.interpreter.driver import Driver
 from seneca.engine.book_keeper import BookKeeper
-from seneca.engine.conflict_resolution import LedisProxy
+from seneca.engine.conflict_resolution import StateProxy
 
 
 class Executor:
@@ -39,7 +39,7 @@ class Executor:
         if self.concurrency:
             if not self.driver_proxy:
                 info = BookKeeper.get_cr_info()
-                self.driver_proxy = LedisProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
+                self.driver_proxy = StateProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
                                                data=info['data'])
             else:
                 info = BookKeeper.get_cr_info()

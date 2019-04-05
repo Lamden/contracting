@@ -428,7 +428,7 @@ class CRContext:
             self.input_hash[:16], len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
 
 
-class LedisProxy:
+class StateProxy:
 
     def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, concurrency=True):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
@@ -437,7 +437,7 @@ class LedisProxy:
         self.working_db, self.master_db = data.working_db, data.master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
         self.cmds = {}
-        self.log = get_logger("LedisProxy")
+        self.log = get_logger("StateProxy")
 
     def __getattr__(self, item):
         from seneca.engine.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
@@ -452,28 +452,6 @@ class LedisProxy:
         cmd.set_params(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
                        contract_idx=self.contract_idx, data=self.data)
         return cmd
-
-    def hlen(self, *args, **kwargs):
-        raise NotImplementedError('Not implemented in concurrent mode yet!')
-
-    def scan(self, *args, **kwargs):
-        raise NotImplementedError('Not implemented in concurrent mode yet!')
-
-    def keys(self, *args, **kwargs):
-        raise NotImplementedError('Not implemented in concurrent mode yet!')
-
-    def exists(self, *args, **kwargs):
-        raise NotImplementedError('Not implemented in concurrent mode yet!')
-
-    def rename(self, *args, **kwargs):
-        raise NotImplementedError('Not implemented in concurrent mode yet!')
-
-    def hdel(self, *args, **kwargs):
-        raise NotImplementedError('Not implemented in concurrent mode yet!')
-
-    def delete(self, *args, **kwargs):
-        raise NotImplementedError('Not implemented in concurrent mode yet!')
-
 
 # print("CRDataMetaRegistery")
 # for k, v in CRDataBase.registry.items():
