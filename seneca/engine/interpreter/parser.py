@@ -1,7 +1,7 @@
 from seneca.engine.interpreter.scope import Export, Seed, Function
 from seneca.constants.whitelists import SAFE_BUILTINS
 from seneca.engine.interpreter.utils import Plugins, Assert
-from seneca.libs.math.decimal import to_decimal
+from seneca.util import to_decimal
 from seneca.metering.resource import set_resource_limits
 from collections import defaultdict
 import ast, copy
