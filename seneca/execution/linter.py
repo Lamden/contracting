@@ -22,19 +22,6 @@ class Linter(ast.NodeVisitor):
             raise CompilationException('Access denied for system variable: {}'.format(v))
 
     @staticmethod
-    def is_protected(target, scope):
-        contract_name = scope['rt']['contract']
-        if scope.get('__system__'):
-            return
-        if type(target) == ast.Name:
-            # print(target.id)
-            # print('\t', scope['protected']['__global__'])
-            # print('\t', scope['imports'])
-            if target.id in scope['protected']['__global__'] \
-                    or (scope['imports'].get(target.id) and contract_name not in scope['imports'].get(target.id, {})):
-                raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
-
-    @staticmethod
     def is_not_resource(resource_names, name, scope):
         for assigned_to in resource_names:
             contract_name = scope['rt']['contract']
