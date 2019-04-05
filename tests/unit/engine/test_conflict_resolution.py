@@ -1,15 +1,14 @@
-from seneca.engine.conflict_resolution import *
-from seneca.engine.cr_commands import *
-import ledis
+from seneca.parallelism.conflict_resolution import *
+from seneca.parallelism.cr_commands import *
 from unittest import TestCase
 import unittest
-
+from seneca.storage.driver import Driver
 
 class TestConflictResolution(TestCase):
 
     def setUp(self):
-        self.master = ledis.Ledis(host='localhost', port=6379, db=0)
-        self.working = ledis.Ledis(host='localhost', port=6379, db=1)
+        self.master = Driver(host='localhost', port=6379, db=0)
+        self.working = Driver(host='localhost', port=6379, db=1)
         self.sbb_data = {}
         self._set_rp()
 
@@ -24,7 +23,7 @@ class TestConflictResolution(TestCase):
             data = self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize)
             self.sbb_data[contract_idx] = data
 
-        self.r = LedisProxy(sbb_idx=sbb_idx, contract_idx=contract_idx, data=data)
+        self.r = StateProxy(sbb_idx=sbb_idx, contract_idx=contract_idx, data=data)
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
         cr = CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx)

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from seneca.engine.util import *
+from seneca.util import *
 import unittest
 
 class TestUtil(TestCase):

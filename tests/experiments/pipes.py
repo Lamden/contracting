@@ -1,4 +1,3 @@
-from seneca.libs.logger import get_logger
 import ledis
 from multiprocessing import Process
 
