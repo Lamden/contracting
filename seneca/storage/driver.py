@@ -56,34 +56,8 @@ class Driver:
     def flush(self, db=None):
         self.conn.flushdb()
 
-    def hget(self, field, key):
-        return self.get('{}{}{}'.format(field, self.delimiter, key))
-
-    def hset(self, field, key, value):
-        self.set('{}{}{}'.format(field, self.delimiter, key), value)
-
-    def hexists(self, *args, **kwargs):
-        return bool(self.hget(*args, **kwargs))
-
-    def hincrby(self, field, key, amount=1):
-        self.incrby('{}{}{}'.format(field, self.delimiter, key), amount)
-
-    def hmget(self, field, keys):
-        res = []
-        for key in keys:
-            r = self.hget(field, key)
-            if r: res.append(r)
-        return res
-
-    def hmset(self, field, mapping):
-        for key, val in mapping.items():
-            self.hset(field, key, val)
-
     def xscan(self, *args, **kwargs):
         return self.conn.keys(pattern='*')
-
-    def hlen(self, key):
-        return self.conn.hlen(key)
 
     def exists(self, key):
         if self.get(key) is not None:
