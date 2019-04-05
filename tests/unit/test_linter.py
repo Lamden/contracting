@@ -72,3 +72,32 @@ def a():
         '''
         c = ast.parse(code)
         self.l.visit(c)
+
+    def test_visit_async_func_def_fail(self):
+        n = ast.AsyncFunctionDef()
+        with self.assertRaises(CompilationException):
+            self.l.visit_AsyncFunctionDef(n)
+
+    def test_visit_async_func_def_fail_code(self):
+        code = '''
+@seneca_export
+async def a():
+    ruh_roh = 'shaggy'
+'''
+        with self.assertRaises(CompilationException):
+            c = ast.parse(code)
+            self.l.visit(c)
+
+    def test_visit_class_fail(self):
+        n = ast.ClassDef()
+        with self.assertRaises(CompilationException):
+            self.l.visit_ClassDef(n)
+
+    def test_visit_class_fail_code(self):
+        code = '''
+class Scooby:
+    pass
+        '''
+        with self.assertRaises(CompilationException):
+            c = ast.parse(code)
+            self.l.visit(c)

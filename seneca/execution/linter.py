@@ -181,17 +181,21 @@ class Linter(ast.NodeVisitor):
         self.generic_visit(node)
         return node
 
+    '''
+    Why are we even doing any logic instead of just failing on visiting these?
+    '''
     def visit_ClassDef(self, node):
         self.log.error("Classes are not allowed in Seneca contracts")
-        self._is_success = False
-        self.generic_visit(node)
-        return node
+        # self._is_success = False
+        # self.generic_visit(node)
+        raise CompilationException
+        # return node
 
     def visit_AsyncFunctionDef(self, node):
         self.log.error("Async functions are not allowed in Seneca contracts")
-        self._is_success = False
-        self.generic_visit(node)
-        return node
+        # self._is_success = False
+        # self.generic_visit(node)
+        raise CompilationException
 
     def visit_Assign(self, node):
         # resource_names, func_name = Assert.valid_assign(node, Parser.parser_scope)
