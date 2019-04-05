@@ -1,4 +1,4 @@
-from seneca.engine.interpreter.linter import Linter
+from seneca.execution.linter import Linter
 import ast
 
 def test_linter():

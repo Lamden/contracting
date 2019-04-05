@@ -1,67 +1,13 @@
-from seneca.constants.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SENECA_LIBRARY_PATH, ALLOWED_DATA_TYPES
+from seneca.execution.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SENECA_LIBRARY_PATH, ALLOWED_DATA_TYPES
+from seneca.logger import get_logger
 import ast
+# from seneca.constants.config import *
 
+class Linter(ast.NodeVisitor):
 
-class Plugins:
-
-    __submit_stamps__ = None
-
-    @staticmethod
-    def assert_stamps(code_str):
-        return '''
-assert_stamps(__stamps__)
-    ''' + code_str
-
-    @classmethod
-    def submit_stamps(cls):
-        if not cls.__submit_stamps__:
-            cls.__submit_stamps__ = compile('''
-__stamps_used__ = __tracer__.get_stamp_used()
-submit_stamps(__stamps_used__)
-        ''', 'currency', 'exec')
-        return cls.__submit_stamps__
-
-    @staticmethod
-    def import_module(code_str, module, func):
-        return code_str + '''
-__set_resources__()
-__result__ = {func}()
-'''.format(func=func)
-
-    @staticmethod
-    def resource_reassignment(varname, ctx):
-        node = ast.parse('''
-{}.resource_obj
-        '''.format(varname), mode='exec').body[0].value
-        node.ctx = ctx
-        return node
-
-    @staticmethod
-    def global_reassignment(resource_list):
-        return ast.parse('''
-global {variables}
-        '''.format(
-            variables=','.join(resource_list)
-        )).body
-
-
-class ReadOnlyException(Exception):
-    pass
-
-
-class CompilationException(Exception):
-    pass
-
-
-class NotImplementedException(Exception):
-    pass
-
-
-class ItemNotFoundException(Exception):
-    pass
-
-
-class Assert:
+    def __init__(self):
+        self.log = get_logger('Seneca.Parser')
+        self._reset()
 
     @staticmethod
     def ast_types(t):
@@ -136,17 +82,18 @@ class Assert:
             if type(item) in [ast.ImportFrom, ast.Import]:
                 raise CompilationException('Not allowed to import inside a function definition')
 
-    @staticmethod
-    def is_datatype(node):
+    def is_datatype(self, node):
         if type(node.func) == ast.Name:
-            if node.func.id not in ALLOWED_DATA_TYPES:
-                raise CompilationException('Not allowed to call non-datatype objects in the global scope')
+            if node.func.id not in ALLOWED_DATA_TYPES and node.func.id not in self._functions:
+                self.log.error('{}: Not allowed to call non-datatype objects in the global scope'.format(node.func.id))
+                self._is_success = False
 
     @staticmethod
     def not_datatype(node):
         if type(node.func) == ast.Name:
             if node.func.id in ALLOWED_DATA_TYPES:
-                raise CompilationException('Not allowed to instantiate DataTypes inside functions')
+                self.log.error('{}: Not allowed to instantiate DataTypes inside functions'.format(node.func.id))
+                self._is_success = False
 
     @staticmethod
     def check_assignment_targets(node):
@@ -166,7 +113,7 @@ class Assert:
     @staticmethod
     def valid_assign(node, scope):
         for t in node.targets:
-            Assert.is_protected(t, scope)
+            self.is_protected(t, scope)
 
         resource_names = Assert.check_assignment_targets(node)
 
@@ -193,3 +140,116 @@ class Assert:
                     # print(resources)
                     raise ImportError('Forbidden to import "{}.{}"'.format(
                         contract_name, module))
+
+    def generic_visit(self, node):
+        self.ast_types(node)
+        return super().generic_visit(node)
+
+    def visit_Name(self, node):
+        # self.is_protected(node, Parser.parser_scope)
+        self.not_system_variable(node.id)
+        # Assert.is_within_scope(node.id, self.protected, self.resource, Parser.parser_scope)
+        # if Parser.assigning:
+            # Assert.is_not_resource(Parser.assigning, node.id, Parser.parser_scope)
+        # if Parser.parser_scope['ast'] in ('seed', 'export', 'func') \
+                # and self.get_resource(node.id) == 'Resource':
+            # self.generic_visit(node)
+            # return Plugins.resource_reassignment(node.id, node.ctx)
+        self.generic_visit(node)
+        return node
+
+    def visit_Attribute(self, node):
+        self.not_system_variable(node.attr)
+        self.generic_visit(node)
+        return node
+
+    def visit_Import(self, node):
+        for n in node.names:
+            self.validate_imports(n.name, alias=n.asname)
+        return self._visit_any_import(node)
+
+    def visit_ImportFrom(self, node):
+        for n in node.names:
+            self.validate_imports(node.module, n.name, alias=n.asname)
+        return self._visit_any_import(node)
+
+    def validate_imports(self, import_path, module_name=None, alias=None):
+        self.valid_import_path(import_path, module_name)
+
+    def _visit_any_import(self, node):
+        self.generic_visit(node)
+        return node
+
+    def visit_ClassDef(self, node):
+        self.log.error("Classes are not allowed in Seneca contracts")
+        self._is_success = False
+        self.generic_visit(node)
+        return node
+
+    def visit_AsyncFunctionDef(self, node):
+        self.log.error("Async functions are not allowed in Seneca contracts")
+        self._is_success = False
+        self.generic_visit(node)
+        return node
+
+    def visit_Assign(self, node):
+        # resource_names, func_name = Assert.valid_assign(node, Parser.parser_scope)
+        self.generic_visit(node)
+        return node
+
+    def visit_AugAssign(self, node):
+        # raghu todo checks here?
+        self.generic_visit(node)
+        return node
+
+    def visit_Call(self, node):
+        # raghu todo do we need any other checks against calling some system functions here?
+        self.is_datatype(node)
+        self.generic_visit(node)
+        return node
+
+    def visit_Num(self, node):
+        # NOTE: Integers are important for indexing and slicing so we cannot replace them. They also will not suffer
+        #       from rounding issues.
+        # are any types we don't allow right now? raghu todo
+        self.generic_visit(node)
+        return node
+
+    def visit_FunctionDef(self, node):
+        self.no_nested_imports(node)
+        for d in node.decorator_list:
+            if d.id in ('seneca_export'):
+                self._is_one_export = True
+        self.generic_visit(node)
+        return node
+
+    def _reset(self):
+        self._functions = []
+        self._is_one_export = False
+        self._is_success = True
+
+    def _final_checks(self):
+        if not self._is_one_export:
+            self.log.error("Need atleast one method with @seneca_export() decorator that outside world use to interact with this contract")
+            self._is_success = False
+    
+    def _collect_function_defs(self, root):
+        for node in ast.walk(root):
+            if isinstance(node, ast.FunctionDef):
+                self._functions.append(node.name)
+            elif isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom):
+                for n in node.names:
+                    if n.asname:
+                        self._functions.append(n.asname)
+                    else:
+                        self._functions.append(n.name.split('.')[-1])
+
+    def check(self, ast_tree):
+        self._reset()
+        # pass 1 - collect function def and imports
+        self._collect_function_defs(ast_tree)
+        self.visit(ast_tree)
+        self._final_checks()
+        return self._is_success
+
+

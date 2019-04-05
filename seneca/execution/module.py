@@ -1,7 +1,7 @@
 import os
 from os.path import join, exists, isdir, basename
 from importlib.util import spec_from_file_location
-from seneca.engine.interpreter.parser import Parser
+from seneca.execution.parser import Parser
 from seneca.config import SENECA_SC_PATH
 
 import sys
