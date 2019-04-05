@@ -35,23 +35,6 @@ class Linter(ast.NodeVisitor):
                 raise ReadOnlyException('Cannot assign value to "{}" as it is a read-only variable'.format(target.id))
 
     @staticmethod
-    def is_within_scope(target, protected, resources, scope):
-        contract_name = scope['rt']['contract']
-
-        if (scope.get(target) is not None and target not in protected and target not in resources
-                and target not in scope['protected']['__global__'] and contract_name not in scope['exports'].get(target, {})):
-            if scope.get(target) and contract_name not in scope['exports'].get(target, {}):
-                return
-            if not scope.get(target):
-                return
-            # print(contract_name, target)
-            # print(protected)
-            # print(resources)
-            # print(scope['protected']['__global__'])
-            # print(scope['exports'])
-            raise CompilationException('Not allowed to access "{}"'.format(target))
-
-    @staticmethod
     def is_not_resource(resource_names, name, scope):
         for assigned_to in resource_names:
             contract_name = scope['rt']['contract']
