@@ -35,7 +35,7 @@ ALLOWED_AST_TYPES = {
     ast.Load,
     ast.arg,
     ast.Add,
-    ast.Lambda,
+    ast.Lambda,    # raghu todo consider removing it
     ast.Import,
     ast.ImportFrom,
     ast.Name,

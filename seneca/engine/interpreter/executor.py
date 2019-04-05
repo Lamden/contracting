@@ -124,6 +124,7 @@ class Executor:
         Parser.parser_scope['__system__'] = None
         Parser.parser_scope['__seed__'] = True
         Scope.scope = Parser.parser_scope
+        # raghu todo do we really need exec here? 
         exec(seed_code_obj, Parser.parser_scope)
         Assert.validate(Scope.scope['imports'], Scope.scope['exports'], Scope.scope['resources'], contract_name)
         Parser.parser_scope.update(Scope.scope)  # Scope is updated for seeding purposes!

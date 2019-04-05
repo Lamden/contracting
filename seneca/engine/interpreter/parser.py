@@ -9,7 +9,24 @@ from seneca.constants.config import *
 from seneca.constants.whitelists import ALLOWED_DATA_TYPES
 
 
+# raghu todo parser functionality:
+#   1. checker -> checks for right usage and pythonic code, and verifies it follows our rules of restricted usage. at least one exported function, etc
+#      error -> record error and return.  Here we want to record all the errors in a contract for the maximum benefit of the user.
+#      can be provided as part of a user tool set for users to develop and test also.
+#   2. code transformer -> transforms the code: a) prefixing, etc, b) adds decorator and cleanup functionality
+#   3. compiled codeobj, along with mod code str and other annotated datastructures for book keeping    
+    
 class Parser:
+
+    def __init__(self, module_name, code_str):
+        self.module_name = module_name
+        self.code_str = code_str
+        self.log = get_logger('Seneca.Parser')
+        self._exported_methods = []
+        self._internal_methods = []
+        self._global_variables = []
+        self._ast_tree = None
+
     basic_scope = {
         'export': Export(),
         'seed': Seed(),
@@ -32,6 +49,10 @@ class Parser:
     child = None
     initialized = False
     assigning = False
+
+    def checker():
+        if not self._ast_tree:
+            self.parser()
 
     @classmethod
     def reset(cls):
