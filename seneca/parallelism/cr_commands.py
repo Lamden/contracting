@@ -1,6 +1,5 @@
-import ledis
-from seneca.libs.logger import get_logger
-from seneca.engine.conflict_resolution import CRDataGetSet, CRContext, CRDataBase, CR_EXCLUDED_KEYS
+from seneca.logger import get_logger
+from seneca.parallelism.conflict_resolution import CRContext, CR_EXCLUDED_KEYS
 
 
 class CRCmdMeta(type):

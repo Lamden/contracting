@@ -1,8 +1,8 @@
-from seneca.engine.conflict_resolution import *
-from seneca.engine.cr_commands import *
+from seneca.parallelism.conflict_resolution import *
+from seneca.parallelism.cr_commands import *
 from unittest import TestCase
 import unittest
-from seneca.engine.interpreter.driver import Driver
+from seneca.storage.driver import Driver
 
 class TestConflictResolution(TestCase):
 
@@ -13,8 +13,8 @@ class TestConflictResolution(TestCase):
         self._set_rp()
 
     def tearDown(self):
-        self.master.flushdb()
-        self.working.flushdb()
+        self.master.flush()
+        self.working.flush()
 
     def _set_rp(self, sbb_idx=0, contract_idx=0, finalize=False):
         if contract_idx in self.sbb_data:
@@ -23,7 +23,7 @@ class TestConflictResolution(TestCase):
             data = self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize)
             self.sbb_data[contract_idx] = data
 
-        self.r = LedisProxy(sbb_idx=sbb_idx, contract_idx=contract_idx, data=data)
+        self.r = StateProxy(sbb_idx=sbb_idx, contract_idx=contract_idx, data=data)
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
         cr = CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx)

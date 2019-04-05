@@ -1,5 +1,5 @@
-from seneca.engine.interpreter.executor import Executor
-from seneca.engine.interpreter.parser import Parser
+from seneca.execution.executor import Executor
+from seneca.execution.parser import Parser
 import types
 
 

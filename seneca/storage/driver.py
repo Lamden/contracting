@@ -1,7 +1,7 @@
 import abc
 
 from redis import Redis
-from seneca.constants.config import DB_PORT, DB_URL, DB_DELIMITER, MASTER_DB
+from seneca.config import DB_PORT, DB_URL, DB_DELIMITER, MASTER_DB
 
 
 class AbstractDriver:
@@ -53,10 +53,7 @@ class Driver:
 
         return k
 
-    def flush(self):
-        self.conn.flushall()
-
-    def flushdb(self):
+    def flush(self, db=None):
         self.conn.flushdb()
 
     def hget(self, field, key):

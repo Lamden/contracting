@@ -2,6 +2,15 @@ from functools import wraps
 from inspect import signature, _empty
 from collections import namedtuple
 import ast
+from decimal import getcontext, Decimal
+from seneca.config import DECIMAL_PRECISION
+
+getcontext().prec = DECIMAL_PRECISION
+
+
+def to_decimal(f):
+    f = str(f)
+    return Decimal(f)
 
 
 def module_path_for_contract(contract) -> str:

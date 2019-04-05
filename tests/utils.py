@@ -1,8 +1,7 @@
-from seneca.engine.interpreter.driver import Driver
+from seneca.storage.driver import Driver
 from unittest import TestCase
-from seneca.constants.config import MASTER_DB, DB_PORT
-from seneca.engine.interpreter.executor import Executor
-from seneca.engine.interpreter.parser import Parser
+from seneca.config import MASTER_DB, DB_PORT
+from seneca.execution.parser import Parser
 
 
 class TestCaseHeader(TestCase):
