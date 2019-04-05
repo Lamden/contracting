@@ -3,10 +3,14 @@ import ast
 
 def test_linter():
     # log = get_logger("TestSenecaLinter")
-    with open('stubucks.py', 'r') as myfile:
-        data=myfile.read()
-   
-    print("raghu code: \n{}".format(data))
+    data = '''
+@seneca_export
+def a():
+    b = 10
+    return b
+'''
+
+    print("stu code: \n{}".format(data))
     ptree = ast.parse(data)
     linter = Linter()
     status = linter.check(ptree)
@@ -16,6 +20,3 @@ def test_linter():
         print("Failed!")
 
 
-
-if __name__ == '__main__':
-    test_linter()

@@ -1,10 +1,11 @@
 from seneca.execution.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SENECA_LIBRARY_PATH, ALLOWED_DATA_TYPES
 from seneca.logger import get_logger
 import ast
+from ast import Assert
+from seneca.utils import CompilationException, ReadOnlyException
 # from seneca.constants.config import *
 
 class Linter(ast.NodeVisitor):
-
     def __init__(self):
         self.log = get_logger('Seneca.Parser')
         self._reset()
