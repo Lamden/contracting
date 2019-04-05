@@ -169,3 +169,27 @@ def a():
         c = ast.parse(code)
         self.l.visit(c)
         self.l.driver.flush()
+
+    def test_no_import_from(self):
+        code = '''
+from something import a
+@seneca_export
+def a():
+    b = 0
+    b += 1
+'''
+        with self.assertRaises(ImportError):
+            c = ast.parse(code)
+            self.l.visit(c)
+
+    def test_import_non_existent_contract(self):
+        code = '''
+import something
+@seneca_export
+def a():
+    b = 0
+    b += 1
+'''
+        with self.assertRaises(ImportError):
+            c = ast.parse(code)
+            self.l.visit(c)
