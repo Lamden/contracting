@@ -1,7 +1,7 @@
 from seneca.engine.interpreter.parser import Parser
 from seneca.engine.interpreter.scope import Scope
 from seneca.libs.metering.tracer import Tracer
-from seneca.constants.config import MASTER_DB, LEDIS_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS, READ_ONLY_MODE
+from seneca.constants.config import MASTER_DB, DB_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS, READ_ONLY_MODE
 import seneca, sys, marshal, os, types, ujson as json
 from base64 import b64encode, b64decode
 from os.path import join
@@ -23,7 +23,7 @@ class Executor:
         self.concurrency = False
         # raghu todo should be simple setup syspath
         self.reset_syspath()
-        self.driver_base = Driver(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
+        self.driver_base = Driver(host='localhost', port=DB_PORT, db=MASTER_DB)
         self.driver_proxy = None
         if flushall: self.driver.flush()
         self.path = join(seneca.__path__[0], 'contracts')

@@ -4,14 +4,14 @@ from importlib.abc import Loader, MetaPathFinder
 from importlib import invalidate_caches
 
 from seneca.engine.client import Driver
-
+from seneca.constants.config import DB_URL, DB_PORT, DB_DELIMITER
 
 '''
     Is this where interaction with the database occurs with the interface of code strings, etc?
     IE: pushing a contract does sanity checks here?
 '''
 class ContractDriver(Driver):
-    def __init__(self, host='localhost', port=6379, delimiter=':', db=0, code_key='__code__', type_key='__type__'):
+    def __init__(self, host=DB_URL, port=DB_PORT, delimiter=DB_DELIMITER, db=0, code_key='__code__', type_key='__type__'):
         super().__init__(host=host, port=port, delimiter=delimiter, db=db)
 
         self.code_key = code_key

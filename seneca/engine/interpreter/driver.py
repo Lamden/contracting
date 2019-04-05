@@ -1,8 +1,8 @@
 from redis import Redis
-
+from seneca.constants.config import DB_PORT, DB_URL, DB_DELIMITER, MASTER_DB
 
 class Driver:
-    def __init__(self, host='localhost', port=6379, db=0, delimiter=':'):
+    def __init__(self, host=DB_URL, port=DB_PORT, db=MASTER_DB, delimiter=DB_DELIMITER):
         self.conn = Redis(host=host, port=port, db=db)
         self.delimiter = delimiter
         self.connection_pool = self.conn.connection_pool

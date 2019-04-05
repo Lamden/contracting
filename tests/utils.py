@@ -1,6 +1,6 @@
 from seneca.engine.interpreter.driver import Driver
 from unittest import TestCase
-from seneca.constants.config import MASTER_DB, LEDIS_PORT
+from seneca.constants.config import MASTER_DB, DB_PORT
 from seneca.engine.interpreter.executor import Executor
 from seneca.engine.interpreter.parser import Parser
 
@@ -17,7 +17,7 @@ class TestExecutor(TestCaseHeader):
 
     @classmethod
     def setUpClass(cls):
-        cls.r = Driver(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
+        cls.r = Driver(host='localhost', port=DB_PORT, db=MASTER_DB)
         cls.r.flush()
         cls.reset()
 
@@ -37,7 +37,7 @@ class TestExecutor(TestCaseHeader):
 
 class MockExecutor:
     def __init__(self, *args, **kwargs):
-        self.driver = Driver(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
+        self.driver = Driver(host='localhost', port=DB_PORT, db=MASTER_DB)
         self.driver.flush()
         Parser.executor = self
         if not Parser.parser_scope.get('rt'):
