@@ -1,6 +1,15 @@
 import copy
 
 
+# raghu todo
+#  1. Replace this with context to provide runtime context.
+#  2. Runtime context is setup at the point of txn execution.
+#     then runtime context is only runtime context: sender and stamps supplied, etc
+#  3. CodeModifier will add a class with contract name
+#  4. it will hide all global variables with contract_name prefix
+#  5. and add a function "_set_seneca_context" -> that will take backup of global variables and set them to None
+#  6. and add a function "_reset_seneca_context" -> to restore global variables to backups
+#  7. then Export() or Seed() functions can wrap them around function
 class Scope:
 
     scope = {}
