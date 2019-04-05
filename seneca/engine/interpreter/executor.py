@@ -25,7 +25,7 @@ class Executor:
         self.reset_syspath()
         self.driver_base = Driver(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
         self.driver_proxy = None
-        if flushall: self.driver.flushall()
+        if flushall: self.driver.flush()
         self.path = join(seneca.__path__[0], 'contracts')
         self.author = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
         self.official_contracts = OFFICIAL_CONTRACTS

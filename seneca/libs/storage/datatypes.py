@@ -1,5 +1,4 @@
 from seneca.libs.storage.resource import Resource
-from seneca.libs.storage.table import Table
 from seneca.libs.storage.datatype import DataType, SubscriptType
 from walrus.containers import Hash as WHash, Set as WSet, List as WList, ZSet as WZSet, BitField as WBitField
 from walrus.containers import BloomFilter as WBloomFilter, Array as WArray, HyperLogLog as WHyperLogLog

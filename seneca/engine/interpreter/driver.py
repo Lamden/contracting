@@ -16,6 +16,19 @@ class Driver:
     def delete(self, key):
         self.conn.delete(key)
 
+    def incrby(self, key, amount=1):
+        k = self.get(key)
+
+        if k is None:
+            k = 0
+        k = int(k) + amount
+        self.set(key, k)
+
+        return k
+
+    def flush(self):
+        self.conn.flushall()
+
     def hget(self, field, key):
         return self.get('{}{}{}'.format(field, self.delimiter, key))
 
@@ -25,8 +38,8 @@ class Driver:
     def hexists(self, *args, **kwargs):
         return bool(self.hget(*args, **kwargs))
 
-    def hincrby(self, field, key, value):
-        self.incr('{}{}{}'.format(field, self.delimiter, key), value)
+    def hincrby(self, field, key, amount=1):
+        self.incrby('{}{}{}'.format(field, self.delimiter, key), amount)
 
     def hmget(self, field, keys):
         res = []
@@ -42,26 +55,14 @@ class Driver:
     def xscan(self, *args, **kwargs):
         return self.conn.keys(pattern='*')
 
-    def flushall(self):
-        self.conn.flushall()
-
     def flushdb(self):
         self.conn.flushdb()
 
-    def hlen(self, field, key):
-        self.conn.hlen('{}{}{}'.format(field, self.delimiter, key))
+    def hlen(self, key):
+        return self.conn.hlen(key)
+        # return self.conn.hlen('{}{}{}'.format(field, self.delimiter, key))
 
     def exists(self, key):
         if self.get(key) is not None:
             return True
         return False
-
-    def incr(self, key, amount=1):
-        k = self.get(key)
-
-        if k is None:
-            k = 0
-        k = int(k) + amount
-        self.set(key, k)
-
-        return k

@@ -90,7 +90,7 @@ class TestSenecaClient(TestExecutor):
     def setUp(self):
         # overwrite_logger_level(0)
         self.ex = Executor(metering=False, concurrency=False)
-        self.r.flushall()
+        self.r.flush()
         self._mint_wallets()
         self.completed_hashes = defaultdict(list)
 

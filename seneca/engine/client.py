@@ -32,7 +32,7 @@ class Phase:
 
     @staticmethod
     def incr(db, key) -> int:
-        return db.incr(key)
+        return db.incrby(key)
 
     @staticmethod
     def get(db, key) -> int:
