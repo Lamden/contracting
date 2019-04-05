@@ -1,55 +1,67 @@
-from walrus.tusks.ledisdb import WalrusLedis
-from walrus import Walrus
+from redis import Redis
+from seneca.constants.config import DB_PORT, DB_URL, DB_DELIMITER, MASTER_DB
 
+class Driver:
+    def __init__(self, host=DB_URL, port=DB_PORT, db=MASTER_DB, delimiter=DB_DELIMITER):
+        self.conn = Redis(host=host, port=port, db=db)
+        self.delimiter = delimiter
+        self.connection_pool = self.conn.connection_pool
 
-# class Driver(WalrusLedis):
-#     """
-#     Connects to the Walrus ORM with Ledis as back-end. We will only allow items that use sets because
-#     conflict resolution currently does not support
-#     """
+    def get(self, key):
+        return self.conn.get(key)
 
+    def set(self, key, value):
+        self.conn.set(key, value)
 
-class ConcurrentDriver(WalrusLedis):
+    def delete(self, key):
+        self.conn.delete(key)
 
-    def hget(self, hash_key, key):
-        return self.get(hash_key+':'+key)
+    def incrby(self, key, amount=1):
+        k = self.get(key)
 
-    def hset(self, hash_key, key, value):
-        return self.set(hash_key+':'+key, value)
+        if k is None:
+            k = 0
+        k = int(k) + amount
+        self.set(key, k)
+
+        return k
+
+    def flush(self):
+        self.conn.flushall()
+
+    def flushdb(self):
+        self.conn.flushdb()
+
+    def hget(self, field, key):
+        return self.get('{}{}{}'.format(field, self.delimiter, key))
+
+    def hset(self, field, key, value):
+        self.set('{}{}{}'.format(field, self.delimiter, key), value)
 
     def hexists(self, *args, **kwargs):
         return bool(self.hget(*args, **kwargs))
 
-    def hincrby(self, hash_key, key, value):
-        res = self.hget(hash_key, key)
-        self.hset(hash_key, key, int(res)+value)
+    def hincrby(self, field, key, amount=1):
+        self.incrby('{}{}{}'.format(field, self.delimiter, key), amount)
 
-    def hmget(self, hash_key, keys):
+    def hmget(self, field, keys):
         res = []
         for key in keys:
-            r = self.hget(hash_key, key)
+            r = self.hget(field, key)
             if r: res.append(r)
         return res
 
-    def hmset(self, hash_key, objs):
-        for key, obj in objs.items():
-            self.hset(hash_key, key, obj)
+    def hmset(self, field, mapping):
+        for key, val in mapping.items():
+            self.hset(field, key, val)
 
-    def keys(self):
-        keys_count, keys = self.scan_generic('SCAN')
-        return keys
+    def xscan(self, *args, **kwargs):
+        return self.conn.keys(pattern='*')
 
-    # def __getattribute__(self, name):
-    #     print("CONCURRENT DRIVER RETURNING ATTR {}".format(name))
-    #     return object.__getattribute__(self, name)
+    def hlen(self, key):
+        return self.conn.hlen(key)
 
-
-class Driver(ConcurrentDriver):
-    """
-    Connects to the Walrus ORM with Ledis as back-end. We will only allow items that use sets because
-    conflict resolution currently does not support
-    """
-
-    def __init__(self, *args, **kwargs):
-        kwargs['port'] = 6379
-        super().__init__(*args, **kwargs)
+    def exists(self, key):
+        if self.get(key) is not None:
+            return True
+        return False

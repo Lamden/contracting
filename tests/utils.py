@@ -1,10 +1,8 @@
 from seneca.engine.interpreter.driver import Driver
 from unittest import TestCase
-from seneca.constants.config import MASTER_DB, LEDIS_PORT
+from seneca.constants.config import MASTER_DB, DB_PORT
 from seneca.engine.interpreter.executor import Executor
 from seneca.engine.interpreter.parser import Parser
-from seneca.libs.storage.table import Table
-import ledis, pickle
 
 
 class TestCaseHeader(TestCase):
@@ -19,18 +17,18 @@ class TestExecutor(TestCaseHeader):
 
     @classmethod
     def setUpClass(cls):
-        cls.r = Driver(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
-        cls.r.flushall()
+        cls.r = Driver(host='localhost', port=DB_PORT, db=MASTER_DB)
+        cls.r.flush()
         cls.reset()
 
     @classmethod
     def reset(cls, metering=False, concurrency=False):
-        cls.r.flushall()
+        cls.r.flush()
         cls.ex = Executor(metering=metering, concurrency=concurrency)
 
     @classmethod
     def flush(cls):
-        cls.r.flushall()
+        cls.r.flush()
     #
     # @classmethod
     # def tearDownClass(cls):
@@ -39,8 +37,8 @@ class TestExecutor(TestCaseHeader):
 
 class MockExecutor:
     def __init__(self, *args, **kwargs):
-        self.driver = ledis.Ledis(host='localhost', port=LEDIS_PORT, db=MASTER_DB)
-        self.driver.flushall()
+        self.driver = Driver(host='localhost', port=DB_PORT, db=MASTER_DB)
+        self.driver.flush()
         Parser.executor = self
         if not Parser.parser_scope.get('rt'):
             Parser.parser_scope['rt'] = {}
@@ -57,5 +55,4 @@ class TestDataTypes(TestCaseHeader):
         self.contract_id = self.id().split('.')[-1]
         self.ex = MockExecutor()
         Parser.parser_scope['rt']['contract'] = self.contract_id
-        Table.schemas = {}
         super().setUp()

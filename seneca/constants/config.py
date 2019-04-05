@@ -4,10 +4,13 @@ import seneca
 SENECA_PATH = seneca.__path__[0]
 SENECA_SC_PATH = 'seneca.contracts'
 
-LEDIS_PORT = 6379
+DB_URL = 'localhost'
+DB_PORT = 6379
 MASTER_DB = 0
 DB_OFFSET = 1
 CODE_OBJ_MAX_CACHE = 64
+
+DB_DELIMITER = ':'
 
 # Number of available db's SenecaClients have available to get ahead on the next sub block while other sb's are
 # awaiting a merge confirmation
