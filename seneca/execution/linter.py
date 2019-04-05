@@ -65,32 +65,20 @@ class Linter(ast.NodeVisitor):
             if type(item) in [ast.ImportFrom, ast.Import]:
                 raise CompilationException('Not allowed to import inside a function definition')
 
-    @staticmethod
-    def check_assignment_targets(node):
-        resource_names = []
-        if type(node) == ast.Assign:
-            for n in node.targets:
-                resource_names += Assert.check_assignment_targets(n)
-        elif type(node) == ast.Name:
-            resource_names.append(node.id)
-        elif type(node) in (ast.Subscript, ast.Attribute):
-            resource_names += Assert.check_assignment_targets(node.value)
-        elif type(node) == ast.Tuple:
-            for n in node.elts:
-                resource_names += Assert.check_assignment_targets(n)
-        return resource_names
-
     # @staticmethod
-    # def validate(imports, exports, resources, current_contract):
-    #     for module, contracts in imports.items():
-    #         for contract_name in contracts:
-    #             if contract_name not in exports.get(module, {}) and module not in resources.get(contract_name, {}):
-    #                 # print(contract_name, module)
-    #                 # print(imports)
-    #                 # print(exports)
-    #                 # print(resources)
-    #                 raise ImportError('Forbidden to import "{}.{}"'.format(
-    #                     contract_name, module))
+    # def check_assignment_targets(node):
+    #     resource_names = []
+    #     if type(node) == ast.Assign:
+    #         for n in node.targets:
+    #             resource_names += Assert.check_assignment_targets(n)
+    #     elif type(node) == ast.Name:
+    #         resource_names.append(node.id)
+    #     elif type(node) in (ast.Subscript, ast.Attribute):
+    #         resource_names += Assert.check_assignment_targets(node.value)
+    #     elif type(node) == ast.Tuple:
+    #         for n in node.elts:
+    #             resource_names += Assert.check_assignment_targets(n)
+    #     return resource_names
 
     def generic_visit(self, node):
         self.ast_types(node)
