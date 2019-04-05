@@ -21,14 +21,6 @@ class Linter(ast.NodeVisitor):
         if v.startswith('__') and v.endswith('__'):
             raise CompilationException('Access denied for system variable: {}'.format(v))
 
-    # @staticmethod
-    # def is_not_resource(resource_names, name, scope):
-    #     for assigned_to in resource_names:
-    #         contract_name = scope['rt']['contract']
-    #         resource = scope.get('resources', {}).get(contract_name, {}).get(assigned_to)
-    #         if resource is False:
-    #             raise ReadOnlyException('Cannot modify resource "{}.{}"'.format(contract_name, assigned_to))
-
     @staticmethod
     def no_nested_imports(node):
         for item in node.body:

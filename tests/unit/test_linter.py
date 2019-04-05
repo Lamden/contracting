@@ -123,3 +123,24 @@ def a():
 
         c = ast.parse(code)
         self.l.visit(c)
+
+    def test_no_nested_imports(self):
+        code = '''
+@seneca_export
+def a():
+    import something
+        '''
+
+        with self.assertRaises(CompilationException):
+            c = ast.parse(code)
+            self.l.visit(c)
+
+    def test_augassign(self):
+        code = '''
+@seneca_export
+def a():
+    b = 0
+    b += 1
+'''
+        c = ast.parse(code)
+        self.l.visit(c)
