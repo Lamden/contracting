@@ -3,16 +3,17 @@ import sys
 from importlib.abc import Loader, MetaPathFinder
 from importlib import invalidate_caches
 
-from redis import Redis
+from seneca.engine.client import Driver
+
 
 '''
     Is this where interaction with the database occurs with the interface of code strings, etc?
     IE: pushing a contract does sanity checks here?
 '''
-class Database:
+class ContractDriver(Driver):
     def __init__(self, host='localhost', port=6379, delimiter=':', db=0, code_key='__code__', type_key='__type__'):
-        self.conn = Redis(host=host, port=port, db=db)
-        self.delimiter = delimiter
+        super().__init__(host=host, port=port, delimiter=delimiter, db=db)
+
         self.code_key = code_key
         self.type_key = type_key
 
@@ -40,7 +41,7 @@ class DatabaseFinder(MetaPathFinder):
 
 class DatabaseLoader(Loader):
     def __init__(self):
-        self.d = Database()
+        self.d = ContractDriver()
 
     def create_module(self, spec):
         return None

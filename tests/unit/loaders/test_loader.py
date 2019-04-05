@@ -5,7 +5,7 @@ import types
 
 class TestDatabase(TestCase):
     def setUp(self):
-        self.d = Database(host='localhost', port=6379, db=10)
+        self.d = ContractDriver(host='localhost', port=6379, db=10)
         self.d.flush()
 
     def tearDown(self):
@@ -16,7 +16,7 @@ class TestDatabase(TestCase):
         self.assertEqual(self.d.code_key, '__code__', 'Code Key default not "code"')
 
     def test_dynamic_init(self):
-        d = Database(host='localhost', port=6379, delimiter='*', db=9, code_key='jam')
+        d = ContractDriver(host='localhost', port=6379, delimiter='*', db=9, code_key='jam')
 
         self.assertEqual(d.delimiter, '*', 'self.delimiter is not being set')
         self.assertEqual(d.code_key, 'jam', 'self.code_key is not being set')
@@ -45,7 +45,7 @@ class TestDatabaseLoader(TestCase):
         self.dl = DatabaseLoader()
 
     def test_init(self):
-        self.assertTrue(isinstance(self.dl.d, Database), 'self.d is not a Database object.')
+        self.assertTrue(isinstance(self.dl.d, ContractDriver), 'self.d is not a Database object.')
 
     def test_create_module(self):
         self.assertEqual(self.dl.create_module(None), None, 'self.create_module should return None')

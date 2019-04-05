@@ -29,6 +29,9 @@ class Driver:
     def flush(self):
         self.conn.flushall()
 
+    def flushdb(self):
+        self.conn.flushdb()
+
     def hget(self, field, key):
         return self.get('{}{}{}'.format(field, self.delimiter, key))
 
@@ -54,9 +57,6 @@ class Driver:
 
     def xscan(self, *args, **kwargs):
         return self.conn.keys(pattern='*')
-
-    def flushdb(self):
-        self.conn.flushdb()
 
     def hlen(self, key):
         return self.conn.hlen(key)
