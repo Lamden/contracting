@@ -8,7 +8,7 @@ from os.path import join
 from functools import lru_cache
 from seneca.utils import Plugins, Assert
 # from seneca.engine.interpreter.module import SenecaFinder, LedisFinder
-from seneca.execution.module import SenecaFinder, LedisFinder
+#from seneca.execution.module import SenecaFinder, LedisFinder
 from seneca.storage.driver import Driver
 from seneca.parallelism.book_keeper import BookKeeper
 from seneca.parallelism.conflict_resolution import StateProxy
