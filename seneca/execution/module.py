@@ -13,40 +13,6 @@ from seneca.storage.driver import Driver
 from seneca.config import DB_URL, DB_PORT, DB_DELIMITER
 
 
-class SenecaFinder(MetaPathFinder):
-
-    def find_spec(self, fullname, path, target=None):
-        if path is None or path == "":
-            path = [os.getcwd()] # top level import --
-        if fullname.startswith(SENECA_SC_PATH):
-            return None
-        if "." in fullname:
-            *parents, name = fullname.split(".")
-        else:
-            name = fullname
-        for entry in path:
-            if isdir(join(entry, name)):
-                # this module has child modules
-                filename = join(entry, name, "__init__.py")
-                if not exists(filename):
-                    with open(filename, "w+") as f:
-                        pass
-                submodule_locations = [join(entry, name)]
-            else:
-                filename = join(entry, name)
-                if exists(filename+'.py'):
-                    submodule_locations = [filename]
-                    filename += '.py'
-                elif exists(filename+'.sen.py'):
-                    filename += '.sen.py'
-                    submodule_locations = None
-                else:
-                    continue
-            return spec_from_file_location(fullname, filename, loader=SenecaLoader(filename),
-                                           submodule_search_locations=submodule_locations)
-        return None # we don't know how to import this
-
-
 class SenecaLoader(Loader):
 
     def __init__(self, filename):

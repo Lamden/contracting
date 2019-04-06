@@ -45,11 +45,6 @@ def a():
         with self.assertRaises(CompilationException):
             self.l.not_system_variable(v)
 
-    # def test_no_starred_imports(self):
-    #     m = '*'
-    #     with self.assertRaises(ImportError):
-    #         self.l.valid_import_path(None, m)
-
     '''
     Is blocking all underscore variables really the solution to preventing access to system variables?
     '''
