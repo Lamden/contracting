@@ -3,19 +3,6 @@ from decimal import Decimal
 
 NUMBER_TYPES = (int, float)
 APPROVED_TYPES = (Decimal, str, bool, bytes)
-# ALLOWED_DATA_TYPES = {
-#     'Table',
-#     'Resource',
-#     'Hash',
-#
-#     'Set',
-#     'ZSet',
-#     'List',
-#     'HyperLogLog',
-#     'Array',
-#     'BitField',
-#     'BloomFilter'
-# }
 
 ALLOWED_AST_TYPES = {
     ast.Module,
