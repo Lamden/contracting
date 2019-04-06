@@ -6,10 +6,13 @@ from seneca.utils import CompilationException, ReadOnlyException
 # from seneca.constants.config import *
 from seneca.execution.module import ContractDriver
 
+
 class Linter(ast.NodeVisitor):
     def __init__(self):
         self.log = get_logger('Seneca.Parser')
-        self._reset()
+        self._functions = []
+        self._is_one_export = False
+        self._is_success = True
         self.driver = ContractDriver()
 
     @staticmethod
