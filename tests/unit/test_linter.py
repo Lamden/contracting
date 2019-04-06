@@ -193,3 +193,39 @@ def a():
         with self.assertRaises(ImportError):
             c = ast.parse(code)
             self.l.visit(c)
+
+    def test_final_checks_set_properly(self):
+        code = '''
+def a():
+    b = 0
+    b += 1
+        '''
+
+        c = ast.parse(code)
+        self.l.visit(c)
+        self.l._final_checks()
+
+        self.assertFalse(self.l._is_one_export)
+
+
+    def test_collect_function_defs(self):
+        code = '''
+@seneca_export
+def a():
+    return 42
+
+@seneca_export
+def b():
+    return 1000000
+
+@seneca_export
+def x():
+    return 64
+
+@seneca_export
+def y():
+    return 24
+'''
+        c = ast.parse(code)
+        self.l._collect_function_defs(c)
+        self.assertEqual(self.l._functions, ['a', 'b', 'x', 'y'])
