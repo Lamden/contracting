@@ -30,7 +30,7 @@ build-ledis:
 	docker build -t ledis -f ./docker/ledis .
 
 start-server:
-	bash ./scripts/start.sh
+	python3 ./scripts/start_redis.py -no-conf &>/dev/null &
 
 start-docker:
 	docker rm -f seneca || true
