@@ -1,15 +1,16 @@
-from seneca.execution.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS, SENECA_LIBRARY_PATH
+from seneca.execution.whitelists import ALLOWED_AST_TYPES
 from seneca.logger import get_logger
 import ast
-from ast import Assert
-from seneca.utils import CompilationException, ReadOnlyException
-# from seneca.constants.config import *
+from seneca.utils import CompilationException
 from seneca.execution.module import ContractDriver
+
 
 class Linter(ast.NodeVisitor):
     def __init__(self):
         self.log = get_logger('Seneca.Parser')
-        self._reset()
+        self._functions = []
+        self._is_one_export = False
+        self._is_success = True
         self.driver = ContractDriver()
 
     @staticmethod
@@ -42,10 +43,6 @@ class Linter(ast.NodeVisitor):
         self.generic_visit(node)
         return node
 
-    # def validate_imports(self, name, alias):
-    #     if self.driver.get_contract(name) is None:
-    #         raise ImportError
-
     def visit_Import(self, node):
         for n in node.names:
             self.validate_imports(n.name, alias=n.asname)
@@ -67,16 +64,17 @@ class Linter(ast.NodeVisitor):
     '''
     def visit_ClassDef(self, node):
         self.log.error("Classes are not allowed in Seneca contracts")
-        # self._is_success = False
-        # self.generic_visit(node)
-        raise CompilationException
-        # return node
+        self._is_success = False
+        self.generic_visit(node)
+        #raise CompilationException
+        return node
 
     def visit_AsyncFunctionDef(self, node):
         self.log.error("Async functions are not allowed in Seneca contracts")
-        # self._is_success = False
-        # self.generic_visit(node)
-        raise CompilationException
+        self._is_success = False
+        self.generic_visit(node)
+        # raise CompilationException
+        return node
 
     def visit_Assign(self, node):
         # resource_names, func_name = Assert.valid_assign(node, Parser.parser_scope)
