@@ -2,13 +2,13 @@ from seneca.parallelism.conflict_resolution import *
 from seneca.parallelism.cr_commands import *
 from unittest import TestCase
 import unittest
-from seneca.storage.driver import Driver
+from seneca.storage.driver import DatabaseDriver
 
 class TestConflictResolution(TestCase):
 
     def setUp(self):
-        self.master = Driver(host='localhost', port=6379, db=0)
-        self.working = Driver(host='localhost', port=6379, db=1)
+        self.master = DatabaseDriver(host='localhost', port=6379, db=0)
+        self.working = DatabaseDriver(host='localhost', port=6379, db=1)
         self.sbb_data = {}
         self._set_rp()
 
