@@ -44,6 +44,9 @@ class Executor:
         self.setup_tracer()
 
     @property
+    # Colin - I don't understand what this property is for, why
+    #         do we need a driver_proxy for CR, we should not be
+    #         instantiating drivers all over the place.
     def driver(self):
         if self.concurrency:
             if not self.driver_proxy:
@@ -59,11 +62,12 @@ class Executor:
         else:
             return self.driver_base
 
+    # Colin - Moved CU_COST_FNAME from environment variable (unsafe,
+    #         injection prone) to a string passed directly to the
+    #         Tracer cython class.
     def setup_tracer(self):
-        seneca_path = seneca.__path__[0]
-        path = join(seneca_path, 'constants', 'cu_costs.const')
-        os.environ['CU_COST_FNAME'] = path
-        self.tracer = Tracer()
+        cu_cost_fname = join(seneca.__path__[0], 'constants', 'cu_costs.const')
+        self.tracer = Tracer(cu_cost_fname)
         Plugins.submit_stamps()
 
     def setup_official_contracts(self):
