@@ -70,6 +70,12 @@ class Executor:
         self.tracer = Tracer(cu_cost_fname)
         Plugins.submit_stamps()
 
+    # Colin - This should not be happening here. If we want to use
+    #         the Executor class in multiple locations (multiple
+    #         instantiations) we cannot be setting up official
+    #         contracts every time. This should be moved to system
+    #         bootstrap method
+    # Colin TODO: Move to boostrap.py to ensure we are 1-to-1 with boot not instance of executor
     def setup_official_contracts(self):
         # raghu todo should this be traversing the library and reading all the files ?
         # it's fine as it is now as it gives us control on what to load and what not to load and the order
@@ -89,6 +95,7 @@ class Executor:
                 'methods': methods,
             }, driver=self.driver, override=True)
 
+    # Colin TODO: Use Capnp instead of marshal, no need to use different serialization modules
     @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
     def get_contract(self, contract_name):
         contract = marshal.loads(b64decode(self.driver.hget('contracts', contract_name).decode()))
