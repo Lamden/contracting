@@ -69,10 +69,9 @@ void read_cu_costs(char *fname, int cu_costs[]) {
 static int
 Tracer_init(Tracer *self, PyObject *args, PyObject *kwds)
 {
+    PyArg_ParseTuple(args, "i", &self->cu_cost_fname);
 
-    char *fname = getenv("CU_COST_FNAME");
-
-    read_cu_costs(fname, self->cu_costs); // Read cu cu_costs from ones interpreted in Python
+    read_cu_costs(self->cu_cost_fname, self->cu_costs); // Read cu cu_costs from ones interpreted in Python
 
     self->started = 0;
     self->cost = 0;

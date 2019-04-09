@@ -4,6 +4,8 @@ import seneca
 SENECA_PATH = seneca.__path__[0]
 SENECA_SC_PATH = 'seneca.contracts'
 
+DB_TYPE = 'redis'
+
 DB_URL = 'localhost'
 DB_PORT = 6379
 MASTER_DB = 0

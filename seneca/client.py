@@ -4,7 +4,7 @@ from seneca.execution.executor import Executor
 from seneca.config import *
 from seneca.parallelism.conflict_resolution import CRContext
 from seneca.parallelism.book_keeper import BookKeeper
-from seneca.storage.driver import Driver
+from seneca.storage.driver import DatabaseDriver
 from collections import deque
 from typing import Callable
 import traceback
@@ -78,9 +78,9 @@ class SenecaClient(Executor):
         self.log.important3("---- SENECA CLIENT CREATION FINISHED -----")
 
     def _setup_dbs(self):
-        self.master_db = Driver(host='localhost', db=MASTER_DB)
+        self.master_db = DatabaseDriver(host='localhost', db=MASTER_DB)
         for db_num in range(self.max_number_workers):
-            db_client = Driver(host='localhost', db=db_num+DB_OFFSET)
+            db_client = DatabaseDriver(host='localhost', db=db_num+DB_OFFSET)
             Phase.reset_keys(db_client)
             cr_data = CRContext(working_db=db_client, master_db=self.master_db, sbb_idx=self.sbb_idx)
             self.available_dbs.append(cr_data)
@@ -446,7 +446,7 @@ class SenecaClient(Executor):
                                             value=self.num_sb_builders, timeout=Phase.CR_TIMEOUT)
         self.log.debug("Conflict resolution complete for ALL sub blocks ({})".format(cr_data))
 
-    async def _wait_for_phase_variable(self, db: Driver, key: str, value: int, timeout: int):
+    async def _wait_for_phase_variable(self, db: DatabaseDriver, key: str, value: int, timeout: int):
         elapsed = 0
         while Phase.get(db, key) != value:
             await asyncio.sleep(Phase.POLL_INTERVAL)
