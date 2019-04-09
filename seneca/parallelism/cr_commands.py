@@ -28,7 +28,8 @@ class CRCmdBase(metaclass=CRCmdMeta):
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
 
     def set_params(self, working_db, master_db, sbb_idx: int, contract_idx: int, data: CRContext):
-        self.data = data
+        self.cr_data = data
+        self.data = data.cr_data
         self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
 

@@ -332,13 +332,6 @@ class CRContext:
 
             CRDataGetSet.merge_to_master(working_db, master_db, key)
 
-    def __getitem__(self, item):
-        assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}" \
-            .format(item, list(self.cr_data.keys()))
-        if self.locked:
-            raise Exception("CRData attempted to be accessed while it was locked!! Bug in interpreter layer")
-        return self.cr_data[item]
-
     def __repr__(self):
         return "<CRContext(input_hash={} .., contracts run so far={}, working db num={})>".format(
             self.input_hash[:16], len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
