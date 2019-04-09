@@ -1,6 +1,6 @@
 from seneca.execution.parser import Parser
 from seneca.execution.scope import Scope
-from seneca.metering.tracer import Tracer
+#from seneca.metering.tracer import Tracer
 from seneca.config import MASTER_DB, DB_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS, READ_ONLY_MODE
 import seneca, marshal, os, types
 from base64 import b64encode, b64decode
@@ -44,9 +44,10 @@ class Executor:
         self.concurrency = concurrency
 
         # Colin -  Setup the tracer
-        cu_cost_fname = join(seneca.__path__[0], 'constants', 'cu_costs.const')
-        self.tracer = Tracer(cu_cost_fname)
-        Plugins.submit_stamps()
+        # Colin TODO: Find out why Tracer is not instantiating properly. Raghu also said he wants to pull this out.
+        #cu_cost_fname = join(seneca.__path__[0], 'constants', 'cu_costs.const')
+        #self.tracer = Tracer(cu_cost_fname)
+        #Plugins.submit_stamps()
 
     @property
     # Colin - I don't understand what this property is for, why
@@ -261,3 +262,5 @@ class Executor:
         self.execute(contract['code_obj'], module.__dict__)
         return module
 
+if __name__ == "__main__":
+    e = Executor()
