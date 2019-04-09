@@ -9,7 +9,7 @@ from functools import lru_cache
 from seneca.utils import Plugins, Assert
 from seneca.parallelism.book_keeper import BookKeeper
 from seneca.parallelism.conflict_resolution import StateProxy
-import seneca.execution.module as senmod
+from seneca.execution.module import uninstall_builtins, install_database_loader
 from seneca.storage.driver import DatabaseDriver
 
 class Executor:
@@ -17,10 +17,10 @@ class Executor:
     def __init__(self, metering=True, concurrency=True, flushall=False):
         # Colin - Ensure everything is nuked down to minimal viable set
         #         before we start doing ANYTHING
-        senmod.uninstall_builtins()
+        uninstall_builtins()
 
         # Colin - Put the database loader in the sys path
-        senmod.install_database_loader()
+        install_database_loader()
 
         # Colin - Load in the database driver from the global config
         #         Set driver_proxy to none to indicate it exists and
@@ -33,15 +33,19 @@ class Executor:
         # Colin - Load in the parameters for the default contracts
         #         NOTE: Not sure this belongs here at all (should
         #               be happening in bootstrap most likely).
-        self.path = join(seneca.__path__[0], 'contracts')
-        self.author = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
-        self.official_contracts = OFFICIAL_CONTRACTS
-        self.setup_official_contracts()
+        #self.path = join(seneca.__path__[0], 'contracts')
+        #self.author = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
+        #self.official_contracts = OFFICIAL_CONTRACTS
+        #self.setup_official_contracts()
 
         # Setup whether or not flags have been set
         self.metering = metering
         self.concurrency = concurrency
-        self.setup_tracer()
+
+        # Colin -  Setup the tracer
+        cu_cost_fname = join(seneca.__path__[0], 'constants', 'cu_costs.const')
+        self.tracer = Tracer(cu_cost_fname)
+        Plugins.submit_stamps()
 
     @property
     # Colin - I don't understand what this property is for, why
@@ -61,14 +65,6 @@ class Executor:
             return self.driver_proxy
         else:
             return self.driver_base
-
-    # Colin - Moved CU_COST_FNAME from environment variable (unsafe,
-    #         injection prone) to a string passed directly to the
-    #         Tracer cython class.
-    def setup_tracer(self):
-        cu_cost_fname = join(seneca.__path__[0], 'constants', 'cu_costs.const')
-        self.tracer = Tracer(cu_cost_fname)
-        Plugins.submit_stamps()
 
     # Colin - This should not be happening here. If we want to use
     #         the Executor class in multiple locations (multiple
@@ -113,7 +109,6 @@ class Executor:
             'resources': resources.get(contract_name, {}),
             'methods': methods.get(contract_name, {}),
         })))
-
 
     @staticmethod
     def compile(contract_name, code_str, scope={}):
