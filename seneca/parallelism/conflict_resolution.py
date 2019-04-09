@@ -39,6 +39,11 @@ class CRDataGetSet(dict, metaclass=CRDataMeta):
         # TODO this needs to return READs that have had their original values changed too!
         return set().union((key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
 
+    def get_state_for_idx(self, contract_idx: int) -> str:
+        """
+        Gets a state representation string for a particular contract index. """
+        return self.outputs[contract_idx]
+
     def reset_contract_data(self, contract_idx: int):
         """ Resets the reads list and modification list for the contract at index idx. """
         self.writes[contract_idx].clear()
@@ -262,8 +267,7 @@ class CRContext:
             .format(contract_idx, len(self.contracts))
 
         state_str = ''
-        for key in sorted(self.cr_data.keys()):  # We sort the keys so that output will always be deterministic
-            state_str += self.cr_data[key].get_state_for_idx(contract_idx)
+        state_str += self.cr_data.get_state_for_idx(contract_idx)
         return state_str
 
     def get_subblock_rep(self) -> List[tuple]:

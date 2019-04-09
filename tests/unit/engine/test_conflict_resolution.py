@@ -169,18 +169,18 @@ class TestConflictResolution(TestCase):
         # Check entire subblock state
         expected_state = "SET {k1} {v1};SET {k3} {v3};SET {k4} {v4};"\
                          .format(k1=KEY1, v1=NEW_VAL1, k2=KEY2, v2=VAL2, k3=KEY3, v3=NEW_VAL3, k4=KEY4, v4=NEW_VAL4)
-        self.assertEqual(self.sbb_data[0]['getset'].get_state_rep(), expected_state)
+        self.assertEqual(self.sbb_data[0].cr_data.get_state_rep(), expected_state)
 
         # Check individual contract states
         cr_data = self.sp.data
         state_0 = "SET {} {};".format(KEY1, NEW_VAL1)
         state_1 = ""
         state_2 = "SET {} {};SET {} {};".format(KEY3, NEW_VAL3, KEY4, NEW_VAL4)
-        self.assertEqual(state_0, cr_data['getset'].get_state_for_idx(0))
         self.assertEqual(state_0, cr_data.get_state_for_idx(0))
-        self.assertEqual(state_1, cr_data['getset'].get_state_for_idx(1))
+        self.assertEqual(state_0, cr_data.get_state_for_idx(0))
         self.assertEqual(state_1, cr_data.get_state_for_idx(1))
-        self.assertEqual(state_2, cr_data['getset'].get_state_for_idx(2))
+        self.assertEqual(state_1, cr_data.get_state_for_idx(1))
+        self.assertEqual(state_2, cr_data.get_state_for_idx(2))
         self.assertEqual(state_2, cr_data.get_state_for_idx(2))
 
         # Check sb rep...fake merged_to_common
