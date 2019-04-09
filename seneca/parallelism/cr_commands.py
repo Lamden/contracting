@@ -22,6 +22,7 @@ class CRCmdBase(metaclass=CRCmdMeta):
     # TODO -- remove the finalize var. We dont need this.
     def __init__(self, working_db, master_db, sbb_idx: int, contract_idx: int, data: CRContext):
         self.log = get_logger("{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
+        self.cr_data = data
         self.data = data.cr_data
         self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
