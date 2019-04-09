@@ -50,7 +50,7 @@ class TestConflictResolution(TestCase):
         self.sp.set(KEY3, NEW_VAL3)  # To trigger a copy to sbb specific layer
 
         # Check the modified and original values
-        getset = self.sp.data['getset']
+        getset = self.sp.data.cr_data
         k1_expected = {'og': VAL1, 'mod': NEW_VAL1, 'contracts': {0}}
         k2_expected = {'og': VAL2, 'mod': None, 'contracts': {1}}
         k3_expected = {'og': VAL3, 'mod': NEW_VAL3, 'contracts': {2}}
@@ -60,10 +60,10 @@ class TestConflictResolution(TestCase):
 
         # Check modifications list
         expected_mods = {0: {KEY1}, 2: {KEY3}}
-        self.assertEqual(self.sp.data['getset'].writes, expected_mods)
+        self.assertEqual(self.sp.data.cr_data.writes, expected_mods)
 
         # Check should_rerun (tinker with common first)
-        cr_data = self.sbb_data[0]['getset']
+        cr_data = self.sbb_data[0].cr_data
         self.working.set(KEY1, b'A NEW VALUE HAS ARRIVED')
         self.working.set(KEY2, b'A NEW VALUE HAS ARRIVED AGAIN')
         self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))

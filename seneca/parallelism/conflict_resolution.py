@@ -315,10 +315,7 @@ class CRContext:
 
     def merge_to_common(self):
         assert not self.merged_to_common, "Already merged to common! merge_to_common should only be called once"
-
-        for obj in self.cr_data.values():
-            obj.merge_to_common()
-
+        self.cr_data.merge_to_common()
         self.merged_to_common = True
 
     @classmethod
