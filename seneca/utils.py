@@ -70,6 +70,8 @@ class Assert:
 
     @staticmethod
     def not_system_variable(v):
+        if v.startswith('_'):
+            raise CompilationException("Seneca doesn't allow variable or function names starting with '_'")
         if v.startswith('__') and v.endswith('__'):
             raise CompilationException('Access denied for system variable: {}'.format(v))
 
