@@ -22,7 +22,7 @@ class CRCmdBase(metaclass=CRCmdMeta):
     # TODO -- remove the finalize var. We dont need this.
     def __init__(self, working_db, master_db, sbb_idx: int, contract_idx: int, data: CRContext):
         self.log = get_logger("{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
-        self.data = data
+        self.data = data.cr_data
         self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
 
@@ -93,22 +93,6 @@ class CRCmdBase(metaclass=CRCmdMeta):
         raise NotImplementedError()
 
 
-class CRCmdExists(CRCmdBase):
-    COMMAND_NAME = 'exists'
-
-    def __call__(self, key):
-        # TODO do we need to add book keeping information on this
-        # TODO this could be made more modular. Current implementation will not scale well --davis
-        # First check if key exists in getset
-        if key in self.data['getset']:
-            return True
-        # Then check if it exists in the common layer...
-        if self.working.exists(key):
-            return True
-        # Then finally, check if it exists in the master layer
-        return self.master.exists(key)
-
-
 class CRCmdGetSetBase(CRCmdBase):
     DATA_NAME = 'getset'
 
@@ -116,11 +100,11 @@ class CRCmdGetSetBase(CRCmdBase):
         return db.exists(key)
 
     def _sbb_original_exists(self, key) -> bool:
-        return key in self.data['getset']
+        return key in self.data
 
     def _copy_key_to_sbb_data(self, db, key):
         val = db.get(key) if db else None
-        self.data['getset'][key] = {'og': val, 'mod': None, 'contracts': set()}
+        self.data[key] = {'og': val, 'mod': None, 'contracts': set()}
 
     def _get(self, key, return_none=True):
         self._copy_og_key_if_not_exists(key)
@@ -128,26 +112,25 @@ class CRCmdGetSetBase(CRCmdBase):
         # TODO make all this DRYer so you can abstract it like a pro
 
         # First, try and return the local modified key
-        val = self.data['getset'][key]['mod']
+        val = self.data[key]['mod']
         if val is not None:
             self.log.spam("SBB specific MODIFIED key found for key named <{}>".format(key))
         # Otherwise, default to the local original key
         else:
             self.log.spam("SBB specific ORIGINAL key found for key named <{}>".format(key))
-            val = self.data['getset'][key]['og']
+            val = self.data[key]['og']
 
         if val is None and not return_none:
             raise Exception("Key '{}' does not exist, but was attempted to be GET".format(key))
 
         # TODO properly handle CR on stamps key
         if key not in CR_EXCLUDED_KEYS:
-            self.data['getset'].reads[self.contract_idx].add(key)
-            self.data['getset'][key]['contracts'].add(self.contract_idx)
+            self.data.reads[self.contract_idx].add(key)
+            self.data[key]['contracts'].add(self.contract_idx)
 
         return val
 
 
-# TODO refactor this so they can live in the same base class, and we just specify the command name with a decorator
 class CRCmdGet(CRCmdGetSetBase):
     COMMAND_NAME = 'get'
 
@@ -160,12 +143,12 @@ class CRCmdSet(CRCmdGetSetBase):
 
     def _add_key_to_redo_log(self, key, *args, **kwargs):
         # Return if key already exist in this contract's redo log
-        if key in self.data['getset'].redo_log[self.contract_idx]:
+        if key in self.data.redo_log[self.contract_idx]:
             return
 
-        self.data['getset'].redo_log[self.contract_idx][key] = self._get(key, return_none=True)
+        self.data.redo_log[self.contract_idx][key] = self._get(key, return_none=True)
         self.log.spam("Contract {} added key {} to redo log with val {}".format(self.contract_idx, key,
-                                                                                self.data['getset'].redo_log[
+                                                                                self.data.redo_log[
                                                                                 self.contract_idx][key]))
 
     def __call__(self, key, value):
@@ -182,25 +165,7 @@ class CRCmdSet(CRCmdGetSetBase):
         self._add_key_to_redo_log(key)
 
         self.log.spam("Setting SBB specific key <{}> to value {}".format(key, value))
-        self.data['getset'][key]['mod'] = value
-        self.data['getset'][key]['contracts'].add(self.contract_idx)
-        self.data['getset'].writes[self.contract_idx].add(key)
-        self.data['getset'].outputs[self.contract_idx] += 'SET {} {};'.format(key, value.decode())
-
-
-class CRCmdHGet(CRCmdGet):
-    COMMAND_NAME = 'hget'
-
-    def __call__(self, key, field):
-        prefixed_key = "{}:{}".format(key, field)
-        return super().__call__(prefixed_key)
-
-
-
-class CRCmdHSet(CRCmdSet):
-    COMMAND_NAME = 'hset'
-
-    def __call__(self, key, field, value):
-        prefixed_key = "{}:{}".format(key, field)
-        return super().__call__(prefixed_key, value)
-
+        self.data[key]['mod'] = value
+        self.data[key]['contracts'].add(self.contract_idx)
+        self.data.writes[self.contract_idx].add(key)
+        self.data.outputs[self.contract_idx] += 'SET {} {};'.format(key, value.decode())
