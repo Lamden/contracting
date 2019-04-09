@@ -23,7 +23,9 @@ class CRDataMeta(type):
         return clsobj
 
 
-class CRDataBase(metaclass=CRDataMeta):
+class CRDataGetSet(dict, metaclass=CRDataMeta):
+    NAME = 'getset'
+
     def __init__(self, master_db, working_db):
         super().__init__()
         self.log = get_logger(type(self).__name__)
@@ -33,14 +35,9 @@ class CRDataBase(metaclass=CRDataMeta):
         self.outputs = defaultdict(str)
         self.redo_log = defaultdict(dict)
 
-    def merge_to_common(self):
-        """ Merges the subblock specific data to the common layer """
-        raise NotImplementedError()
-
-    def get_state_rep(self) -> str:
-        """ Updates the 'state' list for the changes represented in this data structure. The state list is a list of outputs
-        or modifications from every contract. """
-        raise NotImplementedError()
+    def _get_modified_keys(self):
+        # TODO this needs to return READs that have had their original values changed too!
+        return set().union((key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
 
     def get_state_for_idx(self, contract_idx: int) -> str:
         """
@@ -52,31 +49,6 @@ class CRDataBase(metaclass=CRDataMeta):
         self.writes[contract_idx].clear()
         self.reads[contract_idx].clear()
         self.outputs[contract_idx] = ''
-
-    # TODO better tooling
-    # Abstraction for get_modified_keys/reset_keys is very weak. I don't think they will work with complex data types
-    def get_modified_keys(self) -> set:
-        return set()
-
-    def get_modified_keys_recursive(self) -> set:
-        return set()
-
-    def reset_key(self, key):
-        pass
-
-    def get_rerun_list(self, reset_keys=True) -> List[int]:
-        return []
-
-    def rollback_contract(self, contract_idx: int):
-        pass
-
-
-class CRDataGetSet(CRDataBase, dict):
-    NAME = 'getset'
-
-    def _get_modified_keys(self):
-        # TODO this needs to return READs that have had their original values changed too!
-        return set().union((key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
 
     def merge_to_common(self):
         modified_keys = self._get_modified_keys()
@@ -195,55 +167,6 @@ class CRDataGetSet(CRDataBase, dict):
             self.log.spam("No updated value found for key {}. Clearing modified and leaving original val".format(key))
 
 
-class CRDataHMap(CRDataBase, defaultdict):
-    NAME = 'hm'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.default_factory = dict
-
-    def _get_modified_keys(self) -> dict:
-        """
-        Returns a dict of sets. Key is key in the hmap, and set is a list of modified fields for that key
-        """
-        mods_dict = defaultdict(set)
-        for key in self:
-            for field in self[key]:
-                if self[key][field]['og'] != self[key][field]['mod']:
-                    mods_dict[key].add(field)
-
-        return mods_dict
-
-    def merge_to_common(self):
-        return False  # TODO implement
-        raise NotImplementedError()
-
-    def get_state_rep(self):
-        return False  # TODO implement
-        raise NotImplementedError()
-
-    @classmethod
-    def merge_to_master(cls, working_db, master_db, key: str):
-        assert working_db.exists(key), "Key {} must exist in working_db to merge to master".format(key)
-
-        all_fields = working_db.hkeys(key)
-        for field in all_fields:
-            val = working_db.hget(key, field)
-            master_db.hset(key, field, val)
-
-
-class CRDataDelete(CRDataBase, set):
-    NAME = 'del'
-
-    def merge_to_common(self):
-        return False  # TODO implement
-        raise NotImplementedError()
-
-    def get_state_rep(self):
-        return False  # TODO implement
-        raise NotImplementedError()
-
-
 class CRContext:
 
     def __init__(self, working_db, master_db, sbb_idx: int, finalize=False):
@@ -254,8 +177,7 @@ class CRContext:
 
         # cr_data holds instances of CRDataBase. The key is the 'NAME' field specified in the CRDataBase subclass
         # For convenience, all these keys are directly accessible from this CRContext instance (see __getitem__)
-        self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
-                        CRDataBase.registry.items()}
+        self.cr_data = CRDataGetSet(self.master_db, self.working_db)
 
         # TODO deques are probobly more optimal than using arrays here
         # run_results is a list of strings, representing the return code of contracts (ie 'SUCC', 'FAIL', ..)
@@ -310,8 +232,7 @@ class CRContext:
         self.input_hash = None
 
         # TODO is this ok resetting all the CRData's like this? Should we worry about memory leaks? --davis
-        self.cr_data = {name: obj(master_db=self.master_db, working_db=self.working_db) for name, obj in
-                        CRDataBase.registry.items()}
+        self.cr_data = CRDataGetSet(self.master_db, self.working_db)
 
     def reset_db(self):
         self.log.debug(
@@ -346,8 +267,7 @@ class CRContext:
             .format(contract_idx, len(self.contracts))
 
         state_str = ''
-        for key in sorted(self.cr_data.keys()):  # We sort the keys so that output will always be deterministic
-            state_str += self.cr_data[key].get_state_for_idx(contract_idx)
+        state_str += self.cr_data.get_state_for_idx(contract_idx)
         return state_str
 
     def get_subblock_rep(self) -> List[tuple]:
@@ -399,10 +319,7 @@ class CRContext:
 
     def merge_to_common(self):
         assert not self.merged_to_common, "Already merged to common! merge_to_common should only be called once"
-
-        for obj in self.cr_data.values():
-            obj.merge_to_common()
-
+        self.cr_data.merge_to_common()
         self.merged_to_common = True
 
     @classmethod
@@ -415,13 +332,6 @@ class CRContext:
                 continue
 
             CRDataGetSet.merge_to_master(working_db, master_db, key)
-
-    def __getitem__(self, item):
-        assert item in self.cr_data, "No structure named {} in cr_data. Only keys available: {}" \
-            .format(item, list(self.cr_data.keys()))
-        if self.locked:
-            raise Exception("CRData attempted to be accessed while it was locked!! Bug in interpreter layer")
-        return self.cr_data[item]
 
     def __repr__(self):
         return "<CRContext(input_hash={} .., contracts run so far={}, working db num={})>".format(
