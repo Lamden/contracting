@@ -98,3 +98,34 @@ def get_database_driver():
 
 DatabaseDriver = get_database_driver()
 
+
+class ContractDriver(DatabaseDriver):
+    def __init__(self, host=DB_URL, port=DB_PORT, delimiter=DB_DELIMITER, db=0, code_key='__code__', type_key='__type__'):
+        super().__init__(host=host, port=port, delimiter=delimiter, db=db)
+
+        self.code_key = code_key
+        self.type_key = type_key
+
+        # Tests if access to the DB is available
+        self.conn.ping()
+
+    def make_key(self, key, field):
+        return '{}{}{}'.format(key, self.delimiter, field)
+
+    def hget(self, key, field):
+        return self.conn.get(
+            self.make_key(key, field)
+        )
+
+    def hset(self, key, field, value):
+        return self.conn.set(
+            self.make_key(key, field),
+            value=value
+        )
+
+    def get_contract(self, name):
+        return self.hget(name, self.code_key)
+
+    def push_contract(self, name, code, _type='user'):
+        self.hset(name, self.code_key, code)
+        self.hset(name, self.type_key, _type)

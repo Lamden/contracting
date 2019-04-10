@@ -10,7 +10,7 @@ from seneca.utils import Plugins, Assert
 from seneca.parallelism.book_keeper import BookKeeper
 from seneca.parallelism.conflict_resolution import StateProxy
 from seneca.execution.module import uninstall_builtins, install_database_loader
-from seneca.storage.driver import DatabaseDriver
+from seneca.storage.driver import DatabaseDriver, ContractDriver
 from seneca.exceptions import ContractExists
 
 class Executor:
@@ -27,6 +27,7 @@ class Executor:
         #         Set driver_proxy to none to indicate it exists and
         #         may be filled later
         self.driver_base = DatabaseDriver(host='localhost', port=DB_PORT, db=MASTER_DB)
+        self.contract_driver = ContractDriver()
         self.driver_proxy = None
         if flushall:
             self.driver.flush()
@@ -92,12 +93,6 @@ class Executor:
                 'resources': resources,
                 'methods': methods,
             }, driver=self.driver, override=True)
-
-    # Colin TODO: Use Capnp instead of marshal, no need to use different serialization modules
-    @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
-    def get_contract(self, contract_name):
-        contract = marshal.loads(b64decode(self.driver.hget('contracts', contract_name).decode()))
-        return contract
 
     # Colin - Code using executor should not be able to choose its driver, also should
     #         not be able to override an existing contract yet (maybe in the future)
