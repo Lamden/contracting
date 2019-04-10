@@ -131,7 +131,7 @@ class ContractDriver(DatabaseDriver):
     def get_contract(self, name):
         return self.hget(name, self.code_key)
 
-    def set_contract(self, name, code, author, _type='user', overwrite=False):
+    def set_contract(self, name, code, author='sys', _type='user', overwrite=False):
         if not overwrite or self.is_contract(name):
             self.hset(name, self.code_key, code)
             self.hset(name, self.author_key, author)
