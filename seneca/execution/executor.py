@@ -26,8 +26,7 @@ class Executor:
         # Colin - Load in the database driver from the global config
         #         Set driver_proxy to none to indicate it exists and
         #         may be filled later
-        self.driver_base = DatabaseDriver(host='localhost', port=DB_PORT, db=MASTER_DB)
-        self.contract_driver = ContractDriver()
+        self.driver_base = ContractDriver()
         self.driver_proxy = None
         if flushall:
             self.driver.flush()
