@@ -96,22 +96,6 @@ class Executor:
 
     # Colin - Code using executor should not be able to choose its driver, also should
     #         not be able to override an existing contract yet (maybe in the future)
-    def set_contract(self, contract_name, code_str, code_obj, author, resources, methods):
-        if self.check_contract_name(contract_name):
-            raise ContractExists(contract_name=contract_name)
-        self.driver.set('contracts', contract_name, b64encode(marshal.dumps({
-            'code_str': code_str,
-            'code_obj': code_obj,
-            'author': author,
-            'resources': resources.get(contract_name, {}),
-            'methods': methods.get(contract_name, {}),
-        })))
-
-    @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
-    def check_contract_name(self, contract_name):
-        if self.driver.get('contracts', contract_name):
-            return True
-        return False
 
     @staticmethod
     def compile(contract_name, code_str, scope={}):

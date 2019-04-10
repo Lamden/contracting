@@ -145,3 +145,6 @@ class ContractDriver(DatabaseDriver):
         return self.exists(
             self.make_key(name, self.code_key)
         )
+
+    def get_contract_func(self, name, fname):
+        return self.hget(name, fname)
