@@ -1,7 +1,7 @@
 import abc
 
 from redis import Redis
-from seneca.config import DB_PORT, DB_URL, DB_DELIMITER, MASTER_DB, DB_TYPE, INDEX_SEPARATOR
+from seneca import config
 from seneca.exceptions import DatabaseDriverNotFound
 
 
@@ -56,7 +56,7 @@ class AbstractDatabaseDriver:
 
 
 class RedisDriver(AbstractDatabaseDriver):
-    def __init__(self, host=DB_URL, port=DB_PORT, db=MASTER_DB):
+    def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
         self.conn = Redis(host=host, port=port, db=db)
         self.connection_pool = self.conn.connection_pool
 
@@ -90,7 +90,7 @@ DATABASE_DRIVER_MAPS = {
 
 
 def get_database_driver():
-    cls = DATABASE_DRIVER_MAPS.get(DB_TYPE)
+    cls = DATABASE_DRIVER_MAPS.get(config.DB_TYPE)
     if cls is None:
         raise DatabaseDriverNotFound(
             driver=DB_TYPE,
@@ -102,8 +102,8 @@ DatabaseDriver = get_database_driver()
 
 
 class ContractDriver(DatabaseDriver):
-    def __init__(self, host=DB_URL, port=DB_PORT, delimiter=INDEX_SEPARATOR, db=0, code_key='__code__',
-                 type_key='__type__', author_key='__author__'):
+    def __init__(self, host=config.DB_URL, port=config.DB_PORT, delimiter=config.INDEX_SEPARATOR, db=0,
+                 code_key=config.CODE_KEY, type_key=config.TYPE_KEY, author_key=config.AUTHOR_KEY):
         super().__init__(host=host, port=port, db=db)
 
         self.delimiter = delimiter
