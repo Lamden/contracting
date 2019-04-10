@@ -1,6 +1,11 @@
-import os, sys
+import os
+import sys
 
-DATA_DIR = '/var/db/seneca'
+if "DATADIR" in os.environ:
+    DATA_DIR = os.environ["DATADIR"] + '/seneca'
+else:
+    DATA_DIR = '/var/db/seneca'
+
 REDIS_CONF_PATH = '/etc/redis.conf'
 REDIS_DIR = DATA_DIR + '/redis'
 
