@@ -33,7 +33,7 @@ class AbstractDatabaseDriver:
         return
 
     @abc.abstractmethod
-    def xscan(self, *args, **kwargs):
+    def keys(self, *args, **kwargs):
         """Do a scan on the connection for all available keys"""
         return
 
