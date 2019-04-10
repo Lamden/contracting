@@ -135,3 +135,8 @@ class ContractDriver(DatabaseDriver):
         self.hset(name, self.code_key, code)
         self.hset(name, self.author_key, author)
         self.hset(name, self.type_key, _type)
+
+    def is_contract(self, name):
+        return self.conn.exists(
+            self.make_key(name, self.code_key)
+        )
