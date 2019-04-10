@@ -33,7 +33,7 @@ class AbstractDatabaseDriver:
         return
 
     @abc.abstractmethod
-    def keys(self, *args, **kwargs):
+    def keys(self):
         """Do a scan on the connection for all available keys"""
         return
 
@@ -70,7 +70,10 @@ class RedisDriver(AbstractDatabaseDriver):
     def delete(self, key):
         self.conn.delete(key)
 
-    def keys(self, *args, **kwargs):
+    def iter(self, prefix):
+        return self.conn.scan_iter(match=prefix)
+
+    def keys(self):
         return self.conn.keys(pattern='*')
 
     def flush(self, db=None):
