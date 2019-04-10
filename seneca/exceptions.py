@@ -23,3 +23,13 @@ class DatabaseDriverNotFound(SenecaError):
                          currently supported in Seneca
     """
     fmt = "Unknown database driver '{driver}', known drivers '{known_drivers}'"
+
+class ContractExists(SenecaError):
+    """
+    When attempting to set a contract, found that it
+    already exists in the database
+
+    :ivar contract_name: The name of the contract
+                         submitted.
+    """
+    fmt = "Contract with name '{contract_name}' already exists in the database"
