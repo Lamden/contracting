@@ -70,7 +70,7 @@ class RedisDriver(AbstractDatabaseDriver):
         self.conn.delete(key)
 
     def iter(self, prefix):
-        return self.conn.scan_iter(match=prefix)
+        return self.conn.scan_iter(match=prefix+'*')
 
     def keys(self):
         return self.conn.keys(pattern='*')
