@@ -118,12 +118,12 @@ class ContractDriver(DatabaseDriver):
         return '{}{}{}'.format(key, self.delimiter, field)
 
     def hget(self, key, field):
-        return self.conn.get(
+        return self.get(
             self.make_key(key, field)
         )
 
     def hset(self, key, field, value):
-        return self.conn.set(
+        return self.set(
             self.make_key(key, field),
             value=value
         )
@@ -136,7 +136,11 @@ class ContractDriver(DatabaseDriver):
         self.hset(name, self.author_key, author)
         self.hset(name, self.type_key, _type)
 
+    def delete_contract(self, name):
+        for k in self.iter(prefix=name):
+            self.delete(k)
+
     def is_contract(self, name):
-        return self.conn.exists(
+        return self.exists(
             self.make_key(name, self.code_key)
         )
