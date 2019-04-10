@@ -100,11 +100,13 @@ DatabaseDriver = get_database_driver()
 
 
 class ContractDriver(DatabaseDriver):
-    def __init__(self, host=DB_URL, port=DB_PORT, delimiter=DB_DELIMITER, db=0, code_key='__code__', type_key='__type__'):
+    def __init__(self, host=DB_URL, port=DB_PORT, delimiter=DB_DELIMITER, db=0, code_key='__code__',
+                 type_key='__type__', author_key='__author__'):
         super().__init__(host=host, port=port, delimiter=delimiter, db=db)
 
         self.code_key = code_key
         self.type_key = type_key
+        self.author_key = author_key
 
         # Tests if access to the DB is available
         self.conn.ping()
@@ -126,6 +128,7 @@ class ContractDriver(DatabaseDriver):
     def get_contract(self, name):
         return self.hget(name, self.code_key)
 
-    def push_contract(self, name, code, _type='user'):
+    def push_contract(self, name, code, author, _type='user'):
         self.hset(name, self.code_key, code)
+        self.hset(name, self.author_key, author)
         self.hset(name, self.type_key, _type)
