@@ -12,7 +12,7 @@ class TestDatabase(TestCase):
         self.d.flush()
 
     def test_init(self):
-        self.assertEqual(self.d.delimiter, ':', 'Delimiter default not :.')
+        self.assertEqual(self.d.delimiter, '.', 'Delimiter default not .')
         self.assertEqual(self.d.code_key, '__code__', 'Code Key default not "code"')
 
     def test_dynamic_init(self):

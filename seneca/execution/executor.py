@@ -224,12 +224,8 @@ class Executor:
             'stamps_used': stamps_used
         }
 
-    def publish_code_str(self, contract_name, author, code_str):
-        return self.execute_function('smart_contract', 'submit_contract', author,
-                                     kwargs={
-                                         'contract_name': contract_name,
-                                         'code_str': code_str
-                                     })
+    def publish_code_str(self, name, code, author, overwrite=False):
+        return self.driver.set_contract(name, code, author, overwrite=overwrite)
 
     def dynamic_import(self, contract_name, sender):
         contract = self.get_contract(contract_name)

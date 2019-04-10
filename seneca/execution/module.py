@@ -28,6 +28,10 @@ def uninstall_database_loader():
     sys.meta_path.remove(DatabaseFinder)
 
 
+def install_system_contracts(directory=''):
+    pass
+
+
 '''
     Is this where interaction with the database occurs with the interface of code strings, etc?
     IE: pushing a contract does sanity checks here?
