@@ -32,12 +32,5 @@ build-ledis:
 start-server:
 	python3 ./scripts/start_redis.py -no-conf &>/dev/null &
 
-start-docker:
-	docker rm -f seneca || true
-	docker run -it --entrypoint /bin/bash --rm -v $$(pwd):/app --name seneca --security-opt apparmor=docker-default seneca_base
-
-kill-docker:
-	docker kill `docker ps -q` || true; sleep 2
-
 upload:
 	bash ./scripts/upload_pip.sh

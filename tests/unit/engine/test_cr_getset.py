@@ -70,7 +70,7 @@ class TestCRGetSet(TestCase):
         cr_get = self._new_get()
         self.master.set(KEY, VALUE_M)
         self.working.set(KEY, VALUE_C)
-        cr_get.data['getset'][KEY] = {'og': VALUE_SBB, 'mod': None, 'contracts': {0}}
+        cr_get.data[KEY] = {'og': VALUE_SBB, 'mod': None, 'contracts': {0}}
 
         actual = cr_get(KEY)
 
@@ -85,7 +85,7 @@ class TestCRGetSet(TestCase):
         cr_get = self._new_get()
         self.master.set(KEY, VALUE_M)
         self.working.set(KEY, VALUE_C)
-        cr_get.data['getset'][KEY] = {'og': VALUE_SBB_OG, 'mod': VALUE_SBB_MOD, 'contracts': {0}}
+        cr_get.data[KEY] = {'og': VALUE_SBB_OG, 'mod': VALUE_SBB_MOD, 'contracts': {0}}
 
         actual = cr_get(KEY)
 
@@ -100,7 +100,7 @@ class TestCRGetSet(TestCase):
         cr_get(KEY)  # calling get should trigger the key to be copied to the SBB specific layer
 
         self.assertTrue(cr_get._sbb_original_exists(KEY))
-        self.assertEqual(cr_get.data['getset'][KEY], {'og': VALUE_M, 'mod': None, 'contracts': {0}})
+        self.assertEqual(cr_get.data[KEY], {'og': VALUE_M, 'mod': None, 'contracts': {0}})
 
     def test_get_copies_original_from_common(self):
         KEY = 'im_a_key'
@@ -127,7 +127,7 @@ class TestCRGetSet(TestCase):
         cr_set(KEY, NEW_VALUE)
 
         expected = {'og': VALUE, 'mod': NEW_VALUE, 'contracts': {0}}
-        self.assertEqual(expected, cr_set.data['getset'][KEY])
+        self.assertEqual(expected, cr_set.data[KEY])
 
     def test_basic_set_adds_to_redo_log(self):
         KEY = 'im_a_key'
@@ -138,7 +138,7 @@ class TestCRGetSet(TestCase):
 
         cr_set(KEY, NEW_VALUE)
 
-        self.assertEqual(cr_set.data['getset'].redo_log[0][KEY], VALUE)
+        self.assertEqual(cr_set.data.redo_log[0][KEY], VALUE)
 
     def test_basic_set_new_key_adds_to_redo_log(self):
         KEY = 'im_a_key'
@@ -147,7 +147,7 @@ class TestCRGetSet(TestCase):
 
         cr_set(KEY, NEW_VALUE)
 
-        self.assertEqual(cr_set.data['getset'].redo_log[0][KEY], None)
+        self.assertEqual(cr_set.data.redo_log[0][KEY], None)
 
     def test_basic_set_adds_to_writes(self):
         KEY = 'im_a_key'
@@ -158,7 +158,7 @@ class TestCRGetSet(TestCase):
 
         cr_set(KEY, NEW_VALUE)
 
-        writes = cr_set.data['getset'].writes
+        writes = cr_set.data.writes
         self.assertTrue(KEY in writes[0])
 
     def test_basic_set_adds_to_key_contract_mods(self):
@@ -170,7 +170,7 @@ class TestCRGetSet(TestCase):
 
         cr_set(KEY, NEW_VALUE)
 
-        contracts_mod = cr_set.data['getset'][KEY]['contracts']
+        contracts_mod = cr_set.data[KEY]['contracts']
         self.assertTrue(cr_set.contract_idx in contracts_mod)
 
     def test_basic_get_adds_to_reads(self):
@@ -182,7 +182,7 @@ class TestCRGetSet(TestCase):
         actual = cr_get(KEY)
         self.assertEqual(actual, VALUE)
 
-        reads = cr_get.data['getset'].reads
+        reads = cr_get.data.reads
         self.assertTrue(KEY in reads[0])
 
     def test_basic_set_and_rollback(self):
@@ -194,9 +194,9 @@ class TestCRGetSet(TestCase):
 
         cr_set(KEY, NEW_VALUE)
 
-        cr_set.data['getset'].rollback_contract(0)
+        cr_set.data.rollback_contract(0)
         expected = {'og': VALUE, 'mod': VALUE, 'contracts': set()}
-        self.assertEqual(expected, cr_set.data['getset'][KEY])
+        self.assertEqual(expected, cr_set.data[KEY])
 
     def test_basic_set_and_rollback_two_contracts(self):
         KEY = 'im_a_key'
@@ -211,9 +211,9 @@ class TestCRGetSet(TestCase):
         cr_set2 = self._new_set(contract_idx=1)
         cr_set2(KEY, NEWER_VALUE)
 
-        cr_set2.data['getset'].rollback_contract(1)
+        cr_set2.data.rollback_contract(1)
         expected = {'og': VALUE, 'mod': NEW_VALUE, 'contracts': {0}}
-        self.assertEqual(expected, cr_set1.data['getset'][KEY])
+        self.assertEqual(expected, cr_set1.data[KEY])
 
     def test_basic_setget_and_reset_contract_data(self):
         KEY1 = 'im_a_key1'
@@ -229,9 +229,9 @@ class TestCRGetSet(TestCase):
         cr_get(KEY2)
         cr_set(KEY1, NEW_VALUE1)
 
-        cr_get.data['getset'].reset_contract_data(0)
-        self.assertEqual(len(cr_set.data['getset'].writes[0]), 0)
-        self.assertEqual(len(cr_set.data['getset'].reads[0]), 0)
+        cr_get.data.reset_contract_data(0)
+        self.assertEqual(len(cr_set.data.writes[0]), 0)
+        self.assertEqual(len(cr_set.data.reads[0]), 0)
 
     def test_adds_key_that_does_not_yet_exist(self):
         KEY = 'im_a_key'
@@ -241,7 +241,7 @@ class TestCRGetSet(TestCase):
         cr_set(KEY, VALUE)
 
         expected = {'og': None, 'mod': VALUE, 'contracts': {0}}
-        self.assertEqual(expected, cr_set.data['getset'][KEY])
+        self.assertEqual(expected, cr_set.data[KEY])
 
     def test_should_rerun_no_changes(self):
         KEY1 = 'im_a_key1'
@@ -257,7 +257,7 @@ class TestCRGetSet(TestCase):
         cr_get(KEY2)
         cr_set(KEY1, NEW_VALUE1)
 
-        cr_data = cr_set.data['getset']
+        cr_data = cr_set.data
         self.assertFalse(0 in list(cr_data.get_rerun_list(reset_keys=False)))
 
     def test_should_rerun_change_common_only_write(self):
@@ -275,7 +275,7 @@ class TestCRGetSet(TestCase):
         # Make some changes to common on the written key
         self.working.set(KEY1, b'new_common1')
 
-        cr_data = cr_set.data['getset']
+        cr_data = cr_set.data
         self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
 
 
@@ -293,7 +293,7 @@ class TestCRGetSet(TestCase):
         # Make some changes to common on the written key
         self.working.set(KEY1, b'new_common1')
 
-        cr_data = cr_get.data['getset']
+        cr_data = cr_get.data
         self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
 
     def test_should_rerun_change_master_only_read(self):
@@ -310,7 +310,7 @@ class TestCRGetSet(TestCase):
         # Make some changes to common on the written key
         self.master.set(KEY1, b'new_common1')
 
-        cr_data = cr_get.data['getset']
+        cr_data = cr_get.data
         self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
 
     def test_should_rerun_change_master_only_write(self):
@@ -328,7 +328,7 @@ class TestCRGetSet(TestCase):
         # Make some changes to common on the written key
         self.master.set(KEY1, b'new_common1')
 
-        cr_data = cr_set.data['getset']
+        cr_data = cr_set.data
         self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
 
     def test_get_modified_keys_from_common(self):
@@ -346,7 +346,7 @@ class TestCRGetSet(TestCase):
         # Make some changes to common on the written key
         self.working.set(KEY1, b'new_common1')
 
-        cr_data = cr_set.data['getset']
+        cr_data = cr_set.data
         actual_mods = cr_data.get_modified_keys()
         expected_mods = {KEY1}
         self.assertEqual(expected_mods, actual_mods)
@@ -366,7 +366,7 @@ class TestCRGetSet(TestCase):
         # Make some changes to master on the written key
         self.master.set(KEY1, b'new_common1')
 
-        cr_data = cr_set.data['getset']
+        cr_data = cr_set.data
         actual_mods = cr_data.get_modified_keys()
         expected_mods = {KEY1}
         self.assertEqual(expected_mods, actual_mods)
@@ -387,7 +387,7 @@ class TestCRGetSet(TestCase):
         # Make some changes to common on the written key
         self.working.set(KEY1, COMMON_VALUE1)
 
-        cr_data = cr_set.data['getset']
+        cr_data = cr_set.data
         cr_data.reset_key(KEY1)
 
         self.assertEqual(cr_data[KEY1]['og'], COMMON_VALUE1)
@@ -410,7 +410,7 @@ class TestCRGetSet(TestCase):
         # Make some changes to master on the written key
         self.master.set(KEY1, MASTER_VALUE1)
 
-        cr_data = cr_set.data['getset']
+        cr_data = cr_set.data
         cr_data.reset_key(KEY1)
 
         self.assertEqual(cr_data[KEY1]['og'], MASTER_VALUE1)
@@ -421,7 +421,7 @@ class TestCRGetSet(TestCase):
         v = ['v{}'.format(i+1) for i in range(5)]
 
         cr_set = self._new_set()
-        cr_data = cr_set.data['getset']
+        cr_data = cr_set.data
 
         for i in range(len(k)):
             cr_data[k[i]] = {'og': v[i], 'mod': v[i] + '_MOD', 'contracts': set()}
