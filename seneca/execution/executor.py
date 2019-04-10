@@ -18,10 +18,10 @@ class Executor:
     def __init__(self, metering=True, concurrency=True, flushall=False):
         # Colin - Ensure everything is nuked down to minimal viable set
         #         before we start doing ANYTHING
-        uninstall_builtins()
-
-        # Colin - Put the database loader in the sys path
-        install_database_loader()
+        # uninstall_builtins()
+        #
+        # # Colin - Put the database loader in the sys path
+        # install_database_loader()
 
         # Colin - Load in the database driver from the global config
         #         Set driver_proxy to none to indicate it exists and
@@ -262,5 +262,5 @@ class Executor:
         self.execute(contract['code_obj'], module.__dict__)
         return module
 
-if __name__ == "__main__":
-    e = Executor()
+# if __name__ == "__main__":
+#     e = Executor()

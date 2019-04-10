@@ -12,7 +12,7 @@ class TestExecutor(unittest.TestCase):
         self.e = Executor()
 
     def tearDown(self):
-        pass
+        del self.e
 
     def test_init(self):
         self.assertEqual(self.e.concurrency, True, 'Concurrency not set to True by default.')

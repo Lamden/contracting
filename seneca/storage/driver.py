@@ -70,7 +70,7 @@ class RedisDriver(AbstractDatabaseDriver):
     def delete(self, key):
         self.conn.delete(key)
 
-    def xscan(self, *args, **kwargs):
+    def keys(self, *args, **kwargs):
         return self.conn.keys(pattern='*')
 
     def flush(self, db=None):
