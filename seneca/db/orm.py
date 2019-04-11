@@ -18,4 +18,16 @@ class Hash:
     def __init__(self, contract, name, driver: ContractDriver):
         self.driver = driver
         self.key = self.driver.make_key(contract, name)
-        self.delimiter = config.RESOURCE_KEY
+        self.delimiter = config.DELIMITER
+
+    def set(self, key, value):
+        self.driver.set('{}{}{}'.format(self.key, self.delimiter, key), value)
+
+    def get(self, item):
+        return self.driver.get('{}{}{}'.format(self.key, self.delimiter, item))
+
+    def __setitem__(self, key, value):
+        self.set(key, value)
+
+    def __getitem__(self, item):
+        self.get(item)
