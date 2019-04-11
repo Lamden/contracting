@@ -4,6 +4,8 @@ import seneca
 SENECA_PATH = seneca.__path__[0]
 SENECA_SC_PATH = 'seneca.contracts'
 
+DB_TYPE = 'redis'
+
 DB_URL = 'localhost'
 DB_PORT = 6379
 MASTER_DB = 0
@@ -36,6 +38,9 @@ TYPE_SEPARATOR = '@'
 RESOURCE_KEY = '__resources__'
 PROPERTY_KEY = '__properties__'
 RESOURCE_KEY = '__resource__'
+CODE_KEY = '__code__'
+TYPE_KEY = '__type__'
+AUTHOR_KEY = '__author__'
 INDEX_SEPARATOR = '.'
 
 READ_WRITE_MODE = 'rw'

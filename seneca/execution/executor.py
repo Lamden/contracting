@@ -1,39 +1,58 @@
 from seneca.execution.parser import Parser
 from seneca.execution.scope import Scope
-from seneca.metering.tracer import Tracer
+#from seneca.metering.tracer import Tracer
 from seneca.config import MASTER_DB, DB_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS, READ_ONLY_MODE
-import seneca, sys, marshal, os, types
+import seneca, marshal, os, types
 from base64 import b64encode, b64decode
 from os.path import join
 from functools import lru_cache
 from seneca.utils import Plugins, Assert
-from seneca.storage.driver import Driver
 from seneca.parallelism.book_keeper import BookKeeper
 from seneca.parallelism.conflict_resolution import StateProxy
-
+from seneca.execution.module import uninstall_builtins, install_database_loader
+from seneca.storage.driver import DatabaseDriver, ContractDriver
+from seneca.exceptions import ContractExists
 
 class Executor:
 
     def __init__(self, metering=True, concurrency=True, flushall=False):
+        # Colin - Ensure everything is nuked down to minimal viable set
+        #         before we start doing ANYTHING
+        # uninstall_builtins()
+        #
+        # # Colin - Put the database loader in the sys path
+        # install_database_loader()
 
-        # raghu todo why do we need this link
-        Parser.executor = self
-        self.metering = False
-        self.concurrency = False
-        # raghu todo should be simple setup syspath
-        self.reset_syspath()
-        self.driver_base = Driver(host='localhost', port=DB_PORT, db=MASTER_DB)
+        # Colin - Load in the database driver from the global config
+        #         Set driver_proxy to none to indicate it exists and
+        #         may be filled later
+        self.driver_base = ContractDriver()
         self.driver_proxy = None
-        if flushall: self.driver.flush()
-        self.path = join(seneca.__path__[0], 'contracts')
-        self.author = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
-        self.official_contracts = OFFICIAL_CONTRACTS
-        self.setup_official_contracts()
+        if flushall:
+            self.driver.flush()
+
+        # Colin - Load in the parameters for the default contracts
+        #         NOTE: Not sure this belongs here at all (should
+        #               be happening in bootstrap most likely).
+        #self.path = join(seneca.__path__[0], 'contracts')
+        #self.author = '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
+        #self.official_contracts = OFFICIAL_CONTRACTS
+        #self.setup_official_contracts()
+
+        # Setup whether or not flags have been set
         self.metering = metering
         self.concurrency = concurrency
-        self.setup_tracer()
+
+        # Colin -  Setup the tracer
+        # Colin TODO: Find out why Tracer is not instantiating properly. Raghu also said he wants to pull this out.
+        #cu_cost_fname = join(seneca.__path__[0], 'constants', 'cu_costs.const')
+        #self.tracer = Tracer(cu_cost_fname)
+        #Plugins.submit_stamps()
 
     @property
+    # Colin - I don't understand what this property is for, why
+    #         do we need a driver_proxy for CR, we should not be
+    #         instantiating drivers all over the place.
     def driver(self):
         if self.concurrency:
             if not self.driver_proxy:
@@ -49,23 +68,12 @@ class Executor:
         else:
             return self.driver_base
 
-    def reset_syspath(self):
-        if not isinstance(sys.meta_path[-1], LedisFinder):
-            self.old_sys_path = sys.meta_path
-            #self.new_sys_path = [sys.meta_path[-1], SenecaFinder(), LedisFinder()]
-            # self.new_sys_path = [*sys.meta_path, SenecaFinder(), LedisFinder()]
-            self.new_sys_path = [*sys.meta_path, SenecaFinder(), LedisFinder()]
-
-            sys.meta_path = self.new_sys_path
-            print("raghu sys path old {} new {}".format(self.old_sys_path, self.new_sys_path))
-
-    def setup_tracer(self):
-        seneca_path = seneca.__path__[0]
-        path = join(seneca_path, 'constants', 'cu_costs.const')
-        os.environ['CU_COST_FNAME'] = path
-        self.tracer = Tracer()
-        Plugins.submit_stamps()
-
+    # Colin - This should not be happening here. If we want to use
+    #         the Executor class in multiple locations (multiple
+    #         instantiations) we cannot be setting up official
+    #         contracts every time. This should be moved to system
+    #         bootstrap method
+    # Colin TODO: Move to boostrap.py to ensure we are 1-to-1 with boot not instance of executor
     def setup_official_contracts(self):
         # raghu todo should this be traversing the library and reading all the files ?
         # it's fine as it is now as it gives us control on what to load and what not to load and the order
@@ -85,31 +93,8 @@ class Executor:
                 'methods': methods,
             }, driver=self.driver, override=True)
 
-    @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
-    def get_contract(self, contract_name):
-        contract = marshal.loads(b64decode(self.driver.hget('contracts', contract_name).decode()))
-        return contract
-
-    def set_contract(self, contract_name, code_str, code_obj, author, resources, methods, driver=None, override=False):
-        if not driver:
-            driver = self.driver
-        if not override:
-            assert not driver.hget('contracts', contract_name), 'Contract name "{}" already taken.'.format(contract_name)
-        sss = b64encode(marshal.dumps({
-            'code_str': code_str,
-            'code_obj': code_obj,
-            'author': author,
-            'resources': resources.get(contract_name, {}),
-            'methods': methods.get(contract_name, {}),
-        }))
-        driver.hset('contracts', contract_name, b64encode(marshal.dumps({
-            'code_str': code_str,
-            'code_obj': code_obj,
-            'author': author,
-            'resources': resources.get(contract_name, {}),
-            'methods': methods.get(contract_name, {}),
-        })))
-
+    # Colin - Code using executor should not be able to choose its driver, also should
+    #         not be able to override an existing contract yet (maybe in the future)
 
     @staticmethod
     def compile(contract_name, code_str, scope={}):
@@ -197,7 +182,6 @@ class Executor:
             '__safe_execution__': True
         })
         Parser.parser_scope.update(Parser.basic_scope)
-        current_executor = Parser.executor
         code_obj, author = self.get_contract_func(contract_name, func_name)
         if contract_name in ('smart_contract', ):
             Parser.parser_scope['__executor__'] = self
@@ -234,19 +218,14 @@ class Executor:
                 raise
         Parser.parser_scope.update(Scope.scope)
         Parser.parser_scope['__safe_execution__'] = False
-        Parser.executor = current_executor
         return {
             'status': 'success',
             'output': Scope.scope.get('__result__'),
             'stamps_used': stamps_used
         }
 
-    def publish_code_str(self, contract_name, author, code_str):
-        return self.execute_function('smart_contract', 'submit_contract', author,
-                                     kwargs={
-                                         'contract_name': contract_name,
-                                         'code_str': code_str
-                                     })
+    def publish_code_str(self, name, code, author, overwrite=False):
+        return self.driver.set_contract(name, code, author, overwrite=overwrite)
 
     def dynamic_import(self, contract_name, sender):
         contract = self.get_contract(contract_name)
@@ -257,3 +236,5 @@ class Executor:
         self.execute(contract['code_obj'], module.__dict__)
         return module
 
+# if __name__ == "__main__":
+#     e = Executor()

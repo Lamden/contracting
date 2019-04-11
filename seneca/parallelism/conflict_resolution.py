@@ -325,7 +325,7 @@ class CRContext:
     @classmethod
     def merge_to_master(cls, working_db, master_db):
         from seneca.client import Macros  # to avoid cyclic imports
-        keys = working_db.xscan(ktype='KV')
+        keys = working_db.keys()
         for key in keys:
             # Ignore Phase keys
             if key in Macros.ALL_MACROS:
