@@ -1,17 +1,21 @@
-from seneca.storage.driver import Driver
+from seneca.db.driver import ContractDriver
+from seneca import config
+
 
 class Variable:
-    def __init__(self, contract, name):
-        pass
+    def __init__(self, contract, name, driver: ContractDriver):
+        self.driver = driver
+        self.key = self.driver.make_key(contract, name)
 
     def set(self, value):
-        pass
+        self.driver.set(self.key, value)
 
     def get(self):
-        pass
+        return self.driver.get(self.key)
+
 
 class Hash:
-    def __init__(self, contract, name):
-        self.contract = contract
-        self.name = name
-
+    def __init__(self, contract, name, driver: ContractDriver):
+        self.driver = driver
+        self.key = self.driver.make_key(contract, name)
+        self.delimiter = config.RESOURCE_KEY

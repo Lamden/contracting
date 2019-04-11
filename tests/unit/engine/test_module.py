@@ -28,7 +28,7 @@ class TestDatabase(TestCase):
         self.d.set_contract(name, code)
         _code = self.d.get_contract(name)
 
-        self.assertEqual(code, _code.decode(), 'Pushing and getting contracts is not working.')
+        self.assertEqual(code, _code, 'Pushing and getting contracts is not working.')
 
     def test_flush(self):
         code = 'a = 123'

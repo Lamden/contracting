@@ -1,5 +1,5 @@
 from unittest import TestCase
-from seneca.storage.driver import RedisDriver, ContractDriver
+from seneca.db.driver import RedisDriver, ContractDriver
 from seneca import config
 import random
 
