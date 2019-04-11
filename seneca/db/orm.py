@@ -2,10 +2,15 @@ from seneca.db.driver import ContractDriver
 from seneca import config
 
 
-class Variable:
+class Datum:
     def __init__(self, contract, name, driver: ContractDriver):
         self.driver = driver
         self.key = self.driver.make_key(contract, name)
+
+
+class Variable(Datum):
+    def __init__(self, contract, name, driver: ContractDriver):
+        super().__init__(contract, name, driver=driver)
 
     def set(self, value):
         self.driver.set(self.key, value)
@@ -14,10 +19,9 @@ class Variable:
         return self.driver.get(self.key)
 
 
-class Hash:
+class Hash(Datum):
     def __init__(self, contract, name, driver: ContractDriver):
-        self.driver = driver
-        self.key = self.driver.make_key(contract, name)
+        super().__init__(contract, name, driver=driver)
         self.delimiter = config.DELIMITER
 
     def set(self, key, value):
@@ -30,4 +34,38 @@ class Hash:
         self.set(key, value)
 
     def __getitem__(self, item):
-        self.get(item)
+        return self.get(item)
+
+
+class ForeignVariable(Variable):
+    def __init__(self, contract, name, foreign_contract, foreign_name, driver:ContractDriver):
+        super().__init__(contract, name, driver=driver)
+        self.foreign_key = self.driver.make_key(foreign_contract, foreign_name)
+
+        self.driver.set(self.key, self.foreign_key)
+
+    def set(self, value):
+        raise ReferenceError
+
+    def get(self):
+        return self.driver.get(self.foreign_key)
+
+
+class ForeignHash(Hash):
+    def __init__(self, contract, name, foreign_contract, foreign_name, driver: ContractDriver):
+        super().__init__(contract, name, driver=driver)
+        self.delimiter = config.DELIMITER
+
+        self.foreign_key = self.driver.make_key(foreign_contract, foreign_name)
+
+    def set(self, key, value):
+        raise ReferenceError
+
+    def get(self, item):
+        return self.driver.get('{}{}{}'.format(self.foreign_key, self.delimiter, item))
+
+    def __setitem__(self, key, value):
+        raise ReferenceError
+
+    def __getitem__(self, item):
+        return self.get(item)
