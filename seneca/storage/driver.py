@@ -93,7 +93,7 @@ def get_database_driver():
     cls = DATABASE_DRIVER_MAPS.get(config.DB_TYPE)
     if cls is None:
         raise DatabaseDriverNotFound(
-            driver=DB_TYPE,
+            driver=config.DB_TYPE,
             known_drivers=DATABASE_DRIVER_MAPS.keys())
     return cls
 

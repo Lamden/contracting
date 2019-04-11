@@ -132,3 +132,34 @@ class TestRedisDatabaseDriver(TestCase):
         keys.sort()
 
         self.assertListEqual(keys, ks)
+
+
+class TestContractDriver(TestCase):
+    # Flush this sucker every test
+    def setUp(self):
+        self.d = ContractDriver(db=1)
+        self.d.flush()
+
+    def tearDown(self):
+        self.d.flush()
+
+    def test_make_key(self):
+        contract = 'token.balances'
+
+        name = 'token'
+        func = 'balances'
+
+        self.assertEqual(contract, self.d.make_key(name, func))
+
+    def test_hget_hset(self):
+        name = 'token'
+        func = 'balances'
+        million = 1_000_000
+
+        self.d.hset(name, func, million)
+
+        m = self.d.hget(name, func)
+
+        m = m.decode()
+
+        self.assertEqual(million, m)
