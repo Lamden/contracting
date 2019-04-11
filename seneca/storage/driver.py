@@ -157,3 +157,7 @@ class ContractDriver(DatabaseDriver):
 
     def get_contract_func(self, name, fname):
         return self.hget(name, fname)
+
+    def get_contract_keys(self, name):
+        keys = [k.decode() for k in self.iter(prefix='{}{}'.format(name, self.delimiter))]
+        return keys

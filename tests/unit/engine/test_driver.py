@@ -1,5 +1,6 @@
 from unittest import TestCase
 from seneca.storage.driver import RedisDriver, ContractDriver
+from seneca import config
 import random
 
 class TestAbstractDatabaseDriver(TestCase):
@@ -175,3 +176,28 @@ def stu():
         self.d.set_contract(name, contract, author=author, _type=_t)
 
         self.assertEqual(self.d.get_contract(name), contract)
+
+    def test_get_contract_keys(self):
+        contract = '''
+        def stu():
+            print('howdy partner')
+                '''
+
+        name = 'stustu'
+        author = 'woohoo'
+        _t = 'test'
+
+        self.d.set_contract(name, contract, author=author, _type=_t)
+
+        keys = [
+            '{}{}{}'.format(name, self.d.delimiter, config.CODE_KEY),
+            '{}{}{}'.format(name, self.d.delimiter, config.AUTHOR_KEY),
+            '{}{}{}'.format(name, self.d.delimiter, config.TYPE_KEY)
+        ]
+
+        k = self.d.get_contract_keys(name)
+
+        keys.sort()
+        k.sort()
+
+        self.assertListEqual(keys, k)
