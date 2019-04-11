@@ -37,7 +37,7 @@ def encode(data):
 
 def decode(data):
     assert type(data) == bytes, 'Unsupported type being passed!'
-    t = data[0]
+    t = data[0:1]
     data = data[1:]
 
     if t == INT_FLAG:
@@ -50,6 +50,9 @@ def decode(data):
     elif t == DEC_FLAG:
         d = data.decode()
         return dec(d)
+
+    elif t == BYT_FLAG:
+        return data
 
     else:
         return None
