@@ -3,8 +3,7 @@ from seneca.execution.executor import *
 
 # Import StateProxy and AbstractDatabaseDriver for property type
 # assertions for self.e.driver
-from seneca.parallelism.conflict_resolution import StateProxy
-from seneca.storage.driver import AbstractDatabaseDriver
+from seneca.db.driver import AbstractDatabaseDriver
 
 
 class TestExecutor(unittest.TestCase):
@@ -12,7 +11,7 @@ class TestExecutor(unittest.TestCase):
         self.e = Executor()
 
     def tearDown(self):
-        pass
+        del self.e
 
     def test_init(self):
         self.assertEqual(self.e.concurrency, True, 'Concurrency not set to True by default.')

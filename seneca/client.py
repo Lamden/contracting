@@ -4,7 +4,7 @@ from seneca.execution.executor import Executor
 from seneca.config import *
 from seneca.parallelism.conflict_resolution import CRContext
 from seneca.parallelism.book_keeper import BookKeeper
-from seneca.storage.driver import DatabaseDriver
+from seneca.db.driver import DatabaseDriver
 from collections import deque
 from typing import Callable
 import traceback

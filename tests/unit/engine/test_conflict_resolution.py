@@ -2,7 +2,7 @@ from seneca.parallelism.conflict_resolution import *
 from seneca.parallelism.cr_commands import *
 from unittest import TestCase
 import unittest
-from seneca.storage.driver import DatabaseDriver
+from seneca.db.driver import DatabaseDriver
 
 
 class TestConflictResolution(TestCase):
