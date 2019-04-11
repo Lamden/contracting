@@ -160,6 +160,4 @@ class TestContractDriver(TestCase):
 
         m = self.d.hget(name, func)
 
-        m = m.decode()
-
         self.assertEqual(million, m)
