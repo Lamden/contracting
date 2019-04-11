@@ -3,7 +3,7 @@ import abc
 from redis import Redis
 from seneca import config
 from seneca.exceptions import DatabaseDriverNotFound
-
+from .encoder import encode, decode
 
 class AbstractDatabaseDriver:
     __metaclass__ = abc.ABCMeta
@@ -114,6 +114,14 @@ class ContractDriver(DatabaseDriver):
 
         # Tests if access to the DB is available
         self.conn.ping()
+
+    def get(self, key):
+        value = super().get(key)
+        return decode(value)
+
+    def set(self, key, value):
+        v = encode(value)
+        super().set(key, v)
 
     def make_key(self, key, field):
         return '{}{}{}'.format(key, self.delimiter, field)
