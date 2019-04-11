@@ -161,3 +161,17 @@ class TestContractDriver(TestCase):
         m = self.d.hget(name, func)
 
         self.assertEqual(million, m)
+
+    def test_get_set_contract(self):
+        contract = '''
+def stu():
+    print('howdy partner')
+        '''
+
+        name = 'stustu'
+        author = 'woohoo'
+        _t = 'test'
+
+        self.d.set_contract(name, contract, author=author, _type=_t)
+
+        self.assertEqual(self.d.get_contract(name), contract)
