@@ -12,7 +12,7 @@ class TestDatabase(TestCase):
         self.d.flush()
 
     def test_init(self):
-        self.assertEqual(self.d.delimiter, ':', 'Delimiter default not :.')
+        self.assertEqual(self.d.delimiter, '.', 'Delimiter default not .')
         self.assertEqual(self.d.code_key, '__code__', 'Code Key default not "code"')
 
     def test_dynamic_init(self):
@@ -25,7 +25,7 @@ class TestDatabase(TestCase):
         code = 'a = 123'
         name = 'test'
 
-        self.d.push_contract(name, code)
+        self.d.set_contract(name, code)
         _code = self.d.get_contract(name)
 
         self.assertEqual(code, _code.decode(), 'Pushing and getting contracts is not working.')
@@ -34,7 +34,7 @@ class TestDatabase(TestCase):
         code = 'a = 123'
         name = 'test'
 
-        self.d.push_contract(name, code)
+        self.d.set_contract(name, code)
         self.d.flush()
 
         self.assertIsNone(self.d.get_contract(name))
@@ -53,7 +53,7 @@ class TestDatabaseLoader(TestCase):
     def test_exec_module(self):
         module = types.ModuleType('test')
 
-        self.dl.d.push_contract('test', 'b = 1337')
+        self.dl.d.set_contract('test', 'b = 1337')
         self.dl.exec_module(module)
         self.dl.d.flush()
 
@@ -68,7 +68,7 @@ class TestDatabaseLoader(TestCase):
     def test_exec_module_nonattribute(self):
         module = types.ModuleType('test')
 
-        self.dl.d.push_contract('test', 'b = 1337')
+        self.dl.d.set_contract('test', 'b = 1337')
         self.dl.exec_module(module)
         self.dl.d.flush()
 
@@ -102,7 +102,7 @@ class TestInstallLoader(TestCase):
 
     def test_integration_and_importing(self):
         dl = DatabaseLoader()
-        dl.d.push_contract('testing', 'a = 1234567890')
+        dl.d.set_contract('testing', 'a = 1234567890')
 
         install_database_loader()
 

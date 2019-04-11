@@ -152,7 +152,7 @@ def a():
         self.l.visit(c)
 
     def test_import_works(self):
-        self.l.driver.push_contract('something', 'a = 10')
+        self.l.driver.set_contract('something', 'a = 10')
         code = '''
 import something
 @seneca_export

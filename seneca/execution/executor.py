@@ -10,7 +10,7 @@ from seneca.utils import Plugins, Assert
 from seneca.parallelism.book_keeper import BookKeeper
 from seneca.parallelism.conflict_resolution import StateProxy
 from seneca.execution.module import uninstall_builtins, install_database_loader
-from seneca.storage.driver import DatabaseDriver
+from seneca.storage.driver import DatabaseDriver, ContractDriver
 from seneca.exceptions import ContractExists
 
 class Executor:
@@ -18,15 +18,15 @@ class Executor:
     def __init__(self, metering=True, concurrency=True, flushall=False):
         # Colin - Ensure everything is nuked down to minimal viable set
         #         before we start doing ANYTHING
-        uninstall_builtins()
-
-        # Colin - Put the database loader in the sys path
-        install_database_loader()
+        # uninstall_builtins()
+        #
+        # # Colin - Put the database loader in the sys path
+        # install_database_loader()
 
         # Colin - Load in the database driver from the global config
         #         Set driver_proxy to none to indicate it exists and
         #         may be filled later
-        self.driver_base = DatabaseDriver(host='localhost', port=DB_PORT, db=MASTER_DB)
+        self.driver_base = ContractDriver()
         self.driver_proxy = None
         if flushall:
             self.driver.flush()
@@ -93,30 +93,8 @@ class Executor:
                 'methods': methods,
             }, driver=self.driver, override=True)
 
-    # Colin TODO: Use Capnp instead of marshal, no need to use different serialization modules
-    @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
-    def get_contract(self, contract_name):
-        contract = marshal.loads(b64decode(self.driver.hget('contracts', contract_name).decode()))
-        return contract
-
     # Colin - Code using executor should not be able to choose its driver, also should
     #         not be able to override an existing contract yet (maybe in the future)
-    def set_contract(self, contract_name, code_str, code_obj, author, resources, methods):
-        if self.check_contract_name(contract_name):
-            raise ContractExists(contract_name=contract_name)
-        self.driver.set('contracts', contract_name, b64encode(marshal.dumps({
-            'code_str': code_str,
-            'code_obj': code_obj,
-            'author': author,
-            'resources': resources.get(contract_name, {}),
-            'methods': methods.get(contract_name, {}),
-        })))
-
-    @lru_cache(maxsize=CODE_OBJ_MAX_CACHE)
-    def check_contract_name(self, contract_name):
-        if self.driver.get('contracts', contract_name):
-            return True
-        return False
 
     @staticmethod
     def compile(contract_name, code_str, scope={}):
@@ -246,12 +224,8 @@ class Executor:
             'stamps_used': stamps_used
         }
 
-    def publish_code_str(self, contract_name, author, code_str):
-        return self.execute_function('smart_contract', 'submit_contract', author,
-                                     kwargs={
-                                         'contract_name': contract_name,
-                                         'code_str': code_str
-                                     })
+    def publish_code_str(self, name, code, author, overwrite=False):
+        return self.driver.set_contract(name, code, author, overwrite=overwrite)
 
     def dynamic_import(self, contract_name, sender):
         contract = self.get_contract(contract_name)
@@ -262,5 +236,5 @@ class Executor:
         self.execute(contract['code_obj'], module.__dict__)
         return module
 
-if __name__ == "__main__":
-    e = Executor()
+# if __name__ == "__main__":
+#     e = Executor()
