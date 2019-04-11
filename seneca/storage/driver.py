@@ -5,6 +5,7 @@ from seneca import config
 from seneca.exceptions import DatabaseDriverNotFound
 from .encoder import encode, decode
 
+
 class AbstractDatabaseDriver:
     __metaclass__ = abc.ABCMeta
 
@@ -154,9 +155,6 @@ class ContractDriver(DatabaseDriver):
         return self.exists(
             self.make_key(name, self.code_key)
         )
-
-    def get_contract_func(self, name, fname):
-        return self.hget(name, fname)
 
     def get_contract_keys(self, name):
         keys = [k.decode() for k in self.iter(prefix='{}{}'.format(name, self.delimiter))]

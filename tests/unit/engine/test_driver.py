@@ -217,3 +217,19 @@ def stu():
             self.d.delete_contract(name)
 
             self.assertIsNone(self.d.get_contract(name))
+
+    def test_is_contract_no(self):
+        self.assertFalse(self.d.is_contract('stustu'))
+
+    def test_is_contract_yes(self):
+        contract = '''
+def stu():
+    print('howdy partner')
+'''
+
+        name = 'stustu'
+        author = 'woohoo'
+        _t = 'test'
+
+        self.d.set_contract(name, contract, author=author, _type=_t)
+        self.assertTrue(self.d.is_contract('stustu'))
