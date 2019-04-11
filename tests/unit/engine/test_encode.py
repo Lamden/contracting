@@ -1,5 +1,5 @@
 from unittest import TestCase
-from seneca.storage.encoder import encode, decode
+from seneca.db.encoder import encode, decode
 from decimal import Decimal as dec
 
 

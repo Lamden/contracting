@@ -1,17 +1,15 @@
 from seneca.execution.parser import Parser
 from seneca.execution.scope import Scope
 #from seneca.metering.tracer import Tracer
-from seneca.config import MASTER_DB, DB_PORT, CODE_OBJ_MAX_CACHE, OFFICIAL_CONTRACTS, READ_ONLY_MODE
-import seneca, marshal, os, types
-from base64 import b64encode, b64decode
+from seneca.config import CODE_OBJ_MAX_CACHE, READ_ONLY_MODE
+import types
 from os.path import join
 from functools import lru_cache
 from seneca.utils import Plugins, Assert
 from seneca.parallelism.book_keeper import BookKeeper
 from seneca.parallelism.conflict_resolution import StateProxy
-from seneca.execution.module import uninstall_builtins, install_database_loader
-from seneca.storage.driver import DatabaseDriver, ContractDriver
-from seneca.exceptions import ContractExists
+from seneca.db.driver import ContractDriver
+
 
 class Executor:
 

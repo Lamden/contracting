@@ -3,7 +3,7 @@ import sys
 from importlib.abc import Loader, MetaPathFinder
 from importlib import invalidate_caches
 
-from seneca.storage.driver import ContractDriver
+from seneca.db.driver import ContractDriver
 
 '''
     This module will remain untested and unused until we decide how we want to 'forget' importing.

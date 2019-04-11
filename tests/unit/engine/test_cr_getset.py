@@ -1,5 +1,5 @@
 from seneca.parallelism.cr_commands import *
-from seneca.storage.driver import DatabaseDriver
+from seneca.db.driver import DatabaseDriver
 from unittest import TestCase
 import unittest
 
