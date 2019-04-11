@@ -4,6 +4,7 @@ import ast
 from seneca.execution.whitelists import ALLOWED_AST_TYPES
 from seneca.utils import CompilationException
 
+
 class TestLinter(TestCase):
     def setUp(self):
         self.l = Linter()

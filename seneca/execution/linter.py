@@ -20,7 +20,7 @@ class Linter(ast.NodeVisitor):
 
     @staticmethod
     def not_system_variable(v):
-        if v.startswith('__') and v.endswith('__'):
+        if v.startswith('_'):
             raise CompilationException('Access denied for system variable: {}'.format(v))
 
     @staticmethod

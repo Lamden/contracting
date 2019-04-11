@@ -2,7 +2,7 @@ from seneca.execution.whitelists import ALLOWED_AST_TYPES, ALLOWED_IMPORT_PATHS,
 import ast
 
 
-class Plugins:
+class plugins:
 
     __submit_stamps__ = None
 
@@ -29,7 +29,7 @@ __result__ = {func}()
 '''.format(func=func)
 
     @staticmethod
-    def resource_reassignment(varname, ctx):
+    def resource_reassignment(VARNAME, ctx):
         node = ast.parse('''
 {}.resource_obj
         '''.format(varname), mode='exec').body[0].value
