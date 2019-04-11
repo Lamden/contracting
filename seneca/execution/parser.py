@@ -14,15 +14,6 @@ from seneca.config import *
 #      can be provided as part of a user tool set for users to develop and test also.
 #   2. code transformer -> transforms the code: a) prefixing, etc, b) adds decorator and cleanup functionality
 #   3. compiled codeobj, along with mod code str and other annotated datastructures for book keeping    
-# raghu todo
-#  1. Replace this with context to provide runtime context.
-#  2. Runtime context is setup at the point of txn execution.
-#     then runtime context is only runtime context: sender and stamps supplied, etc
-#  3. CodeModifier will add a class with contract name
-#  4. it will hide all global variables with contract_name prefix
-#  5. and add a function "_set_seneca_context" -> that will take backup of global variables and set them to None
-#  6. and add a function "_reset_seneca_context" -> to restore global variables to backups
-#  7. then Export() or Seed() functions can wrap them around function
     
 class Parser:
 
@@ -30,19 +21,63 @@ class Parser:
         self.module_name = module_name
         self.code_str = code_str
         self.log = get_logger('Seneca.Parser')
-        self._seed_method = None       # add check to ensure only one seed function
         self._exported_methods = []
         self._internal_methods = []
         self._global_variables = []
         self._ast_tree = None
 
-    def checker(self):
-        if not self._ast_tree:
-            self.parse()
+    basic_scope = {
+        'export': Export(),
+        'seed': Seed(),
+        '__set_resources__': set_resource_limits,
+        '__decimal__': to_decimal,
+        '__function__': Function(),
+        '__builtins__': SAFE_BUILTINS
+    }
+    parser_scope = {
+        'ast': None,
+        'callstack': [],
+        'namespace': defaultdict(dict),
+        'exports': {},
+        'imports': {},
+        'resources': {},
+        'methods': defaultdict(dict),
+        'protected': defaultdict(set)
+    }
+    seed_tree = None
+    child = None
+    initialized = False
+    assigning = False
 
-    def parse(self):
+    def checker():
+        if not self._ast_tree:
+            self.parser()
+
+    @classmethod
+    def reset(cls):
+        # cls.initialize()
+        cls.parser_scope.update({
+            'imports': {},
+            '__args__': (),
+            '__kwargs__': {}
+        })
+        cls.parser_scope.update(cls.basic_scope)
+        cls.parser_scope['protected']['__global__'].update(cls.basic_scope.keys())
+        cls.parser_scope['protected']['__global__'].update(('rt',))
+        cls.seed_tree = None
+        cls.assigning = None
+        cls.parser_scope['ast'] = None
+
+    @staticmethod
+    def parse_ast(code_str):
         # Parse tree
-        self._ast_tree = ast.parse(self.code_str)
+        tree = ast.parse(code_str)
+        Parser.seed_tree = copy.deepcopy(tree)
+        Parser.seed_tree.body = []
+        tree = NodeTransformer().visit(tree)
+        ast.fix_missing_locations(tree)
+
+        return Parser.seed_tree
 
 
 class NodeTransformer(ast.NodeTransformer):

@@ -1,5 +1,5 @@
 from seneca.parallelism.cr_commands import *
-from seneca.storage.driver import DatabaseDriver
+import ledis
 from unittest import TestCase
 import unittest
 
@@ -7,13 +7,13 @@ import unittest
 class TestCRGetSet(TestCase):
 
     def setUp(self):
-        self.master = DatabaseDriver(host='localhost', port=6379, db=0)
-        self.working = DatabaseDriver(host='localhost', port=6379, db=1)
+        self.master = ledis.Ledis(host='localhost', port=6379, db=0)
+        self.working = ledis.Ledis(host='localhost', port=6379, db=1)
         self.sbb_data = {}
 
     def tearDown(self):
-        self.master.flush()
-        self.working.flush()
+        self.master.flushdb()
+        self.working.flushdb()
 
     def _new_getset(self, should_set=True, sbb_idx=0, contract_idx=0, finalize=False):
         if contract_idx in self.sbb_data:

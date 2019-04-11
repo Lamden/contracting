@@ -30,7 +30,7 @@ build-ledis:
 	docker build -t ledis -f ./docker/ledis .
 
 start-server:
-	python3 ./scripts/start_redis.py -no-conf &>/dev/null &
+	bash ./scripts/start.sh
 
 upload:
 	bash ./scripts/upload_pip.sh
