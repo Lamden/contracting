@@ -36,7 +36,11 @@ def encode(data):
 
 
 def decode(data):
-    assert type(data) == bytes, 'Unsupported type being passed!'
+    assert type(data) == bytes or data is None, 'Unsupported type being passed!'
+
+    if data is None:
+        return data
+
     t = data[0:1]
     data = data[1:]
 

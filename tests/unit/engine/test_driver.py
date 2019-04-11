@@ -167,7 +167,7 @@ class TestContractDriver(TestCase):
         contract = '''
 def stu():
     print('howdy partner')
-        '''
+'''
 
         name = 'stustu'
         author = 'woohoo'
@@ -179,9 +179,9 @@ def stu():
 
     def test_get_contract_keys(self):
         contract = '''
-        def stu():
-            print('howdy partner')
-                '''
+def stu():
+    print('howdy partner')
+'''
 
         name = 'stustu'
         author = 'woohoo'
@@ -201,3 +201,19 @@ def stu():
         k.sort()
 
         self.assertListEqual(keys, k)
+
+    def test_delete_contract(self):
+            contract = '''
+def stu():
+    print('howdy partner')
+'''
+
+            name = 'stustu'
+            author = 'woohoo'
+            _t = 'test'
+
+            self.d.set_contract(name, contract, author=author, _type=_t)
+
+            self.d.delete_contract(name)
+
+            self.assertIsNone(self.d.get_contract(name))
