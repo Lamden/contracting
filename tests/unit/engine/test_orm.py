@@ -47,7 +47,7 @@ class TestHash(TestCase):
     def tearDown(self):
         driver.flush()
 
-    def test_set_get_raw(self):
+    def test_set(self):
         contract = 'stustu'
         name = 'balance'
         delimiter = driver.delimiter
@@ -55,19 +55,68 @@ class TestHash(TestCase):
         raw_key_1 = '{}{}{}'.format(contract, delimiter, name)
         raw_key_1 += ':stu'
 
-        raw_key_2 = '{}{}{}'.format(contract, delimiter, name)
-        raw_key_2 += ':colin'
-
         h = Hash(contract, name, driver=driver)
 
         h.set('stu', 1234)
 
+        self.assertEqual(driver.get(raw_key_1), 1234)
+
+    def test_get(self):
+        contract = 'stustu'
+        name = 'balance'
+        delimiter = driver.delimiter
+
+        raw_key_1 = '{}{}{}'.format(contract, delimiter, name)
+        raw_key_1 += ':stu'
+
+        driver.set(raw_key_1, 1234)
+
+        h = Hash(contract, name, driver=driver)
+
+        self.assertEqual(h.get('stu'), 1234)
+
+    def test_set_get(self):
+        contract = 'stustu'
+        name = 'balance'
+
+        h = Hash(contract, name, driver=driver)
+
+        h.set('stu', 1234)
         _h = h.get('stu')
 
-        self.assertEqual(_h, driver.get(raw_key_1))
+        self.assertEqual(_h, 1234)
 
         h.set('colin', 5678)
-
         _h2 = h.get('colin')
 
-        self.assertEqual(_h2, driver.get(raw_key_2))
+        self.assertEqual(_h2, 5678)
+
+    def test_setitem(self):
+        contract = 'blah'
+        name = 'scoob'
+        delimiter = driver.delimiter
+
+        h = Hash(contract, name, driver=driver)
+
+        prefix = '{}{}{}{}'.format(contract, delimiter, name, h.delimiter)
+
+        h['stu'] = 9999999
+
+        raw_key = '{}stu'.format(prefix)
+
+        self.assertEqual(driver.get(raw_key), 9999999)
+
+    def test_getitem(self):
+        contract = 'blah'
+        name = 'scoob'
+        delimiter = driver.delimiter
+
+        h = Hash(contract, name, driver=driver)
+
+        prefix = '{}{}{}{}'.format(contract, delimiter, name, h.delimiter)
+
+        raw_key = '{}stu'.format(prefix)
+
+        driver.set(raw_key, 54321)
+
+        self.assertEqual(h['stu'], 54321)

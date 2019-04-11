@@ -34,7 +34,7 @@ class Hash(Datum):
         self.set(key, value)
 
     def __getitem__(self, item):
-        self.get(item)
+        return self.get(item)
 
 
 class ForeignVariable(Variable):
