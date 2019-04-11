@@ -1,6 +1,6 @@
 from unittest import TestCase
 from seneca.db.driver import ContractDriver
-from seneca.db.orm import Datum, Variable, Hash, ForeignVariable
+from seneca.db.orm import Datum, Variable, Hash, ForeignVariable, ForeignHash
 
 driver = ContractDriver(db=1)
 
@@ -179,3 +179,66 @@ class TestForeignVariable(TestCase):
 
         self.assertEqual(f.get(), 'howdy')
 
+
+class TestForeignHash(TestCase):
+    def setUp(self):
+        driver.flush()
+
+    def tearDown(self):
+        driver.flush()
+
+    def test_set(self):
+        # set up the foreign variable
+        contract = 'stustu'
+        name = 'balance'
+
+        f_contract = 'colinbucks'
+        f_name = 'balances'
+
+        f = ForeignHash(contract, name, f_contract, f_name, driver=driver)
+
+        with self.assertRaises(ReferenceError):
+            f.set('stu', 1234)
+
+    def test_get(self):
+        # set up the foreign variable
+        contract = 'stustu'
+        name = 'balance'
+
+        f_contract = 'colinbucks'
+        f_name = 'balances'
+
+        f = ForeignHash(contract, name, f_contract, f_name, driver=driver)
+
+        h = Hash(f_contract, f_name, driver=driver)
+        h.set('howdy', 555)
+
+        self.assertEqual(f.get('howdy'), 555)
+
+    def test_setitem(self):
+        # set up the foreign variable
+        contract = 'stustu'
+        name = 'balance'
+
+        f_contract = 'colinbucks'
+        f_name = 'balances'
+
+        f = ForeignHash(contract, name, f_contract, f_name, driver=driver)
+
+        with self.assertRaises(ReferenceError):
+            f['stu'] = 1234
+
+    def test_getitem(self):
+        # set up the foreign variable
+        contract = 'stustu'
+        name = 'balance'
+
+        f_contract = 'colinbucks'
+        f_name = 'balances'
+
+        f = ForeignHash(contract, name, f_contract, f_name, driver=driver)
+
+        h = Hash(f_contract, f_name, driver=driver)
+        h['howdy'] = 555
+
+        self.assertEqual(f['howdy'], 555)
