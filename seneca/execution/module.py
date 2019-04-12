@@ -58,14 +58,14 @@ class DatabaseLoader(Loader):
         ctx = ModuleType('context')
 
         ctx.caller = rt.ctx[-1]
+        ctx.this = module.__name__
+        ctx.signer = rt.ctx[0]
 
         module.ctx = ctx
 
         rt.ctx.append(module.__name__)
-        print('{} added to runtime stack'.format(module.__name__))
         exec(code, vars(module))
         a = rt.ctx.pop()
-        print('{} popped from runtime stack'.format(a))
 
     def module_repr(self, module):
         return '<module {!r} (smart contract)>'.format(module.__name__)
