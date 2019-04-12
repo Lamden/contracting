@@ -111,3 +111,19 @@ class TestInstallLoader(TestCase):
         #dl.d.flush()
 
         self.assertEqual(testing.a, 1234567890)
+
+
+driver = ContractDriver(db=1)
+
+
+class TestModuleLoadingIntegration(TestCase):
+    def setUp(self):
+        sys.meta_path.append(DatabaseFinder)
+        driver.flush()
+
+    def tearDown(self):
+        sys.meta_path.remove(DatabaseFinder)
+        driver.flush()
+
+    def test_get_code_string(self):
+        pass
