@@ -1,6 +1,7 @@
 from unittest import TestCase
 from seneca.execution.module import *
 import types
+import glob
 
 
 class TestDatabase(TestCase):
@@ -113,17 +114,34 @@ class TestInstallLoader(TestCase):
         self.assertEqual(testing.a, 1234567890)
 
 
-driver = ContractDriver(db=1)
+driver = ContractDriver(db=0)
 
 
 class TestModuleLoadingIntegration(TestCase):
     def setUp(self):
         sys.meta_path.append(DatabaseFinder)
         driver.flush()
+        contracts = glob.glob('./test_sys_contracts/*.py')
+        for contract in contracts:
+            name = contract.split('/')[-1]
+            name = name.split('.')[0]
+
+            with open(contract) as f:
+                code = f.read()
+
+            author = 'stuart'
+
+            driver.set_contract(name=name, code=code, author=author)
 
     def tearDown(self):
         sys.meta_path.remove(DatabaseFinder)
         driver.flush()
 
     def test_get_code_string(self):
-        pass
+        ctx = types.ModuleType('ctx')
+        code = '''import module1
+
+print(rt)
+'''
+
+        exec(code, vars(ctx))

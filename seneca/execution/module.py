@@ -54,13 +54,15 @@ class DatabaseLoader(Loader):
         # fetch the individual contract
         code = self.d.get_contract(module.__name__)
 
-        sender = rt.ctx[-1]
+        caller = rt.ctx[-1]
 
-        module.rt = sender
+        module.rt = caller
 
         rt.ctx.append(module.__name__)
+        print('{} added to runtime stack'.format(module.__name__))
         exec(code, vars(module))
-        rt.ctx.pop()
+        a = rt.ctx.pop()
+        print('{} popped from runtime stack'.format(a))
 
     def module_repr(self, module):
         return '<module {!r} (smart contract)>'.format(module.__name__)
