@@ -1,5 +1,3 @@
-from seneca.execution.parser import Parser
-from seneca.execution.scope import Scope
 from seneca.parallelism.book_keeper import BookKeeper
 from seneca.parallelism.conflict_resolution import StateProxy
 from seneca.db.driver import ContractDriver
@@ -67,12 +65,10 @@ class Executor:
     #         bootstrap method
     # Colin TODO: Move to boostrap.py to ensure we are 1-to-1 with boot not instance of executor
 
-    def execute(self, code_obj, scope={}):
-        scope.update(Parser.parser_scope)
-        Scope.scope = scope
-        exec(code_obj, scope)
-        return scope.get('__result__')
-
+    def mock_execute(self):
+        from types import ModuleType
+        ctx = ModuleType('ctx')
+        ctx.sender = 'test'
 
 # if __name__ == "__main__":
 #     e = Executor()
