@@ -2,33 +2,17 @@ from seneca.logger import get_logger
 from seneca.parallelism.conflict_resolution import CRContext, CR_EXCLUDED_KEYS
 
 
-class CRCmdMeta(type):
-    def __new__(cls, clsname, bases, clsdict):
-        clsobj = super().__new__(cls, clsname, bases, clsdict)
-        if not hasattr(clsobj, 'registry'):
-            clsobj.registry = {}
+# TODO -- instead of passing in CRContext, we should be able to get away with just passing in
+# the CRDataGetSet ....
 
-        if 'COMMAND_NAME' in clsdict:
-            cmd_name = clsdict['COMMAND_NAME']
-            assert cmd_name not in clsobj.registry, "Command {} already in registry {}".format(cmd_name, clsobj.registry)
-            clsobj.registry[cmd_name] = clsobj
-
-        return clsobj
-
-
-class CRCmdBase(metaclass=CRCmdMeta):
-    DATA_NAME = None
-
-    # TODO -- remove the finalize var. We dont need this.
+class CRCmdBase:
     def __init__(self, working_db, master_db, sbb_idx: int, contract_idx: int, data: CRContext):
         self.log = get_logger("{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
-        self.cr_data = data
         self.data = data.cr_data
         self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
 
     def set_params(self, working_db, master_db, sbb_idx: int, contract_idx: int, data: CRContext):
-        self.cr_data = data
         self.data = data.cr_data
         self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
@@ -64,12 +48,6 @@ class CRCmdBase(metaclass=CRCmdMeta):
             self.log.spam("Key {} not found in master layer. Defaulting original to None.".format(key))
             self._copy_key_to_sbb_data(None, key, *args, **kwargs)
 
-    def _add_key_to_redo_log(self, key, *args, **kwargs):
-        raise NotImplementedError()
-
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError()
-
     def _db_original_exists(self, db, key, *args, **kwargs) -> bool:
         """
         Returns True if 'key' exists on db. False otherwise. args/kwargs can be supplied for more complex
@@ -77,13 +55,13 @@ class CRCmdBase(metaclass=CRCmdMeta):
         :param db: The DB to check
         :param key: The key to check on 'db'
         """
-        raise NotImplementedError()
+        return db.exists(key)
 
     def _sbb_original_exists(self, key, *args, **kwargs) -> bool:
         """
         Return True if key exists in the sub-block specific data, and False otherwise.
         """
-        raise NotImplementedError()
+        return key in self.data
 
     def _copy_key_to_sbb_data(self, db, key, *args, **kwargs):
         """
@@ -92,19 +70,6 @@ class CRCmdBase(metaclass=CRCmdMeta):
         thus the original value will be set as None
         :param key: The name of the key to copy
         """
-        raise NotImplementedError()
-
-
-class CRCmdGetSetBase(CRCmdBase):
-    DATA_NAME = 'getset'
-
-    def _db_original_exists(self, db, key) -> bool:
-        return db.exists(key)
-
-    def _sbb_original_exists(self, key) -> bool:
-        return key in self.data
-
-    def _copy_key_to_sbb_data(self, db, key):
         val = db.get(key) if db else None
         self.data[key] = {'og': val, 'mod': None, 'contracts': set()}
 
@@ -133,14 +98,14 @@ class CRCmdGetSetBase(CRCmdBase):
         return val
 
 
-class CRCmdGet(CRCmdGetSetBase):
+class CRCmdGet(CRCmdBase):
     COMMAND_NAME = 'get'
 
     def __call__(self, key):
         return self._get(key)
 
 
-class CRCmdSet(CRCmdGetSetBase):
+class CRCmdSet(CRCmdBase):
     COMMAND_NAME = 'set'
 
     def _add_key_to_redo_log(self, key, *args, **kwargs):

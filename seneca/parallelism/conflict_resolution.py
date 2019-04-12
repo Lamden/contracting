@@ -1,5 +1,6 @@
 from collections import defaultdict
 from seneca.logger import get_logger
+from seneca.parallelism.cr_commands import CRCmdGet, CRCmdSet
 from typing import List
 
 
@@ -11,19 +12,8 @@ STAMPS_KEY = 'currency:balances:black_hole'
 CR_EXCLUDED_KEYS = ['currency:xrate:TAU_STP', STAMPS_KEY]
 
 
-class CRDataMeta(type):
-    def __new__(cls, clsname, bases, clsdict):
-        clsobj = super().__new__(cls, clsname, bases, clsdict)
-        if not hasattr(clsobj, 'registry'):
-            clsobj.registry = {}
-
-        # Only add classes that have the 'NAME' field set
-        if 'NAME' in clsdict:
-            clsobj.registry[clsdict['NAME']] = clsobj
-        return clsobj
-
-
-class CRDataGetSet(dict, metaclass=CRDataMeta):
+# TODO decouple data structures and algorithm (ie the top sort)
+class CRDataGetSet(dict):
     NAME = 'getset'
 
     def __init__(self, master_db, working_db):
@@ -175,8 +165,7 @@ class CRContext:
         self.working_db, self.master_db = working_db, master_db
         self.sbb_idx = sbb_idx
 
-        # cr_data holds instances of CRDataBase. The key is the 'NAME' field specified in the CRDataBase subclass
-        # For convenience, all these keys are directly accessible from this CRContext instance (see __getitem__)
+        # TODO just call this CRData????
         self.cr_data = CRDataGetSet(self.master_db, self.working_db)
 
         # TODO deques are probobly more optimal than using arrays here
@@ -338,27 +327,30 @@ class CRContext:
             self.input_hash[:16], len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
 
 
+# TODO rename to CRDriver
 class StateProxy:
 
     def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, concurrency=True):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
-        self.concurrency = concurrency
-        self.data = data
-        self.working_db, self.master_db = data.working_db, data.master_db
-        self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
-        self.cmds = {}
         self.log = get_logger("StateProxy")
 
+        # wtf is this concurrency flag for? can we do away with that?
+        self.concurrency = concurrency
+
+        self.data = data
+
+        # why does this guy need a reference of working and master db? can we do away with that
+        # update -- i think its for convenience so we dont have to do data.master_db ... seems silly though...
+        self.working_db, self.master_db = data.working_db, data.master_db
+        self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
+
+        self.cmds = {'get': CRCmdGet(self.working_db, self.master_db, self.sbb_idx, self.contract_idx, self.data),
+                     'set': CRCmdSet(self.working_db, self.master_db, self.sbb_idx, self.contract_idx, self.data)}
+
     def __getattr__(self, item):
-        from seneca.parallelism.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
-        assert item in CRCmdBase.registry, "ledis operation {} not implemented for conflict resolution".format(item)
+        assert item in ('set', 'get'), "Only set and get supported by CRDriver, but got command: {}".format(item)
 
-        t = CRCmdBase.registry[item]
-        if t not in self.cmds:
-            self.cmds[t] = t(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
-                             contract_idx=self.contract_idx, data=self.data)
-
-        cmd = self.cmds[t]
+        cmd = self.cmds[item]
         cmd.set_params(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
                        contract_idx=self.contract_idx, data=self.data)
         return cmd
