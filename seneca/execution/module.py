@@ -6,6 +6,7 @@ from importlib import invalidate_caches
 from seneca.db.driver import ContractDriver
 from .runtime import rt
 
+from types import ModuleType
 
 '''
     This module will remain untested and unused until we decide how we want to 'forget' importing.
@@ -54,9 +55,11 @@ class DatabaseLoader(Loader):
         # fetch the individual contract
         code = self.d.get_contract(module.__name__)
 
-        caller = rt.ctx[-1]
+        ctx = ModuleType('context')
 
-        module.rt = caller
+        ctx.caller = rt.ctx[-1]
+
+        module.ctx = ctx
 
         rt.ctx.append(module.__name__)
         print('{} added to runtime stack'.format(module.__name__))

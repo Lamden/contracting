@@ -141,7 +141,7 @@ class TestModuleLoadingIntegration(TestCase):
         ctx = types.ModuleType('ctx')
         code = '''import module1
 
-print(rt)
+print(ctx.caller)
 '''
 
         exec(code, vars(ctx))
