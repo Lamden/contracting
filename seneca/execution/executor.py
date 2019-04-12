@@ -1,3 +1,12 @@
+from seneca.execution.parser import Parser
+from seneca.execution.scope import Scope
+#from seneca.metering.tracer import Tracer
+from seneca.config import CODE_OBJ_MAX_CACHE, READ_ONLY_MODE
+import types
+import threading
+from os.path import join
+from functools import lru_cache
+from seneca.utils import Plugins, Assert
 from seneca.parallelism.book_keeper import BookKeeper
 from seneca.parallelism.conflict_resolution import StateProxy
 from seneca.db.driver import ContractDriver
@@ -47,7 +56,7 @@ class Executor:
         if self.concurrency:
             if not self.driver_proxy:
                 info = BookKeeper.get_cr_info()
-                self.driver_proxy = StateProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
+                self.driver_proxy = CRDriver(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
                                                data=info['data'])
             else:
                 info = BookKeeper.get_cr_info()
@@ -70,5 +79,45 @@ class Executor:
         ctx = ModuleType('ctx')
         ctx.sender = 'test'
 
-# if __name__ == "__main__":
-#     e = Executor()
+class Sandbox(object):
+    """
+    The Sandbox class is used as a execution sandbox for a transaction.
+    This class is in control of the Sandbox Process
+    """
+    def __init__(self):
+        return
+
+    def communicate(self):
+        """
+        Method for communicating with the underlying SandboxThread(s).
+
+        :return:
+        """
+        return
+
+    def launch(self):
+        """
+        Method for launching underlying SandboxThread(s).
+
+        :return:
+        """
+        return
+
+
+class SandboxThread(threading.Thread):
+    """
+    The SandboxThread class is used as a thread inside the Sandbox
+    handling the execution. It is leveraged to ensure execution inside
+    a clean stack.
+    """
+    def __init__(self):
+        threading.Thread.__init__(self)
+
+    def run(self):
+        """
+        Method called when SandboxThread.start() is called. Runtime
+        operations of the thread.
+
+        :return:
+        """
+        return
