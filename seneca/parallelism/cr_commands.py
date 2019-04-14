@@ -17,7 +17,7 @@ class CRCmdBase:
         self.working, self.master = working_db, master_db
         self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
 
-    def _copy_og_key_if_not_exists(self, key, *args, **kwargs):
+    def _copy_og_key_if_not_exists(self, key):
         """
         Copies the key from either master db or common layer (working db) to the sub-block specific layer, if it does
         not exist already
@@ -29,26 +29,26 @@ class CRCmdBase:
         # end debug
 
         # If the key already exists, bounce out of this method immediately
-        if self._sbb_original_exists(key, *args, **kwargs):
+        if self._sbb_original_exists(key):
             self.log.spam("Key <{}> already exists in sub-block specific data, thus not recopying".format(key))
             return
 
         # First check the common layer for the key
-        if self._db_original_exists(self.working, key, *args, **kwargs):
+        if self._db_original_exists(self.working, key):
             self.log.spam("Copying common key <{}> to sb specific data" .format(key))
-            self._copy_key_to_sbb_data(self.working, key, *args, **kwargs)
+            self._copy_key_to_sbb_data(self.working, key)
 
         # Next, check the Master layer for the key
-        elif self._db_original_exists(self.master, key, *args, **kwargs):
+        elif self._db_original_exists(self.master, key):
             self.log.spam("Copying master key <{}> to sb specific data" .format(key))
-            self._copy_key_to_sbb_data(self.master, key, *args, **kwargs)
+            self._copy_key_to_sbb_data(self.master, key)
 
         # Otherwise, if key not found in common or master layer, mark the original as None
         else:
             self.log.spam("Key {} not found in master layer. Defaulting original to None.".format(key))
-            self._copy_key_to_sbb_data(None, key, *args, **kwargs)
+            self._copy_key_to_sbb_data(None, key)
 
-    def _db_original_exists(self, db, key, *args, **kwargs) -> bool:
+    def _db_original_exists(self, db, key) -> bool:
         """
         Returns True if 'key' exists on db. False otherwise. args/kwargs can be supplied for more complex
         implementations by subclasses
@@ -57,13 +57,13 @@ class CRCmdBase:
         """
         return db.exists(key)
 
-    def _sbb_original_exists(self, key, *args, **kwargs) -> bool:
+    def _sbb_original_exists(self, key) -> bool:
         """
         Return True if key exists in the sub-block specific data, and False otherwise.
         """
         return key in self.data
 
-    def _copy_key_to_sbb_data(self, db, key, *args, **kwargs):
+    def _copy_key_to_sbb_data(self, db, key):
         """
         Copies 'key' from the specified to the sub-block specific data
         :param db: The DB to copy the key from. If None, it is implied that the key does not exist in common/master, and
@@ -99,16 +99,12 @@ class CRCmdBase:
 
 
 class CRCmdGet(CRCmdBase):
-    COMMAND_NAME = 'get'
-
     def __call__(self, key):
         return self._get(key)
 
 
 class CRCmdSet(CRCmdBase):
-    COMMAND_NAME = 'set'
-
-    def _add_key_to_redo_log(self, key, *args, **kwargs):
+    def _add_key_to_redo_log(self, key):
         # Return if key already exist in this contract's redo log
         if key in self.data.redo_log[self.contract_idx]:
             return

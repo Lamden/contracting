@@ -172,12 +172,12 @@ class CRContext:
         # run_results is a list of strings, representing the return code of contracts (ie 'SUCC', 'FAIL', ..)
         self.run_results = []
         self.contracts = []  # A list of ContractionTransaction objects. SenecaClient should append as it runs contracts
-        self.input_hash = None  # Input hash should be set by SenecaClient once a new sub block is started
+        self.input_hash = None  # Input hash should be set by SBBClient once a new sub block is started
         self.merged_to_common = False
 
         # 'locked' is a debug flag to detect with CR data is being written to when it shouldnt be. If locked, no
         # acceses to underlying self.cr_data is expected. We lock the CRContext when we put it in available_dbs,
-        # and unlock it when we put it in pending_dbs or active_dbs
+        # and unlock it when we put it in pending_dbs or active_dbs, but only while we are running contracts
         self.locked = True
 
     @property
