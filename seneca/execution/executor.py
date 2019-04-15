@@ -44,6 +44,8 @@ class Executor:
         #self.tracer = Tracer(cu_cost_fname)
         self.tracer = None
 
+        self.sandbox = SandboxBase()
+
     @property
     # Colin - I don't understand what this property is for, why
     #         do we need a driver_proxy for CR, we should not be
@@ -62,6 +64,9 @@ class Executor:
             return self.driver_proxy
         else:
             return self.driver_base
+
+    def execute(self, sender, code_str):
+        return self.sandbox.execute(sender, code_str)
 
 
 class SandboxBase(object):
