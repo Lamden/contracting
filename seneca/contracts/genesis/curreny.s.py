@@ -28,8 +28,8 @@ def assert_stamps(stamps):
 
 
 def submit_stamps(stamps):
-
     stamps *= xrate
+
     balances[ctx.signer] -= stamps
     balances['reserves'] += stamps
 
