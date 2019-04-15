@@ -4,11 +4,10 @@ import multiprocessing
 from os.path import join
 from functools import lru_cache
 
-from seneca import utils
 from seneca import config
 
 from seneca.parallelism import book_keeper, conflict_resolution
-from seneca.execution import module
+from seneca.execution import module, runtime
 
 from seneca.db.driver import ContractDriver
 from seneca.execution.parser import Parser
@@ -44,7 +43,6 @@ class Executor:
         #cu_cost_fname = join(seneca.__path__[0], 'constants', 'cu_costs.const')
         #self.tracer = Tracer(cu_cost_fname)
         self.tracer = None
-        #utils.Plugins.submit_stamps()
 
     @property
     # Colin - I don't understand what this property is for, why
@@ -65,10 +63,17 @@ class Executor:
         else:
             return self.driver_base
 
-    def mock_execute(self):
-        from types import ModuleType
-        ctx = ModuleType('ctx')
-        ctx.sender = 'test'
+
+class SandboxBase(object):
+    def __init__(selfs):
+        return
+
+    def execute(self, sender, code_str):
+        runtime.rt.ctx.pop()
+        runtime.rt.ctx.push(sender)
+        module = exec(code_str)
+        return module
+
 
 class Sandbox(multiprocessing.Process):
     """
