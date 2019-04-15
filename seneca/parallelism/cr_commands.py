@@ -75,27 +75,7 @@ class CRCmdBase:
 
     def _get(self, key, return_none=True):
         self._copy_og_key_if_not_exists(key)
-
-        # TODO make all this DRYer so you can abstract it like a pro
-
-        # First, try and return the local modified key
-        val = self.data[key]['mod']
-        if val is not None:
-            self.log.spam("SBB specific MODIFIED key found for key named <{}>".format(key))
-        # Otherwise, default to the local original key
-        else:
-            self.log.spam("SBB specific ORIGINAL key found for key named <{}>".format(key))
-            val = self.data[key]['og']
-
-        if val is None and not return_none:
-            raise Exception("Key '{}' does not exist, but was attempted to be GET".format(key))
-
-        # TODO properly handle CR on stamps key
-        if key not in CR_EXCLUDED_KEYS:
-            self.data.reads[self.contract_idx].add(key)
-            self.data[key]['contracts'].add(self.contract_idx)
-
-        return val
+        return self.data[key]['og']
 
 
 class CRCmdGet(CRCmdBase):
