@@ -1,9 +1,7 @@
 from collections import defaultdict
 from seneca.logger import get_logger
+from seneca.parallelism.cr_commands import CRCmdGet, CRCmdSet
 from typing import List
-
-
-# TODO -- clean this file up
 
 
 # TODO this assumes stamps_to_tau will never change. We need more intricate logic to handle the case where it does...
@@ -11,32 +9,16 @@ STAMPS_KEY = 'currency:balances:black_hole'
 CR_EXCLUDED_KEYS = ['currency:xrate:TAU_STP', STAMPS_KEY]
 
 
-class CRDataMeta(type):
-    def __new__(cls, clsname, bases, clsdict):
-        clsobj = super().__new__(cls, clsname, bases, clsdict)
-        if not hasattr(clsobj, 'registry'):
-            clsobj.registry = {}
-
-        # Only add classes that have the 'NAME' field set
-        if 'NAME' in clsdict:
-            clsobj.registry[clsdict['NAME']] = clsobj
-        return clsobj
-
-
-class CRDataGetSet(dict, metaclass=CRDataMeta):
-    NAME = 'getset'
-
+class CRDataGetSet(dict):
     def __init__(self, master_db, working_db):
         super().__init__()
         self.log = get_logger(type(self).__name__)
         self.master, self.working = master_db, working_db
         self.writes = defaultdict(set)
-        self.reads = defaultdict(set)
         self.outputs = defaultdict(str)
         self.redo_log = defaultdict(dict)
 
     def _get_modified_keys(self):
-        # TODO this needs to return READs that have had their original values changed too!
         return set().union((key for key in self if self[key]['og'] != self[key]['mod'] and self[key]['mod'] is not None))
 
     def get_state_for_idx(self, contract_idx: int) -> str:
@@ -47,7 +29,6 @@ class CRDataGetSet(dict, metaclass=CRDataMeta):
     def reset_contract_data(self, contract_idx: int):
         """ Resets the reads list and modification list for the contract at index idx. """
         self.writes[contract_idx].clear()
-        self.reads[contract_idx].clear()
         self.outputs[contract_idx] = ''
 
     def merge_to_common(self):
@@ -175,20 +156,19 @@ class CRContext:
         self.working_db, self.master_db = working_db, master_db
         self.sbb_idx = sbb_idx
 
-        # cr_data holds instances of CRDataBase. The key is the 'NAME' field specified in the CRDataBase subclass
-        # For convenience, all these keys are directly accessible from this CRContext instance (see __getitem__)
+        # TODO just call this CRData????
         self.cr_data = CRDataGetSet(self.master_db, self.working_db)
 
         # TODO deques are probobly more optimal than using arrays here
         # run_results is a list of strings, representing the return code of contracts (ie 'SUCC', 'FAIL', ..)
         self.run_results = []
         self.contracts = []  # A list of ContractionTransaction objects. SenecaClient should append as it runs contracts
-        self.input_hash = None  # Input hash should be set by SenecaClient once a new sub block is started
+        self.input_hash = None  # Input hash should be set by SBBClient once a new sub block is started
         self.merged_to_common = False
 
         # 'locked' is a debug flag to detect with CR data is being written to when it shouldnt be. If locked, no
         # acceses to underlying self.cr_data is expected. We lock the CRContext when we put it in available_dbs,
-        # and unlock it when we put it in pending_dbs or active_dbs
+        # and unlock it when we put it in pending_dbs or active_dbs, but only while we are running contracts
         self.locked = True
 
     @property
@@ -214,15 +194,6 @@ class CRContext:
 
     def reset_run_data(self):
         """ Resets all state held by this container. """
-
-        # TODO this is likely very sketch in terms of memory leaks but YOLO this is python bro whats a memory leak
-        # TODO -- we should if hard_reset=False, we should also reset_db all ledis keys EXCLUDING phase variables
-        def _is_subclass(obj, subs: tuple):
-            """ Utility method. Returns true if 'obj' is a subclass of any of the classes in subs """
-            for s in subs:
-                if issubclass(type(obj), s): return True
-            return False
-
         self.log.debug("Resetting run data for CRData with ".format(self.input_hash, id(self)))
 
         # Reset this object's state
@@ -245,15 +216,14 @@ class CRContext:
         old_locked_val = self.locked
         self.locked = False
 
-        err = "\nContracts: {}\nRun Results: {}\nReads: {}\nWrites: {}\nOutputs: {}\nRedo Log: {}\nInput hash: {}\n" \
-            .format(self.contracts, self.run_results, self['getset'].reads, self['getset'].writes,
-                    self['getset'].outputs, self['getset'].redo_log, self.input_hash)
+        err = "\nContracts: {}\nRun Results: {}\nWrites: {}\nOutputs: {}\nRedo Log: {}\nInput hash: {}\n" \
+            .format(self.contracts, self.run_results, self.cr_data.writes,
+                    self.cr_data.outputs, self.cr_data.redo_log, self.input_hash)
         assert len(self.contracts) == 0, err
         assert len(self.run_results) == 0
-        assert len(self['getset'].reads) == 0, err
-        assert len(self['getset'].writes) == 0, err
-        assert len(self['getset'].outputs) == 0, err
-        assert len(self['getset'].redo_log) == 0, err
+        assert len(self.cr_data.writes) == 0, err
+        assert len(self.cr_data.outputs) == 0, err
+        assert len(self.cr_data.redo_log) == 0, err
         assert not self.merged_to_common
         assert self.input_hash is None, "Input hash not reset. (self.input_hash={})".format(self.input_hash)
 
@@ -338,27 +308,30 @@ class CRContext:
             self.input_hash[:16], len(self.contracts), self.working_db.connection_pool.connection_kwargs['db'])
 
 
+# TODO rename to CRDriver
 class StateProxy:
 
     def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, concurrency=True):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
-        self.concurrency = concurrency
-        self.data = data
-        self.working_db, self.master_db = data.working_db, data.master_db
-        self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
-        self.cmds = {}
         self.log = get_logger("StateProxy")
 
+        # wtf is this concurrency flag for? can we do away with that?
+        self.concurrency = concurrency
+
+        self.data = data
+
+        # why does this guy need a reference of working and master db? can we do away with that
+        # update -- i think its for convenience so we dont have to do data.master_db ... seems silly though...
+        self.working_db, self.master_db = data.working_db, data.master_db
+        self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
+
+        self.cmds = {'get': CRCmdGet(self.working_db, self.master_db, self.sbb_idx, self.contract_idx, self.data),
+                     'set': CRCmdSet(self.working_db, self.master_db, self.sbb_idx, self.contract_idx, self.data)}
+
     def __getattr__(self, item):
-        from seneca.parallelism.cr_commands import CRCmdBase  # To avoid cyclic imports -- TODO better solution?
-        assert item in CRCmdBase.registry, "ledis operation {} not implemented for conflict resolution".format(item)
+        assert item in ('set', 'get'), "Only set and get supported by CRDriver, but got command: {}".format(item)
 
-        t = CRCmdBase.registry[item]
-        if t not in self.cmds:
-            self.cmds[t] = t(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
-                             contract_idx=self.contract_idx, data=self.data)
-
-        cmd = self.cmds[t]
+        cmd = self.cmds[item]
         cmd.set_params(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
                        contract_idx=self.contract_idx, data=self.data)
         return cmd
