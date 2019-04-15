@@ -1,18 +1,24 @@
-from seneca.parallelism.book_keeper import BookKeeper
-from seneca.parallelism.conflict_resolution import StateProxy
+import types
+import multiprocessing
+
+from os.path import join
+from functools import lru_cache
+
+from seneca import utils
+from seneca import config
+
+from seneca.parallelism import book_keeper, conflict_resolution
+from seneca.execution import module
+
 from seneca.db.driver import ContractDriver
+from seneca.execution.parser import Parser
+from seneca.execution.scope import Scope
+#from seneca.metering.tracer import Tracer
 
 
 class Executor:
 
     def __init__(self, metering=True, concurrency=True, flushall=False):
-        # Colin - Ensure everything is nuked down to minimal viable set
-        #         before we start doing ANYTHING
-        # uninstall_builtins()
-        #
-        # # Colin - Put the database loader in the sys path
-        # install_database_loader()
-
         # Colin - Load in the database driver from the global config
         #         Set driver_proxy to none to indicate it exists and
         #         may be filled later
@@ -37,7 +43,8 @@ class Executor:
         # Colin TODO: Find out why Tracer is not instantiating properly. Raghu also said he wants to pull this out.
         #cu_cost_fname = join(seneca.__path__[0], 'constants', 'cu_costs.const')
         #self.tracer = Tracer(cu_cost_fname)
-        #Plugins.submit_stamps()
+        self.tracer = None
+        #utils.Plugins.submit_stamps()
 
     @property
     # Colin - I don't understand what this property is for, why
@@ -46,11 +53,11 @@ class Executor:
     def driver(self):
         if self.concurrency:
             if not self.driver_proxy:
-                info = BookKeeper.get_cr_info()
-                self.driver_proxy = StateProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
+                info = book_keeper.BookKeeper.get_cr_info()
+                self.driver_proxy = conflict_resolution.StateProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
                                                data=info['data'])
             else:
-                info = BookKeeper.get_cr_info()
+                info = book_keeper.BookKeeper.get_cr_info()
                 self.driver_proxy.sbb_idx = info['sbb_idx']
                 self.driver_proxy.contract_idx = info['contract_idx']
                 self.driver_proxy.data = info['data']
@@ -58,17 +65,55 @@ class Executor:
         else:
             return self.driver_base
 
-    # Colin - This should not be happening here. If we want to use
-    #         the Executor class in multiple locations (multiple
-    #         instantiations) we cannot be setting up official
-    #         contracts every time. This should be moved to system
-    #         bootstrap method
-    # Colin TODO: Move to boostrap.py to ensure we are 1-to-1 with boot not instance of executor
-
     def mock_execute(self):
         from types import ModuleType
         ctx = ModuleType('ctx')
         ctx.sender = 'test'
 
-# if __name__ == "__main__":
-#     e = Executor()
+class Sandbox(multiprocessing.Process):
+    """
+    The Sandbox class is used as a execution sandbox for a transaction.
+
+    I/O pattern:
+
+        ------------                                  -----------
+        | Executor |  ---> Transaction Bag (all) ---> | Sandbox |
+        ------------                                  -----------
+                                                           |
+        ------------                                       v
+        | Executor |  <---      Send Results     <---  Execute all tx
+        ------------
+
+        * The client sends the whole transaction bag to the Sandbox for
+          processing. This is done to minimize back/forth I/O overhead
+          and deadlocks
+        * The sandbox executes all of the transactions one by one, resetting
+          the syspath after each execution.
+        * After all execution is complete, pass the full set of results
+          back to the client again to minimize I/O overhead and deadlocks
+        * Sandbox blocks on pipe again for new bag of transactions
+    """
+    def __init__(self, pipe, **kwargs):
+        super(Sandbox, self).__init__()
+        self._kwargs = kwargs
+        self._p_out, self._p_in = pipe
+
+    def _execute(self, bag):
+        """
+        Execute a bag of transactions
+
+        :param bag: A bag of transactions
+        :return:
+        """
+        return
+
+    def run(self, looptimeout=5):
+        """
+
+        :param looptimeout: Timeout in seconds to block on the queue. This is
+                            here to prevent deadlocks
+        :return:
+        """
+        while True:
+            bag = self._p_in.recv()
+            self._execute(bag)
