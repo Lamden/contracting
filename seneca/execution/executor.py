@@ -1,5 +1,5 @@
 import types
-import threading
+import multiprocessing
 
 from os.path import join
 from functools import lru_cache
@@ -8,6 +8,7 @@ from seneca import utils
 from seneca import config
 
 from seneca.parallelism import book_keeper, conflict_resolution
+from seneca.execution import module
 
 from seneca.db.driver import ContractDriver
 from seneca.execution.parser import Parser
@@ -42,6 +43,7 @@ class Executor:
         # Colin TODO: Find out why Tracer is not instantiating properly. Raghu also said he wants to pull this out.
         #cu_cost_fname = join(seneca.__path__[0], 'constants', 'cu_costs.const')
         #self.tracer = Tracer(cu_cost_fname)
+        self.tracer = None
         #utils.Plugins.submit_stamps()
 
     @property
@@ -68,45 +70,50 @@ class Executor:
         ctx = ModuleType('ctx')
         ctx.sender = 'test'
 
-class Sandbox(object):
+class Sandbox(multiprocessing.Process):
     """
     The Sandbox class is used as a execution sandbox for a transaction.
-    This class is in control of the Sandbox Process
+
+    I/O pattern:
+
+        ------------                                  -----------
+        | Executor |  ---> Transaction Bag (all) ---> | Sandbox |
+        ------------                                  -----------
+                                                           |
+        ------------                                       v
+        | Executor |  <---      Send Results     <---  Execute all tx
+        ------------
+
+        * The client sends the whole transaction bag to the Sandbox for
+          processing. This is done to minimize back/forth I/O overhead
+          and deadlocks
+        * The sandbox executes all of the transactions one by one, resetting
+          the syspath after each execution.
+        * After all execution is complete, pass the full set of results
+          back to the client again to minimize I/O overhead and deadlocks
+        * Sandbox blocks on pipe again for new bag of transactions
     """
-    def __init__(self):
-        return
+    def __init__(self, pipe, **kwargs):
+        super(Sandbox, self).__init__()
+        self._kwargs = kwargs
+        self._p_out, self._p_in = pipe
 
-    def communicate(self):
+    def _execute(self, bag):
         """
-        Method for communicating with the underlying SandboxThread(s).
+        Execute a bag of transactions
 
+        :param bag: A bag of transactions
         :return:
         """
         return
 
-    def launch(self):
+    def run(self, looptimeout=5):
         """
-        Method for launching underlying SandboxThread(s).
 
+        :param looptimeout: Timeout in seconds to block on the queue. This is
+                            here to prevent deadlocks
         :return:
         """
-        return
-
-
-class SandboxThread(threading.Thread):
-    """
-    The SandboxThread class is used as a thread inside the Sandbox
-    handling the execution. It is leveraged to ensure execution inside
-    a clean stack.
-    """
-    def __init__(self):
-        threading.Thread.__init__(self)
-
-    def run(self):
-        """
-        Method called when SandboxThread.start() is called. Runtime
-        operations of the thread.
-
-        :return:
-        """
-        return
+        while True:
+            bag = self._p_in.recv()
+            self._execute(bag)
