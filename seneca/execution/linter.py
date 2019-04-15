@@ -1,9 +1,8 @@
 from seneca.execution.whitelists import ALLOWED_AST_TYPES
 from seneca.logger import get_logger
 import ast
-from seneca.utils import CompilationException
 from seneca.execution.module import ContractDriver
-
+from seneca.exceptions import CompilationException
 
 class Linter(ast.NodeVisitor):
     def __init__(self):
