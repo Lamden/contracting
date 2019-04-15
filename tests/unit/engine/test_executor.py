@@ -1,10 +1,12 @@
 import unittest
-from seneca.execution.executor import *
-
+from seneca.execution.executor import SandboxBase, Executor
+import sys
+import glob
 # Import StateProxy and AbstractDatabaseDriver for property type
 # assertions for self.e.driver
-from seneca.db.driver import AbstractDatabaseDriver
-from seneca.parallelism import conflict_resolution
+from seneca.db.driver import AbstractDatabaseDriver, ContractDriver
+from seneca.execution.module import DatabaseFinder
+
 
 class TestExecutor(unittest.TestCase):
     def setUp(self):
@@ -30,6 +32,38 @@ class TestExecutor(unittest.TestCase):
 
         e = Executor(concurrency=False)
         self.assertIsInstance(e.driver, AbstractDatabaseDriver, 'Driver does not resolve to AbstractDatabaseDriver when concurrency is False')
+
+
+driver = ContractDriver(db=0)
+
+
+class TestSandboxBase(unittest.TestCase):
+    def setUp(self):
+        sys.meta_path.append(DatabaseFinder)
+        driver.flush()
+        contracts = glob.glob('./test_sys_contracts/*.py')
+        for contract in contracts:
+            name = contract.split('/')[-1]
+            name = name.split('.')[0]
+
+            with open(contract) as f:
+                code = f.read()
+
+            author = 'stuart'
+
+            driver.set_contract(name=name, code=code, author=author)
+
+    def tearDown(self):
+        sys.meta_path.remove(DatabaseFinder)
+        driver.flush()
+
+    def test_execute(self):
+        sb = SandboxBase()
+        code = '''import module1
+print("now i can run my functions!")
+'''
+        sb.execute('stu', code)
+
 
 if __name__ == "__main__":
     unittest.main()

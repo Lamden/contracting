@@ -1,18 +1,9 @@
-import types
 import multiprocessing
 
-from os.path import join
-from functools import lru_cache
-
-from seneca import config
-
-from seneca.parallelism import book_keeper, conflict_resolution
+#from seneca.parallelism import book_keeper, conflict_resolution
 from seneca.execution import module, runtime
 
 from seneca.db.driver import ContractDriver
-from seneca.execution.parser import Parser
-from seneca.execution.scope import Scope
-#from seneca.metering.tracer import Tracer
 
 
 class Executor:
@@ -75,7 +66,7 @@ class SandboxBase(object):
 
     def execute(self, sender, code_str):
         runtime.rt.ctx.pop()
-        runtime.rt.ctx.push(sender)
+        runtime.rt.ctx.append(sender)
         module = exec(code_str)
         return module
 
