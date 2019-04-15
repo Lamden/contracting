@@ -1,6 +1,5 @@
 from seneca.logger import get_logger
-from seneca.parallelism.conflict_resolution import CRContext, CR_EXCLUDED_KEYS
-
+from .conflict_resolution import CRContext, CR_EXCLUDED_KEYS
 
 # TODO -- instead of passing in CRContext, we should be able to get away with just passing in
 # the CRDataGetSet ....
@@ -112,3 +111,4 @@ class CRCmdSet(CRCmdBase):
         self.data[key]['contracts'].add(self.contract_idx)
         self.data.writes[self.contract_idx].add(key)
         self.data.outputs[self.contract_idx] += 'SET {} {};'.format(key, value.decode())
+

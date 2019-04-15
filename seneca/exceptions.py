@@ -33,3 +33,6 @@ class ContractExists(SenecaError):
                          submitted.
     """
     fmt = "Contract with name '{contract_name}' already exists in the database"
+
+class CompilationException(Exception):
+    pass
