@@ -4,7 +4,7 @@ from string import ascii_letters, digits
 
 from seneca.logger import get_logger
 from seneca.execution.linter import Linter
-
+from seneca.db.orm import CLASS_NAMES
 
 # raghu todo parser functionality:
 #   1. checker -> checks for right usage and pythonic code, and verifies it follows our rules of restricted usage. at least one exported function, etc
@@ -86,6 +86,8 @@ class SenecaCompiler(ast.NodeTransformer):
         return node
 
     def visit_Assign(self, node):
+        if node.value.func.id in CLASS_NAMES:
+            print(node.value.func.id)
 
         for t in node.targets:
             self._global_variables.append(t.id)
