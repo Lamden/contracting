@@ -1,4 +1,4 @@
-from seneca.parallelism.conflict_resolution import *
+from seneca.parallelism.cr_driver import *
 from seneca.parallelism.cr_commands import *
 from unittest import TestCase
 import unittest
