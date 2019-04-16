@@ -1,7 +1,7 @@
 from seneca.db.driver import Driver
 from unittest import TestCase
 from seneca.config import MASTER_DB, DB_PORT
-from seneca.execution.parser import Parser
+from seneca.interpreter.parser import Parser
 
 
 class TestCaseHeader(TestCase):

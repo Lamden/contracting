@@ -1,10 +1,5 @@
-from seneca.execution.scope import Export, Seed, Function
-from seneca.execution.whitelists import SAFE_BUILTINS
 from seneca.utils import Plugins, Assert
-from seneca.util import to_decimal
-from seneca.metering.resource import set_resource_limits
-from collections import defaultdict
-import ast, copy
+import ast
 from seneca.config import *
 
 

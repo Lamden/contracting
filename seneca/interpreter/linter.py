@@ -1,8 +1,7 @@
-from seneca.execution.whitelists import ALLOWED_AST_TYPES
+from seneca.interpreter.whitelists import ALLOWED_AST_TYPES
 from seneca.logger import get_logger
 import ast
 # import asttokens # todo for printing linenum/text
-from seneca.utils import CompilationException
 from seneca.execution.module import ContractDriver
 
 

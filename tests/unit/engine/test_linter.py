@@ -1,8 +1,7 @@
 from unittest import TestCase
-from seneca.execution.linter import Linter
+from seneca.interpreter.linter import Linter
 import ast
-from seneca.execution.whitelists import ALLOWED_AST_TYPES
-from seneca.utils import CompilationException
+from seneca.interpreter.whitelists import ALLOWED_AST_TYPES
 
 
 class TestLinter(TestCase):
