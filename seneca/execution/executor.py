@@ -61,14 +61,15 @@ class Executor:
 
 
 class SandboxBase(object):
-    def __init__(selfs):
+    def __init__(self):
         return
 
     def execute(self, sender, code_str):
         runtime.rt.ctx.pop()
         runtime.rt.ctx.append(sender)
-        module = exec(code_str)
-        return module
+        env = {}
+        module = exec(code_str, env)
+        return module, env
 
 
 class Sandbox(multiprocessing.Process):

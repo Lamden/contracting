@@ -60,9 +60,13 @@ class TestSandboxBase(unittest.TestCase):
     def test_execute(self):
         sb = SandboxBase()
         code = '''import module1
+import sys
 print("now i can run my functions!")
+a = 6
 '''
-        sb.execute('stu', code)
+        output, env = sb.execute('stu', code)
+        print(dir(output))
+        print(env['a'])
 
 
 if __name__ == "__main__":
