@@ -5,12 +5,9 @@ from seneca.parallelism.cr_commands import CRCmdGet, CRCmdSet
 
 class CRDriver:
 
-    def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, concurrency=True):
+    def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
         self.log = get_logger("CRDriver")
-
-        # wtf is this concurrency flag for? can we do away with that?
-        self.concurrency = concurrency
 
         self.data = data
 
@@ -29,8 +26,3 @@ class CRDriver:
         cmd.set_params(working_db=self.working_db, master_db=self.master_db, sbb_idx=self.sbb_idx,
                        contract_idx=self.contract_idx, data=self.data)
         return cmd
-
-# print("CRDataMetaRegistery")
-# for k, v in CRDataBase.registry.items():
-#     print("{}: {}".format(k, v))
-
