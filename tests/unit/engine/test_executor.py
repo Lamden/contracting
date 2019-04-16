@@ -26,9 +26,9 @@ class TestExecutor(unittest.TestCase):
         self.assertEqual(e.concurrency, False, 'Concurrency is not set to false after dynamic set.')
 
     def test_driver_resolution(self):
-        # The StateProxy class is not able to be isolated so this test is turned off for now
-        # Colin TODO: Discuss with Davis how we update StateProxy (or isolate the concept)
-        #self.assertIsInstance(self.e.driver, conflict_resolution.StateProxy, 'Driver type does not resolve to StateProxy type when concurrency is True')
+        # The CRDriver class is not able to be isolated so this test is turned off for now
+        # Colin TODO: Discuss with Davis how we update CRDriver (or isolate the concept)
+        #self.assertIsInstance(self.e.driver, cr_driver.CRDriver, 'Driver type does not resolve to CRDriver type when concurrency is True')
 
         e = Executor(concurrency=False)
         self.assertIsInstance(e.driver, AbstractDatabaseDriver, 'Driver does not resolve to AbstractDatabaseDriver when concurrency is False')
@@ -123,6 +123,42 @@ class DBTests(unittest.TestCase):
         self.assertEqual(status_code, 0)
 
     def test_executor_execute_fail(self):
+        contract_name = 'badmodule'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.e_prod.execute(self.author, contract_name,
+                                                  function_name, kwargs)
+        self.assertEqual(status_code, 1)
+        self.assertIsInstance(result, ImportError)
+
+    def test_executor_prod_execute(self):
+        contract_name = 'module_func'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.e_prod.execute(self.author, contract_name,
+                                                  function_name, kwargs)
+        self.assertEqual(result, 'Working')
+        self.assertEqual(status_code, 0)
+
+    def test_executor_prod_execute_fail(self):
+        contract_name = 'badmodule'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.e_prod.execute(self.author, contract_name,
+                                                  function_name, kwargs)
+        self.assertEqual(status_code, 1)
+        self.assertIsInstance(result, ImportError)
+
+    def test_executor_prod_execute(self):
+        contract_name = 'module_func'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.e_prod.execute(self.author, contract_name,
+                                                  function_name, kwargs)
+        self.assertEqual(result, 'Working')
+        self.assertEqual(status_code, 0)
+
+    def test_executor_prod_execute_fail(self):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
