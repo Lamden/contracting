@@ -1,4 +1,5 @@
 import multiprocessing
+import dill
 import abc
 
 from seneca.parallelism import book_keeper, conflict_resolution
@@ -127,6 +128,9 @@ class MultiProcessingSandbox(Sandbox):
         self.pipe = multiprocessing.Pipe()
         self.p = None
 
+    def terminate(self):
+        self.p.terminate()
+
     def execute(self, sender, code_str):
         if self.p is None:
             self.p = multiprocessing.Process(target=self.process_loop,
@@ -141,7 +145,7 @@ class MultiProcessingSandbox(Sandbox):
 
         # Receive result object back from process loop, formatted as
         # (status_code, result)
-        status_code, result = child_pipe.recv()
+        status_code, result = dill.loads(child_pipe.recv())
 
         # Check the status code for failure, if failure raise the result
         if status_code > 0:
@@ -153,8 +157,11 @@ class MultiProcessingSandbox(Sandbox):
         while True:
             sender, code_str = parent_pipe.recv()
             try:
-                module, env = execute_fn(sender, code_str)
+                result = execute_fn(sender, code_str)
+                status_code = 0
             except Exception as e:
-                parent_pipe.send((1, e))
-            else:
-                parent_pipe.send((0, (module, env)))
+                result = e
+                status_code = 1
+            finally:
+                # Pickle the result using dill so module object can be retained
+                parent_pipe.send(dill.dumps((status_code, result)))
