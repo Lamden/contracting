@@ -52,7 +52,7 @@ class TestConflictResolution(TestCase):
         # Check the modified and original values
         getset = self.sp.data.cr_data
         k1_expected = {'og': VAL1, 'mod': NEW_VAL1, 'contracts': {0}}
-        k2_expected = {'og': VAL2, 'mod': None, 'contracts': {1}}
+        k2_expected = {'og': VAL2, 'mod': None, 'contracts': set()}
         k3_expected = {'og': VAL3, 'mod': NEW_VAL3, 'contracts': {2}}
         self.assertEqual(getset[KEY1], k1_expected)
         self.assertEqual(getset[KEY2], k2_expected)
@@ -67,7 +67,7 @@ class TestConflictResolution(TestCase):
         self.working.set(KEY1, b'A NEW VALUE HAS ARRIVED')
         self.working.set(KEY2, b'A NEW VALUE HAS ARRIVED AGAIN')
         self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
-        self.assertTrue(1 in list(cr_data.get_rerun_list(reset_keys=False)))
+        self.assertFalse(1 in list(cr_data.get_rerun_list(reset_keys=False)))
         self.assertFalse(2 in list(cr_data.get_rerun_list(reset_keys=False)))
 
     def test_merge_to_common(self):

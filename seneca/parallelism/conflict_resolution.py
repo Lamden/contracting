@@ -119,8 +119,7 @@ class CRDataGetSet(dict):
         # Get all keys modified in conjunction with 'key'
         new_keys = set()
         for contract_idx in self[key]['contracts']:
-            all_rw = self.writes[contract_idx].union(self.reads[contract_idx])
-            new_keys = new_keys.union(all_rw)
+            new_keys = new_keys.union(self.writes[contract_idx])
 
         # Recursive stage
         for k in new_keys:
@@ -151,11 +150,9 @@ class CRContext:
 
     def __init__(self, working_db, master_db, sbb_idx: int, finalize=False):
         self.log = get_logger(type(self).__name__)
-        # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
         self.working_db, self.master_db = working_db, master_db
         self.sbb_idx = sbb_idx
 
-        # TODO just call this CRData????
         self.cr_data = CRDataGetSet(self.master_db, self.working_db)
 
         # TODO deques are probobly more optimal than using arrays here

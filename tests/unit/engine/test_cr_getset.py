@@ -89,7 +89,7 @@ class TestCRGetSet(TestCase):
 
         actual = cr_get(KEY)
 
-        self.assertEqual(actual, VALUE_SBB_MOD)
+        self.assertEqual(actual, VALUE_SBB_OG)
 
     def test_get_copies_original_from_master(self):
         KEY = 'im_a_key'
@@ -100,7 +100,7 @@ class TestCRGetSet(TestCase):
         cr_get(KEY)  # calling get should trigger the key to be copied to the SBB specific layer
 
         self.assertTrue(cr_get._sbb_original_exists(KEY))
-        self.assertEqual(cr_get.data[KEY], {'og': VALUE_M, 'mod': None, 'contracts': {0}})
+        self.assertEqual(cr_get.data[KEY], {'og': VALUE_M, 'mod': None, 'contracts': set()})
 
     def test_get_copies_original_from_common(self):
         KEY = 'im_a_key'
@@ -173,18 +173,6 @@ class TestCRGetSet(TestCase):
         contracts_mod = cr_set.data[KEY]['contracts']
         self.assertTrue(cr_set.contract_idx in contracts_mod)
 
-    def test_basic_get_adds_to_reads(self):
-        KEY = 'im_a_key'
-        VALUE = b'value_on_master'
-        cr_get = self._new_get()
-        self.master.set(KEY, VALUE)
-
-        actual = cr_get(KEY)
-        self.assertEqual(actual, VALUE)
-
-        reads = cr_get.data.reads
-        self.assertTrue(KEY in reads[0])
-
     def test_basic_set_and_rollback(self):
         KEY = 'im_a_key'
         VALUE = b'value_on_master'
@@ -231,7 +219,6 @@ class TestCRGetSet(TestCase):
 
         cr_get.data.reset_contract_data(0)
         self.assertEqual(len(cr_set.data.writes[0]), 0)
-        self.assertEqual(len(cr_set.data.reads[0]), 0)
 
     def test_adds_key_that_does_not_yet_exist(self):
         KEY = 'im_a_key'
@@ -278,7 +265,6 @@ class TestCRGetSet(TestCase):
         cr_data = cr_set.data
         self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
 
-
     def test_should_rerun_change_common_only_read(self):
         KEY1 = 'im_a_key1'
         KEY2 = 'im_a_key2'
@@ -294,7 +280,7 @@ class TestCRGetSet(TestCase):
         self.working.set(KEY1, b'new_common1')
 
         cr_data = cr_get.data
-        self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
+        self.assertFalse(0 in list(cr_data.get_rerun_list(reset_keys=False)))
 
     def test_should_rerun_change_master_only_read(self):
         KEY1 = 'im_a_key1'
@@ -311,7 +297,7 @@ class TestCRGetSet(TestCase):
         self.master.set(KEY1, b'new_common1')
 
         cr_data = cr_get.data
-        self.assertTrue(0 in list(cr_data.get_rerun_list(reset_keys=False)))
+        self.assertFalse(0 in list(cr_data.get_rerun_list(reset_keys=False)))
 
     def test_should_rerun_change_master_only_write(self):
         KEY1 = 'im_a_key1'
@@ -433,16 +419,12 @@ class TestCRGetSet(TestCase):
         cr_data[k[4]]['contracts'] = {3}
 
         cr_data.writes[0] = {k[0], k[1]}
-        cr_data.reads[0] = {k[1]}
 
         cr_data.writes[1] = {k[2]}
-        cr_data.reads[1] = {k[2]}
 
         cr_data.writes[2] = {k[0], k[3]}
-        cr_data.reads[2] = {k[0]}
 
         cr_data.writes[3] = {k[1], k[4]}
-        cr_data.reads[3] = {k[1]}
 
         self.master.set(k[3], 'SOME NEW VALUE FOR k[3]')
 
