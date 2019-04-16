@@ -1,11 +1,15 @@
 from seneca.execution.whitelists import ALLOWED_AST_TYPES
 from seneca.logger import get_logger
 import ast
+# import asttokens # todo for printing linenum/text
 from seneca.utils import CompilationException
 from seneca.execution.module import ContractDriver
 
 
 class Linter(ast.NodeVisitor):
+
+    violations = []
+
     def __init__(self):
         self.log = get_logger('Seneca.Parser')
         self._functions = []
@@ -16,18 +20,21 @@ class Linter(ast.NodeVisitor):
     @staticmethod
     def ast_types(t):
         if type(t) not in ALLOWED_AST_TYPES:
-            raise CompilationException('Illegal AST type: {}'.format(t))
+            str = "Error : Illegal AST type: {}" .format(type(t).__name__)
+            Linter.violations.append(str)
 
     @staticmethod
     def not_system_variable(v):
         if v.startswith('_'):
-            raise CompilationException('Access denied for system variable: {}'.format(v))
+            str = "Error : Incorrect use of <_> access denied for var : {}".format(v)
+            Linter.violations.append(str)
 
     @staticmethod
     def no_nested_imports(node):
         for item in node.body:
             if type(item) in [ast.ImportFrom, ast.Import]:
-                raise CompilationException('Not allowed to import inside a function definition')
+                str = "Error : Nested import is illegal"
+                Linter.violations.append(str)
 
     def generic_visit(self, node):
         self.ast_types(node)
@@ -49,11 +56,13 @@ class Linter(ast.NodeVisitor):
         return self._visit_any_import(node)
 
     def visit_ImportFrom(self, node):
-        raise ImportError('ImportFrom ast nodes not yet supported.')
+        str = 'ImportFrom ast nodes not yet supported.'
+        Linter.violations.append(str)
 
     def validate_imports(self, import_path, module_name=None, alias=None):
         if self.driver.get_contract(import_path) is None:
-            raise ImportError('Contract named "{}" does not exist in state.'.format(import_path))
+            str = 'Contract named "{}" does not exist in state.'.format(import_path)
+            Linter.violations.append(str)
 
     def _visit_any_import(self, node):
         self.generic_visit(node)
@@ -134,5 +143,14 @@ class Linter(ast.NodeVisitor):
         self.visit(ast_tree)
         self._final_checks()
         return self._is_success
+
+    @staticmethod
+    def dump_violations():
+        import pprint
+        pp = pprint.PrettyPrinter(indent = 4)
+        pp.pprint(Linter.violations)
+
+
+
 
 
