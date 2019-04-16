@@ -1,4 +1,4 @@
-from seneca.interpreter.parser import Parser
+from seneca.execution.parser import Parser
 from seneca.execution.scope import Scope
 #from seneca.metering.tracer import Tracer
 from seneca.config import CODE_OBJ_MAX_CACHE, READ_ONLY_MODE

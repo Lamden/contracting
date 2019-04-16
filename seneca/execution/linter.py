@@ -1,4 +1,4 @@
-from seneca.interpreter.whitelists import ALLOWED_AST_TYPES
+from seneca.execution.whitelists import ALLOWED_AST_TYPES
 from seneca.logger import get_logger
 import ast
 # import asttokens # todo for printing linenum/text
