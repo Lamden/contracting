@@ -2,12 +2,12 @@ from seneca.logger import get_logger
 from seneca.parallelism.conflict_resolution import CRContext
 from seneca.parallelism.cr_commands import CRCmdGet, CRCmdSet
 
-# TODO rename to CRDriver
-class StateProxy:
+
+class CRDriver:
 
     def __init__(self, sbb_idx: int, contract_idx: int, data: CRContext, concurrency=True):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
-        self.log = get_logger("StateProxy")
+        self.log = get_logger("CRDriver")
 
         # wtf is this concurrency flag for? can we do away with that?
         self.concurrency = concurrency
