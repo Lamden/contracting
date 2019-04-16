@@ -69,7 +69,7 @@ a = 6
         print(env['a'])
 
 
-class TestSingleProcessSandbox:
+class TestSingleProcessSandbox(unittest.TestCase):
     def setUp(self):
         sys.meta_path.append(DatabaseFinder)
         driver.flush()
