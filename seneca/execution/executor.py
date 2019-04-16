@@ -1,7 +1,8 @@
 import multiprocessing
 
-#from seneca.parallelism import book_keeper, conflict_resolution
 from seneca.execution import module, runtime
+from seneca.parallelism.book_keeper import BookKeeper
+from seneca.parallelism.cr_driver import CRDriver
 
 from seneca.db.driver import ContractDriver
 
@@ -44,11 +45,11 @@ class Executor:
     def driver(self):
         if self.concurrency:
             if not self.driver_proxy:
-                info = book_keeper.BookKeeper.get_cr_info()
-                self.driver_proxy = conflict_resolution.StateProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
-                                               data=info['data'])
+                info = BookKeeper.get_cr_info()
+                self.driver_proxy = CRDriver(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
+                                             data=info['data'])
             else:
-                info = book_keeper.BookKeeper.get_cr_info()
+                info = BookKeeper.get_cr_info()
                 self.driver_proxy.sbb_idx = info['sbb_idx']
                 self.driver_proxy.contract_idx = info['contract_idx']
                 self.driver_proxy.data = info['data']
