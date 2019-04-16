@@ -119,8 +119,7 @@ class CRDataGetSet(dict):
         # Get all keys modified in conjunction with 'key'
         new_keys = set()
         for contract_idx in self[key]['contracts']:
-            all_rw = self.writes[contract_idx].union(self.reads[contract_idx])
-            new_keys = new_keys.union(all_rw)
+            new_keys = new_keys.union(self.writes[contract_idx])
 
         # Recursive stage
         for k in new_keys:
