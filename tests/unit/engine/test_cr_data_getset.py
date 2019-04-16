@@ -1,4 +1,5 @@
-from seneca.parallelism.cr_commands import *
+from seneca.parallelism.conflict_resolution import *
+from seneca.parallelism.cr_commands import CRCmdBase
 from seneca.db.driver import DatabaseDriver
 from unittest import TestCase
 import unittest
@@ -20,7 +21,7 @@ class TestCRCommandsBase(TestCase):
         return cr
 
     def _new_cmd(self, sbb_idx=0, contract_idx=0, cr_data=None, finalize=False):
-        return CRCmdGetSetBase(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
+        return CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
                                data=cr_data or self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize))
 
     def test_add_one_key_to_mod_list(self):
@@ -64,8 +65,9 @@ class TestCRCommandsBase(TestCase):
     def test_add_keys_from_different_contract(self):
         KEY1 = 'key1_that_was_modified'
         KEY2 = 'key2_that_was_modified'
-        cr_cmd1 = self._new_cmd()
-        cr_cmd2 = self._new_cmd(contract_idx=1, cr_data=cr_cmd1.cr_data)
+        cr_data = self._new_cr_data()
+        cr_cmd1 = self._new_cmd(cr_data=cr_data)
+        cr_cmd2 = self._new_cmd(contract_idx=1, cr_data=cr_data)
         cr_cmd1.data.writes[0].add(KEY1)
         cr_cmd2.data.writes[1].add(KEY2)
 
@@ -93,8 +95,9 @@ class TestCRCommandsBase(TestCase):
 
     def test_adds_empty_set_for_contract_with_no_mods(self):
         KEY2 = 'key2_that_was_modified'
-        cr_cmd1 = self._new_cmd()
-        cr_cmd2 = self._new_cmd(contract_idx=1, cr_data=cr_cmd1.cr_data)
+        cr_data = self._new_cr_data()
+        cr_cmd1 = self._new_cmd(cr_data=cr_data)
+        cr_cmd2 = self._new_cmd(contract_idx=1, cr_data=cr_data)
         # cr_cmd2._add_key_to_mod_list(KEY2)
         cr_cmd2.data.writes[1].add(KEY2)
 

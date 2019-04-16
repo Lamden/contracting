@@ -4,6 +4,9 @@ from importlib.abc import Loader, MetaPathFinder
 from importlib import invalidate_caches
 
 from seneca.db.driver import ContractDriver
+from .runtime import rt
+
+from types import ModuleType
 
 '''
     This module will remain untested and unused until we decide how we want to 'forget' importing.
@@ -51,7 +54,18 @@ class DatabaseLoader(Loader):
     def exec_module(self, module):
         # fetch the individual contract
         code = self.d.get_contract(module.__name__)
+
+        ctx = ModuleType('context')
+
+        ctx.caller = rt.ctx[-1]
+        ctx.this = module.__name__
+        ctx.signer = rt.ctx[0]
+
+        module.ctx = ctx
+
+        rt.ctx.append(module.__name__)
         exec(code, vars(module))
+        a = rt.ctx.pop()
 
     def module_repr(self, module):
         return '<module {!r} (smart contract)>'.format(module.__name__)
