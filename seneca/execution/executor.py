@@ -3,10 +3,10 @@ import dill
 import importlib
 import abc
 
-from seneca.parallelism import book_keeper, conflict_resolution
+from seneca.parallelism import book_keeper, cr_driver
 from seneca.execution import runtime
+from seneca.db import driver
 
-from seneca.db.driver import ContractDriver
 from seneca.exceptions import SenecaException
 #from seneca.metering.tracer import Tracer
 
@@ -17,7 +17,7 @@ class Executor:
         # Colin - Load in the database driver from the global config
         #         Set driver_proxy to none to indicate it exists and
         #         may be filled later
-        self.driver_base = ContractDriver()
+        self.driver_base = driver.ContractDriver()
         self.driver_proxy = None
         if flushall:
             self.driver.flush()
@@ -53,8 +53,8 @@ class Executor:
         if self.concurrency:
             if not self.driver_proxy:
                 info = book_keeper.BookKeeper.get_cr_info()
-                self.driver_proxy = conflict_resolution.StateProxy(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
-                                               data=info['data'])
+                self.driver_proxy = cr_driver.CRDriver(sbb_idx=info['sbb_idx'], contract_idx=info['contract_idx'],
+                                                       data=info['data'])
             else:
                 info = book_keeper.BookKeeper.get_cr_info()
                 self.driver_proxy.sbb_idx = info['sbb_idx']

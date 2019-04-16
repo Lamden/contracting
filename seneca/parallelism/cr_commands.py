@@ -4,6 +4,7 @@ from .conflict_resolution import CRContext, CR_EXCLUDED_KEYS
 # TODO -- instead of passing in CRContext, we should be able to get away with just passing in
 # the CRDataGetSet ....
 
+
 class CRCmdBase:
     def __init__(self, working_db, master_db, sbb_idx: int, contract_idx: int, data: CRContext):
         self.log = get_logger("{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
@@ -72,7 +73,7 @@ class CRCmdBase:
         val = db.get(key) if db else None
         self.data[key] = {'og': val, 'mod': None, 'contracts': set()}
 
-    def _get(self, key, return_none=True):
+    def _get(self, key):
         self._copy_og_key_if_not_exists(key)
         return self.data[key]['og']
 
@@ -88,7 +89,7 @@ class CRCmdSet(CRCmdBase):
         if key in self.data.redo_log[self.contract_idx]:
             return
 
-        self.data.redo_log[self.contract_idx][key] = self._get(key, return_none=True)
+        self.data.redo_log[self.contract_idx][key] = self._get(key)
         self.log.spam("Contract {} added key {} to redo log with val {}".format(self.contract_idx, key,
                                                                                 self.data.redo_log[
                                                                                 self.contract_idx][key]))
