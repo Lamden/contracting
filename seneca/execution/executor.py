@@ -1,11 +1,13 @@
 import multiprocessing
 import dill
+import importlib
 import abc
 
 from seneca.parallelism import book_keeper, conflict_resolution
 from seneca.execution import runtime
 
 from seneca.db.driver import ContractDriver
+from seneca.exceptions import SenecaException
 #from seneca.metering.tracer import Tracer
 
 
@@ -68,21 +70,39 @@ class Executor:
         The execute bag method sends a list of transactions to the sandbox to be executed
 
         :param bag: a list of deserialized transaction objects
-        :return: a list of results (result index == bag index)
+        :return: a list of results (result index == bag index), formatted as
+                 [ (status_code, result), ... ] where status_code is 0 or 1
+                 depending on success/failure and result is what is returned
+                 from executing the underlying function
         """
-        return self.sandbox.execute_bag(bag)
+        results = []
+        for tx in bag:
+            sender = tx.sender
+            contract_name = tx.contractName
+            function_name = tx.functionName
+            kwargs = tx.kwargs
+            # TODO: Need to interpret the required code_str using Seneca bindings from the contents of tx
+            results.append(self.execute(sender, contract_name, function_name, kwargs))
+        return results
 
-    def execute(self, sender, code_str):
+    def execute(self, sender, contract_name, function_name, kwargs):
         """
         Method that does a naive execute
 
         :param sender:
-        :param code_str:
-        :return:
+        :param contract_name:
+        :param function_name:
+        :param kwargs:
+        :return: result of execute call
         """
-        return self.sandbox.execute(sender, code_str)
-
-
+        try:
+            result = self.sandbox.execute(sender, contract_name, function_name, kwargs)
+            status_code = 0
+        # TODO: catch SenecaExceptions distinctly, this is pending on Raghu looking into Exception override in compiler
+        except Exception as e:
+            result = e
+            status_code = 1
+        return status_code, result
 
 """
 The Sandbox class is used as a execution sandbox for a transaction.
@@ -112,15 +132,14 @@ class Sandbox:
     def __init__(self):
         pass
 
-    def execute_bag(self):
-        pass
-
-    def execute(self, sender, code_str):
+    def execute(self, sender, contract_name, function_name, kwargs):
         runtime.rt.ctx.pop()
         runtime.rt.ctx.append(sender)
-        env = {}
-        module = exec(code_str, env)
-        return module, env
+
+        module = importlib.import_module(contract_name)
+        func = getattr(module, function_name)
+
+        return func(**kwargs)
 
 
 class MultiProcessingSandbox(Sandbox):
@@ -131,20 +150,21 @@ class MultiProcessingSandbox(Sandbox):
     def terminate(self):
         self.p.terminate()
 
-    def execute(self, sender, code_str):
+    def execute(self, sender, contract_name, function_name, kwargs):
         if self.p is None:
             self.p = multiprocessing.Process(target=self.process_loop,
                                              args=(super().execute, ))
             self.p.start()
 
-
         _, child_pipe = self.pipe
 
         # Sends code to be executed in the process loop
-        child_pipe.send((sender, code_str))
+        child_pipe.send((sender, contract_name, function_name, kwargs))
 
         # Receive result object back from process loop, formatted as
-        # (status_code, result)
+        # (status_code, result), loaded in using dill due to python
+        # base pickler not knowning how to pickle module object
+        # returned from execute
         status_code, result = dill.loads(child_pipe.recv())
 
         # Check the status code for failure, if failure raise the result
@@ -155,13 +175,13 @@ class MultiProcessingSandbox(Sandbox):
     def process_loop(self, execute_fn):
         parent_pipe, _ = self.pipe
         while True:
-            sender, code_str = parent_pipe.recv()
+            sender, contract_name, function_name, kwargs  = parent_pipe.recv()
             try:
-                result = execute_fn(sender, code_str)
+                result = execute_fn(sender, contract_name, function_name, kwargs)
                 status_code = 0
             except Exception as e:
                 result = e
                 status_code = 1
             finally:
                 # Pickle the result using dill so module object can be retained
-                parent_pipe.send(dill.dumps((status_code, result)))
+                parent_pipe.send((status_code, result))

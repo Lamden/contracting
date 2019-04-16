@@ -37,42 +37,15 @@ class TestExecutor(unittest.TestCase):
 driver = ContractDriver(db=0)
 
 
-class TestSandbox(unittest.TestCase):
-    def setUp(self):
-        self.sb = Sandbox()
-        self.author = 'unittest'
-
-    def test_execute(self):
-        code = '''b = 10'''
-        output, env = self.sb.execute('unittest', code)
-        self.assertEqual(env['b'], 10)
-
-
-class TestMultiProcessingSandbox(unittest.TestCase):
-    def setUp(self):
-        self.sb = MultiProcessingSandbox()
-        self.author = 'unittest'
-
-    def tearDown(self):
-        self.sb.terminate()
-
-    def test_execute(self):
-        code = '''b = 10'''
-        output, env = self.sb.execute('unittest', code)
-        self.assertEqual(env['b'], 10)
-
-
 class TestSandboxWithDB(unittest.TestCase):
     def setUp(self):
         sys.meta_path.append(DatabaseFinder)
         driver.flush()
         contracts = glob.glob('./test_sys_contracts/*.py')
         self.author = 'unittest'
-        self.code = '''import module1
-import sys
-print("now i can run my functions!")
-a = 6
-'''
+        self.sb = Sandbox()
+        self.mpsb = MultiProcessingSandbox()
+
         for contract in contracts:
             name = contract.split('/')[-1]
             name = name.split('.')[0]
@@ -83,19 +56,45 @@ a = 6
             driver.set_contract(name=name, code=code, author=self.author)
 
     def tearDown(self):
+        self.mpsb.terminate()
         sys.meta_path.remove(DatabaseFinder)
         driver.flush()
 
     def test_base_execute(self):
-        sb = Sandbox()
-        output, env = sb.execute(self.author, self.code)
-        self.assertEqual(env['a'], 6)
+        contract_name = 'module_func'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+
+        status_code, result = self.sb.execute(self.author, contract_name,
+                                              function_name, kwargs)
+        self.assertEqual(result, 'Working')
+        self.assertEqual(status_code, 0)
 
     def test_multiproc_execute(self):
-        sb = MultiProcessingSandbox()
-        output, env = sb.execute(self.author, self.code)
-        self.assertEqual(env['a'], 6)
-        sb.terminate()
+        contract_name = 'module_func'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+
+        status_code, result = self.mpsb.execute(self.author, contract_name,
+                                                function_name, kwargs)
+        self.assertEqual(result, 'Working')
+        self.assertEqual(status_code, 0)
+
+    def test_base_execute_fail(self):
+        contract_name = 'badmodule'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.sb.execute(self.author, contract_name,
+                                              function_name, kwargs)
+        self.assertEqual(status_code, 1)
+
+    def test_multiproc_execute_fail(self):
+        contract_name = 'badmodule'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.mpsb.execute(self.author, contract_name,
+                                                function_name, kwargs)
+        self.assertEqual(status_code, 1)
 
 
 if __name__ == "__main__":

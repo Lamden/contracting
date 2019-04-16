@@ -36,3 +36,8 @@ class ContractExists(SenecaError):
 
 class CompilationException(Exception):
     pass
+
+class SenecaException(Exception):
+    """
+    Base exeception to be returned by default from inside seneca contracts
+    """
