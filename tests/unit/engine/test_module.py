@@ -63,7 +63,7 @@ class TestDatabaseLoader(TestCase):
     def test_exec_non_existance_module(self):
         module = types.ModuleType('test')
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ImportError):
             self.dl.exec_module(module)
 
     def test_exec_module_nonattribute(self):
