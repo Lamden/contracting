@@ -26,10 +26,9 @@ from seneca.db.orm import CLASS_NAMES
 
 class SenecaCompiler(ast.NodeTransformer):
 
-    def __init__(self, module_name, code_str, is_fixed_prefix=False):
+    def __init__(self, module_name, code_str):
         self.module_name = module_name
         self.code_str = code_str
-        self.is_fixed_prefix = is_fixed_prefix
         self.log = get_logger('Seneca.Parser')
         self._construct_method = None  # add check to ensure only one construct function
         self._exported_methods = []
@@ -40,7 +39,6 @@ class SenecaCompiler(ast.NodeTransformer):
         self._mod_var_names = []
         self._strings = []
         self._ast_tree = None
-        self._add_prefix = True
         # self._is_seneca_processed = is_modified
 
     def lint(self):
@@ -111,19 +109,6 @@ class SenecaCompiler(ast.NodeTransformer):
             prefix = prefix + 'q'
         return prefix
 
-    # this is appended only for txn execution (not when contract is published)
-    # and will not appear in output so as not to create issues in consensus
-    def get_unique_random_str(self, code_str, length=3):
-        if self.is_fixed_prefix:
-            prefix = '_zxq'
-            while prefix in code_str:
-                prefix = prefix + 'q'
-        else:
-            rstr = ''.join(choice(ascii_letters + digits) for i in range(length))
-            prefix = '_' + rstr
-            while prefix in code_str:
-                prefix = prefix + choice(ascii_letters + digits)
-        return prefix + '_'
 
     def add_reset_method(self, code_str):
         if not self._mod_var_names:
@@ -143,63 +128,8 @@ class SenecaCompiler(ast.NodeTransformer):
         code_str += "    return _" + func_name + "_inner\n"
         return code_str
 
-    def add_prefixes(self, code_str):
-        if not self._add_prefix:
-            return code_str
-        str_us_map = {}
-        self._strings.sort(key=len, reverse=True)
-        for sval in self._strings:
-            sval1 = "'" + sval + "'"
-            sval2 = '"' + sval + '"'
-            rval = self.get_unique_random_str(code_str, 5)
-            code_str = code_str.replace(sval1, rval)
-            code_str = code_str.replace(sval2, rval)
-            str_us_map[rval] = sval1
-
-        fun_us_map = {}
-        for fname in self._exported_methods:
-            fname1 = ' ' + fname
-            rname = self.get_unique_random_str(code_str, 5)
-            code_str = code_str.replace(fname1, rname)
-            str_us_map[rname] = fname1
-
-        for fname in self._internal_methods:
-            fname1 = ' ' + fname
-            rname = self.get_unique_random_str(code_str, 5)
-            code_str = code_str.replace(fname1, rname)
-            str_us_map[rname] = fname1
-
-        if self._construct_method:
-            fname1 = ' ' + self._construct_method
-            rname = self.get_unique_random_str(code_str, 5)
-            code_str = code_str.replace(fname1, rname)
-            str_us_map[rname] = fname1
-
-        var_us_map = {}
-        # sort variables from longest length to shortest
-        self._global_variables.sort(key=len, reverse=True)
-        for vname in self._global_variables:
-            rname = self.get_unique_random_str(code_str, 5)
-            code_str = code_str.replace(vname, rname)
-            var_us_map[vname] = rname
-
-        # sort variables from shortest to longest
-        # self._global_variables.sort(key=len)
-        for vname in self._global_variables:
-            rname = var_us_map[vname]
-            # fname = '_zxq_' + vname
-            fname = self.get_unique_random_str(code_str) + vname
-            self._mod_var_names.append(fname)
-            code_str = code_str.replace(rname, fname)
-
-        for sval, rval in str_us_map.items():
-            code_str = code_str.replace(sval, rval)
-
-        return code_str
-
     def code_transform(self):
         code_str = self.code_str
-        #code_str = self.add_prefixes(self.code_str)
         code_str = self.add_reset_method(code_str)
         code_str = self.add_decorator(code_str, "seneca_export")
         if self._construct_method:
