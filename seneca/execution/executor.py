@@ -1,5 +1,4 @@
 import multiprocessing
-import dill
 import importlib
 import abc
 
@@ -104,6 +103,7 @@ class Executor:
             status_code = 1
         return status_code, result
 
+
 """
 The Sandbox class is used as a execution sandbox for a transaction.
 
@@ -148,7 +148,8 @@ class MultiProcessingSandbox(Sandbox):
         self.p = None
 
     def terminate(self):
-        self.p.terminate()
+        if self.p:
+            self.p.terminate()
 
     def execute(self, sender, contract_name, function_name, kwargs):
         if self.p is None:
@@ -165,7 +166,7 @@ class MultiProcessingSandbox(Sandbox):
         # (status_code, result), loaded in using dill due to python
         # base pickler not knowning how to pickle module object
         # returned from execute
-        status_code, result = dill.loads(child_pipe.recv())
+        status_code, result = child_pipe.recv()
 
         # Check the status code for failure, if failure raise the result
         if status_code > 0:
@@ -175,7 +176,7 @@ class MultiProcessingSandbox(Sandbox):
     def process_loop(self, execute_fn):
         parent_pipe, _ = self.pipe
         while True:
-            sender, contract_name, function_name, kwargs  = parent_pipe.recv()
+            sender, contract_name, function_name, kwargs = parent_pipe.recv()
             try:
                 result = execute_fn(sender, contract_name, function_name, kwargs)
                 status_code = 0

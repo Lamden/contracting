@@ -2,7 +2,7 @@ import unittest
 from seneca.execution.executor import Sandbox, Executor, MultiProcessingSandbox
 import sys
 import glob
-# Import CRDriver and AbstractDatabaseDriver for property type
+# Import StateProxy and AbstractDatabaseDriver for property type
 # assertions for self.e.driver
 from seneca.db.driver import AbstractDatabaseDriver, ContractDriver
 from seneca.execution.module import DatabaseFinder
@@ -26,9 +26,9 @@ class TestExecutor(unittest.TestCase):
         self.assertEqual(e.concurrency, False, 'Concurrency is not set to false after dynamic set.')
 
     def test_driver_resolution(self):
-        # The CRDriver class is not able to be isolated so this test is turned off for now
-        # Colin TODO: Discuss with Davis how we update CRDriver (or isolate the concept)
-        #self.assertIsInstance(self.e.driver, conflict_resolution.CRDriver, 'Driver type does not resolve to CRDriver type when concurrency is True')
+        # The StateProxy class is not able to be isolated so this test is turned off for now
+        # Colin TODO: Discuss with Davis how we update StateProxy (or isolate the concept)
+        #self.assertIsInstance(self.e.driver, conflict_resolution.StateProxy, 'Driver type does not resolve to StateProxy type when concurrency is True')
 
         e = Executor(concurrency=False)
         self.assertIsInstance(e.driver, AbstractDatabaseDriver, 'Driver does not resolve to AbstractDatabaseDriver when concurrency is False')
@@ -37,7 +37,7 @@ class TestExecutor(unittest.TestCase):
 driver = ContractDriver(db=0)
 
 
-class TestSandboxWithDB(unittest.TestCase):
+class DBTests(unittest.TestCase):
     def setUp(self):
         sys.meta_path.append(DatabaseFinder)
         driver.flush()
@@ -45,6 +45,9 @@ class TestSandboxWithDB(unittest.TestCase):
         self.author = 'unittest'
         self.sb = Sandbox()
         self.mpsb = MultiProcessingSandbox()
+
+        self.e = Executor()
+        self.e_prod = Executor(production=True)
 
         for contract in contracts:
             name = contract.split('/')[-1]
@@ -65,36 +68,68 @@ class TestSandboxWithDB(unittest.TestCase):
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
 
-        status_code, result = self.sb.execute(self.author, contract_name,
-                                              function_name, kwargs)
+        result = self.sb.execute(self.author, contract_name,
+                                 function_name, kwargs)
         self.assertEqual(result, 'Working')
-        self.assertEqual(status_code, 0)
+
+    def test_base_execute_fail(self):
+        contract_name = 'badmodule'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        self.assertRaises(ImportError, self.sb.execute,
+                          *(self.author, contract_name, function_name, kwargs))
 
     def test_multiproc_execute(self):
         contract_name = 'module_func'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
 
-        status_code, result = self.mpsb.execute(self.author, contract_name,
-                                                function_name, kwargs)
+        result = self.mpsb.execute(self.author, contract_name,
+                                   function_name, kwargs)
         self.assertEqual(result, 'Working')
-        self.assertEqual(status_code, 0)
-
-    def test_base_execute_fail(self):
-        contract_name = 'badmodule'
-        function_name = 'test_func'
-        kwargs = {'status': 'Working'}
-        status_code, result = self.sb.execute(self.author, contract_name,
-                                              function_name, kwargs)
-        self.assertEqual(status_code, 1)
 
     def test_multiproc_execute_fail(self):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result = self.mpsb.execute(self.author, contract_name,
-                                                function_name, kwargs)
+        self.assertRaises(ImportError, self.mpsb.execute,
+                          *(self.author, contract_name, function_name, kwargs))
+
+    def test_executor_execute(self):
+        contract_name = 'module_func'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.e.execute(self.author, contract_name,
+                                             function_name, kwargs)
+        self.assertEqual(result, 'Working')
+        self.assertEqual(status_code, 0)
+
+    def test_executor_execute_fail(self):
+        contract_name = 'badmodule'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.e.execute(self.author, contract_name,
+                                             function_name, kwargs)
         self.assertEqual(status_code, 1)
+        self.assertIsInstance(result, ImportError)
+
+    def test_executor_prod_execute(self):
+        contract_name = 'module_func'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.e_prod.execute(self.author, contract_name,
+                                                  function_name, kwargs)
+        self.assertEqual(result, 'Working')
+        self.assertEqual(status_code, 0)
+
+    def test_executor_execute_fail(self):
+        contract_name = 'badmodule'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.e_prod.execute(self.author, contract_name,
+                                                  function_name, kwargs)
+        self.assertEqual(status_code, 1)
+        self.assertIsInstance(result, ImportError)
 
 
 if __name__ == "__main__":
