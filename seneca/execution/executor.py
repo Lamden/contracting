@@ -94,6 +94,10 @@ class Executor:
         :param kwargs:
         :return: result of execute call
         """
+        # A successful run is determined by if the sandbox execute command successfully runs.
+        # Therefor we need to have a try catch to communicate success/fail back to the
+        # client. Necessary in the case of batch run through bags where we still want to
+        # continue execution in the case of failure of one of the transactions.
         try:
             result = self.sandbox.execute(sender, contract_name, function_name, kwargs)
             status_code = 0
