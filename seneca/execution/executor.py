@@ -38,7 +38,7 @@ class Executor:
         self.tracer = None
 
         if production:
-            self.sandbox = SingleProcessSandbox()
+            self.sandbox = MultiProcessingSandbox()
         else:
             self.sandbox = Sandbox()
 
@@ -122,36 +122,39 @@ class Sandbox:
         return module, env
 
 
-class SingleProcessSandbox(Sandbox):
+class MultiProcessingSandbox(Sandbox):
     def __init__(self):
-        self._p_out, self._p_in = multiprocessing.Pipe()
-        self._p = Process((self._p_out, self._p_in), self._execute)
-        self._p.start()
-
-    def execute_bag(self, bag):
-        pass
+        self.pipe = multiprocessing.Pipe()
+        self.p = None
 
     def execute(self, sender, code_str):
-        self._p_in.send((sender, code_str))
-        statuscode, result = self._p_in.recv()
-        if statuscode > 0:
+        if self.p is None:
+            self.p = multiprocessing.Process(target=self.process_loop,
+                                             args=(super().execute, ))
+            self.p.start()
+
+
+        _, child_pipe = self.pipe
+
+        # Sends code to be executed in the process loop
+        child_pipe.send((sender, code_str))
+
+        # Receive result object back from process loop, formatted as
+        # (status_code, result)
+        status_code, result = child_pipe.recv()
+
+        # Check the status code for failure, if failure raise the result
+        if status_code > 0:
             raise result
         return result
 
-
-class Process(multiprocessing.Process):
-    def __init__(self, pipe, execute_fn):
-        super(Process, self).__init__()
-        self._p_out, self._p_in = pipe
-        self.fn = execute_fn
-
-    def run(self):
+    def process_loop(self, execute_fn):
+        parent_pipe, _ = self.pipe
         while True:
-            sender, code_str = self._p_out.recv()
+            sender, code_str = parent_pipe.recv()
             try:
-                result = self.fn(sender, code_str)
+                module, env = execute_fn(sender, code_str)
             except Exception as e:
-                self._p_out.send((1, e))
+                parent_pipe.send((1, e))
             else:
-                self._p_out.send((0, result))
-
+                parent_pipe.send((0, (module, env)))

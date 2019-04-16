@@ -1,5 +1,5 @@
 import unittest
-from seneca.execution.executor import Sandbox, Executor, SingleProcessSandbox
+from seneca.execution.executor import Sandbox, Executor, MultiProcessingSandbox
 import sys
 import glob
 # Import StateProxy and AbstractDatabaseDriver for property type
@@ -69,7 +69,7 @@ a = 6
         print(env['a'])
 
 
-class TestSingleProcessSandbox(unittest.TestCase):
+class TestMultiProcessingSandbox(unittest.TestCase):
     def setUp(self):
         sys.meta_path.append(DatabaseFinder)
         driver.flush()
@@ -89,8 +89,14 @@ class TestSingleProcessSandbox(unittest.TestCase):
         sys.meta_path.remove(DatabaseFinder)
         driver.flush()
 
-    def test_execute(self):
-        sb = SingleProcessSandbox()
+    def test_execute_raw(self):
+        sb = MultiProcessingSandbox()
+        code = '''b = 10'''
+        output, env = sb.execute('stu', code)
+        self.assertEqual(env['b'], 10)
+
+    def test_execute_db(self):
+        sb = MultiProcessingSandbox()
         code = '''import module1
 import sys
 print("now i can run my functions!")
