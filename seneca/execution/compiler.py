@@ -2,8 +2,8 @@ import ast
 from random import choice
 from string import ascii_letters, digits
 
-from seneca.libs.logger import get_logger
-from seneca.engine.interpreter.linter import Linter
+from seneca.logger import get_logger
+from seneca.execution.linter import Linter
 
 
 # raghu todo parser functionality:
@@ -86,6 +86,7 @@ class SenecaCompiler(ast.NodeTransformer):
         return node
 
     def visit_Assign(self, node):
+
         for t in node.targets:
             self._global_variables.append(t.id)
         return node
