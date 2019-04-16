@@ -1,14 +1,16 @@
 import multiprocessing
+import abc
 
-#from seneca.parallelism import book_keeper, conflict_resolution
+from seneca.parallelism import book_keeper, conflict_resolution
 from seneca.execution import module, runtime
 
 from seneca.db.driver import ContractDriver
+#from seneca.metering.tracer import Tracer
 
 
 class Executor:
 
-    def __init__(self, metering=True, concurrency=True, flushall=False):
+    def __init__(self, metering=True, concurrency=True, flushall=False, production=False):
         # Colin - Load in the database driver from the global config
         #         Set driver_proxy to none to indicate it exists and
         #         may be filled later
@@ -35,7 +37,10 @@ class Executor:
         #self.tracer = Tracer(cu_cost_fname)
         self.tracer = None
 
-        self.sandbox = SandboxBase()
+        if production:
+            self.sandbox = SingleProcessSandbox()
+        else:
+            self.sandbox = LocalSandbox()
 
     @property
     # Colin - I don't understand what this property is for, why
@@ -56,23 +61,30 @@ class Executor:
         else:
             return self.driver_base
 
+
+    def execute_bag(self, bag):
+        """
+        The execute bag method sends a list of transactions to the sandbox to be executed
+
+        :param bag: a list of deserialized transaction objects
+        :return: a list of results (result index == bag index)
+        """
+        return self.sandbox.execute_bag(bag)
+
     def execute(self, sender, code_str):
+        """
+        Method that does a naive execute
+
+        :param sender:
+        :param code_str:
+        :return:
+        """
         return self.sandbox.execute(sender, code_str)
 
 
-class SandboxBase(object):
-    def __init__(self):
-        return
 
-    def execute(self, sender, code_str):
-        runtime.rt.ctx.pop()
-        runtime.rt.ctx.append(sender)
-        env = {}
-        module = exec(code_str, env)
-        return module, env
-
-
-class Sandbox(multiprocessing.Process):
+class AbstractSandbox:
+    __metaclass__ = abc.ABCMeta
     """
     The Sandbox class is used as a execution sandbox for a transaction.
 
@@ -95,27 +107,56 @@ class Sandbox(multiprocessing.Process):
           back to the client again to minimize I/O overhead and deadlocks
         * Sandbox blocks on pipe again for new bag of transactions
     """
-    def __init__(self, pipe, **kwargs):
-        super(Sandbox, self).__init__()
-        self._kwargs = kwargs
-        self._p_out, self._p_in = pipe
-
-    def _execute(self, bag):
-        """
-        Execute a bag of transactions
-
-        :param bag: A bag of transactions
-        :return:
-        """
+    @abc.abstractmethod
+    def execute_bag(self, bag):
         return
 
-    def run(self, looptimeout=5):
-        """
+    @abc.abstractmethod
+    def execute(self, sender, code_str):
+        return
 
-        :param looptimeout: Timeout in seconds to block on the queue. This is
-                            here to prevent deadlocks
-        :return:
-        """
+    @staticmethod
+    def _execute(sender, code_str):
+        runtime.rt.ctx.pop()
+        runtime.rt.ctx.append(sender)
+        env = {}
+        module = exec(code_str, env)
+        return module, env
+
+
+class LocalSandbox(AbstractSandbox):
+    def __init__(self):
+        pass
+
+    def execute_bag(self, bag):
+        pass
+
+    def execute(self, sender, code_str):
+        return self._execute(sender, code_str)
+
+
+class SingleProcessSandbox(AbstractSandbox):
+    def __init__(self):
+        self._p_out, self._p_in = multiprocessing.Pipe()
+        self._p = SandboxProcess((self._p_out, self._p_in), self._execute)
+        self._p.start()
+
+    def execute_bag(self, bag):
+        pass
+
+    def execute(self, sender, code_str):
+        self._p_in.send((sender, code_str))
+        return self._p_out.recv()
+
+
+class SandboxProcess(multiprocessing.Process):
+    def __init__(self, pipe, execute_fn):
+        super(SandboxProcess, self).__init__()
+        self._p_out, self._p_in = pipe
+        self.execute = execute_fn
+
+    def run(self):
         while True:
-            bag = self._p_in.recv()
-            self._execute(bag)
+            sender, code_str = self._p_out.recv()
+            self._p_in.send(self.execute(sender, code_str))
+

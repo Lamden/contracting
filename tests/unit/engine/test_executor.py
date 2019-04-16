@@ -1,5 +1,5 @@
 import unittest
-from seneca.execution.executor import SandboxBase, Executor
+from seneca.execution.executor import LocalSandbox, Executor, SingleProcessSandbox
 import sys
 import glob
 # Import StateProxy and AbstractDatabaseDriver for property type
@@ -37,7 +37,7 @@ class TestExecutor(unittest.TestCase):
 driver = ContractDriver(db=0)
 
 
-class TestSandboxBase(unittest.TestCase):
+class TestLocalSandbox(unittest.TestCase):
     def setUp(self):
         sys.meta_path.append(DatabaseFinder)
         driver.flush()
@@ -58,7 +58,7 @@ class TestSandboxBase(unittest.TestCase):
         driver.flush()
 
     def test_execute(self):
-        sb = SandboxBase()
+        sb = LocalSandbox()
         code = '''import module1
 import sys
 print("now i can run my functions!")
@@ -68,6 +68,37 @@ a = 6
         print(dir(output))
         print(env['a'])
 
+
+class TestSingleProcessSandbox:
+    def setUp(self):
+        sys.meta_path.append(DatabaseFinder)
+        driver.flush()
+        contracts = glob.glob('./test_sys_contracts/*.py')
+        for contract in contracts:
+            name = contract.split('/')[-1]
+            name = name.split('.')[0]
+
+            with open(contract) as f:
+                code = f.read()
+
+            author = 'stuart'
+
+            driver.set_contract(name=name, code=code, author=author)
+
+    def tearDown(self):
+        sys.meta_path.remove(DatabaseFinder)
+        driver.flush()
+
+    def test_execute(self):
+        sb = SingleProcessSandbox()
+        code = '''import module1
+import sys
+print("now i can run my functions!")
+a = 6
+'''
+        output, env = sb.execute('stu', code)
+        print(dir(output))
+        print(env['a'])
 
 if __name__ == "__main__":
     unittest.main()
