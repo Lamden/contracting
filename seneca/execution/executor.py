@@ -40,7 +40,7 @@ class Executor:
         if production:
             self.sandbox = SingleProcessSandbox()
         else:
-            self.sandbox = LocalSandbox()
+            self.sandbox = Sandbox()
 
     @property
     # Colin - I don't understand what this property is for, why
@@ -83,44 +83,29 @@ class Executor:
 
 
 
-class AbstractSandbox:
-    __metaclass__ = abc.ABCMeta
-    """
-    The Sandbox class is used as a execution sandbox for a transaction.
+"""
+The Sandbox class is used as a execution sandbox for a transaction.
 
-    I/O pattern:
+I/O pattern:
 
-        ------------                                  -----------
-        | Executor |  ---> Transaction Bag (all) ---> | Sandbox |
-        ------------                                  -----------
-                                                           |
-        ------------                                       v
-        | Executor |  <---      Send Results     <---  Execute all tx
-        ------------
+    ------------                                  -----------
+    | Executor |  ---> Transaction Bag (all) ---> | Sandbox |
+    ------------                                  -----------
+                                                       |
+    ------------                                       v
+    | Executor |  <---      Send Results     <---  Execute all tx
+    ------------
 
-        * The client sends the whole transaction bag to the Sandbox for
-          processing. This is done to minimize back/forth I/O overhead
-          and deadlocks
-        * The sandbox executes all of the transactions one by one, resetting
-          the syspath after each execution.
-        * After all execution is complete, pass the full set of results
-          back to the client again to minimize I/O overhead and deadlocks
-        * Sandbox blocks on pipe again for new bag of transactions
-    """
-    @abc.abstractmethod
-    def execute_bag(self, bag):
-        return
+    * The client sends the whole transaction bag to the Sandbox for
+      processing. This is done to minimize back/forth I/O overhead
+      and deadlocks
+    * The sandbox executes all of the transactions one by one, resetting
+      the syspath after each execution.
+    * After all execution is complete, pass the full set of results
+      back to the client again to minimize I/O overhead and deadlocks
+    * Sandbox blocks on pipe again for new bag of transactions
+"""
 
-    @abc.abstractmethod
-    def execute(self, sender, code_str):
-        return
-
-    def _execute(self, sender, code_str):
-        runtime.rt.ctx.pop()
-        runtime.rt.ctx.append(sender)
-        env = {}
-        module = exec(code_str, env)
-        return module, env
 
 class Sandbox:
     def __init__(self):
@@ -137,18 +122,7 @@ class Sandbox:
         return module, env
 
 
-class LocalSandbox(AbstractSandbox):
-    def __init__(self):
-        pass
-
-    def execute_bag(self, bag):
-        pass
-
-    def execute(self, sender, code_str):
-        return self._execute(sender, code_str)
-
-
-class SingleProcessSandbox(AbstractSandbox):
+class SingleProcessSandbox(Sandbox):
     def __init__(self):
         self._p_out, self._p_in = multiprocessing.Pipe()
         self._p = Process((self._p_out, self._p_in), self._execute)

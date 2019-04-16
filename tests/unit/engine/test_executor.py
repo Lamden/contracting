@@ -1,5 +1,5 @@
 import unittest
-from seneca.execution.executor import LocalSandbox, Executor, SingleProcessSandbox
+from seneca.execution.executor import Sandbox, Executor, SingleProcessSandbox
 import sys
 import glob
 # Import StateProxy and AbstractDatabaseDriver for property type
@@ -58,7 +58,7 @@ class TestLocalSandbox(unittest.TestCase):
         driver.flush()
 
     def test_execute(self):
-        sb = LocalSandbox()
+        sb = Sandbox()
         code = '''import module1
 import sys
 print("now i can run my functions!")
