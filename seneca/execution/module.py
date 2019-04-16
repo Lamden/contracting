@@ -54,6 +54,8 @@ class DatabaseLoader(Loader):
     def exec_module(self, module):
         # fetch the individual contract
         code = self.d.get_contract(module.__name__)
+        if code is None:
+            raise ImportError("Module {} not found".format(module.__name__))
 
         ctx = ModuleType('context')
 
@@ -64,6 +66,8 @@ class DatabaseLoader(Loader):
         module.ctx = ctx
 
         rt.ctx.append(module.__name__)
+        print(module)
+        print(code)
         exec(code, vars(module))
         a = rt.ctx.pop()
 
