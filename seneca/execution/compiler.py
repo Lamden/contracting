@@ -198,7 +198,8 @@ class SenecaCompiler(ast.NodeTransformer):
         return code_str
 
     def code_transform(self):
-        code_str = self.add_prefixes(self.code_str)
+        code_str = self.code_str
+        #code_str = self.add_prefixes(self.code_str)
         code_str = self.add_reset_method(code_str)
         code_str = self.add_decorator(code_str, "seneca_export")
         if self._construct_method:

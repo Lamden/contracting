@@ -11,5 +11,9 @@ v = Variable()
 def funtimes():
     return v
 '''
-        c = SenecaCompiler(code_str=code, module_name='ass')
+        c = SenecaCompiler(code_str=code, module_name='testing')
         c.compile()
+        print(c._exported_methods)
+        print(c._mod_code_str)
+        a = exec(c._mod_code_str)
+        print(a.funtimes())
