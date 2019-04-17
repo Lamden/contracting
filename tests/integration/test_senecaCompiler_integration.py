@@ -73,3 +73,16 @@ fv = ForeignHash(foreign_contract='scoob', foreign_name='kumbucha')
 
         self.assertEqual(fv.key, '__main__.fv')
         self.assertEqual(fv.foreign_key, 'scoob.kumbucha')
+
+    def test_seneca_export_decorator_pops(self):
+        code = '''
+@seneca_export
+def funtimes():
+    print('cool')
+        '''
+
+        c = SenecaCompiler()
+        comp = c.parse(code, lint=False)
+        code_str = astor.to_source(comp)
+
+        self.assertNotIn('@seneca_export', code_str)
