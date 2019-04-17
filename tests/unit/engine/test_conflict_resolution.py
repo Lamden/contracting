@@ -1,5 +1,5 @@
-from seneca.parallelism.cr_driver import *
-from seneca.parallelism.cr_commands import *
+from seneca.db.cr.cr_driver import *
+from seneca.db.cr.cr_commands import *
 from unittest import TestCase
 import unittest
 from seneca.db.driver import DatabaseDriver

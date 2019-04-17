@@ -1,6 +1,6 @@
 from unittest import TestCase
-from seneca.parallelism.book_keeper import BookKeeper
-from seneca.parallelism.conflict_resolution import CRContext
+from seneca.db.cr.book_keeper import BookKeeper
+from seneca.db.cr.conflict_resolution import CRContext
 
 
 class TestBookKeeper(TestCase):

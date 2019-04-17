@@ -2,7 +2,7 @@ import multiprocessing
 import importlib
 import abc
 
-from seneca.parallelism import book_keeper, cr_driver
+from seneca.db.cr import book_keeper, cr_driver
 from seneca.execution import runtime
 from seneca.db import driver
 
