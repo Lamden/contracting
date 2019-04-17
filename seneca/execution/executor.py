@@ -72,8 +72,8 @@ class Executor:
         results = []
         for tx in bag:
             sender = tx.sender
-            contract_name = tx.contractName
-            function_name = tx.functionName
+            contract_name = tx.contract_name
+            function_name = tx.func_name
             kwargs = tx.kwargs
             # TODO: Need to interpret the required code_str using Seneca bindings from the contents of tx
             results.append(self.execute(sender, contract_name, function_name, kwargs))
@@ -127,7 +127,7 @@ I/O pattern:
 """
 
 
-class Sandbox:
+class Sandbox(object):
     def __init__(self):
         pass
 
@@ -147,7 +147,7 @@ class MultiProcessingSandbox(Sandbox):
         self.p = None
 
     def terminate(self):
-        if self.p:
+        if self.p is not None:
             self.p.terminate()
 
     def execute(self, sender, contract_name, function_name, kwargs):
