@@ -4,6 +4,8 @@ from seneca.logger import get_logger
 from seneca.execution.linter import Linter
 from seneca.db.orm import CLASS_NAMES
 
+from seneca.execution.runtime import rt
+
 # raghu todo parser functionality:
 #   1. checker -> checks for right usage and pythonic code, and verifies it follows our rules of restricted usage. at least one exported function, etc
 #      error -> record error and return.  Here we want to record all the errors in a contract for the maximum benefit of the user.
@@ -25,13 +27,13 @@ from seneca.db.orm import CLASS_NAMES
 PRIVATE_METHOD_PREFIX = '__'
 
 class SenecaCompiler(ast.NodeTransformer):
-    def __init__(self, module_name, linter=Linter()):
+    def __init__(self, module_name=rt.ctx[-1], linter=Linter()):
         self.module_name = module_name
         self.log = get_logger('Seneca.Parser')
         self._construct_method = None  # add check to ensure only one construct function
         self._exported_methods = []
         self._internal_methods = []
-        self._global_variables = []
+        #self._global_variables = []
         self._local_variables = []  # raghu todo need to handle this for the cases where local variables use same name
 
         # should we reject nonlocal declarations (as part of linter though)?
@@ -51,8 +53,6 @@ class SenecaCompiler(ast.NodeTransformer):
         tree = self.visit(tree)
         ast.fix_missing_locations(tree)
 
-        #self._mod_code_str = self.code_transform()
-        # print(self._mod_code_str)
         compiled_code = compile(tree, '<ast>', 'exec')
         return compiled_code
 
@@ -78,23 +78,19 @@ class SenecaCompiler(ast.NodeTransformer):
             node.value.keywords.append(ast.keyword('contract', ast.Str(self.module_name)))
             node.value.keywords.append(ast.keyword('name', ast.Str(node.targets[0].id)))
 
-        for t in node.targets:
-            self._global_variables.append(t.id)
-        return node
-
-    def visit_AugAssign(self, node):
-        self._global_variables.append(node.target.id)
-        return node
-
-    def visit_AnnAssign(self, node):
-        self._global_variables.append(node.target.id)
-        return node
-
-    # globals shouldn't be allowed
-    def visit_Global(self, node):
-        for n in node.names:
-            self._global_variables.append(n)
-        return node
+    # def visit_AugAssign(self, node):
+    #     self._global_variables.append(node.target.id)
+    #     return node
+    #
+    # def visit_AnnAssign(self, node):
+    #     self._global_variables.append(node.target.id)
+    #     return node
+    #
+    # # globals shouldn't be allowed
+    # def visit_Global(self, node):
+    #     for n in node.names:
+    #         self._global_variables.append(n)
+    #     return node
 
     def add_reset_method(self, code_str):
         if not self._mod_var_names:

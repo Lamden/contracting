@@ -16,6 +16,6 @@ def funtimes():
 def private():
     print('yeehaw')
 '''
-        c = SenecaCompiler(module_name='testing')
+        c = SenecaCompiler()
         comp = c.compile(code)
         print(comp)
