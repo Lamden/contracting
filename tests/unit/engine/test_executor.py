@@ -2,7 +2,7 @@ import unittest
 from seneca.execution.executor import Sandbox, Executor, MultiProcessingSandbox
 import sys
 import glob
-# Import StateProxy and AbstractDatabaseDriver for property type
+# Import ContractDriver and AbstractDatabaseDriver for property type
 # assertions for self.e.driver
 from seneca.db.driver import AbstractDatabaseDriver, ContractDriver
 from seneca.interpreter.module import DatabaseFinder
@@ -26,9 +26,9 @@ class TestExecutor(unittest.TestCase):
         self.assertEqual(e.concurrency, False, 'Concurrency is not set to false after dynamic set.')
 
     def test_driver_resolution(self):
-        # The StateProxy class is not able to be isolated so this test is turned off for now
-        # Colin TODO: Discuss with Davis how we update StateProxy (or isolate the concept)
-        #self.assertIsInstance(self.e.driver, conflict_resolution.StateProxy, 'Driver type does not resolve to StateProxy type when concurrency is True')
+        # The CRDriver class is not able to be isolated so this test is turned off for now
+        # Colin TODO: Discuss with Davis how we update CRDriver (or isolate the concept)
+        #self.assertIsInstance(self.e.driver, cr_driver.CRDriver, 'Driver type does not resolve to CRDriver type when concurrency is True')
 
         e = Executor(concurrency=False)
         self.assertIsInstance(e.driver, AbstractDatabaseDriver, 'Driver does not resolve to AbstractDatabaseDriver when concurrency is False')
@@ -60,6 +60,7 @@ class DBTests(unittest.TestCase):
 
     def tearDown(self):
         self.mpsb.terminate()
+        self.e_prod.sandbox.terminate()
         sys.meta_path.remove(DatabaseFinder)
         driver.flush()
 
@@ -130,6 +131,130 @@ class DBTests(unittest.TestCase):
                                                   function_name, kwargs)
         self.assertEqual(status_code, 1)
         self.assertIsInstance(result, ImportError)
+
+    def test_executor_prod_execute(self):
+        contract_name = 'module_func'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.e_prod.execute(self.author, contract_name,
+                                                  function_name, kwargs)
+        self.assertEqual(result, 'Working')
+        self.assertEqual(status_code, 0)
+
+    def test_executor_prod_execute_fail(self):
+        contract_name = 'badmodule'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.e_prod.execute(self.author, contract_name,
+                                                  function_name, kwargs)
+        self.assertEqual(status_code, 1)
+        self.assertIsInstance(result, ImportError)
+
+    def test_executor_prod_execute(self):
+        contract_name = 'module_func'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.e_prod.execute(self.author, contract_name,
+                                                  function_name, kwargs)
+        self.assertEqual(result, 'Working')
+        self.assertEqual(status_code, 0)
+
+    def test_executor_prod_execute_fail(self):
+        contract_name = 'badmodule'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        status_code, result = self.e_prod.execute(self.author, contract_name,
+                                                  function_name, kwargs)
+        self.assertEqual(status_code, 1)
+        self.assertIsInstance(result, ImportError)
+
+    def test_executor_execute_bag(self):
+        ctx1 = ContractTxStub(self.author, 'module_func', 'test_func',
+                              {'status': 'Working'})
+        ctx2 = ContractTxStub(self.author, 'module_func', 'test_func',
+                              {'status': 'Also Working'})
+        bag = [ctx1, ctx2]
+        results = self.e.execute_bag(bag)
+
+        # Assert the status codes in the results object are correct
+        self.assertEqual(results[0][0], 0)
+        self.assertEqual(results[1][0], 0)
+
+        # Assert the response objects in the results are correct and
+        # in the correct order
+        self.assertEqual(results[0][1], 'Working')
+        self.assertEqual(results[1][1], 'Also Working')
+
+    def test_executor_execute_bag_fail(self):
+        ctx1 = ContractTxStub(self.author, 'module_func', 'test_func',
+                              {'status': 'Working'})
+        ctx2 = ContractTxStub(self.author, 'badmodule', 'test_func',
+                              {'status': 'Also Working'})
+        bag = [ctx1, ctx2]
+        results = self.e.execute_bag(bag)
+
+        # Assert the status codes in the results object are correct
+        self.assertEqual(results[0][0], 0)
+        # Second result for ctx2 should be failure
+        self.assertEqual(results[1][0], 1)
+
+        # Assert the response objects in the results are correct and
+        # in the correct order
+        self.assertEqual(results[0][1], 'Working')
+        # Assert we get the correct error on the failing ctx
+        self.assertIsInstance(results[1][1], ImportError)
+
+    def test_executor_prod_execute_bag(self):
+        ctx1 = ContractTxStub(self.author, 'module_func', 'test_func',
+                              {'status': 'Working'})
+        ctx2 = ContractTxStub(self.author, 'module_func', 'test_func',
+                              {'status': 'Also Working'})
+        bag = [ctx1, ctx2]
+        results = self.e_prod.execute_bag(bag)
+
+        # Assert the status codes in the results object are correct
+        self.assertEqual(results[0][0], 0)
+        self.assertEqual(results[1][0], 0)
+
+        # Assert the response objects in the results are correct and
+        # in the correct order
+        self.assertEqual(results[0][1], 'Working')
+        self.assertEqual(results[1][1], 'Also Working')
+
+    def test_executor_prod_execute_bag_fail(self):
+        ctx1 = ContractTxStub(self.author, 'module_func', 'test_func',
+                              {'status': 'Working'})
+        ctx2 = ContractTxStub(self.author, 'badmodule', 'test_func',
+                              {'status': 'Also Working'})
+        bag = [ctx1, ctx2]
+        results = self.e_prod.execute_bag(bag)
+
+        # Assert the status codes in the results object are correct
+        self.assertEqual(results[0][0], 0)
+        # Second result for ctx2 should be failure
+        self.assertEqual(results[1][0], 1)
+
+        # Assert the response objects in the results are correct and
+        # in the correct order
+        self.assertEqual(results[0][1], 'Working')
+        # Assert we get the correct error on the failing ctx
+        self.assertIsInstance(results[1][1], ImportError)
+
+
+# Stub out the Contract Transaction object for use in the unit test
+# We will need to write an integration test that passes real contract
+# objects, but here is not the place
+class ContractTxStub(object):
+    def __init__(self, sender, contract_name, func_name, kwargs):
+        self.sender = sender
+        self.contract_name = contract_name
+        self.func_name = func_name
+        self.kwargs = kwargs
+
+class TestExecutorIntegration(unittest.TestCase):
+    def setUp(self):
+        e = Executor(metering=False, concurrency=False, production=False)
+
 
 
 if __name__ == "__main__":

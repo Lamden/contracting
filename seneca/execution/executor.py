@@ -1,13 +1,9 @@
 import multiprocessing
 import importlib
-import abc
 
 from seneca.db.cr import book_keeper, cr_driver
 from seneca.execution import runtime
 from seneca.db import driver
-
-from seneca.exceptions import SenecaException
-#from seneca.metering.tracer import Tracer
 
 
 class Executor:
@@ -63,7 +59,6 @@ class Executor:
         else:
             return self.driver_base
 
-
     def execute_bag(self, bag):
         """
         The execute bag method sends a list of transactions to the sandbox to be executed
@@ -77,8 +72,8 @@ class Executor:
         results = []
         for tx in bag:
             sender = tx.sender
-            contract_name = tx.contractName
-            function_name = tx.functionName
+            contract_name = tx.contract_name
+            function_name = tx.func_name
             kwargs = tx.kwargs
             # TODO: Need to interpret the required code_str using Seneca bindings from the contents of tx
             results.append(self.execute(sender, contract_name, function_name, kwargs))
@@ -94,6 +89,10 @@ class Executor:
         :param kwargs:
         :return: result of execute call
         """
+        # A successful run is determined by if the sandbox execute command successfully runs.
+        # Therefor we need to have a try catch to communicate success/fail back to the
+        # client. Necessary in the case of batch run through bags where we still want to
+        # continue execution in the case of failure of one of the transactions.
         try:
             result = self.sandbox.execute(sender, contract_name, function_name, kwargs)
             status_code = 0
@@ -128,7 +127,7 @@ I/O pattern:
 """
 
 
-class Sandbox:
+class Sandbox(object):
     def __init__(self):
         pass
 
@@ -148,7 +147,7 @@ class MultiProcessingSandbox(Sandbox):
         self.p = None
 
     def terminate(self):
-        if self.p:
+        if self.p is not None:
             self.p.terminate()
 
     def execute(self, sender, contract_name, function_name, kwargs):

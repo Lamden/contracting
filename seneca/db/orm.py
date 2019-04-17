@@ -1,6 +1,8 @@
 from seneca.db.driver import ContractDriver
+from seneca.execution.runtime import rt
 from seneca import config
 
+CLASS_NAMES = {'Variable', 'Hash', 'ForeignVariable', 'ForeignHash'}
 
 class Datum:
     def __init__(self, contract, name, driver: ContractDriver):
@@ -9,7 +11,7 @@ class Datum:
 
 
 class Variable(Datum):
-    def __init__(self, contract, name, driver: ContractDriver):
+    def __init__(self, contract, name, driver: ContractDriver=rt.driver):
         super().__init__(contract, name, driver=driver)
 
     def set(self, value):
@@ -20,7 +22,7 @@ class Variable(Datum):
 
 
 class Hash(Datum):
-    def __init__(self, contract, name, driver: ContractDriver):
+    def __init__(self, contract, name, driver: ContractDriver=rt.driver):
         super().__init__(contract, name, driver=driver)
         self.delimiter = config.DELIMITER
 
@@ -38,7 +40,7 @@ class Hash(Datum):
 
 
 class ForeignVariable(Variable):
-    def __init__(self, contract, name, foreign_contract, foreign_name, driver:ContractDriver):
+    def __init__(self, contract, name, foreign_contract, foreign_name, driver: ContractDriver=rt.driver):
         super().__init__(contract, name, driver=driver)
         self.foreign_key = self.driver.make_key(foreign_contract, foreign_name)
 
@@ -52,7 +54,7 @@ class ForeignVariable(Variable):
 
 
 class ForeignHash(Hash):
-    def __init__(self, contract, name, foreign_contract, foreign_name, driver: ContractDriver):
+    def __init__(self, contract, name, foreign_contract, foreign_name, driver: ContractDriver=rt.driver):
         super().__init__(contract, name, driver=driver)
         self.delimiter = config.DELIMITER
 
