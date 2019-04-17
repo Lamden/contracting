@@ -5,7 +5,7 @@ import glob
 # Import StateProxy and AbstractDatabaseDriver for property type
 # assertions for self.e.driver
 from seneca.db.driver import AbstractDatabaseDriver, ContractDriver
-from seneca.execution.module import DatabaseFinder
+from seneca.interpreter.module import DatabaseFinder
 
 
 class TestExecutor(unittest.TestCase):
