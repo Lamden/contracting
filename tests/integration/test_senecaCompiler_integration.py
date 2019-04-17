@@ -1,6 +1,6 @@
 from unittest import TestCase
 from seneca.execution.compiler import SenecaCompiler
-from seneca.db.orm import Variable, ForeignVariable, Hash
+from seneca.db.orm import Variable, ForeignVariable, Hash, ForeignHash
 
 import astor
 from types import ModuleType
@@ -55,3 +55,21 @@ h = Hash()
         h = env['h']
 
         self.assertEqual(h.key, '__main__.h')
+
+    def test_assign_foreign_hash(self):
+        code = '''
+fv = ForeignHash(foreign_contract='scoob', foreign_name='kumbucha')
+        '''
+
+        c = SenecaCompiler()
+        comp = c.parse(code, lint=False)
+        code_str = astor.to_source(comp)
+
+        env = {'ForeignHash': ForeignHash}
+
+        exec(code_str, env)
+
+        fv = env['fv']
+
+        self.assertEqual(fv.key, '__main__.fv')
+        self.assertEqual(fv.foreign_key, 'scoob.kumbucha')
