@@ -168,5 +168,11 @@ class DBTests(unittest.TestCase):
         self.assertIsInstance(result, ImportError)
 
 
+class TestExecutorIntegration(unittest.TestCase):
+    def setUp(self):
+        e = Executor(metering=False, concurrency=False, production=False)
+
+
+
 if __name__ == "__main__":
     unittest.main()

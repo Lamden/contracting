@@ -1,13 +1,9 @@
 import multiprocessing
 import importlib
-import abc
 
 from seneca.parallelism import book_keeper, cr_driver
 from seneca.execution import runtime
 from seneca.db import driver
-
-from seneca.exceptions import SenecaException
-#from seneca.metering.tracer import Tracer
 
 
 class Executor:
@@ -62,7 +58,6 @@ class Executor:
             return self.driver_proxy
         else:
             return self.driver_base
-
 
     def execute_bag(self, bag):
         """
