@@ -35,9 +35,9 @@ class SenecaCompiler(ast.NodeTransformer):
         self._internal_methods = []
         self._global_variables = []
         self._local_variables = []  # raghu todo need to handle this for the cases where local variables use same name
+
         # should we reject nonlocal declarations (as part of linter though)?
         self._mod_var_names = []
-        self._strings = []
         self._ast_tree = None
         # self._is_seneca_processed = is_modified
 
@@ -58,16 +58,7 @@ class SenecaCompiler(ast.NodeTransformer):
 
         # collect data
         self.visit(self._ast_tree)
-        # collect all strings
-        for node in ast.walk(self._ast_tree):
-            if isinstance(node, ast.Str) and node.s not in self._strings:
-                self._strings.append(node.s)
-        # print(self._global_variables)
-        # print(self._strings)
-        # print(self._exported_methods)
-        # print(self._internal_methods)
-        # print(self.code_str)
-        # transform the code
+
         self._mod_code_str = self.code_transform()
         # print(self._mod_code_str)
         return self._mod_code_str
@@ -81,6 +72,8 @@ class SenecaCompiler(ast.NodeTransformer):
                     self._construct_method = node.name
         else:
             self._internal_methods.append(node.name)
+            # modify the node name to have __ before it so it is not callable ever again
+            # this works because the linter and compiler block __ names
         return node
 
     def visit_Assign(self, node):
