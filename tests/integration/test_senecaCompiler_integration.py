@@ -86,3 +86,15 @@ def funtimes():
         code_str = astor.to_source(comp)
 
         self.assertNotIn('@seneca_export', code_str)
+
+    def test_private_function_prefixes_properly(self):
+        code = '''
+def private():
+    print('cool')
+        '''
+
+        c = SenecaCompiler()
+        comp = c.parse(code, lint=False)
+        code_str = astor.to_source(comp)
+
+        self.assertIn('__private', code_str)
