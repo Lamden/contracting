@@ -71,9 +71,11 @@ class SenecaCompiler(ast.NodeTransformer):
                 elif d.id == 'seneca_construct':
                     self._construct_method = node.name
         else:
+            node.name = '__{}'.format(node.name)
             self._internal_methods.append(node.name)
             # modify the node name to have __ before it so it is not callable ever again
             # this works because the linter and compiler block __ names
+
         return node
 
     def visit_Assign(self, node):
@@ -95,16 +97,11 @@ class SenecaCompiler(ast.NodeTransformer):
         self._global_variables.append(node.target.id)
         return node
 
+    # globals shouldn't be allowed
     def visit_Global(self, node):
         for n in node.names:
             self._global_variables.append(n)
         return node
-
-    def get_unique_substr(self, code_str, prefix):
-        while prefix in code_str:
-            prefix = prefix + 'q'
-        return prefix
-
 
     def add_reset_method(self, code_str):
         if not self._mod_var_names:
