@@ -16,7 +16,6 @@ def funtimes():
 def private():
     print('yeehaw')
 '''
-        c = SenecaCompiler(code_str=code, module_name='testing')
-        c.compile()
-        c._ast_tree = ast.fix_missing_locations(c._ast_tree)
-        print(astor.to_source(c._ast_tree))
+        c = SenecaCompiler(module_name='testing')
+        comp = c.compile(code)
+        print(comp)

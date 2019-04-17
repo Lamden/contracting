@@ -1,6 +1,4 @@
 import ast
-from random import choice
-from string import ascii_letters, digits
 
 from seneca.logger import get_logger
 from seneca.execution.linter import Linter
@@ -24,6 +22,7 @@ from seneca.db.orm import CLASS_NAMES
 #  8. replacing global variables - what if one variable is a subset of another one ? we need to sort them by the length and replace longest to shortest ?
 #  9. should we change internal_method names also with the prefix __seneca__
 
+PRIVATE_METHOD_PREFIX = '__'
 
 class SenecaCompiler(ast.NodeTransformer):
     def __init__(self, module_name, linter=Linter()):
@@ -52,9 +51,10 @@ class SenecaCompiler(ast.NodeTransformer):
         tree = self.visit(tree)
         ast.fix_missing_locations(tree)
 
-        self._mod_code_str = self.code_transform()
+        #self._mod_code_str = self.code_transform()
         # print(self._mod_code_str)
-        return self._mod_code_str
+        compiled_code = compile(tree, '<ast>', 'exec')
+        return compiled_code
 
     def visit_FunctionDef(self, node):
         if node.decorator_list:
