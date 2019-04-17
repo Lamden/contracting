@@ -17,5 +17,5 @@ def private():
     print('yeehaw')
 '''
         c = SenecaCompiler()
-        comp = c.compile(code)
+        comp = c.parse(code)
         print(comp)

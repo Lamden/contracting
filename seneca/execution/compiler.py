@@ -28,22 +28,11 @@ PRIVATE_METHOD_PREFIX = '__'
 
 class SenecaCompiler(ast.NodeTransformer):
     def __init__(self, module_name=rt.ctx[-1], linter=Linter()):
-        self.module_name = module_name
         self.log = get_logger('Seneca.Parser')
-        self._construct_method = None  # add check to ensure only one construct function
-        self._exported_methods = []
-        self._internal_methods = []
-        #self._global_variables = []
-        self._local_variables = []  # raghu todo need to handle this for the cases where local variables use same name
-
-        # should we reject nonlocal declarations (as part of linter though)?
-        self._mod_var_names = []
-        self._ast_tree = None
-        # self._is_seneca_processed = is_modified
-
+        self.module_name = module_name
         self.linter = linter
 
-    def compile(self, source: str, lint=False):
+    def parse(self, source: str, lint=False):
         tree = ast.parse(source)
 
         if lint:
@@ -53,7 +42,12 @@ class SenecaCompiler(ast.NodeTransformer):
         tree = self.visit(tree)
         ast.fix_missing_locations(tree)
 
+        return tree
+
+    def compile(self, source: str, lint=False):
+        tree = self.parse(source, lint=lint)
         compiled_code = compile(tree, '<ast>', 'exec')
+
         return compiled_code
 
     def visit_FunctionDef(self, node):
@@ -91,15 +85,6 @@ class SenecaCompiler(ast.NodeTransformer):
     #     for n in node.names:
     #         self._global_variables.append(n)
     #     return node
-
-    def add_reset_method(self, code_str):
-        if not self._mod_var_names:
-            return code_str
-        func_name = '_seneca_reset_context'
-        code_str += "\ndef " + func_name + "():\n"
-        for vname in self._mod_var_names:
-            code_str += "    " + vname + " = None\n"
-        return code_str
 
     def add_decorator(self, code_str, func_name):
         code_str += "\ndef " + func_name + "(con_func):\n"
