@@ -24,11 +24,10 @@ from seneca.db.orm import CLASS_NAMES
 #  8. replacing global variables - what if one variable is a subset of another one ? we need to sort them by the length and replace longest to shortest ?
 #  9. should we change internal_method names also with the prefix __seneca__
 
-class SenecaCompiler(ast.NodeTransformer):
 
-    def __init__(self, module_name, code_str):
+class SenecaCompiler(ast.NodeTransformer):
+    def __init__(self, module_name, linter=Linter()):
         self.module_name = module_name
-        self.code_str = code_str
         self.log = get_logger('Seneca.Parser')
         self._construct_method = None  # add check to ensure only one construct function
         self._exported_methods = []
@@ -41,23 +40,17 @@ class SenecaCompiler(ast.NodeTransformer):
         self._ast_tree = None
         # self._is_seneca_processed = is_modified
 
-    def lint(self):
-        if not self._ast_tree:
-            return False
-        linter = Linter()
-        return linter.check(self._ast_tree)
+        self.linter = linter
 
-    def compile(self):
-        # Parse tree
-        assert not self._ast_tree, "Not expected to reuse this object to compile multiple codes"
-        self._ast_tree = ast.parse(self.code_str)
+    def compile(self, source: str, lint=False):
+        tree = ast.parse(source)
 
-        # should provide a list of error conditions?
-        if not self.lint():
-            return False
+        if lint:
+            tree = self.linter.visit(tree)
+            ast.fix_missing_locations(tree)
 
-        # collect data
-        self.visit(self._ast_tree)
+        tree = self.visit(tree)
+        ast.fix_missing_locations(tree)
 
         self._mod_code_str = self.code_transform()
         # print(self._mod_code_str)
