@@ -6,25 +6,8 @@ from seneca.db.orm import CLASS_NAMES
 
 from seneca.execution.runtime import rt
 
-# raghu todo parser functionality:
-#   1. checker -> checks for right usage and pythonic code, and verifies it follows our rules of restricted usage. at least one exported function, etc
-#      error -> record error and return.  Here we want to record all the errors in a contract for the maximum benefit of the user.
-#      can be provided as part of a user tool set for users to develop and test also.
-#   2. code transformer -> transforms the code: a) prefixing, etc, b) adds decorator and cleanup functionality
-#   3. compiled codeobj, along with mod code str and other annotated datastructures for book keeping
-# raghu todo
-#  1. Replace this with context to provide runtime context.
-#  2. Runtime context is setup at the point of txn execution.
-#     then runtime context is only runtime context: sender and stamps supplied, etc
-#  3. CodeModifier will add a class with contract name
-#  4. it will hide all global variables with contract_name prefix
-#  5. and add a function "_seneca_set_context" -> that will take backup of global variables and set them to None
-#  6. and add a function "_seneca_reset_context" -> to restore global variables to backups
-#  7. then Export() or Seed() functions can wrap them around function
-#  8. replacing global variables - what if one variable is a subset of another one ? we need to sort them by the length and replace longest to shortest ?
-#  9. should we change internal_method names also with the prefix __seneca__
-
 PRIVATE_METHOD_PREFIX = '__'
+
 
 class SenecaCompiler(ast.NodeTransformer):
     def __init__(self, module_name=rt.ctx[-1], linter=Linter()):
@@ -54,14 +37,11 @@ class SenecaCompiler(ast.NodeTransformer):
         if node.decorator_list:
             for d in node.decorator_list:
                 if d.id == 'seneca_export':
-                    self._exported_methods.append(node.name)
+                    pass
                 elif d.id == 'seneca_construct':
-                    self._construct_method = node.name
+                    pass
         else:
             node.name = '__{}'.format(node.name)
-            self._internal_methods.append(node.name)
-            # modify the node name to have __ before it so it is not callable ever again
-            # this works because the linter and compiler block __ names
 
         return node
 
@@ -85,20 +65,3 @@ class SenecaCompiler(ast.NodeTransformer):
     #     for n in node.names:
     #         self._global_variables.append(n)
     #     return node
-
-    def add_decorator(self, code_str, func_name):
-        code_str += "\ndef " + func_name + "(con_func):\n"
-        code_str += "    def _" + func_name + "_inner():\n"
-        code_str += "        res = con_func()\n"
-        code_str += "        _seneca_reset_context()\n"
-        code_str += "        return res\n"
-        code_str += "    return _" + func_name + "_inner\n"
-        return code_str
-
-    def code_transform(self):
-        code_str = self.code_str
-        code_str = self.add_reset_method(code_str)
-        code_str = self.add_decorator(code_str, "seneca_export")
-        if self._construct_method:
-            code_str = self.add_decorator(code_str, "seneca_construct")
-        return code_str
