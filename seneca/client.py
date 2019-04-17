@@ -62,8 +62,8 @@ class SenecaClient(Executor):
 
         self.master_db = None  # A ledis.Ledis instance
         self.active_db = None  # Set to a CRContext instance
-        self.available_dbs = deque()  # List of CRContext instances
-        self.pending_dbs = deque()  # List of CRContext instances
+        self.available_dbs = deque()  # List of CRContext instances (popped LIFO)
+        self.pending_dbs = deque()  # List of CRContext instances (popped FIFO)
 
         # pending_futures tracks active db's that are waiting for other SBBs to finish CR/execution
         # it is a map of input hashes -> {'fut': asyncio.Future, 'data': CRContext, ...}
