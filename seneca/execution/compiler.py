@@ -85,7 +85,10 @@ class SenecaCompiler(ast.NodeTransformer):
 
     def visit_Assign(self, node):
         if node.value.func.id in CLASS_NAMES:
-            print(node.value.func.id)
+            assert node.value.keywords == [], 'Keyword overloading not allowed.'
+            assert len(node.targets) == 1, 'Multiple targets to an ORM definition is not allowed.'
+            node.value.keywords.append(ast.keyword('contract', ast.Str(self.module_name)))
+            node.value.keywords.append(ast.keyword('name', ast.Str(node.targets[0].id)))
 
         for t in node.targets:
             self._global_variables.append(t.id)

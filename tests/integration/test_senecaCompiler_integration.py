@@ -2,6 +2,8 @@ from unittest import TestCase
 from seneca.execution.compiler import SenecaCompiler
 from seneca.db.orm import Variable
 
+import ast
+import astor
 class TestSenecaCompiler(TestCase):
     def test_visit_assign_datatypes(self):
         code = '''
@@ -14,6 +16,5 @@ def funtimes():
         c = SenecaCompiler(code_str=code, module_name='testing')
         c.compile()
         print(c._exported_methods)
-        print(c._mod_code_str)
-        a = exec(c._mod_code_str)
-        print(a.funtimes())
+        c._ast_tree = ast.fix_missing_locations(c._ast_tree)
+        print(astor.to_source(c._ast_tree))
