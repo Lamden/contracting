@@ -8,6 +8,7 @@ from .runtime import rt
 
 from types import ModuleType
 
+
 '''
     This module will remain untested and unused until we decide how we want to 'forget' importing.
 '''
@@ -46,7 +47,9 @@ class DatabaseFinder(MetaPathFinder):
 
 class DatabaseLoader(Loader):
     def __init__(self):
+        from seneca.execution.compiler import SenecaCompiler
         self.d = ContractDriver()
+        self.sc = SenecaCompiler()
 
     def create_module(self, spec):
         return None
@@ -68,7 +71,8 @@ class DatabaseLoader(Loader):
         rt.ctx.append(module.__name__)
         print(module)
         print(code)
-        exec(code, vars(module))
+        code_obj = self.sc.compile(code, lint=False)
+        exec(code_obj, vars(module))
         rt.ctx.pop()
 
     def module_repr(self, module):
