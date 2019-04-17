@@ -69,7 +69,7 @@ class DatabaseLoader(Loader):
         print(module)
         print(code)
         exec(code, vars(module))
-        a = rt.ctx.pop()
+        rt.ctx.pop()
 
     def module_repr(self, module):
         return '<module {!r} (smart contract)>'.format(module.__name__)
