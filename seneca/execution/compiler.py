@@ -11,6 +11,7 @@ EXPORT_DECORATOR_STRING = 'seneca_export'
 INIT_DECORATOR_STRING = 'seneca_construct'
 VALID_DECORATORS = {EXPORT_DECORATOR_STRING, INIT_DECORATOR_STRING}
 
+
 class SenecaCompiler(ast.NodeTransformer):
     def __init__(self, module_name=rt.ctx[-1], linter=Linter()):
         self.log = get_logger('Seneca.Compiler')
@@ -18,7 +19,7 @@ class SenecaCompiler(ast.NodeTransformer):
         self.linter = linter
         self.constructor_visited = False
 
-    def parse(self, source: str, lint=False):
+    def parse(self, source: str, lint=True):
         self.constructor_visited = False
 
         tree = ast.parse(source)
@@ -32,7 +33,7 @@ class SenecaCompiler(ast.NodeTransformer):
 
         return tree
 
-    def compile(self, source: str, lint=False):
+    def compile(self, source: str, lint=True):
         tree = self.parse(source, lint=lint)
         compiled_code = compile(tree, '<ast>', 'exec')
 
