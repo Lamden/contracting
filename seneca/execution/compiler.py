@@ -13,6 +13,8 @@ class SenecaCompiler(ast.NodeTransformer):
         self.module_name = module_name
         self.linter = linter
         self.constructor_visited = False
+        self.private_expr = set()
+        self.visited_expr = set() # store the method visits
 
     def parse(self, source: str, lint=True):
         self.constructor_visited = False
@@ -24,9 +26,23 @@ class SenecaCompiler(ast.NodeTransformer):
             # ast.fix_missing_locations(tree)
 
         tree = self.visit(tree)
+
+        # check all visited nodes and see if they are actually private
+        for node in self.visited_expr:
+            if node.value.func.id in self.private_expr:
+                node.value.func.id = self.privatize(node.value.func.id)
+
         ast.fix_missing_locations(tree)
 
+        # reset state
+        self.private_expr = set()
+        self.visited_expr = set()
+
         return tree
+
+    @staticmethod
+    def privatize(s):
+        return '{}{}'.format(config.PRIVATE_METHOD_PREFIX, s)
 
     def compile(self, source: str, lint=True):
         tree = self.parse(source, lint=lint)
@@ -40,17 +56,32 @@ class SenecaCompiler(ast.NodeTransformer):
             # Presumes that a single decorator is passed. This is caught by the linter.
             node.decorator_list.pop()
         else:
-            node.name = '__{}'.format(node.name)
+            self.private_expr.add(node.name)
+            node.name = self.privatize(node.name)
+
+        self.generic_visit(node)
 
         return node
 
     def visit_Assign(self, node):
-        #print("Node.value: {}".format(node.value))
         if isinstance(node.value, ast.Call) and node.value.func.id in config.ORM_CLASS_NAMES:
             node.value.keywords.append(ast.keyword('contract', ast.Str(self.module_name)))
             node.value.keywords.append(ast.keyword('name', ast.Str(node.targets[0].id)))
 
         return node
+
+    def visit_Call(self, node):
+        print('Calling : {}'.format(node))
+
+        return node
+
+    def visit_Expr(self, node):
+        # keeps track of visited expressions for private method prefixing after parsing tree
+        if isinstance(node.value, ast.Call):
+            self.visited_expr.add(node)
+
+        return node
+
 
     # def visit_AugAssign(self, node):
     #     self._global_variables.append(node.target.id)

@@ -1,7 +1,7 @@
 from unittest import TestCase
 from seneca.execution.compiler import SenecaCompiler
 from seneca.db.orm import Variable, ForeignVariable, Hash, ForeignHash
-
+import re
 import astor
 from types import ModuleType
 
@@ -98,3 +98,20 @@ def private():
         code_str = astor.to_source(comp)
 
         self.assertIn('__private', code_str)
+
+    def test_private_func_call_in_public_func_properly_renamed(self):
+        code = '''
+@seneca_export
+def public():
+    private('hello')
+    
+def private(message):
+    print(message)
+'''
+
+        c = SenecaCompiler()
+        comp = c.parse(code, lint=False)
+        code_str = astor.to_source(comp)
+
+        # there should be two private occurances of the method call
+        self.assertEqual(len([m.start() for m in re.finditer('__private', code_str)]), 2)
