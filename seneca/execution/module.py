@@ -63,9 +63,6 @@ class DatabaseLoader(Loader):
         if code is None:
             raise ImportError("Module {} not found".format(module.__name__))
 
-
-
-
         ctx = ModuleType('context')
 
         ctx.caller = rt.ctx[-1]
@@ -73,10 +70,12 @@ class DatabaseLoader(Loader):
         ctx.signer = rt.ctx[0]
 
         env = {
-            'ctx': ctx
+            'ctx': ctx,
+            'Variable': Variable,
+            'ForeignVariable': ForeignVariable,
+            'Hash': Hash,
+            'ForeignHash': ForeignHash
         }
-
-        #module.ctx = ctx
 
         rt.ctx.append(module.__name__)
         self.sc.module_name = rt.ctx[-1]
