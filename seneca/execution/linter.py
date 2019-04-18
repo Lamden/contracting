@@ -13,6 +13,7 @@ class Linter(ast.NodeVisitor):
         self._functions = []
         self._is_one_export = False
         self._is_success = True
+        self._constructor_visited = False
         self.driver = ContractDriver()
 
     @staticmethod
@@ -107,9 +108,27 @@ class Linter(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         self.no_nested_imports(node)
+
+        # Only allow 1 decorator per function definition.
+        if len(node.decorator_list) > 1:
+            str = 'Function definition can only contain 1 decorator. Currently contains {}.'.format(len(node.decorator_list))
+            Linter.violations.append(str)
+
         for d in node.decorator_list:
+            # Only allow decorators from the allowed set.
+            if d.id not in {'seneca_export', 'seneca_construct'}:
+                str = '{} is an invalid decorator. Must be one of {}'.format(d.id,
+                                                                             {'seneca_export', 'seneca_construct'})
+                Linter.violations.append(str)
             if d.id in ('seneca_export'):
                 self._is_one_export = True
+
+            if d.id == 'seneca_construct':
+                if self._constructor_visited:
+                    str = 'Multiple constructors not allowed.'
+                    Linter.violations.append(str)
+                self._constructor_visited = True
+
         self.generic_visit(node)
         return node
 
@@ -117,6 +136,7 @@ class Linter(ast.NodeVisitor):
         self._functions = []
         self._is_one_export = False
         self._is_success = True
+        self._constructor_visited = False
 
     def _final_checks(self):
         if not self._is_one_export:

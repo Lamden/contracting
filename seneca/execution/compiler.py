@@ -40,18 +40,10 @@ class SenecaCompiler(ast.NodeTransformer):
         return compiled_code
 
     def visit_FunctionDef(self, node):
+        # Presumes all decorators are valid, as caught by linter.
         if node.decorator_list:
-            print(node.decorator_list)
-            assert len(node.decorator_list) == 1, 'Multiple decorators on a function not allowed'
-
+            # Presumes that a single decorator is passed. This is caught by the linter.
             d = node.decorator_list.pop()
-            assert d.id in VALID_DECORATORS, 'Invalid Decorator passed'
-
-            if d.id == EXPORT_DECORATOR_STRING:
-                pass
-            elif d.id == INIT_DECORATOR_STRING:
-                assert not self.constructor_visited, 'Multiple constructors found'
-                self.constructor_visited = True
 
         else:
             node.name = '__{}'.format(node.name)
