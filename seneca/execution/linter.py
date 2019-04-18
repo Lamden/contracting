@@ -152,7 +152,8 @@ class Linter(ast.NodeVisitor):
 
     def _final_checks(self):
         if not self._is_one_export:
-            self.log.error("Need atleast one method with @seneca_export() decorator that outside world use to interact with this contract")
+            self.log.error("Need atleast one method with @seneca_export() decorator that outside world use to interact "
+                           "with this contract")
             self._is_success = False
     
     def _collect_function_defs(self, root):
