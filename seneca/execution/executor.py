@@ -26,7 +26,7 @@ class Executor:
             self.sandbox = Sandbox()
             self.driver = ContractDriver
 
-    def execute_bag(self, bag: TransactionBag) -> Dict[dict]:
+    def execute_bag(self, bag: TransactionBag) -> Dict[int, dict]:
         """
         The execute bag method sends a list of transactions to the sandbox to be executed
 

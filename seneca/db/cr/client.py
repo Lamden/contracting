@@ -303,15 +303,18 @@ class SenecaClient:
         self._start_sb(input_hash)
 
         bag = TransactionBag(list(enumerate(contracts)), self.active_db)
-        for idx, res in self.executoaaaaaaaaaaaaaaaaar.execute_bag(bag).items():
-            status_code, result = res  # result is the return value of the contract, or the error code
+        for idx, res in self.executor.execute_bag(bag).items():
+            status_code, output = res['status_code'], res['result']
 
             if status_code == 1:
-                # rollback this contract
+                self.log.warning("Contract {} failed with error:\n{}".format(contracts[idx], output))
+                self.active_db.rollback_contract(idx)
+                flag = "FAIL -- {}".format(output)
             else:
                 # update this run result in the Crcontext (self.active_db)
+                flag = "SUCC"  # todo attach the output also?? why do we even need the output actually?
 
-
+            self.active_db.add_contract_result(contracts[idx], flag)
 
         self._end_sb(completion_handler)
 
