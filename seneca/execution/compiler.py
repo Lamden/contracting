@@ -1,9 +1,11 @@
 import ast
+
 from seneca import config
+
 from seneca.logger import get_logger
 from seneca.execution.linter import Linter
-
 from seneca.execution.runtime import rt
+
 
 class SenecaCompiler(ast.NodeTransformer):
     def __init__(self, module_name=rt.ctx[-1], linter=Linter()):
@@ -19,7 +21,7 @@ class SenecaCompiler(ast.NodeTransformer):
 
         if lint:
             tree = self.linter.visit(tree)
-            ast.fix_missing_locations(tree)
+            # ast.fix_missing_locations(tree)
 
         tree = self.visit(tree)
         ast.fix_missing_locations(tree)

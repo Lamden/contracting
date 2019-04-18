@@ -1,12 +1,13 @@
+import ast
+
 from seneca import config
 
-from seneca.execution.whitelists import ALLOWED_AST_TYPES
 from seneca.logger import get_logger
-import ast
+from seneca.execution.whitelists import ALLOWED_AST_TYPES
 from seneca.execution.module import ContractDriver
 
-class Linter(ast.NodeVisitor):
 
+class Linter(ast.NodeVisitor):
     violations = []
 
     def __init__(self):
