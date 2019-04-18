@@ -103,7 +103,7 @@ def get_v():
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'))
 
-        res = e.execute('stu', 'test_orm_variable_contract', 'set_v', kwargs={'i': 1000})
+        e.execute('stu', 'test_orm_variable_contract', 'set_v', kwargs={'i': 1000})
 
         i = self.d.get('test_orm_variable_contract.v')
         self.assertEqual(i, 1000)
@@ -128,3 +128,43 @@ def get_v():
         res = e.execute('stu', 'test_orm_variable_contract', 'get_v', kwargs={})
 
         self.assertEqual(res[1], 1000)
+
+    def test_orm_hash_sets_in_contract(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'))
+
+        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'key1', 'v': 1234})
+        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'another_key', 'v': 9999})
+
+        key1 = self.d.get('test_orm_hash_contract.h:key1')
+        another_key = self.d.get('test_orm_hash_contract.h:another_key')
+
+        self.assertEqual(key1, 1234)
+        self.assertEqual(another_key, 9999)
+
+    def test_orm_hash_gets_in_contract(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'))
+
+        res = e.execute('stu', 'test_orm_hash_contract', 'get_h', kwargs={'k': 'test'})
+
+        self.assertEqual(res[1], None)
+
+    def test_orm_variable_gets_and_sets_in_contract(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'))
+
+        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'key1', 'v': 1234})
+        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'another_key', 'v': 9999})
+
+        _, key1 = e.execute('stu', 'test_orm_hash_contract', 'get_h', kwargs={'k': 'key1'})
+        _, another_key = e.execute('stu', 'test_orm_hash_contract', 'get_h', kwargs={'k': 'another_key'})
+
+        self.assertEqual(key1, 1234)
+        self.assertEqual(another_key, 9999)
