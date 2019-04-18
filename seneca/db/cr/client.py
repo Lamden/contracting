@@ -3,7 +3,7 @@ from seneca.logger import get_logger
 from seneca.execution.executor import Executor
 from seneca.config import *
 from seneca.db.cr.conflict_resolution import CRContext
-from seneca.db.cr.book_keeper import BookKeeper
+from seneca.db.cr.transaction_bag import TransactionBag
 from seneca.db.driver import DatabaseDriver
 from collections import deque
 from typing import Callable
@@ -46,8 +46,8 @@ class Phase:
             db.delete(key)
 
 
-class SenecaClient(Executor):
-    def __init__(self, sbb_idx, num_sbb, concurrency=True, loop=None, *args, **kwargs):
+class SenecaClient:
+    def __init__(self, sbb_idx, num_sbb, loop=None, *args, **kwargs):
         # TODO do we even need to bother with the concurrent_mode flag? We are treating that its always true --davis
         super().__init__(*args, **kwargs)
 
@@ -57,13 +57,14 @@ class SenecaClient(Executor):
 
         self.sbb_idx = sbb_idx
         self.num_sb_builders = num_sbb
-        self.concurrency = concurrency
         self.max_number_workers = NUM_CACHES
 
         self.master_db = None  # A ledis.Ledis instance
         self.active_db = None  # Set to a CRContext instance
         self.available_dbs = deque()  # List of CRContext instances (popped LIFO)
         self.pending_dbs = deque()  # List of CRContext instances (popped FIFO)
+
+        self.executor = Executor(metering=False, production=True)
 
         # pending_futures tracks active db's that are waiting for other SBBs to finish CR/execution
         # it is a map of input hashes -> {'fut': asyncio.Future, 'data': CRContext, ...}
@@ -191,58 +192,58 @@ class SenecaClient(Executor):
     def submit_contract(self, contract):
         self.publish_code_str(contract.contract_name, contract.sender, contract.code)
 
-    def run_contract(self, contract):
-        assert self.active_db, "active_db must be set to run a contract. Did you call _start_sb?"
-        assert self.active_db.input_hash, "Input hash not set...davis u done goofed again"
-
-        data = self.active_db
-        contract_idx = data.next_contract_idx
-
-        result = self._run_contract(contract, contract_idx=contract_idx, data=data)
-        self.active_db.add_contract_result(contract, result)
-
-        # DEBUG
-        kwargs = 'contract_name=' + contract.contract_name if hasattr(contract, 'contract_code') else contract.kwargs
-        self.log.notice("[EXEC PHASE #{}] exec from sender {} with kwargs {} resulted in state {}"
-                      .format(contract_idx, contract.sender, kwargs, data.get_state_for_idx(contract_idx)))
-        # END DEBUG
-
-    def _run_contract(self, contract, contract_idx: int, data: CRContext) -> str:
-        """ Runs the contract object, and retuns a string representing the result (succ/fail).
-        Note: Assumes the BookKeeping info has already been set. """
-        # Development sanity checks. data passed in should either be the active_db (if we are in execution phase)
-        # or it should be next in line in pending_dbs if we are in CR phase
-        assert data is self.active_db or data is self.pending_dbs[0], \
-            "Data {} is not active db {} or next pending db {}".format(data, self.active_db, self.pending_dbs[0])
-
-        try:
-            BookKeeper.set_cr_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data, rt={
-                'contract': contract.contract_name
-            })
-            data.locked = False
-
-            # raghu todo ? clarify with Davis - this is a transaction which is also a contract ? if so, txn.sender is what is inside contract.sender while contract.contract_name and contract.func_name are the previously submitted code ?
-            # and if this is a submit_contract, contract_name is smart_contract, func_name = submit_contract, kwargs will have contract_name for new contract and code-str and contract.sender is the author of new contract?
-            run_info = self.execute_function(contract.contract_name, contract.func_name, contract.sender,
-                                             contract.stamps_supplied, kwargs=contract.kwargs)
-
-            # The following is just for debug info
-            stamps_spent = run_info['stamps_used']
-            self.log.spam("Running contract from sender {} used {} stamps and returned run_info: {}"
-                          .format(contract.sender, stamps_spent, run_info))
-
-            result = SUCC_FLAG
-
-        except Exception as e:
-            # TODO -- change this log level for production, as we will get spammed like nuts when contracts fail
-            self.log.warning("Contract failed with error:\n{} \ncontract obj: {}".format(traceback.format_exc(), contract))
-            result = 'FAIL' + ' -- ' + str(e)
-            data.rollback_contract(contract_idx)
-
-        finally:
-            data.locked = True
-
-        return result
+    # def run_contract(self, contract):
+    #     assert self.active_db, "active_db must be set to run a contract. Did you call _start_sb?"
+    #     assert self.active_db.input_hash, "Input hash not set...davis u done goofed again"
+    #
+    #     data = self.active_db
+    #     contract_idx = data.next_contract_idx
+    #
+    #     result = self._run_contract(contract, contract_idx=contract_idx, data=data)
+    #     self.active_db.add_contract_result(contract, result)
+    #
+    #     # DEBUG
+    #     kwargs = 'contract_name=' + contract.contract_name if hasattr(contract, 'contract_code') else contract.kwargs
+    #     self.log.notice("[EXEC PHASE #{}] exec from sender {} with kwargs {} resulted in state {}"
+    #                   .format(contract_idx, contract.sender, kwargs, data.get_state_for_idx(contract_idx)))
+    #     # END DEBUG
+    #
+    # def _run_contract(self, contract, contract_idx: int, data: CRContext) -> str:
+    #     """ Runs the contract object, and retuns a string representing the result (succ/fail).
+    #     Note: Assumes the BookKeeping info has already been set. """
+    #     # Development sanity checks. data passed in should either be the active_db (if we are in execution phase)
+    #     # or it should be next in line in pending_dbs if we are in CR phase
+    #     assert data is self.active_db or data is self.pending_dbs[0], \
+    #         "Data {} is not active db {} or next pending db {}".format(data, self.active_db, self.pending_dbs[0])
+    #
+    #     try:
+    #         BookKeeper.set_cr_info(sbb_idx=self.sbb_idx, contract_idx=contract_idx, data=data, rt={
+    #             'contract': contract.contract_name
+    #         })
+    #         data.locked = False
+    #
+    #         # raghu todo ? clarify with Davis - this is a transaction which is also a contract ? if so, txn.sender is what is inside contract.sender while contract.contract_name and contract.func_name are the previously submitted code ?
+    #         # and if this is a submit_contract, contract_name is smart_contract, func_name = submit_contract, kwargs will have contract_name for new contract and code-str and contract.sender is the author of new contract?
+    #         run_info = self.execute_function(contract.contract_name, contract.func_name, contract.sender,
+    #                                          contract.stamps_supplied, kwargs=contract.kwargs)
+    #
+    #         # The following is just for debug info
+    #         stamps_spent = run_info['stamps_used']
+    #         self.log.spam("Running contract from sender {} used {} stamps and returned run_info: {}"
+    #                       .format(contract.sender, stamps_spent, run_info))
+    #
+    #         result = SUCC_FLAG
+    #
+    #     except Exception as e:
+    #         # TODO -- change this log level for production, as we will get spammed like nuts when contracts fail
+    #         self.log.warning("Contract failed with error:\n{} \ncontract obj: {}".format(traceback.format_exc(), contract))
+    #         result = 'FAIL' + ' -- ' + str(e)
+    #         data.rollback_contract(contract_idx)
+    #
+    #     finally:
+    #         data.locked = True
+    #
+    #     return result
 
     def _rerun_contracts_for_cr_data(self, cr_data: CRContext):
         """ Reruns any contracts in cr_data, if necessary. This should be done before we merge cr_data to common. """
@@ -300,8 +301,18 @@ class SenecaClient(Executor):
         self.log.info(">>> Executing sub block for input hash {} with {} txs >>>".format(input_hash, len(contracts)))
 
         self._start_sb(input_hash)
-        for c in contracts:
-            self.run_contract(c)
+
+        bag = TransactionBag(list(enumerate(contracts)), self.active_db)
+        for idx, res in self.executoaaaaaaaaaaaaaaaaar.execute_bag(bag).items():
+            status_code, result = res  # result is the return value of the contract, or the error code
+
+            if status_code == 1:
+                # rollback this contract
+            else:
+                # update this run result in the Crcontext (self.active_db)
+
+
+
         self._end_sb(completion_handler)
 
     def _start_sb(self, input_hash: str):

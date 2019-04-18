@@ -6,16 +6,16 @@ from .conflict_resolution import CRContext, CR_EXCLUDED_KEYS
 
 
 class CRCmdBase:
-    def __init__(self, working_db, master_db, sbb_idx: int, contract_idx: int, data: CRContext):
-        self.log = get_logger("{}[sbb_{}][contract_{}]".format(type(self).__name__, sbb_idx, contract_idx))
+    def __init__(self, working_db, master_db, contract_idx: int, data: CRContext):
+        self.log = get_logger("{}[contract_{}]".format(type(self).__name__, contract_idx))
         self.data = data.cr_data
         self.working, self.master = working_db, master_db
-        self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
+        self.contract_idx = contract_idx
 
-    def set_params(self, working_db, master_db, sbb_idx: int, contract_idx: int, data: CRContext):
+    def set_params(self, working_db, master_db, contract_idx: int, data: CRContext):
         self.data = data.cr_data
         self.working, self.master = working_db, master_db
-        self.sbb_idx, self.contract_idx = sbb_idx, contract_idx
+        self.contract_idx = contract_idx
 
     def _copy_og_key_if_not_exists(self, key):
         """
