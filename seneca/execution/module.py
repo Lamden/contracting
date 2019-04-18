@@ -69,6 +69,7 @@ class DatabaseLoader(Loader):
         ctx.this = module.__name__
         ctx.signer = rt.ctx[0]
 
+        # replace this with the new stdlib stuff
         env = {
             'ctx': ctx,
             'Variable': Variable,
