@@ -252,9 +252,25 @@ class SenecaClient:
                                                .format(cr_data, self.pending_dbs[0])
 
         self.log.notice("Rerunning any necessary contracts for CRData with input hash {}".format(cr_data.input_hash))
-        for i in cr_data.iter_rerun_indexes():
-            result = self._run_contract(cr_data.contracts[i], contract_idx=i, data=cr_data)
-            cr_data.update_contract_result(contract_idx=i, result=result)
+
+        bag = TransactionBag([(i, cr_data.contracts[i]) for i in cr_data.iter_rerun_indexes()], cr_data)
+        self._execute_bag(bag, should_update=True)
+
+    def _execute_bag(self, bag: TransactionBag, should_update=False):
+        for idx, res in self.executor.execute_bag(bag).items():
+            status_code, output = res['status_code'], res['result']
+
+            if status_code == 1:
+                self.log.warning("Contract {} failed with error:\n{}".format(bag.get_tx_at_idx(idx), output))
+                bag.cr_context.rollback_contract(idx)
+                flag = "FAIL -- {}".format(output)
+            else:
+                flag = "SUCC"  # todo attach the output also?? why do we even need the output actually?
+
+            if should_update:
+                bag.cr_context.update_contract_result(bag.get_tx_at_idx(idx), flag)
+            else:
+                bag.cr_context.add_contract_result(bag.get_tx_at_idx(idx), flag)
 
     def _can_start_next_sb(self) -> bool:
         """
@@ -303,18 +319,7 @@ class SenecaClient:
         self._start_sb(input_hash)
 
         bag = TransactionBag(list(enumerate(contracts)), self.active_db)
-        for idx, res in self.executor.execute_bag(bag).items():
-            status_code, output = res['status_code'], res['result']
-
-            if status_code == 1:
-                self.log.warning("Contract {} failed with error:\n{}".format(contracts[idx], output))
-                self.active_db.rollback_contract(idx)
-                flag = "FAIL -- {}".format(output)
-            else:
-                # update this run result in the Crcontext (self.active_db)
-                flag = "SUCC"  # todo attach the output also?? why do we even need the output actually?
-
-            self.active_db.add_contract_result(contracts[idx], flag)
+        self._execute_bag(bag, should_update=False)
 
         self._end_sb(completion_handler)
 

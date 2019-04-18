@@ -11,5 +11,22 @@ class TransactionBag:
         for t in self.transactions:
             yield t
 
+    # ideally we should have designed the bag to do this in O(1) but w/e yolo imma just b search that shit
+    def get_tx_at_idx(self, idx: int):
+        i, j = 0, len(self.transactions) - 1
+
+        while j >= i:
+            mid = (i+j) // 2
+            if self.transactions[mid][0] == idx:
+                return self.transactions[mid][1]
+            elif self.transactions[mid][0] > idx:
+                j = mid-1
+            else:
+                i = mid+1
+
+        raise Exception("No transaction found in bag with index {}! Bag's transactions: {}"
+                        .format(idx, self.transactions))
+
+
 
 
