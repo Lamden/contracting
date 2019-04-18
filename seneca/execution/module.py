@@ -71,6 +71,7 @@ class DatabaseLoader(Loader):
         rt.ctx.append(module.__name__)
         print(module)
         print(code)
+        self.sc.module_name = rt.ctx[-1]
         code_obj = self.sc.compile(code, lint=False)
         exec(code_obj, vars(module))
         rt.ctx.pop()

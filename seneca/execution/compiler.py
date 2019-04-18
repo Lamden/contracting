@@ -4,11 +4,10 @@ from seneca import config
 
 from seneca.logger import get_logger
 from seneca.execution.linter import Linter
-from seneca.execution.runtime import rt
 
 
 class SenecaCompiler(ast.NodeTransformer):
-    def __init__(self, module_name=rt.ctx[-1], linter=Linter()):
+    def __init__(self, module_name='__main__', linter=Linter()):
         self.log = get_logger('Seneca.Compiler')
         self.module_name = module_name
         self.linter = linter
