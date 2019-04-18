@@ -245,7 +245,7 @@ class SenecaClient:
     #
     #     return result
 
-    def _rerun_contracts_for_cr_data(self, cr_data: CRContext):
+    def _rerun_transactions_for_cr_data(self, cr_data: CRContext):
         """ Reruns any contracts in cr_data, if necessary. This should be done before we merge cr_data to common. """
         # This cr_data should be next in line in pending_dbs if we are rerunning contracts
         assert self.pending_dbs[0] is cr_data, "cr_data {} is not first in line in pending_dbs! First is {}"\
@@ -425,7 +425,7 @@ class SenecaClient:
                                             timeout=(len(self.pending_dbs) + 1) * Phase.CR_TIMEOUT)
         self.log.debug("Done waiting for other SBBs to finish conflict resolution ({})".format(cr_data))
 
-        self._rerun_contracts_for_cr_data(cr_data)
+        self._rerun_transactions_for_cr_data(cr_data)
         self.log.info("Merging sbb_{} data to common layer ({})".format(self.sbb_idx, cr_data))
         cr_data.merge_to_common()
 
