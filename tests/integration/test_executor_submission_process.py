@@ -24,7 +24,7 @@ class TestExecutor(TestCase):
 
         code = '''@seneca_export
 def d():
-    print('yup')            
+    return 1            
 '''
 
         kwargs = {
@@ -32,9 +32,25 @@ def d():
             'code': code
         }
 
-        status = e.execute(sender='stu', contract_name='submission', function_name='submit_contract', kwargs=kwargs)
-
-        print(status)
+        e.execute(sender='stu', contract_name='submission', function_name='submit_contract', kwargs=kwargs)
 
         self.assertEqual(self.d.get_contract('stubucks'), code)
-        print(self.d.get_contract('submission'))
+
+    def test_submission_then_function_call(self):
+        e = Executor()
+
+        code = '''@seneca_export
+def d():
+    return 1            
+'''
+
+        kwargs = {
+            'name': 'stubucks',
+            'code': code
+        }
+
+        e.execute(sender='stu', contract_name='submission', function_name='submit_contract', kwargs=kwargs)
+        status_code, result = e.execute(sender='stu', contract_name='stubucks', function_name='d', kwargs={})
+
+        self.assertEqual(result, 1)
+        self.assertEqual(status_code, 0)

@@ -91,5 +91,3 @@ class DatabaseLoader(Loader):
 
     def module_repr(self, module):
         return '<module {!r} (smart contract)>'.format(module.__name__)
-
-
