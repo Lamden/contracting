@@ -241,3 +241,11 @@ def get_v():
 
         self.assertEqual(key1, 1234)
         self.assertEqual(another_key, 9999)
+
+    def test_orm_foreign_hash_gets_and_sets_in_contract(self):
+        e = Executor()
+
+        res = e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_no_contract_access.s.py'))
+
+        print(res)
