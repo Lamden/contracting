@@ -1,6 +1,6 @@
 from collections import deque
-from seneca import config
-from seneca.db.driver import ContractDriver
+from .. import config
+from ..db.driver import ContractDriver
 
 
 class Runtime:

@@ -1,7 +1,3 @@
-import seneca
-
-
-SENECA_PATH = seneca.__path__[0]
 SENECA_SC_PATH = 'seneca.contracts'
 
 DB_TYPE = 'redis'

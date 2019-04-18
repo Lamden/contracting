@@ -1,9 +1,9 @@
 import ast
 
-from seneca import config
+from .. import config
 
-from seneca.logger import get_logger
-from seneca.execution.linter import Linter
+from ..logger import get_logger
+from ..execution.linter import Linter
 
 
 class SenecaCompiler(ast.NodeTransformer):

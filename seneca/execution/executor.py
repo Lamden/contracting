@@ -1,10 +1,10 @@
 import multiprocessing
 import importlib
 
-from seneca.execution.module import install_database_loader
-from seneca.parallelism import book_keeper, cr_driver
-from seneca.execution import runtime
-from seneca.db import driver
+from ..execution.module import install_database_loader
+from ..parallelism import book_keeper, cr_driver
+from ..execution import runtime
+from ..db import driver
 
 
 class Executor:
