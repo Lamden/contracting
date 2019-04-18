@@ -132,6 +132,9 @@ class Sandbox(object):
         pass
 
     def execute(self, sender, contract_name, function_name, kwargs):
+        if contract_name == '__submission':
+            print('do something different here...')
+        # __main__ is replaced by the sender of the message in this case
         runtime.rt.ctx.pop()
         runtime.rt.ctx.append(sender)
 

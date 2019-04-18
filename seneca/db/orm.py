@@ -70,3 +70,11 @@ class ForeignHash(Hash):
 
     def __getitem__(self, item):
         return self.get(item)
+
+
+class Contract:
+    def __init__(self, driver: ContractDriver=rt.driver):
+        self.driver = driver
+
+    def submit(self, name, code, author):
+        self.driver.set_contract(name=name, code=code, author=author, overwrite=False)
