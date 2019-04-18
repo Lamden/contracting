@@ -1,3 +1,4 @@
+
 class SenecaError(Exception):
     """
     The base exception for Seneca. The fmt directive

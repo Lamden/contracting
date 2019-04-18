@@ -2,7 +2,6 @@ from seneca.db.driver import ContractDriver
 from seneca.execution.runtime import rt
 from seneca import config
 
-CLASS_NAMES = {'Variable', 'Hash', 'ForeignVariable', 'ForeignHash'}
 
 class Datum:
     def __init__(self, contract, name, driver: ContractDriver):
