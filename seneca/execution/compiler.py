@@ -28,8 +28,11 @@ class SenecaCompiler(ast.NodeTransformer):
 
         # check all visited nodes and see if they are actually private
         for node in self.visited_expr:
-            if node.value.func.id in self.private_expr:
-                node.value.func.id = self.privatize(node.value.func.id)
+            try:
+                if node.value.func.id in self.private_expr:
+                    node.value.func.id = self.privatize(node.value.func.id)
+            except:
+                pass
 
         ast.fix_missing_locations(tree)
 
@@ -63,9 +66,11 @@ class SenecaCompiler(ast.NodeTransformer):
         return node
 
     def visit_Assign(self, node):
-        if isinstance(node.value, ast.Call) and node.value.func.id in config.ORM_CLASS_NAMES:
-            node.value.keywords.append(ast.keyword('contract', ast.Str(self.module_name)))
-            node.value.keywords.append(ast.keyword('name', ast.Str(node.targets[0].id)))
+        print('mmhmm')
+        if isinstance(node.value, ast.Call):
+            if node.value.func.id in config.ORM_CLASS_NAMES:
+                node.value.keywords.append(ast.keyword('contract', ast.Str(self.module_name)))
+                node.value.keywords.append(ast.keyword('name', ast.Str(node.targets[0].id)))
 
         return node
 

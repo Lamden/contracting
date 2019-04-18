@@ -1,7 +1,7 @@
-xrate = var()
-seed_amount = var()
-balances = hash()
-allowed = hash()
+xrate = Variable()
+seed_amount = Variable()
+balances = Hash()
+allowed = Hash()
 
 @seed
 def __init__():
