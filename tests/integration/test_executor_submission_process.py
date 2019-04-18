@@ -224,3 +224,20 @@ def get_v():
         self.assertEqual(status_1, 1)
         self.assertEqual(status_2, 1)
 
+    def test_orm_foreign_hash_gets_and_sets_in_contract(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'))
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_foreign_hash_contract.s.py'))
+
+        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'key1', 'v': 1234})
+        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'another_key', 'v': 9999})
+
+        _, key1 = e.execute('stu', 'test_orm_foreign_hash_contract', 'get_fh', kwargs={'k': 'key1'})
+        _, another_key = e.execute('stu', 'test_orm_foreign_hash_contract', 'get_fh', kwargs={'k': 'another_key'})
+
+        self.assertEqual(key1, 1234)
+        self.assertEqual(another_key, 9999)
