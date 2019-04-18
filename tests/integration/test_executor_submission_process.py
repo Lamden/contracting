@@ -22,18 +22,19 @@ class TestExecutor(TestCase):
     def test_submission(self):
         e = Executor()
 
-        kwargs = {
-            'name': 'stubucks',
-            'code': '''
-@seneca_export
+        code = '''@seneca_export
 def d():
     print('yup')            
 '''
+
+        kwargs = {
+            'name': 'stubucks',
+            'code': code
         }
 
         status = e.execute(sender='stu', contract_name='submission', function_name='submit_contract', kwargs=kwargs)
 
         print(status)
 
-        print(self.d.get_contract('stubucks'))
+        self.assertEqual(self.d.get_contract('stubucks'), code)
         print(self.d.get_contract('submission'))
