@@ -5,7 +5,7 @@ from importlib import invalidate_caches
 
 from seneca.db.driver import ContractDriver
 from seneca.execution.compiler import SenecaCompiler
-from seneca.db.orm import Variable, ForeignVariable, Hash, ForeignHash
+from seneca.db.orm import Variable, ForeignVariable, Hash, ForeignHash, Contract
 
 from .runtime import rt
 
@@ -74,7 +74,8 @@ class DatabaseLoader(Loader):
             'Variable': Variable,
             'ForeignVariable': ForeignVariable,
             'Hash': Hash,
-            'ForeignHash': ForeignHash
+            'ForeignHash': ForeignHash,
+            '__Contract': Contract
         }
 
         rt.ctx.append(module.__name__)
@@ -82,8 +83,8 @@ class DatabaseLoader(Loader):
 
         code_obj = self.sc.compile(code, lint=False)
 
+        # execute the module with the std env and update the module to pass forward
         exec(code_obj, env)
-
         vars(module).update(env)
 
         rt.ctx.pop()
