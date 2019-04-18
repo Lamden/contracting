@@ -1,6 +1,7 @@
 import multiprocessing
 import importlib
 
+from seneca.execution.module import install_database_loader
 from seneca.parallelism import book_keeper, cr_driver
 from seneca.execution import runtime
 from seneca.db import driver
@@ -129,9 +130,12 @@ I/O pattern:
 
 class Sandbox(object):
     def __init__(self):
-        pass
+        install_database_loader()
 
     def execute(self, sender, contract_name, function_name, kwargs):
+        if contract_name == '__submission':
+            print('do something different here...')
+        # __main__ is replaced by the sender of the message in this case
         runtime.rt.ctx.pop()
         runtime.rt.ctx.append(sender)
 
@@ -143,6 +147,7 @@ class Sandbox(object):
 
 class MultiProcessingSandbox(Sandbox):
     def __init__(self):
+        super().__init__()
         self.pipe = multiprocessing.Pipe()
         self.p = None
 

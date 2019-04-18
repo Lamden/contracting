@@ -4,6 +4,9 @@ from importlib.abc import Loader, MetaPathFinder
 from importlib import invalidate_caches
 
 from seneca.db.driver import ContractDriver
+from seneca.execution.compiler import SenecaCompiler
+from seneca.db.orm import Variable, ForeignVariable, Hash, ForeignHash, Contract
+
 from .runtime import rt
 
 from types import ModuleType
@@ -47,7 +50,7 @@ class DatabaseFinder(MetaPathFinder):
 
 class DatabaseLoader(Loader):
     def __init__(self):
-        from seneca.execution.compiler import SenecaCompiler
+
         self.d = ContractDriver()
         self.sc = SenecaCompiler()
 
@@ -66,17 +69,26 @@ class DatabaseLoader(Loader):
         ctx.this = module.__name__
         ctx.signer = rt.ctx[0]
 
-        module.ctx = ctx
+        # replace this with the new stdlib stuff
+        env = {
+            'ctx': ctx,
+            'Variable': Variable,
+            'ForeignVariable': ForeignVariable,
+            'Hash': Hash,
+            'ForeignHash': ForeignHash,
+            '__Contract': Contract
+        }
 
         rt.ctx.append(module.__name__)
         self.sc.module_name = rt.ctx[-1]
 
         code_obj = self.sc.compile(code, lint=False)
 
-        exec(code_obj, vars(module))
+        # execute the module with the std env and update the module to pass forward
+        exec(code_obj, env)
+        vars(module).update(env)
+
         rt.ctx.pop()
 
     def module_repr(self, module):
         return '<module {!r} (smart contract)>'.format(module.__name__)
-
-
