@@ -4,6 +4,9 @@ from importlib.abc import Loader, MetaPathFinder
 from importlib import invalidate_caches
 
 from seneca.db.driver import ContractDriver
+from seneca.execution.compiler import SenecaCompiler
+from seneca.db.orm import Variable, ForeignVariable, Hash, ForeignHash
+
 from .runtime import rt
 
 from types import ModuleType
@@ -47,7 +50,7 @@ class DatabaseFinder(MetaPathFinder):
 
 class DatabaseLoader(Loader):
     def __init__(self):
-        from seneca.execution.compiler import SenecaCompiler
+
         self.d = ContractDriver()
         self.sc = SenecaCompiler()
 
@@ -60,20 +63,30 @@ class DatabaseLoader(Loader):
         if code is None:
             raise ImportError("Module {} not found".format(module.__name__))
 
+
+
+
         ctx = ModuleType('context')
 
         ctx.caller = rt.ctx[-1]
         ctx.this = module.__name__
         ctx.signer = rt.ctx[0]
 
-        module.ctx = ctx
+        env = {
+            'ctx': ctx
+        }
+
+        #module.ctx = ctx
 
         rt.ctx.append(module.__name__)
         self.sc.module_name = rt.ctx[-1]
 
         code_obj = self.sc.compile(code, lint=False)
 
-        exec(code_obj, vars(module))
+        exec(code_obj, env)
+
+        vars(module).update(env)
+
         rt.ctx.pop()
 
     def module_repr(self, module):
