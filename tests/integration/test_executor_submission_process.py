@@ -154,7 +154,7 @@ def get_v():
 
         self.assertEqual(res[1], None)
 
-    def test_orm_variable_gets_and_sets_in_contract(self):
+    def test_orm_hash_gets_and_sets_in_contract(self):
         e = Executor()
 
         e.execute(**TEST_SUBMISSION_KWARGS,
@@ -168,3 +168,36 @@ def get_v():
 
         self.assertEqual(key1, 1234)
         self.assertEqual(another_key, 9999)
+
+    def test_orm_foreign_variable_sets_in_contract_dont_work(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'))
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_foreign_key_contract.s.py'))
+
+        e.execute('stu', 'test_orm_variable_contract', 'set_v', kwargs={'i': 1000})
+
+        # this should fail
+        status, _ = e.execute('stu', 'test_orm_foreign_key_contract', 'set_fv', kwargs={'i': 999})
+
+        self.assertEqual(status, 1)
+
+        _, i = e.execute('stu', 'test_orm_variable_contract', 'get_v', kwargs={})
+        self.assertEqual(i, 1000)
+
+    def test_orm_foreign_variable_gets_in_contract(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'))
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_foreign_key_contract.s.py'))
+
+        e.execute('stu', 'test_orm_variable_contract', 'set_v', kwargs={'i': 424242})
+
+        # this should fail
+        _, i = e.execute('stu', 'test_orm_foreign_key_contract', 'get_fv', kwargs={})
+
+        self.assertEqual(i, 424242)
