@@ -20,33 +20,38 @@ def a():
         print("stu code: \n{}".format(data))
         ptree = ast.parse(data)
         status = self.l.check(ptree)
-        if status:
+        self.l.dump_violations()
+        if status is None:
             print("Success!")
         else:
             print("Failed!")
 
+        self.assertEqual(status, None)
+
     def test_good_ast_type(self):
         for t in ALLOWED_AST_TYPES:
             _t = t()
-            self.l.ast_types(_t)
+            self.l.ast_types(_t, 1)
             self.assertListEqual([], self.l._violations)
 
     def test_bad_ast_type(self):
-        err = 'Error : Illegal AST type: AsyncFunctionDef'
+        err = 'Line 1 : S1- Illegal seneca syntax type used : AsyncFunctionDef'
         t = ast.AsyncFunctionDef()
-        self.l.ast_types(t)
+        self.l.ast_types(t, 1)
         self.l.dump_violations()
         self.assertMultiLineEqual(err, self.l._violations[0])
 
     def test_not_system_variable(self):
         v = 'package'
-        self.l.not_system_variable(v)
+        self.l.not_system_variable(v, 1)
+        self.l.dump_violations()
         self.assertListEqual([], self.l._violations)
 
     def test_system_variable(self):
         v = '__package__'
-        err = "Error : Incorrect use of <_> access denied for var : __package__"
-        self.l.not_system_variable(v)
+        err = "Line 1 : S2- Illicit use of '_' before variable : __package__"
+        self.l.not_system_variable(v, 1)
+        self.l.dump_violations()
         self.assertMultiLineEqual(err, self.l._violations[0])
 
     '''
@@ -58,7 +63,7 @@ def a():
 def a():
     __ruh_roh__ = 'shaggy'
         '''
-        err = 'Error : Incorrect use of <_> access denied for var : __ruh_roh__'
+        err = "Line 4 : S2- Illicit use of '_' before variable : __ruh_roh__"
 
         c = ast.parse(code)
         chk = self.l.check(c)

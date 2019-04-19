@@ -18,14 +18,16 @@ class Linter(ast.NodeVisitor):
         self._constructor_visited = False
         self.driver = ContractDriver()
 
-    def ast_types(self, t):
+    def ast_types(self, t, lnum):
         if type(t) not in ALLOWED_AST_TYPES:
-            str = "Error : Illegal AST type: {}" .format(type(t).__name__)
+            str = "Line {}".format(lnum) + " : " + VIOLATION_TRIGGERS[0] + " : {}" .format(type(t).__name__)
             self._violations.append(str)
+            self._is_success = False
 
-    def not_system_variable(self, v):
+    def not_system_variable(self, v, lnum):
+
         if v.startswith('_'):
-            str = "Error : Incorrect use of <_> access denied for var : {}".format(v)
+            str = "Line {} : ".format(lnum) + VIOLATION_TRIGGERS[1] + " : {}" .format(v)
             self._violations.append(str)
 
     def no_nested_imports(self, node):
@@ -35,12 +37,12 @@ class Linter(ast.NodeVisitor):
                 self._violations.append(str)
 
     def visit_Name(self, node):
-        self.not_system_variable(node.id)
+        self.not_system_variable(node.id, node.lineno)
         self.generic_visit(node)
         return node
 
     def visit_Attribute(self, node):
-        self.not_system_variable(node.attr)
+        self.not_system_variable(node.attr, node.lineno)
         self.generic_visit(node)
         return node
 
