@@ -29,12 +29,14 @@ class Linter(ast.NodeVisitor):
         if v.startswith('_'):
             str = "Line {} : ".format(lnum) + VIOLATION_TRIGGERS[1] + " : {}" .format(v)
             self._violations.append(str)
+            self._is_success = False
 
     def no_nested_imports(self, node):
         for item in node.body:
             if type(item) in [ast.ImportFrom, ast.Import]:
-                str = "Error : Nested import is illegal"
+                str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[2]
                 self._violations.append(str)
+                self._is_success = False
 
     def visit_Name(self, node):
         self.not_system_variable(node.id, node.lineno)
@@ -47,7 +49,6 @@ class Linter(ast.NodeVisitor):
         return node
 
     def visit_Import(self, node):
-        print (node.lineno)
         for n in node.names:
             self.validate_imports(n.name, alias=n.asname, lnum = node.lineno)
         return self._visit_any_import(node)
@@ -55,11 +56,13 @@ class Linter(ast.NodeVisitor):
     def visit_ImportFrom(self, node):
         str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[3]
         self._violations.append(str)
+        self._is_success = False
 
     def validate_imports(self, import_path, module_name=None, alias=None, lnum= 0):
         if self.driver.get_contract(import_path) is None:
             str = "Line {}: ".format(lnum) +VIOLATION_TRIGGERS[4] + ': {}'.format(import_path)
             self._violations.append(str)
+            self._is_success = False
 
     def _visit_any_import(self, node):
         self.generic_visit(node)
@@ -69,7 +72,9 @@ class Linter(ast.NodeVisitor):
     Why are we even doing any logic instead of just failing on visiting these?
     '''
     def visit_ClassDef(self, node):
-        self.log.error("Classes are not allowed in Seneca contracts")
+        # self.log.error("Classes are not allowed in Seneca contracts")
+        str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[5]
+        self._violations.append(str)
         self._is_success = False
         self.generic_visit(node)
         #raise CompilationException
@@ -77,7 +82,7 @@ class Linter(ast.NodeVisitor):
 
     def visit_AsyncFunctionDef(self, node):
         # self.log.error("Async functions are not allowed in Seneca contracts")
-        str = VIOLATION_TRIGGERS[6]
+        str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[6]
         self._violations.append(str)
 
         self._is_success = False
