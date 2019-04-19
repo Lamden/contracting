@@ -24,7 +24,7 @@ class Executor:
             self.sandbox = MultiProcessingSandbox()
         else:
             self.sandbox = Sandbox()
-            self.driver = ContractDriver
+            self.driver = ContractDriver()
 
     def execute_bag(self, bag: TransactionBag) -> Dict[int, dict]:
         """
@@ -64,7 +64,7 @@ class Executor:
         except Exception as e:
             result = e
             status_code = 1
-        return {'status_code': status_code, 'result': result}
+        return status_code, result
 
 
 """
@@ -92,8 +92,8 @@ I/O pattern:
 
 
 class Sandbox(object):
-    def __init__(self):
-        install_database_loader()
+    #def __init__(self):
+        #install_database_loader()
 
     def execute(self, sender, contract_name, function_name, kwargs):
         if contract_name == '__submission':

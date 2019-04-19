@@ -1,7 +1,7 @@
 from seneca.db.driver import ContractDriver
 from seneca.execution.runtime import rt
 from seneca import config
-from seneca.execution.linter import Linter
+#from seneca.execution.linter import Linter
 
 class Datum:
     def __init__(self, contract, name, driver: ContractDriver):
