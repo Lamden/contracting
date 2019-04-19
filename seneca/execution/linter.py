@@ -145,6 +145,7 @@ class Linter(ast.NodeVisitor):
         return node
 
     def _reset(self):
+        self._violations = []
         self._functions = []
         self._is_one_export = False
         self._is_success = True
