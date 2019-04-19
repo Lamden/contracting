@@ -1,5 +1,5 @@
 import sys
-from ..config import RECURSION_LIMIT
+from ...config import RECURSION_LIMIT
 
 
 def set_resource_limits():

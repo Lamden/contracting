@@ -1,8 +1,8 @@
 from unittest import TestCase
-from seneca.execution.linter import Linter
-from seneca.execution.whitelists import VIOLATION_TRIGGERS
+from seneca.interpreter.linter import Linter
+from seneca.exceptions import CompilationException
 import ast
-from seneca.execution.whitelists import ALLOWED_AST_TYPES
+from seneca.interpreter.whitelists import ALLOWED_AST_TYPES
 
 class TestLinter(TestCase):
     def setUp(self):
@@ -126,7 +126,7 @@ class Scooby:
         c = ast.parse(code)
         chk = self.l.check(c)
         self.l.dump_violations()
-        #self.assertEqual(len(chk), 2)
+        self.assertMultiLineEqual(err, self.l._violations[0])
 
 
     def test_accessing_system_vars(self):

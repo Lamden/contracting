@@ -40,6 +40,7 @@ typedef struct {
     unsigned int cost;
     unsigned int stamp_supplied;
     int started;
+    char *cu_cost_fname;
 
 } Tracer;
 
@@ -169,7 +170,7 @@ Tracer_stop(Tracer *self, PyObject *args)
 static PyObject *
 Tracer_set_stamp(Tracer *self, PyObject *args, PyObject *kwds)
 {
-    PyArg_ParseTuple(args, "i", &self->stamp_supplied);
+        PyArg_ParseTuple(args, "i", &self->stamp_supplied);
     return Py_BuildValue("");
 }
 

@@ -3,8 +3,8 @@ import ast
 from .. import config
 
 from ..logger import get_logger
-from ..execution.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS
-from ..execution.module import ContractDriver
+from ..interpreter.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS
+from ..interpreter.module import ContractDriver
 
 
 class Linter(ast.NodeVisitor):

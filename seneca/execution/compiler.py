@@ -3,7 +3,7 @@ import ast
 from .. import config
 
 from ..logger import get_logger
-from ..execution.linter import Linter
+from ..interpreter.linter import Linter
 
 
 class SenecaCompiler(ast.NodeTransformer):
@@ -58,7 +58,11 @@ class SenecaCompiler(ast.NodeTransformer):
         # Presumes all decorators are valid, as caught by linter.
         if node.decorator_list:
             # Presumes that a single decorator is passed. This is caught by the linter.
-            node.decorator_list.pop()
+            decorator = node.decorator_list.pop()
+
+            # change the name of the init function to '____' so it is uncallable except once
+            if decorator == config.INIT_DECORATOR_STRING:
+                node.name = '____'
         else:
             self.private_expr.add(node.name)
             node.name = self.privatize(node.name)

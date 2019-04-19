@@ -1,5 +1,5 @@
-from seneca.parallelism.conflict_resolution import *
-from seneca.parallelism.cr_commands import CRCmdBase
+from seneca.db.cr.conflict_resolution import *
+from seneca.db.cr.cr_commands import CRCmdBase
 from seneca.db.driver import DatabaseDriver
 from unittest import TestCase
 import unittest
