@@ -3,7 +3,7 @@ import ast
 from .. import config
 
 from ..logger import get_logger
-from ..execution.whitelists import ALLOWED_AST_TYPES
+from ..execution.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS
 from ..execution.module import ContractDriver
 
 
@@ -73,7 +73,10 @@ class Linter(ast.NodeVisitor):
         return node
 
     def visit_AsyncFunctionDef(self, node):
-        self.log.error("Async functions are not allowed in Seneca contracts")
+        # self.log.error("Async functions are not allowed in Seneca contracts")
+        str = VIOLATION_TRIGGERS[6]
+        self._violations.append(str)
+
         self._is_success = False
         self.generic_visit(node)
         # raise CompilationException
@@ -146,6 +149,8 @@ class Linter(ast.NodeVisitor):
 
     def _final_checks(self):
         if not self._is_one_export:
+            str = VIOLATION_TRIGGERS[12]
+            self._violations.append(str)
             self.log.error("Need atleast one method with @seneca_export() decorator that outside world use to interact "
                            "with this contract")
             self._is_success = False

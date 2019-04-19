@@ -1,5 +1,6 @@
 from unittest import TestCase
 from seneca.execution.linter import Linter
+from seneca.execution.whitelists import VIOLATION_TRIGGERS
 import ast
 from seneca.execution.whitelists import ALLOWED_AST_TYPES
 
@@ -34,6 +35,7 @@ def a():
         err = 'Error : Illegal AST type: AsyncFunctionDef'
         t = ast.AsyncFunctionDef()
         self.l.ast_types(t)
+        self.l.dump_violations()
         self.assertMultiLineEqual(err, self.l._violations[0])
 
     def test_not_system_variable(self):
@@ -59,7 +61,9 @@ def a():
         err = 'Error : Incorrect use of <_> access denied for var : __ruh_roh__'
 
         c = ast.parse(code)
-        self.l.check(c)
+        chk = self.l.check(c)
+        self.l.dump_violations()
+        self.assertEqual(chk, None)
         self.assertMultiLineEqual(err, self.l._violations[0])
 
     def test_not_system_variable_ast_success(self):
@@ -69,7 +73,9 @@ def a():
     ruh_roh = 'shaggy'
         '''
         c = ast.parse(code)
-        self.l.visit(c)
+        chk = self.l.check(c)
+        self.l.dump_violations()
+        self.assertEqual(chk, None)
         self.assertListEqual([], self.l._violations)
 
     def test_visit_async_func_def_fail(self):
@@ -89,7 +95,7 @@ async def a():
         err = 'Error : Illegal AST type: AsyncFunctionDef'
 
         c = ast.parse(code)
-        self.l.visit(c)
+        self.l.check(c)
         self.assertMultiLineEqual(err, self.l._violations[0])
 
 
