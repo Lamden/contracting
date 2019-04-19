@@ -47,17 +47,18 @@ class Linter(ast.NodeVisitor):
         return node
 
     def visit_Import(self, node):
+        print (node.lineno)
         for n in node.names:
-            self.validate_imports(n.name, alias=n.asname)
+            self.validate_imports(n.name, alias=n.asname, lnum = node.lineno)
         return self._visit_any_import(node)
 
     def visit_ImportFrom(self, node):
-        str = 'ImportFrom ast nodes not yet supported.'
+        str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[3]
         self._violations.append(str)
 
-    def validate_imports(self, import_path, module_name=None, alias=None):
+    def validate_imports(self, import_path, module_name=None, alias=None, lnum= 0):
         if self.driver.get_contract(import_path) is None:
-            str = 'Contract named "{}" does not exist in state.'.format(import_path)
+            str = "Line {}: ".format(lnum) +VIOLATION_TRIGGERS[4] + ': {}'.format(import_path)
             self._violations.append(str)
 
     def _visit_any_import(self, node):
@@ -153,8 +154,8 @@ class Linter(ast.NodeVisitor):
         if not self._is_one_export:
             str = VIOLATION_TRIGGERS[12]
             self._violations.append(str)
-            self.log.error("Need atleast one method with @seneca_export() decorator that outside world use to interact "
-                           "with this contract")
+            # self.log.error("Need atleast one method with @seneca_export() decorator that outside world use to interact "
+            #                "with this contract")
             self._is_success = False
     
     def _collect_function_defs(self, root):

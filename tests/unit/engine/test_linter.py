@@ -214,10 +214,10 @@ def a():
     b = 0
     b += 1
 '''
-        err = 'ImportFrom ast nodes not yet supported.'
+        err = 'Line 2: S4- ImportFrom ast nodes not yet supported'
 
         c = ast.parse(code)
-        self.l.visit(c)
+        chk = self.l.check(c)
         self.l.dump_violations()
         self.assertMultiLineEqual(err, self.l._violations[0])
 
@@ -229,10 +229,11 @@ def a():
     b = 0
     b += 1
 '''
-        err = 'Contract named "something" does not exist in state.'
+        err = 'Line 2: S5- Contract not found in lib: something'
 
         c = ast.parse(code)
-        self.l.visit(c)
+        self.l.check(c)
+        self.l.dump_violations()
         self.assertMultiLineEqual(err, self.l._violations[0])
 
     def test_final_checks_set_properly(self):
@@ -243,9 +244,9 @@ def a():
         '''
 
         c = ast.parse(code)
-        self.l.visit(c)
-        self.l._final_checks()
-
+        chk = self.l.check(c)
+        self.l.dump_violations()
+        self.assertEqual(chk, ['S13- No valid seneca decorator found'])
         self.assertFalse(self.l._is_one_export)
 
     def test_collect_function_defs(self):
