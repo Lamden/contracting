@@ -16,21 +16,19 @@ class TestExecutor(unittest.TestCase):
         del self.e
 
     def test_init(self):
-        self.assertEqual(self.e.concurrency, True, 'Concurrency not set to True by default.')
         self.assertEqual(self.e.metering, True, 'Metering not set to true by default.')
 
     def test_dynamic_init(self):
-        e = Executor(metering=False, concurrency=False)
+        e = Executor(metering=False)
 
         self.assertEqual(e.metering, False, 'Metering is not set to false after dynamic set')
-        self.assertEqual(e.concurrency, False, 'Concurrency is not set to false after dynamic set.')
 
     def test_driver_resolution(self):
         # The CRDriver class is not able to be isolated so this test is turned off for now
         # Colin TODO: Discuss with Davis how we update CRDriver (or isolate the concept)
         #self.assertIsInstance(self.e.driver, cr_driver.CRDriver, 'Driver type does not resolve to CRDriver type when concurrency is True')
 
-        e = Executor(concurrency=False)
+        e = Executor(production=False)
         self.assertIsInstance(e.driver, AbstractDatabaseDriver, 'Driver does not resolve to AbstractDatabaseDriver when concurrency is False')
 
 
@@ -168,6 +166,8 @@ class DBTests(unittest.TestCase):
         self.assertEqual(status_code, 1)
         self.assertIsInstance(result, ImportError)
 
+
+class TestBag():
     def test_executor_execute_bag(self):
         ctx1 = ContractTxStub(self.author, 'module_func', 'test_func',
                               {'status': 'Working'})
@@ -253,7 +253,7 @@ class ContractTxStub(object):
 
 class TestExecutorIntegration(unittest.TestCase):
     def setUp(self):
-        e = Executor(metering=False, concurrency=False, production=False)
+        e = Executor(metering=False, production=False)
 
 
 
