@@ -4,7 +4,7 @@ from importlib.abc import Loader, MetaPathFinder
 from importlib import invalidate_caches
 
 from ..db.driver import ContractDriver
-from ..execution.compiler import SenecaCompiler
+#from ..execution.compiler import SenecaCompiler
 from ..db.orm import Variable, ForeignVariable, Hash, ForeignHash, Contract
 
 from ..execution.runtime import rt
@@ -50,6 +50,7 @@ class DatabaseFinder(MetaPathFinder):
 
 class DatabaseLoader(Loader):
     def __init__(self):
+        from seneca.execution.compiler import SenecaCompiler
 
         self.d = ContractDriver()
         self.sc = SenecaCompiler()
