@@ -1,6 +1,6 @@
-from seneca.logger import get_logger
-from seneca.parallelism.conflict_resolution import CRContext
-from seneca.parallelism.cr_commands import CRCmdGet, CRCmdSet
+from ..logger import get_logger
+from ..parallelism.conflict_resolution import CRContext
+from ..parallelism.cr_commands import CRCmdGet, CRCmdSet
 
 
 class CRDriver:

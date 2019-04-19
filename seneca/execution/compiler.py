@@ -1,9 +1,9 @@
 import ast
 
-from seneca import config
+from .. import config
 
-from seneca.logger import get_logger
-from seneca.execution.linter import Linter
+from ..logger import get_logger
+from ..execution.linter import Linter
 
 
 class SenecaCompiler(ast.NodeTransformer):
@@ -21,8 +21,9 @@ class SenecaCompiler(ast.NodeTransformer):
         tree = ast.parse(source)
 
         if lint:
-            tree = self.linter.visit(tree)
-            # ast.fix_missing_locations(tree)
+            self.linter.check(tree)
+            if len(self.linter.violations) > 0:
+                raise Exception(self.linter.violations[-1])
 
         tree = self.visit(tree)
 
@@ -39,6 +40,7 @@ class SenecaCompiler(ast.NodeTransformer):
         self.visited_expr = set()
 
         return tree
+
 
     @staticmethod
     def privatize(s):

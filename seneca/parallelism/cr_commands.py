@@ -1,4 +1,4 @@
-from seneca.logger import get_logger
+from ..logger import get_logger
 from .conflict_resolution import CRContext, CR_EXCLUDED_KEYS
 
 # TODO -- instead of passing in CRContext, we should be able to get away with just passing in

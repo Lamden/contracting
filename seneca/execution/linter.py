@@ -1,10 +1,10 @@
 import ast
 
-from seneca import config
+from .. import config
 
-from seneca.logger import get_logger
-from seneca.execution.whitelists import ALLOWED_AST_TYPES
-from seneca.execution.module import ContractDriver
+from ..logger import get_logger
+from ..execution.whitelists import ALLOWED_AST_TYPES
+from ..execution.module import ContractDriver
 
 
 class Linter(ast.NodeVisitor):
@@ -16,7 +16,7 @@ class Linter(ast.NodeVisitor):
         self._is_one_export = False
         self._is_success = True
         self._constructor_visited = False
-        self.driver = ContractDriver()
+        #self.driver = ContractDriver()
 
     @staticmethod
     def ast_types(t):
@@ -36,10 +36,6 @@ class Linter(ast.NodeVisitor):
             if type(item) in [ast.ImportFrom, ast.Import]:
                 str = "Error : Nested import is illegal"
                 Linter.violations.append(str)
-
-    def generic_visit(self, node):
-        self.ast_types(node)
-        return super().generic_visit(node)
 
     def visit_Name(self, node):
         self.not_system_variable(node.id)
