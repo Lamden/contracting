@@ -177,8 +177,6 @@ def a():
         self.l.dump_violations()
         self.assertListEqual([], self.l._violations)
 
-
-
     def test_augassign(self):
         code = '''
 @seneca_export
@@ -187,7 +185,9 @@ def a():
     b += 1
 '''
         c = ast.parse(code)
-        self.l.visit(c)
+        chk = self.l.check(c)
+        self.l.dump_violations()
+        self.assertEqual(chk, None)
         self.assertListEqual([], self.l._violations)
 
     def test_import_works(self):
@@ -201,10 +201,11 @@ def a():
         '''
 
         c = ast.parse(code)
-        self.l.visit(c)
-        self.l.driver.flush()
+        chk = self.l.check(c)
+        #self.l.driver.flush()
+        self.l.dump_violations()
+        self.assertEqual(chk, None)
         self.assertListEqual([], self.l._violations)
-
 
     def test_no_import_from(self):
         code = '''
