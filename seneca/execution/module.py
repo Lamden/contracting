@@ -82,7 +82,7 @@ class DatabaseLoader(Loader):
         rt.ctx.append(module.__name__)
         self.sc.module_name = rt.ctx[-1]
 
-        code_obj = self.sc.compile(code, lint=False)
+        code_obj = self.sc.compile(code, lint=True)
 
         # execute the module with the std env and update the module to pass forward
         exec(code_obj, env)

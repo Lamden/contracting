@@ -41,7 +41,7 @@ class TestExecutor(TestCase):
                             author='sys')
 
     def tearDown(self):
-        #self.d.flush()
+        self.d.flush()
         pass
 
     def test_submission(self):
@@ -74,7 +74,7 @@ def d():
             'code': code
         }
 
-        e.execute(**TEST_SUBMISSION_KWARGS, kwargs=kwargs)
+        print(e.execute(**TEST_SUBMISSION_KWARGS, kwargs=kwargs))
         status_code, result = e.execute(sender='stu', contract_name='stubucks', function_name='d', kwargs={})
 
         self.assertEqual(result, 1)
@@ -227,11 +227,11 @@ def get_v():
     def test_orm_foreign_hash_gets_and_sets_in_contract(self):
         e = Executor()
 
-        e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'))
+        print(e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py')))
 
-        e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_foreign_hash_contract.s.py'))
+        print(e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_foreign_hash_contract.s.py')))
 
         e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'key1', 'v': 1234})
         e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'another_key', 'v': 9999})

@@ -39,7 +39,9 @@ class Linter(ast.NodeVisitor):
 
     def generic_visit(self, node):
         self.ast_types(node)
-        return super().generic_visit(node)
+        if vars(node).get('_fields') is not None:
+            return super().generic_visit(node)
+        return node
 
     def visit_Name(self, node):
         self.not_system_variable(node.id)

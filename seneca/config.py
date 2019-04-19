@@ -20,27 +20,13 @@ MAX_SB_QUEUE_SIZE = 8
 # Resource limits
 MEMORY_LIMIT = 32768 # 32kb
 RECURSION_LIMIT = 1024
-CPU_TIME_LIMIT = 10
-OFFICIAL_CONTRACTS = [
-    'smart_contract',
-    'currency',
-    'atomic_swap'
-]
 
 DELIMITER = ':'
-POINTER = '&'
-SORTED_TYPE = '~'
-TYPE_SEPARATOR = '@'
-RESOURCE_KEY = '__resources__'
-PROPERTY_KEY = '__properties__'
-RESOURCE_KEY = '__resource__'
 CODE_KEY = '__code__'
 TYPE_KEY = '__type__'
 AUTHOR_KEY = '__author__'
 INDEX_SEPARATOR = '.'
 
-READ_WRITE_MODE = 'rw'
-READ_ONLY_MODE = 'r'
 
 DECIMAL_PRECISION = 64
 
