@@ -37,17 +37,6 @@ class Linter(ast.NodeVisitor):
                 str = "Error : Nested import is illegal"
                 Linter.violations.append(str)
 
-    # def generic_visit(self, node):
-    #     self.ast_types(node)
-    #     if vars(node).get('_fields') is not None:
-    #         return self.generic_visit(node)
-    #     return node
-    #
-    # def visit(self, node):
-    #     if vars(node).get('_fields') is not None:
-    #         return super().visit(node)
-    #     return node
-
     def visit_Name(self, node):
         self.not_system_variable(node.id)
         self.generic_visit(node)

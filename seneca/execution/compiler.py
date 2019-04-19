@@ -21,10 +21,7 @@ class SenecaCompiler(ast.NodeTransformer):
         tree = ast.parse(source)
 
         if lint:
-            status = self.linter.check(tree)
-            print('lint results: {}'.format(tree))
-            print('violations: {}'.format(self.linter.violations))
-            # ast.fix_missing_locations(tree)
+            self.linter.check(tree)
 
         tree = self.visit(tree)
 
@@ -42,15 +39,6 @@ class SenecaCompiler(ast.NodeTransformer):
 
         return tree
 
-    # def generic_visit(self, node):
-    #     if vars(node).get('_fields') is not None:
-    #         return self.generic_visit(node)
-    #     return node
-    #
-    # def visit(self, node):
-    #     if node and vars(node).get('_fields') is not None:
-    #         return super().visit(node)
-    #     return node
 
     @staticmethod
     def privatize(s):
