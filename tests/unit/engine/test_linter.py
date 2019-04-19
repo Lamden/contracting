@@ -3,7 +3,6 @@ from seneca.execution.linter import Linter
 import ast
 from seneca.execution.whitelists import ALLOWED_AST_TYPES
 
-
 class TestLinter(TestCase):
     def setUp(self):
         self.l = Linter()

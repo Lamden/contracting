@@ -16,7 +16,7 @@ class Linter(ast.NodeVisitor):
         self._is_one_export = False
         self._is_success = True
         self._constructor_visited = False
-        #self.driver = ContractDriver()
+        self.driver = ContractDriver()
 
 #    @staticmethod
     def ast_types(self, t):
