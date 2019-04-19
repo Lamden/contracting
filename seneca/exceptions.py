@@ -1,3 +1,4 @@
+
 class SenecaError(Exception):
     """
     The base exception for Seneca. The fmt directive
@@ -12,6 +13,7 @@ class SenecaError(Exception):
         Exception.__init__(self, msg)
         self.kwargs = kwargs
 
+
 class DatabaseDriverNotFound(SenecaError):
     """
     Could not find the specified database driver when
@@ -24,6 +26,7 @@ class DatabaseDriverNotFound(SenecaError):
     """
     fmt = "Unknown database driver '{driver}', known drivers '{known_drivers}'"
 
+
 class ContractExists(SenecaError):
     """
     When attempting to set a contract, found that it
@@ -34,8 +37,10 @@ class ContractExists(SenecaError):
     """
     fmt = "Contract with name '{contract_name}' already exists in the database"
 
+
 class CompilationException(Exception):
     pass
+
 
 class SenecaException(Exception):
     """

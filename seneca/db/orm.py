@@ -2,7 +2,6 @@ from seneca.db.driver import ContractDriver
 from seneca.execution.runtime import rt
 from seneca import config
 
-CLASS_NAMES = {'Variable', 'Hash', 'ForeignVariable', 'ForeignHash'}
 
 class Datum:
     def __init__(self, contract, name, driver: ContractDriver):
@@ -71,3 +70,11 @@ class ForeignHash(Hash):
 
     def __getitem__(self, item):
         return self.get(item)
+
+
+class Contract:
+    def __init__(self, driver: ContractDriver=rt.driver):
+        self.driver = driver
+
+    def submit(self, name, code, author):
+        self.driver.set_contract(name=name, code=code, author=author, overwrite=False)

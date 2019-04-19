@@ -1,23 +1,19 @@
 import ast
 
-from seneca.logger import get_logger
-from seneca.execution.linter import Linter
-from seneca.db.orm import CLASS_NAMES
+from .. import config
 
-from seneca.execution.runtime import rt
-
-PRIVATE_METHOD_PREFIX = '__'
-EXPORT_DECORATOR_STRING = 'seneca_export'
-INIT_DECORATOR_STRING = 'seneca_construct'
-VALID_DECORATORS = {EXPORT_DECORATOR_STRING, INIT_DECORATOR_STRING}
+from ..logger import get_logger
+from ..interpreter.linter import Linter
 
 
 class SenecaCompiler(ast.NodeTransformer):
-    def __init__(self, module_name=rt.ctx[-1], linter=Linter()):
+    def __init__(self, module_name='__main__', linter=Linter()):
         self.log = get_logger('Seneca.Compiler')
         self.module_name = module_name
         self.linter = linter
         self.constructor_visited = False
+        self.private_expr = set()
+        self.visited_expr = set() # store the method visits
 
     def parse(self, source: str, lint=True):
         self.constructor_visited = False
@@ -25,13 +21,30 @@ class SenecaCompiler(ast.NodeTransformer):
         tree = ast.parse(source)
 
         if lint:
-            tree = self.linter.visit(tree)
-            ast.fix_missing_locations(tree)
+            self.linter.check(tree)
+            if len(self.linter.violations) > 0:
+                raise Exception(self.linter.violations[-1])
 
         tree = self.visit(tree)
+
+        # check all visited nodes and see if they are actually private
+        for node in self.visited_expr:
+            if isinstance(node, ast.Call):
+                if node.value.func.id in self.private_expr:
+                    node.value.func.id = self.privatize(node.value.func.id)
+
         ast.fix_missing_locations(tree)
 
+        # reset state
+        self.private_expr = set()
+        self.visited_expr = set()
+
         return tree
+
+
+    @staticmethod
+    def privatize(s):
+        return '{}{}'.format(config.PRIVATE_METHOD_PREFIX, s)
 
     def compile(self, source: str, lint=True):
         tree = self.parse(source, lint=lint)
@@ -40,34 +53,35 @@ class SenecaCompiler(ast.NodeTransformer):
         return compiled_code
 
     def visit_FunctionDef(self, node):
+        # Presumes all decorators are valid, as caught by linter.
         if node.decorator_list:
-            print(node.decorator_list)
-            assert len(node.decorator_list) == 1, 'Multiple decorators on a function not allowed'
-
-            d = node.decorator_list.pop()
-            assert d.id in VALID_DECORATORS, 'Invalid Decorator passed'
-
-            if d.id == EXPORT_DECORATOR_STRING:
-                pass
-            elif d.id == INIT_DECORATOR_STRING:
-                assert not self.constructor_visited, 'Multiple constructors found'
-                self.constructor_visited = True
-
+            # Presumes that a single decorator is passed. This is caught by the linter.
+            node.decorator_list.pop()
         else:
-            node.name = '__{}'.format(node.name)
+            self.private_expr.add(node.name)
+            node.name = self.privatize(node.name)
+
+        self.generic_visit(node)
 
         return node
 
     def visit_Assign(self, node):
-        #print("Node.value: {}".format(node.value))
-        if isinstance(node.value, ast.Call) and node.value.func.id in CLASS_NAMES:
-            if node.value.func.id in ['Variable', 'Hash']:
-                assert node.value.keywords == [], 'Keyword overloading not allowed.'
-            assert len(node.targets) == 1, 'Multiple targets to an ORM definition is not allowed.'
-            node.value.keywords.append(ast.keyword('contract', ast.Str(self.module_name)))
-            node.value.keywords.append(ast.keyword('name', ast.Str(node.targets[0].id)))
+        if isinstance(node.value, ast.Call) and node.value.func.id in config.ORM_CLASS_NAMES:
+                node.value.keywords.append(ast.keyword('contract', ast.Str(self.module_name)))
+                node.value.keywords.append(ast.keyword('name', ast.Str(node.targets[0].id)))
 
         return node
+
+    def visit_Call(self, node):
+        return node
+
+    def visit_Expr(self, node):
+        # keeps track of visited expressions for private method prefixing after parsing tree
+        if isinstance(node.value, ast.Call):
+            self.visited_expr.add(node)
+
+        return node
+
 
     # def visit_AugAssign(self, node):
     #     self._global_variables.append(node.target.id)
