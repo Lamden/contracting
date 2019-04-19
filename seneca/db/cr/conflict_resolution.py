@@ -148,10 +148,9 @@ class CRDataGetSet(dict):
 
 class CRContext:
 
-    def __init__(self, working_db, master_db, sbb_idx: int, finalize=False):
+    def __init__(self, working_db, master_db, finalize=False):
         self.log = get_logger(type(self).__name__)
         self.working_db, self.master_db = working_db, master_db
-        self.sbb_idx = sbb_idx
 
         self.cr_data = CRDataGetSet(self.master_db, self.working_db)
 

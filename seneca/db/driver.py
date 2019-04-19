@@ -165,7 +165,7 @@ class ContractDriver(DatabaseDriver):
         return keys
 
 
-class CRDriver:
+class CRDriver(DatabaseDriver):
 
     def __init__(self):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis

@@ -23,14 +23,14 @@ class TestCRGetSet(TestCase):
             self.sbb_data[contract_idx] = data
 
         if should_set:
-            return CRCmdSet(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
+            return CRCmdSet(working_db=self.working, master_db=self.master, contract_idx=contract_idx,
                             data=data)
         else:
-            return CRCmdGet(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
+            return CRCmdGet(working_db=self.working, master_db=self.master, contract_idx=contract_idx,
                             data=data)
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
-        cr = CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx)
+        cr = CRContext(working_db=self.working, master_db=self.master)
         cr.locked = False
         return cr
 

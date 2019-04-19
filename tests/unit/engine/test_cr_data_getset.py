@@ -16,12 +16,12 @@ class TestCRCommandsBase(TestCase):
         self.working.flush()
 
     def _new_cr_data(self, sbb_idx=0, finalize=False):
-        cr = CRContext(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx)
+        cr = CRContext(working_db=self.working, master_db=self.master)
         cr.locked = False
         return cr
 
     def _new_cmd(self, sbb_idx=0, contract_idx=0, cr_data=None, finalize=False):
-        return CRCmdBase(working_db=self.working, master_db=self.master, sbb_idx=sbb_idx, contract_idx=contract_idx,
+        return CRCmdBase(working_db=self.working, master_db=self.master, contract_idx=contract_idx,
                                data=cr_data or self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize))
 
     def test_add_one_key_to_mod_list(self):
