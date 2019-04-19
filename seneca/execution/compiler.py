@@ -31,9 +31,9 @@ class SenecaCompiler(ast.NodeTransformer):
             raise Exception(self.lint_alerts)
 
         # check all visited nodes and see if they are actually private
+
         for node in self.visited_expr:
-            if isinstance(node, ast.Call):
-                if node.value.func.id in self.private_expr:
+            if isinstance(node.value, ast.Call) and node.value.func.id in self.private_expr:
                     node.value.func.id = self.privatize(node.value.func.id)
 
         ast.fix_missing_locations(tree)
@@ -61,8 +61,8 @@ class SenecaCompiler(ast.NodeTransformer):
             decorator = node.decorator_list.pop()
 
             # change the name of the init function to '____' so it is uncallable except once
-            if decorator == config.INIT_DECORATOR_STRING:
-                node.name = '____'
+            # if decorator == config.INIT_DECORATOR_STRING:
+            #     node.name = '____'
         else:
             self.private_expr.add(node.name)
             node.name = self.privatize(node.name)

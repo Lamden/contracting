@@ -5,6 +5,7 @@ import re
 import astor
 from seneca import config
 
+
 class TestSenecaCompiler(TestCase):
     def test_visit_assign_variable(self):
         code = '''
@@ -111,6 +112,8 @@ def private(message):
         c = SenecaCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
+
+        print(code_str)
 
         # there should be two private occurances of the method call
         self.assertEqual(len([m.start() for m in re.finditer('__private', code_str)]), 2)
