@@ -101,8 +101,6 @@ class Executor:
         except Exception as e:
             result = e
             status_code = 1
-            import traceback
-            print(traceback.print_exc())
         return status_code, result
 
 

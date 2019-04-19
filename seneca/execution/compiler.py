@@ -22,6 +22,8 @@ class SenecaCompiler(ast.NodeTransformer):
 
         if lint:
             self.linter.check(tree)
+            if len(self.linter.violations) > 0:
+                raise Exception(self.linter.violations[-1])
 
         tree = self.visit(tree)
 
