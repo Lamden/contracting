@@ -18,19 +18,16 @@ class Linter(ast.NodeVisitor):
         self._constructor_visited = False
         self.driver = ContractDriver()
 
-#    @staticmethod
     def ast_types(self, t):
         if type(t) not in ALLOWED_AST_TYPES:
             str = "Error : Illegal AST type: {}" .format(type(t).__name__)
             self._violations.append(str)
 
-#    @staticmethod
     def not_system_variable(self, v):
         if v.startswith('_'):
             str = "Error : Incorrect use of <_> access denied for var : {}".format(v)
             self._violations.append(str)
 
-#    @staticmethod
     def no_nested_imports(self, node):
         for item in node.body:
             if type(item) in [ast.ImportFrom, ast.Import]:
@@ -170,9 +167,13 @@ class Linter(ast.NodeVisitor):
         self._collect_function_defs(ast_tree)
         self.visit(ast_tree)
         self._final_checks()
-        return self._is_success
 
-#    @staticmethod
+        if self._is_success is False:
+            print(self.dump_violations())
+            return self._violations
+        else:
+            return None
+
     def dump_violations(self):
         import pprint
         pp = pprint.PrettyPrinter(indent = 4)

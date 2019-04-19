@@ -18,8 +18,7 @@ def a():
 
         print("stu code: \n{}".format(data))
         ptree = ast.parse(data)
-        linter = Linter()
-        status = linter.check(ptree)
+        status = self.l.check(ptree)
         if status:
             print("Success!")
         else:
@@ -60,8 +59,7 @@ def a():
         err = 'Error : Incorrect use of <_> access denied for var : __ruh_roh__'
 
         c = ast.parse(code)
-        self.l.visit(c)
-        self.l.dump_violations()
+        self.l.check(c)
         self.assertMultiLineEqual(err, self.l._violations[0])
 
     def test_not_system_variable_ast_success(self):
