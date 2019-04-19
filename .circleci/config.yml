@@ -8,6 +8,7 @@ jobs:
     docker:
       - image: circleci/python:3.6.5
       - image: lamden/ledis:circleci
+      - image: circleci/redis:latest
 
     working_directory: ~/seneca
 

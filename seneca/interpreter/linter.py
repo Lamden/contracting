@@ -2,8 +2,8 @@ import ast
 
 from .. import config
 
+from .whitelists import ALLOWED_AST_TYPES
 from ..logger import get_logger
-from ..execution.whitelists import ALLOWED_AST_TYPES
 
 
 class Linter(ast.NodeVisitor):

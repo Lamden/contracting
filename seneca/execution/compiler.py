@@ -3,7 +3,7 @@ import ast
 from .. import config
 
 from ..logger import get_logger
-from ..execution.linter import Linter
+from ..interpreter.linter import Linter
 
 
 class SenecaCompiler(ast.NodeTransformer):
