@@ -2,8 +2,9 @@ import ast
 
 from .. import config
 
-from .whitelists import ALLOWED_AST_TYPES
 from ..logger import get_logger
+from ..interpreter.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS
+from ..interpreter.module import ContractDriver
 
 
 class Linter(ast.NodeVisitor):
@@ -15,49 +16,53 @@ class Linter(ast.NodeVisitor):
         self._is_one_export = False
         self._is_success = True
         self._constructor_visited = False
+        self.driver = ContractDriver()
 
-#    @staticmethod
-    def ast_types(self, t):
+    def ast_types(self, t, lnum):
         if type(t) not in ALLOWED_AST_TYPES:
-            str = "Error : Illegal AST type: {}" .format(type(t).__name__)
+            str = "Line {}".format(lnum) + " : " + VIOLATION_TRIGGERS[0] + " : {}" .format(type(t).__name__)
             self._violations.append(str)
+            self._is_success = False
 
-#    @staticmethod
-    def not_system_variable(self, v):
+    def not_system_variable(self, v, lnum):
+
         if v.startswith('_'):
-            str = "Error : Incorrect use of <_> access denied for var : {}".format(v)
+            str = "Line {} : ".format(lnum) + VIOLATION_TRIGGERS[1] + " : {}" .format(v)
             self._violations.append(str)
+            self._is_success = False
 
-#    @staticmethod
     def no_nested_imports(self, node):
         for item in node.body:
             if type(item) in [ast.ImportFrom, ast.Import]:
-                str = "Error : Nested import is illegal"
+                str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[2]
                 self._violations.append(str)
+                self._is_success = False
 
     def visit_Name(self, node):
-        self.not_system_variable(node.id)
+        self.not_system_variable(node.id, node.lineno)
         self.generic_visit(node)
         return node
 
     def visit_Attribute(self, node):
-        self.not_system_variable(node.attr)
+        self.not_system_variable(node.attr, node.lineno)
         self.generic_visit(node)
         return node
 
     def visit_Import(self, node):
         for n in node.names:
-            self.validate_imports(n.name, alias=n.asname)
+            self.validate_imports(n.name, alias=n.asname, lnum = node.lineno)
         return self._visit_any_import(node)
 
     def visit_ImportFrom(self, node):
-        str = 'ImportFrom ast nodes not yet supported.'
+        str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[3]
         self._violations.append(str)
+        self._is_success = False
 
-    def validate_imports(self, import_path, module_name=None, alias=None):
+    def validate_imports(self, import_path, module_name=None, alias=None, lnum= 0):
         if self.driver.get_contract(import_path) is None:
-            str = 'Contract named "{}" does not exist in state.'.format(import_path)
+            str = "Line {}: ".format(lnum) +VIOLATION_TRIGGERS[4] + ': {}'.format(import_path)
             self._violations.append(str)
+            self._is_success = False
 
     def _visit_any_import(self, node):
         self.generic_visit(node)
@@ -67,14 +72,19 @@ class Linter(ast.NodeVisitor):
     Why are we even doing any logic instead of just failing on visiting these?
     '''
     def visit_ClassDef(self, node):
-        self.log.error("Classes are not allowed in Seneca contracts")
+        # self.log.error("Classes are not allowed in Seneca contracts")
+        str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[5]
+        self._violations.append(str)
         self._is_success = False
         self.generic_visit(node)
         #raise CompilationException
         return node
 
     def visit_AsyncFunctionDef(self, node):
-        self.log.error("Async functions are not allowed in Seneca contracts")
+        # self.log.error("Async functions are not allowed in Seneca contracts")
+        str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[6]
+        self._violations.append(str)
+
         self._is_success = False
         self.generic_visit(node)
         # raise CompilationException
@@ -147,8 +157,10 @@ class Linter(ast.NodeVisitor):
 
     def _final_checks(self):
         if not self._is_one_export:
-            self.log.error("Need atleast one method with @seneca_export() decorator that outside world use to interact "
-                           "with this contract")
+            str = VIOLATION_TRIGGERS[12]
+            self._violations.append(str)
+            # self.log.error("Need atleast one method with @seneca_export() decorator that outside world use to interact "
+            #                "with this contract")
             self._is_success = False
     
     def _collect_function_defs(self, root):
@@ -168,9 +180,13 @@ class Linter(ast.NodeVisitor):
         self._collect_function_defs(ast_tree)
         self.visit(ast_tree)
         self._final_checks()
-        return self._is_success
 
-#    @staticmethod
+        if self._is_success is False:
+            print(self.dump_violations())
+            return self._violations
+        else:
+            return None
+
     def dump_violations(self):
         import pprint
         pp = pprint.PrettyPrinter(indent = 4)
