@@ -16,7 +16,7 @@ class Linter(ast.NodeVisitor):
         self._is_one_export = False
         self._is_success = True
         self._constructor_visited = False
-        self.driver = ContractDriver()
+        #self.driver = ContractDriver()
 
     @staticmethod
     def ast_types(t):
@@ -37,11 +37,16 @@ class Linter(ast.NodeVisitor):
                 str = "Error : Nested import is illegal"
                 Linter.violations.append(str)
 
-    def generic_visit(self, node):
-        self.ast_types(node)
-        if vars(node).get('_fields') is not None:
-            return super().generic_visit(node)
-        return node
+    # def generic_visit(self, node):
+    #     self.ast_types(node)
+    #     if vars(node).get('_fields') is not None:
+    #         return self.generic_visit(node)
+    #     return node
+    #
+    # def visit(self, node):
+    #     if vars(node).get('_fields') is not None:
+    #         return super().visit(node)
+    #     return node
 
     def visit_Name(self, node):
         self.not_system_variable(node.id)
