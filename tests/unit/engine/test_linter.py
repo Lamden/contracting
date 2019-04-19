@@ -4,6 +4,7 @@ from seneca.exceptions import CompilationException
 import ast
 from seneca.interpreter.whitelists import ALLOWED_AST_TYPES
 
+
 class TestLinter(TestCase):
     def setUp(self):
         self.l = Linter()
@@ -115,19 +116,18 @@ def b():
 
         # self.assertMultiLineEqual(err, self.l._violations[0])
 
-#TODO failing
     def test_visit_class_fail_code(self):
         code = '''
 class Scooby:
     pass
         '''
-        err = 'Error : Illegal AST type: ClassDef'
+        err = 'Line 2: S6- Illicit use of classes'
 
         c = ast.parse(code)
         chk = self.l.check(c)
         self.l.dump_violations()
+        self.assertEqual(len(chk), 2)
         self.assertMultiLineEqual(err, self.l._violations[0])
-
 
     def test_accessing_system_vars(self):
         code = '''
