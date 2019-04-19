@@ -22,7 +22,7 @@ ALLOWED_AST_TYPES = {
     ast.Load,
     ast.arg,
     ast.Add,
-    ast.Lambda,    # raghu todo consider removing it
+    #ast.Lambda,    # raghu todo consider removing it
     ast.Import,
     ast.ImportFrom,
     ast.Name,
@@ -72,6 +72,22 @@ ALLOWED_AST_TYPES = {
     # Error handling
     # ast.ExceptHandler,
     # ast.Try,
+}
+
+VIOLATION_TRIGGERS = {
+
+    "S1": "Illegal seneca syntax type used",
+    "S2": "Illicit use of '_' before variable",
+    "S3": "Illicit use of Nested imports",
+    "S4": "ImportFrom ast nodes not yet supported",
+    "S5": "Contract not found in lib",
+    "S6": "Illicit use of classes",
+    "S7": "Illicit use of Async functions",
+    "S8": "Invalid decorator used",
+    "S9": "Multiple use of constructors detected",
+    "S10": "Illicit use of multiple decorators",
+    "S11": "Illicit keyword overloading",
+    "S12": "Multiple targets to ORM definition detected"
 }
 
 SENECA_LIBRARY_PATH = 'seneca.libs'
