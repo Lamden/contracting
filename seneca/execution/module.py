@@ -3,9 +3,9 @@ import sys
 from importlib.abc import Loader, MetaPathFinder
 from importlib import invalidate_caches
 
-from seneca.db.driver import ContractDriver
-#from seneca.execution.compiler import SenecaCompiler
-from seneca.db.orm import Variable, ForeignVariable, Hash, ForeignHash, Contract
+from ..db.driver import ContractDriver
+from ..execution.compiler import SenecaCompiler
+from ..db.orm import Variable, ForeignVariable, Hash, ForeignHash, Contract
 
 from .runtime import rt
 

@@ -246,6 +246,6 @@ def get_v():
         e = Executor()
 
         res = e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_no_contract_access.s.py'))
+              kwargs=submission_kwargs_for_file('./test_contracts/test_orm_no_contract_access.s.py'))
 
-        print(res)
+        self.assertIsInstance(res[1], Exception)

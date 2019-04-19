@@ -1,9 +1,9 @@
 import ast
 
-from seneca import config
+from .. import config
 
-from seneca.logger import get_logger
-from seneca.execution.linter import Linter
+from ..logger import get_logger
+from ..execution.linter import Linter
 
 
 class SenecaCompiler(ast.NodeTransformer):
@@ -28,8 +28,7 @@ class SenecaCompiler(ast.NodeTransformer):
             tree = self.visit(tree)
 
         if self.lint_alerts is not None:
-            # TODO fail compilation return violations
-            pass
+            raise Exception(self.lint_alerts)
 
         # check all visited nodes and see if they are actually private
         for node in self.visited_expr:

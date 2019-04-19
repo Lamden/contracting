@@ -1,6 +1,6 @@
 import os, threading
 from multiprocessing import Lock
-from seneca.parallelism.conflict_resolution import CRContext
+from ..parallelism.conflict_resolution import CRContext
 
 
 class BookKeeper:
