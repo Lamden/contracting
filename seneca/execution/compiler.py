@@ -24,8 +24,8 @@ class SenecaCompiler(ast.NodeTransformer):
         if lint:
             self.lint_alerts = self.linter.check(tree)
             # ast.fix_missing_locations(tree)
-        else:
-            tree = self.visit(tree)
+
+        tree = self.visit(tree)
 
         if self.lint_alerts is not None:
             raise Exception(self.lint_alerts)
@@ -50,6 +50,10 @@ class SenecaCompiler(ast.NodeTransformer):
 
     def compile(self, source: str, lint=True):
         tree = self.parse(source, lint=lint)
+
+        import astor
+        astor.to_source(tree)
+
         compiled_code = compile(tree, '<ast>', 'exec')
 
         return compiled_code
