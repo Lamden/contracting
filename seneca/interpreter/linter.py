@@ -53,6 +53,7 @@ class Linter(ast.NodeVisitor):
             self.validate_imports(n.name, alias=n.asname, lnum = node.lineno)
         return self._visit_any_import(node)
 
+
     def visit_ImportFrom(self, node):
         str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[3]
         self._violations.append(str)

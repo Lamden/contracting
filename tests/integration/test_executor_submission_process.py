@@ -36,6 +36,8 @@ class TestExecutor(TestCase):
         with open('../../seneca/contracts/submission.s.py') as f:
             contract = f.read()
 
+        print(contract)
+
         self.d.set_contract(name='submission',
                             code=contract,
                             author='sys')
@@ -57,7 +59,7 @@ def d():
             'code': code
         }
 
-        e.execute(**TEST_SUBMISSION_KWARGS, kwargs=kwargs)
+        print(e.execute(**TEST_SUBMISSION_KWARGS, kwargs=kwargs))
 
         self.assertEqual(self.d.get_contract('stubucks'), code)
 
