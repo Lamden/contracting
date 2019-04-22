@@ -302,3 +302,15 @@ def set(i):
         c = ast.parse(code)
         chk = self.l.check(c)
         self.assertEqual(self.l._violations, ['Keyword overloading not allowed for ORM assignments.'])
+
+    def test_multi_targets_orm_fails(self):
+        code = '''
+v, x = Variable()
+
+@seneca_export
+def set(i):
+    v.set(i)
+    '''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.assertEqual(self.l._violations, ['Multiple targets to an ORM definition is not allowed.'])
