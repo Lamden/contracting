@@ -102,7 +102,6 @@ class Sandbox(object):
         runtime.rt.ctx.append(sender)
 
         module = importlib.import_module(contract_name)
-        print(dir(module))
         func = getattr(module, function_name)
 
         return func(**kwargs)

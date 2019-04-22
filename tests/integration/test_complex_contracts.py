@@ -50,15 +50,46 @@ class TestComplexContracts(TestCase):
                   kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'))
 
         res = e.execute('stu', 'currency', 'balance', kwargs={'account': 'colin'})
-
-        print(res[1])
-
         self.assertEqual(res[1], 100)
 
         res = e.execute('stu', 'currency', 'balance', kwargs={'account': 'stu'})
-
         self.assertEqual(res[1], 1000000)
 
         res = e.execute('stu', 'currency', 'balance', kwargs={'account': 'raghu'})
-
         self.assertEqual(res[1], None)
+
+    def test_token_transfer_works(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'))
+
+        e.execute('stu', 'currency', 'transfer', kwargs={'amount': 1000, 'to': 'colin'})
+
+        _, stu_balance = e.execute('stu', 'currency', 'balance', kwargs={'account': 'stu'})
+        _, colin_balance = e.execute('stu', 'currency', 'balance', kwargs={'account': 'colin'})
+
+        self.assertEqual(stu_balance, 1000000 - 1000)
+        self.assertEqual(colin_balance, 100 + 1000)
+
+    def test_token_transfer_failure_not_enough_to_send(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'))
+
+        status, res = e.execute('stu', 'currency', 'transfer', kwargs={'amount': 1000001, 'to': 'colin'})
+
+        self.assertEqual(status, 1)
+
+    def test_token_transfer_to_new_account(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'))
+
+        e.execute('stu', 'currency', 'transfer', kwargs={'amount': 1000, 'to': 'raghu'})
+
+        _, raghu_balance = e.execute('stu', 'currency', 'balance', kwargs={'account': 'raghu'})
+
+        self.assertEqual(raghu_balance, 1000)
