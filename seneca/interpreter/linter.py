@@ -90,7 +90,8 @@ class Linter(ast.NodeVisitor):
         # resource_names, func_name = Assert.valid_assign(node, Parser.parser_scope)
         if isinstance(node.value, ast.Call) and not isinstance(node.value.func, ast.Attribute) and node.value.func.id in config.ORM_CLASS_NAMES:
             if node.value.func.id in ['Variable', 'Hash']:
-                if len(node.value.keywords) > 0:
+                kwargs = [k.arg for k in node.value.keywords]
+                if 'contract' in kwargs or 'name' in kwargs:
                     str = 'Keyword overloading not allowed for ORM assignments.'
                     self._violations.append(str)
             if len(node.targets) > 1:

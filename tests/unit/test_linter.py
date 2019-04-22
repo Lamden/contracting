@@ -278,3 +278,27 @@ def test():
         c = ast.parse(code)
         chk = self.l.check(c)
         self.l.dump_violations()
+
+    def test_good_orm_initialization(self):
+        code = '''
+v = Variable()
+
+@seneca_export
+def set(i):
+    v.set(i)
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.assertEqual(self.l._violations, [])
+
+    def test_bad_orm_initialization(self):
+        code = '''
+v = Variable(contract='currency', name='stus_balance')
+
+@seneca_export
+def set(i):
+    v.set(i)
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.assertEqual(self.l._violations, ['Keyword overloading not allowed for ORM assignments.'])
