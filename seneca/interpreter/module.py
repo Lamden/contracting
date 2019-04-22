@@ -55,7 +55,12 @@ class DatabaseLoader(Loader):
     def create_module(self, spec):
         return None
 
-    def execute(self, module, code):
+    def exec_module(self, module):
+        # fetch the individual contract
+        code = self.d.get_contract(module.__name__)
+        if code is None:
+            raise ImportError("Module {} not found".format(module.__name__))
+
         ctx = ModuleType('context')
 
         ctx.caller = rt.ctx[-1]
@@ -74,15 +79,6 @@ class DatabaseLoader(Loader):
         # execute the module with the std env and update the module to pass forward
         exec(code_obj, scope)
         vars(module).update(scope)
-        return module
-
-    def exec_module(self, module):
-        # fetch the individual contract
-        code = self.d.get_contract(module.__name__)
-        if code is None:
-            raise ImportError("Module {} not found".format(module.__name__))
-
-        self.execute(module, code)
 
         rt.ctx.pop()
 

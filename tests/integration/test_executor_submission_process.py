@@ -262,3 +262,17 @@ def get_v():
 
         self.assertEqual(res[1], 42)
 
+    def test_import_seneca_exported_function_works(self):
+        e = Executor()
+
+        res = e.execute(**TEST_SUBMISSION_KWARGS,
+                        kwargs=submission_kwargs_for_file('./test_contracts/import_this.s.py'))
+
+        res = e.execute(**TEST_SUBMISSION_KWARGS,
+                        kwargs=submission_kwargs_for_file('./test_contracts/importing_that.s.py'))
+
+        print('trying to submit importing_that: {}'.format(res))
+
+        res = e.execute('stu', 'importing_that', 'test', kwargs={})
+
+        print(res)

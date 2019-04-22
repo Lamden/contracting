@@ -4,7 +4,7 @@ from os import getenv as env
 testmodules = [
     'tests.unit.contracts',
     'tests.unit.datatypes',
-    'tests.unit.engine',
+    'tests.unit.unit',
     'tests.unit.security',
     'tests.unit.interpreter',
 ]

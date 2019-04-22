@@ -1,5 +1,5 @@
 import ast
-import astor
+#import astor
 
 from .. import config
 
@@ -34,11 +34,14 @@ class SenecaCompiler(ast.NodeTransformer):
         # check all visited nodes and see if they are actually private
 
         for node in self.visited_expr:
+            print(node)
             try:
                 if isinstance(node.value, ast.Call) and node.value.func.id in self.private_expr:
                         node.value.func.id = self.privatize(node.value.func.id)
             except:
                 pass
+
+        print('back')
 
         ast.fix_missing_locations(tree)
 
@@ -54,8 +57,6 @@ class SenecaCompiler(ast.NodeTransformer):
 
     def compile(self, source: str, lint=True):
         tree = self.parse(source, lint=lint)
-
-        astor.to_source(tree)
 
         compiled_code = compile(tree, '<ast>', 'exec')
 
@@ -79,7 +80,7 @@ class SenecaCompiler(ast.NodeTransformer):
         return node
 
     def visit_Assign(self, node):
-        if isinstance(node.value, ast.Call) and node.value.func.id in config.ORM_CLASS_NAMES:
+        if isinstance(node.value, ast.Call) and not isinstance(node.value.func, ast.Attribute) and node.value.func.id in config.ORM_CLASS_NAMES:
                 node.value.keywords.append(ast.keyword('contract', ast.Str(self.module_name)))
                 node.value.keywords.append(ast.keyword('name', ast.Str(node.targets[0].id)))
 

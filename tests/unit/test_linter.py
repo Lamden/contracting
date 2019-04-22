@@ -264,3 +264,17 @@ def y():
         self.l._collect_function_defs(c)
         self.l.dump_violations()
         self.assertEqual(self.l._functions, ['a', 'b', 'x', 'y'])
+
+    def test_assignment_of_import(self):
+        code = '''
+import import_this
+
+@seneca_export
+def test():
+    a = import_this.howdy()
+    a -= 1000
+    return a        
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.l.dump_violations()
