@@ -9,7 +9,7 @@
 #
 # from seneca.libs.logger import get_logger
 # from seneca.libs.logger import overwrite_logger_level, get_logger
-# from seneca.engine.interpreter.compiler import SenecaCompiler
+# from seneca.unit.interpreter.compiler import SenecaCompiler
 #
 #
 #

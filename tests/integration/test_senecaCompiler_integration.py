@@ -1,6 +1,6 @@
 from unittest import TestCase
 from seneca.execution.compiler import SenecaCompiler
-from seneca.db.orm import Variable, ForeignVariable, Hash, ForeignHash
+from seneca.stdlib import env
 import re
 import astor
 from seneca import config
@@ -15,11 +15,11 @@ v = Variable()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
-        env = {'Variable': Variable}
+        scope = env.gather()
 
-        exec(code_str, env)
+        exec(code_str, scope)
 
-        v = env['v']
+        v = scope['v']
 
         self.assertEqual(v.key, '__main__.v')
 
@@ -31,11 +31,11 @@ fv = ForeignVariable(foreign_contract='scoob', foreign_name='kumbucha')
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
-        env = {'ForeignVariable': ForeignVariable}
+        scope = env.gather()
 
-        exec(code_str, env)
+        exec(code_str, scope)
 
-        fv = env['fv']
+        fv = scope['fv']
 
         self.assertEqual(fv.key, '__main__.fv')
         self.assertEqual(fv.foreign_key, 'scoob.kumbucha')
@@ -48,11 +48,11 @@ h = Hash()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
-        env = {'Hash': Hash}
+        scope = env.gather()
 
-        exec(code_str, env)
+        exec(code_str, scope)
 
-        h = env['h']
+        h = scope['h']
 
         self.assertEqual(h.key, '__main__.h')
 
@@ -65,11 +65,11 @@ fv = ForeignHash(foreign_contract='scoob', foreign_name='kumbucha')
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
-        env = {'ForeignHash': ForeignHash}
+        scope = env.gather()
 
-        exec(code_str, env)
+        exec(code_str, scope)
 
-        fv = env['fv']
+        fv = scope['fv']
 
         self.assertEqual(fv.key, '__main__.fv')
         self.assertEqual(fv.foreign_key, 'scoob.kumbucha')
@@ -140,3 +140,34 @@ def e():
         code_str = astor.to_source(comp)
 
         self.assertEqual(len([m.start() for m in re.finditer(config.PRIVATE_METHOD_PREFIX, code_str)]), 9)
+
+    def test_seneca_construct_renames_properly(self):
+        code = '''
+@seneca_construct
+def seed():
+    print('yes')
+
+@seneca_export
+def hello():
+    print('no')
+    
+def goodbye():
+    print('idk')
+        '''
+
+        c = SenecaCompiler()
+        comp = c.parse(code, lint=False)
+        code_str = astor.to_source(comp)
+        print(code_str)
+
+    def test_token_contract_parses_correctly(self):
+
+        f = open('./test_contracts/currency.s.py')
+        code = f.read()
+        f.close()
+
+        c = SenecaCompiler()
+        comp = c.parse(code, lint=False)
+        code_str = astor.to_source(comp)
+
+        print(code_str)

@@ -1,4 +1,5 @@
 import ast
+#import astor
 
 from .. import config
 
@@ -54,9 +55,6 @@ class SenecaCompiler(ast.NodeTransformer):
     def compile(self, source: str, lint=True):
         tree = self.parse(source, lint=lint)
 
-        import astor
-        astor.to_source(tree)
-
         compiled_code = compile(tree, '<ast>', 'exec')
 
         return compiled_code
@@ -68,8 +66,8 @@ class SenecaCompiler(ast.NodeTransformer):
             decorator = node.decorator_list.pop()
 
             # change the name of the init function to '____' so it is uncallable except once
-            # if decorator == config.INIT_DECORATOR_STRING:
-            #     node.name = '____'
+            if decorator.id == config.INIT_DECORATOR_STRING:
+                node.name = '____'
         else:
             self.private_expr.add(node.name)
             node.name = self.privatize(node.name)
@@ -79,7 +77,7 @@ class SenecaCompiler(ast.NodeTransformer):
         return node
 
     def visit_Assign(self, node):
-        if isinstance(node.value, ast.Call) and node.value.func.id in config.ORM_CLASS_NAMES:
+        if isinstance(node.value, ast.Call) and not isinstance(node.value.func, ast.Attribute) and node.value.func.id in config.ORM_CLASS_NAMES:
                 node.value.keywords.append(ast.keyword('contract', ast.Str(self.module_name)))
                 node.value.keywords.append(ast.keyword('name', ast.Str(node.targets[0].id)))
 

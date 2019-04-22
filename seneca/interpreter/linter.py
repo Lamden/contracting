@@ -4,7 +4,7 @@ from .. import config
 
 from ..logger import get_logger
 from ..interpreter.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS
-from ..interpreter.module import ContractDriver
+#from ..interpreter.module import ContractDriver
 
 
 class Linter(ast.NodeVisitor):
@@ -16,7 +16,7 @@ class Linter(ast.NodeVisitor):
         self._is_one_export = False
         self._is_success = True
         self._constructor_visited = False
-        self.driver = ContractDriver()
+        #self.driver = ContractDriver()
 
     def ast_types(self, t, lnum):
         if type(t) not in ALLOWED_AST_TYPES:
@@ -52,23 +52,12 @@ class Linter(ast.NodeVisitor):
         # for n in node.names:
         #     self.validate_imports(n.name, alias=n.asname, lnum = node.lineno)
         return node
-        return self._visit_any_import(node)
 
 
     def visit_ImportFrom(self, node):
         str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[3]
         self._violations.append(str)
         self._is_success = False
-
-    def validate_imports(self, import_path, module_name=None, alias=None, lnum= 0):
-        if self.driver.get_contract(import_path) is None:
-            str = "Line {}: ".format(lnum) +VIOLATION_TRIGGERS[4] + ': {}'.format(import_path)
-            self._violations.append(str)
-            self._is_success = False
-
-    def _visit_any_import(self, node):
-        self.generic_visit(node)
-        return node
 
     '''
     Why are we even doing any logic instead of just failing on visiting these?
@@ -94,12 +83,13 @@ class Linter(ast.NodeVisitor):
 
     def visit_Assign(self, node):
         # resource_names, func_name = Assert.valid_assign(node, Parser.parser_scope)
-        if isinstance(node.value, ast.Call) and node.value.func.id in config.ORM_CLASS_NAMES:
+        if isinstance(node.value, ast.Call) and not isinstance(node.value.func, ast.Attribute) and node.value.func.id in config.ORM_CLASS_NAMES:
             if node.value.func.id in ['Variable', 'Hash']:
-                if len(node.value.keywords) > 0:
+                kwargs = [k.arg for k in node.value.keywords]
+                if 'contract' in kwargs or 'name' in kwargs:
                     str = 'Keyword overloading not allowed for ORM assignments.'
                     self._violations.append(str)
-            if len(node.targets) > 1:
+            if ast.Tuple in [type(t) for t in node.targets] or isinstance(node.value, ast.Tuple):
                 str = 'Multiple targets to an ORM definition is not allowed.'
                 self._violations.append(str)
 

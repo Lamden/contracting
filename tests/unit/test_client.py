@@ -29,7 +29,7 @@
 # 0
 # Wiki
 # Insights
-# seneca / tests / unit / engine / test_client.py
+# seneca / tests / unit / unit / test_client.py
 #
 #
 # @wywfalcon
@@ -54,8 +54,8 @@
 #
 # from tests.utils import TestExecutor
 # from unittest import mock
-# from seneca.engine.client import *
-# from seneca.engine.interpreter.parser import Parser
+# from seneca.unit.client import *
+# from seneca.unit.interpreter.parser import Parser
 # from seneca.libs.logger import overwrite_logger_level, get_logger
 # from collections import OrderedDict, defaultdict
 # import random, os, marshal
@@ -678,7 +678,7 @@
 #
 #         loop.close()
 #
-#     @mock.patch("seneca.engine.client.NUM_CACHES", 2)
+#     @mock.patch("seneca.unit.client.NUM_CACHES", 2)
 #     def test_hella_subblocks_with_stamps(self):
 #         self._mint_wallets(10 ** 8)
 #         loop = asyncio.new_event_loop()
@@ -733,7 +733,7 @@
 #         loop.run_until_complete(_wait_for_things_to_finish())
 #         loop.close()
 #
-#     @mock.patch("seneca.engine.client.NUM_CACHES", 2)
+#     @mock.patch("seneca.unit.client.NUM_CACHES", 2)
 #     def test_hella_subblocks_called_in_correct_order(self):
 #         self._mint_wallets(10 ** 8)
 #         loop = asyncio.new_event_loop()
@@ -840,7 +840,7 @@
 #
 #         loop.close()
 #
-#     @mock.patch("seneca.engine.client.NUM_CACHES", 2)
+#     @mock.patch("seneca.unit.client.NUM_CACHES", 2)
 #     def test_publish_tx_then_use_that_tx_with_one_sb_builder(self):
 #         loop = asyncio.new_event_loop()
 #         asyncio.set_event_loop(loop)

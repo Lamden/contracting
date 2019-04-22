@@ -197,23 +197,6 @@ def a():
         self.assertEqual(chk, None)
         self.assertListEqual([], self.l._violations)
 
-    def test_import_works(self):
-        self.l.driver.set_contract('something', 'a = 10')
-        code = '''
-import something
-@seneca_export
-def a():
-    b = 0
-    b += 1
-        '''
-
-        c = ast.parse(code)
-        chk = self.l.check(c)
-        #self.l.driver.flush()
-        self.l.dump_violations()
-        self.assertEqual(chk, None)
-        self.assertListEqual([], self.l._violations)
-
     def test_no_import_from(self):
         code = '''
 from something import a
@@ -281,3 +264,89 @@ def y():
         self.l._collect_function_defs(c)
         self.l.dump_violations()
         self.assertEqual(self.l._functions, ['a', 'b', 'x', 'y'])
+
+    def test_assignment_of_import(self):
+        code = '''
+import import_this
+
+@seneca_export
+def test():
+    a = import_this.howdy()
+    a -= 1000
+    return a        
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.l.dump_violations()
+
+    def test_good_orm_initialization(self):
+        code = '''
+v = Variable()
+
+@seneca_export
+def set(i):
+    v.set(i)
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.assertEqual(self.l._violations, [])
+
+    def test_bad_orm_initialization(self):
+        code = '''
+v = Variable(contract='currency', name='stus_balance')
+
+@seneca_export
+def set(i):
+    v.set(i)
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.assertEqual(self.l._violations, ['Keyword overloading not allowed for ORM assignments.'])
+
+    def test_multi_targets_orm_fails(self):
+        code = '''
+v, x = Variable()
+
+@seneca_export
+def set(i):
+    v.set(i)
+    '''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.assertEqual(self.l._violations, ['Multiple targets to an ORM definition is not allowed.'])
+
+    def test_multi_decorator_fails(self):
+        code = '''
+@seneca_construct
+@seneca_export
+def kaboom():
+    print('i like to break things')
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.assertEqual(self.l._violations, ['Function definition can only contain 1 decorator. Currently contains 2.'])
+
+    def test_invalid_decorator_fails(self):
+        code = '''
+@seneca_invalid
+def wont_work():
+    print('i hope')
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.assertEqual(self.l._violations, ["seneca_invalid is an invalid decorator. Must be one of {'seneca_construct', 'seneca_export'}", 'S13- No valid seneca decorator found'])
+
+    def test_multiple_constructors_fails(self):
+        code = '''
+@seneca_construct
+def seed_1():
+    print('hi')
+    
+@seneca_construct
+def seed_2():
+    print('howdy')
+'''
+
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.assertEqual(self.l._violations, ['Multiple constructors not allowed.', 'S13- No valid seneca decorator found'])
