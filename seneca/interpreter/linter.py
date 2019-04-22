@@ -89,14 +89,13 @@ class Linter(ast.NodeVisitor):
     def visit_Assign(self, node):
         # resource_names, func_name = Assert.valid_assign(node, Parser.parser_scope)
         if isinstance(node.value, ast.Call) and not isinstance(node.value.func, ast.Attribute) and node.value.func.id in config.ORM_CLASS_NAMES:
-            #print(node.targets[0].elts)
-            print(node.targets)
             if node.value.func.id in ['Variable', 'Hash']:
                 kwargs = [k.arg for k in node.value.keywords]
                 if 'contract' in kwargs or 'name' in kwargs:
                     str = 'Keyword overloading not allowed for ORM assignments.'
                     self._violations.append(str)
-            if len(node.targets) >= 1 and isinstance(node.targets[0], ast.Tuple) and len(node.targets[0].elts) > 1:
+            print(node.targets)
+            if ast.Tuple in [type(t) for t in node.targets] or isinstance(node.value, ast.Tuple):
                 str = 'Multiple targets to an ORM definition is not allowed.'
                 self._violations.append(str)
 

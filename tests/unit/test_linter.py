@@ -313,4 +313,5 @@ def set(i):
     '''
         c = ast.parse(code)
         chk = self.l.check(c)
+        print(self.l._violations)
         self.assertEqual(self.l._violations, ['Multiple targets to an ORM definition is not allowed.'])
