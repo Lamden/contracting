@@ -98,147 +98,41 @@ class DBTests(unittest.TestCase):
         contract_name = 'module_func'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result = self.e.execute(self.author, contract_name,
+        result = self.e.execute(self.author, contract_name,
                                              function_name, kwargs)
-        self.assertEqual(result, 'Working')
-        self.assertEqual(status_code, 0)
+        self.assertEqual(result['result'], 'Working')
+        self.assertEqual(result['status_code'], 0)
+        self.assertEqual(result['error'], None)
 
     def test_executor_execute_fail(self):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result = self.e.execute(self.author, contract_name,
+        result = self.e.execute(self.author, contract_name,
                                              function_name, kwargs)
-        self.assertEqual(status_code, 1)
-        self.assertIsInstance(result, ImportError)
+        self.assertEqual(result['status_code'], 1)
+        self.assertIsInstance(result['error'], ImportError)
+        self.assertEqual(result['result'], None)
 
     def test_executor_prod_execute(self):
         contract_name = 'module_func'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result = self.e_prod.execute(self.author, contract_name,
+        result = self.e_prod.execute(self.author, contract_name,
                                                   function_name, kwargs)
-        self.assertEqual(result, 'Working')
-        self.assertEqual(status_code, 0)
-
-    def test_executor_execute_fail(self):
-        contract_name = 'badmodule'
-        function_name = 'test_func'
-        kwargs = {'status': 'Working'}
-        status_code, result = self.e_prod.execute(self.author, contract_name,
-                                                  function_name, kwargs)
-        self.assertEqual(status_code, 1)
-        self.assertIsInstance(result, ImportError)
-
-    def test_executor_prod_execute(self):
-        contract_name = 'module_func'
-        function_name = 'test_func'
-        kwargs = {'status': 'Working'}
-        status_code, result = self.e_prod.execute(self.author, contract_name,
-                                                  function_name, kwargs)
-        self.assertEqual(result, 'Working')
-        self.assertEqual(status_code, 0)
+        self.assertEqual(result['result'], 'Working')
+        self.assertEqual(result['status_code'], 0)
+        self.assertEqual(result['error'], None)
 
     def test_executor_prod_execute_fail(self):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result = self.e_prod.execute(self.author, contract_name,
+        result = self.e_prod.execute(self.author, contract_name,
                                                   function_name, kwargs)
-        self.assertEqual(status_code, 1)
-        self.assertIsInstance(result, ImportError)
-
-    def test_executor_prod_execute(self):
-        contract_name = 'module_func'
-        function_name = 'test_func'
-        kwargs = {'status': 'Working'}
-        status_code, result = self.e_prod.execute(self.author, contract_name,
-                                                  function_name, kwargs)
-        self.assertEqual(result, 'Working')
-        self.assertEqual(status_code, 0)
-
-    def test_executor_prod_execute_fail(self):
-        contract_name = 'badmodule'
-        function_name = 'test_func'
-        kwargs = {'status': 'Working'}
-        status_code, result = self.e_prod.execute(self.author, contract_name,
-                                                  function_name, kwargs)
-        self.assertEqual(status_code, 1)
-        self.assertIsInstance(result, ImportError)
-
-
-class TestBag():
-    def test_executor_execute_bag(self):
-        ctx1 = ContractTxStub(self.author, 'module_func', 'test_func',
-                              {'status': 'Working'})
-        ctx2 = ContractTxStub(self.author, 'module_func', 'test_func',
-                              {'status': 'Also Working'})
-        bag = [ctx1, ctx2]
-        results = self.e.execute_bag(bag)
-
-        # Assert the status codes in the results object are correct
-        self.assertEqual(results[0][0], 0)
-        self.assertEqual(results[1][0], 0)
-
-        # Assert the response objects in the results are correct and
-        # in the correct order
-        self.assertEqual(results[0][1], 'Working')
-        self.assertEqual(results[1][1], 'Also Working')
-
-    def test_executor_execute_bag_fail(self):
-        ctx1 = ContractTxStub(self.author, 'module_func', 'test_func',
-                              {'status': 'Working'})
-        ctx2 = ContractTxStub(self.author, 'badmodule', 'test_func',
-                              {'status': 'Also Working'})
-        bag = [ctx1, ctx2]
-        results = self.e.execute_bag(bag)
-
-        # Assert the status codes in the results object are correct
-        self.assertEqual(results[0][0], 0)
-        # Second result for ctx2 should be failure
-        self.assertEqual(results[1][0], 1)
-
-        # Assert the response objects in the results are correct and
-        # in the correct order
-        self.assertEqual(results[0][1], 'Working')
-        # Assert we get the correct error on the failing ctx
-        self.assertIsInstance(results[1][1], ImportError)
-
-    def test_executor_prod_execute_bag(self):
-        ctx1 = ContractTxStub(self.author, 'module_func', 'test_func',
-                              {'status': 'Working'})
-        ctx2 = ContractTxStub(self.author, 'module_func', 'test_func',
-                              {'status': 'Also Working'})
-        bag = [ctx1, ctx2]
-        results = self.e_prod.execute_bag(bag)
-
-        # Assert the status codes in the results object are correct
-        self.assertEqual(results[0][0], 0)
-        self.assertEqual(results[1][0], 0)
-
-        # Assert the response objects in the results are correct and
-        # in the correct order
-        self.assertEqual(results[0][1], 'Working')
-        self.assertEqual(results[1][1], 'Also Working')
-
-    def test_executor_prod_execute_bag_fail(self):
-        ctx1 = ContractTxStub(self.author, 'module_func', 'test_func',
-                              {'status': 'Working'})
-        ctx2 = ContractTxStub(self.author, 'badmodule', 'test_func',
-                              {'status': 'Also Working'})
-        bag = [ctx1, ctx2]
-        results = self.e_prod.execute_bag(bag)
-
-        # Assert the status codes in the results object are correct
-        self.assertEqual(results[0][0], 0)
-        # Second result for ctx2 should be failure
-        self.assertEqual(results[1][0], 1)
-
-        # Assert the response objects in the results are correct and
-        # in the correct order
-        self.assertEqual(results[0][1], 'Working')
-        # Assert we get the correct error on the failing ctx
-        self.assertIsInstance(results[1][1], ImportError)
+        self.assertEqual(result['status_code'], 1)
+        self.assertIsInstance(result['error'], ImportError)
+        self.assertEqual(result['result'], None)
 
 
 # Stub out the Contract Transaction object for use in the unit test
