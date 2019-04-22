@@ -144,7 +144,7 @@ class SenecaClient:
             self.log.debug("RESET phase finished. Resetting db for input hash {}".format(input_hash))
             cr_data.reset_db()
 
-        cr_data.assert_reset()  # Dev check. Make sure cr_data has been properly reset_db
+        cr_data.assert_reset()  # Dev check. Make sure cr_context has been properly reset_db
 
         self.available_dbs.append(cr_data)
 
@@ -246,9 +246,9 @@ class SenecaClient:
     #     return result
 
     def _rerun_transactions_for_cr_data(self, cr_data: CRContext):
-        """ Reruns any contracts in cr_data, if necessary. This should be done before we merge cr_data to common. """
-        # This cr_data should be next in line in pending_dbs if we are rerunning contracts
-        assert self.pending_dbs[0] is cr_data, "cr_data {} is not first in line in pending_dbs! First is {}"\
+        """ Reruns any contracts in cr_context, if necessary. This should be done before we merge cr_context to common. """
+        # This cr_context should be next in line in pending_dbs if we are rerunning contracts
+        assert self.pending_dbs[0] is cr_data, "cr_context {} is not first in line in pending_dbs! First is {}"\
                                                .format(cr_data, self.pending_dbs[0])
 
         self.log.notice("Rerunning any necessary contracts for CRData with input hash {}".format(cr_data.input_hash))
@@ -366,11 +366,11 @@ class SenecaClient:
     async def _wait_and_merge_to_common(self, cr_data: CRContext, completion_handler: Callable[[CRContext], None]):
         """
         - Waits for all other SBBs to finish execution. Raises an error if this takes longer than Phase.EXEC_TIMEOUT
-        - Waits for this cr_data to be first in line in 'pending_dbs' (bottom of stack)
+        - Waits for this cr_context to be first in line in 'pending_dbs' (bottom of stack)
         - Waits for all subblocks before it finish conflict resolution. Raises an error if it takes longer than Phase.CR_TIMEOUT
         - Starts conflict resolution, which involves:
             - Rerun any necessary contracts
-            - Merges cr_data to common layer, and then increment the CONFLICT_RESOLUTION phase variable
+            - Merges cr_context to common layer, and then increment the CONFLICT_RESOLUTION phase variable
         - If the 'merge' flag is set by an earlier update_master_db call, then this is done next
         """
         await self._wait_for_execution_stage(cr_data)
@@ -433,7 +433,7 @@ class SenecaClient:
         Phase.incr(cr_data.working_db, Macros.CONFLICT_RESOLUTION)
 
     async def _wait_until_top_of_pending(self, cr_data: CRContext):
-        """ Waits until cr_data is at the top (first element) of self.pending_dbs """
+        """ Waits until cr_context is at the top (first element) of self.pending_dbs """
         # TODO technically this 'wait' can be triggered reactively when we leftpop pending_dbs in merge_to_master
         # This is an optimization we can do later
         elapsed = 0

@@ -162,7 +162,7 @@ class CRContext:
         self.merged_to_common = False
 
         # 'locked' is a debug flag to detect with CR data is being written to when it shouldnt be. If locked, no
-        # acceses to underlying self.cr_data is expected. We lock the CRContext when we put it in available_dbs,
+        # acceses to underlying self.cr_context is expected. We lock the CRContext when we put it in available_dbs,
         # and unlock it when we put it in pending_dbs or active_dbs, but only while we are running contracts
         self.locked = True
 

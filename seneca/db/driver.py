@@ -170,11 +170,11 @@ class CRDriver(DatabaseDriver):
     def __init__(self):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
         self.log = get_logger("CRDriver")
-        self.working_db, self.master_db, self.contract_idx, self.cmds, self.cr_data = None, None, None, None, None
+        self.working_db, self.master_db, self.contract_idx, self.cmds, self.cr_context = None, None, None, None, None
         self.cmds = None
 
     def setup(self, transaction_idx: int, cr_context: CRContext):
-        self.cr_data = cr_context
+        self.cr_context = cr_context
 
         # why does this guy need a reference of working and master db? can we do away with that
         # update -- i think its for convenience so we dont have to do data.master_db ... seems silly though...
@@ -182,15 +182,15 @@ class CRDriver(DatabaseDriver):
         self.contract_idx = transaction_idx
 
         if self.cmds is None:
-            self.cmds = {'get': CRCmdGet(self.working_db, self.master_db, self.contract_idx, self.cr_data),
-                         'set': CRCmdSet(self.working_db, self.master_db, self.contract_idx, self.cr_data)}
+            self.cmds = {'get': CRCmdGet(self.working_db, self.master_db, self.contract_idx, self.cr_context),
+                         'set': CRCmdSet(self.working_db, self.master_db, self.contract_idx, self.cr_context)}
 
     def get(self, key):
         cmd = self.cmds['get']
-        cmd.set_params(working_db=self.working_db, master_db=self.master_db, contract_idx=self.contract_idx, data=self.cr_data)
+        cmd.set_params(working_db=self.working_db, master_db=self.master_db, contract_idx=self.contract_idx, data=self.cr_context)
         return cmd
 
     def set(self, key, value):
         cmd = self.cmds['set']
-        cmd.set_params(working_db=self.working_db, master_db=self.master_db, contract_idx=self.contract_idx, data=self.cr_data)
+        cmd.set_params(working_db=self.working_db, master_db=self.master_db, contract_idx=self.contract_idx, data=self.cr_context)
         return cmd

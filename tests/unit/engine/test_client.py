@@ -152,11 +152,11 @@
 #             asyncio.sleep(merge_wait)
 #             client.update_master_db()
 #
-#         def _completion_handler(cr_data: CRContext):
+#         def _completion_handler(cr_context: CRContext):
 #             if input_hash:
-#                 self.assertEqual(cr_data.input_hash, input_hash)
+#                 self.assertEqual(cr_context.input_hash, input_hash)
 #             if expected_sbb_rep:
-#                 self.assertEqual(expected_sbb_rep, cr_data.get_subblock_rep())
+#                 self.assertEqual(expected_sbb_rep, cr_context.get_subblock_rep())
 #             if merge_master:
 #                 asyncio.ensure_future(_merge(client))
 #             if client and input_hash:

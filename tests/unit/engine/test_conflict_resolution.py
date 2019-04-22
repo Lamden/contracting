@@ -51,7 +51,7 @@ class TestConflictResolution(TestCase):
         self.cr_driver.set(KEY3, NEW_VAL3)  # To trigger a copy to sbb specific layer
 
         # Check the modified and original values
-        getset = self.cr_driver.cr_data.cr_data
+        getset = self.cr_driver.cr_context.cr_data
         k1_expected = {'og': VAL1, 'mod': NEW_VAL1, 'contracts': {0}}
         k2_expected = {'og': VAL2, 'mod': None, 'contracts': set()}
         k3_expected = {'og': VAL3, 'mod': NEW_VAL3, 'contracts': {2}}
@@ -61,7 +61,7 @@ class TestConflictResolution(TestCase):
 
         # Check modifications list
         expected_mods = {0: {KEY1}, 2: {KEY3}}
-        self.assertEqual(self.cr_driver.cr_data.writes, expected_mods)
+        self.assertEqual(self.cr_driver.cr_context.writes, expected_mods)
 
         # Check should_rerun (tinker with common first)
         cr_data = self.sbb_data[0].cr_data
