@@ -23,10 +23,9 @@ class Variable(Datum):
 
 
 class Hash(Datum):
-    def __init__(self, contract, name, driver: ContractDriver=rt.driver, default_value=None):
+    def __init__(self, contract, name, driver: ContractDriver=rt.driver):
         super().__init__(contract, name, driver=driver)
         self.delimiter = config.DELIMITER
-        self.default_value = default_value
 
     def set(self, key, value):
         self.driver.set('{}{}{}'.format(self.key, self.delimiter, key), value)
@@ -38,9 +37,6 @@ class Hash(Datum):
         self.set(key, value)
 
     def __getitem__(self, item):
-        if item is None and self.default_value is not None:
-            item = self.default_value
-
         return self.get(item)
 
 

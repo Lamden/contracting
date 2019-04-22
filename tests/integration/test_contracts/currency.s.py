@@ -11,11 +11,7 @@ def transfer(amount, to):
     assert balances[sender] >= amount, 'Not enough coins to send!'
 
     balances[sender] -= amount
-
-    if balances[to] is None:
-        balances[to] = amount
-    else:
-        balances[to] += amount
+    balances[to] += amount
 
 @seneca_export
 def balance(account):
