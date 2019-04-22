@@ -31,10 +31,21 @@ class Executor:
         The execute bag method sends a list of transactions to the sandbox to be executed
 
         :param bag: a list of deserialized transaction objects
-        :return: a dict of results (result index == bag index), formatted as
-                 [ (status_code, result), ... ] where status_code is 0 or 1
-                 depending on success/failure and result is what is returned
-                 from executing the underlying function
+        :return: A dictionary with transaction index as the key and execution result
+                 objects as the value. Formatted as follows:
+
+                 {
+                    1: {
+                        'status_code': 0,
+                        'result': 'hello',
+                        'error': None
+                    },
+                    2: {
+                        'status_code': 1,
+                        'result': None,
+                        'error': ImportError
+                    }
+                 }
         """
         results = {}
         for idx, tx in bag:
@@ -51,12 +62,17 @@ class Executor:
         :param contract_name:
         :param function_name:
         :param kwargs:
-        :return: result of execute call
+        :return: Dictionary containing the keys 'status_code' 'result' and 'error'
         """
         # A successful run is determined by if the sandbox execute command successfully runs.
         # Therefor we need to have a try catch to communicate success/fail back to the
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
+        result = {
+            'status_code': 0,
+            'result': None,
+            'error': None
+        }
         try:
             result = self.sandbox.execute(sender, contract_name, function_name, kwargs)
             status_code = 0
