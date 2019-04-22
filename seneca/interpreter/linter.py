@@ -4,7 +4,7 @@ from .. import config
 
 from ..logger import get_logger
 from ..interpreter.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS
-from ..interpreter.module import ContractDriver
+#from ..interpreter.module import ContractDriver
 
 
 class Linter(ast.NodeVisitor):
@@ -16,7 +16,7 @@ class Linter(ast.NodeVisitor):
         self._is_one_export = False
         self._is_success = True
         self._constructor_visited = False
-        self.driver = ContractDriver()
+        #self.driver = ContractDriver()
 
     def ast_types(self, t, lnum):
         if type(t) not in ALLOWED_AST_TYPES:
@@ -59,12 +59,6 @@ class Linter(ast.NodeVisitor):
         str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[3]
         self._violations.append(str)
         self._is_success = False
-
-    def validate_imports(self, import_path, module_name=None, alias=None, lnum= 0):
-        if self.driver.get_contract(import_path) is None:
-            str = "Line {}: ".format(lnum) +VIOLATION_TRIGGERS[4] + ': {}'.format(import_path)
-            self._violations.append(str)
-            self._is_success = False
 
     def _visit_any_import(self, node):
         self.generic_visit(node)
