@@ -197,23 +197,6 @@ def a():
         self.assertEqual(chk, None)
         self.assertListEqual([], self.l._violations)
 
-    def test_import_works(self):
-        self.l.driver.set_contract('something', 'a = 10')
-        code = '''
-import something
-@seneca_export
-def a():
-    b = 0
-    b += 1
-        '''
-
-        c = ast.parse(code)
-        chk = self.l.check(c)
-        #self.l.driver.flush()
-        self.l.dump_violations()
-        self.assertEqual(chk, None)
-        self.assertListEqual([], self.l._violations)
-
     def test_no_import_from(self):
         code = '''
 from something import a

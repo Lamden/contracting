@@ -1,8 +1,9 @@
-from seneca.db.driver import ContractDriver
-from seneca.execution.runtime import rt
-from seneca import config
-from seneca.execution.compiler import SenecaCompiler
-from seneca.stdlib import env
+from ..db.driver import ContractDriver
+from ..execution.runtime import rt
+from .. import config
+from ..execution.compiler import SenecaCompiler
+from types import ModuleType
+from ..stdlib import env
 
 class Datum:
     def __init__(self, contract, name, driver: ContractDriver):
@@ -81,8 +82,6 @@ class Contract:
         c = SenecaCompiler(module_name=name)
 
         code_obj = c.compile(code, lint=True)
-
-        from types import ModuleType
 
         ctx = ModuleType('context')
 
