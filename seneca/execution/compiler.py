@@ -34,14 +34,11 @@ class SenecaCompiler(ast.NodeTransformer):
         # check all visited nodes and see if they are actually private
 
         for node in self.visited_expr:
-            print(node)
             try:
                 if isinstance(node.value, ast.Call) and node.value.func.id in self.private_expr:
                         node.value.func.id = self.privatize(node.value.func.id)
             except:
                 pass
-
-        print('back')
 
         ast.fix_missing_locations(tree)
 

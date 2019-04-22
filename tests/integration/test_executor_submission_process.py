@@ -36,15 +36,12 @@ class TestExecutor(TestCase):
         with open('../../seneca/contracts/submission.s.py') as f:
             contract = f.read()
 
-        print(contract)
-
         self.d.set_contract(name='submission',
                             code=contract,
                             author='sys')
 
     def tearDown(self):
-        #self.d.flush()
-        pass
+        self.d.flush()
 
     def test_submission(self):
         e = Executor()
@@ -59,7 +56,7 @@ def d():
             'code': code
         }
 
-        print(e.execute(**TEST_SUBMISSION_KWARGS, kwargs=kwargs))
+        e.execute(**TEST_SUBMISSION_KWARGS, kwargs=kwargs)
 
         self.assertEqual(self.d.get_contract('stubucks'), code)
 
@@ -265,14 +262,12 @@ def get_v():
     def test_import_seneca_exported_function_works(self):
         e = Executor()
 
-        res = e.execute(**TEST_SUBMISSION_KWARGS,
+        e.execute(**TEST_SUBMISSION_KWARGS,
                         kwargs=submission_kwargs_for_file('./test_contracts/import_this.s.py'))
 
-        res = e.execute(**TEST_SUBMISSION_KWARGS,
+        e.execute(**TEST_SUBMISSION_KWARGS,
                         kwargs=submission_kwargs_for_file('./test_contracts/importing_that.s.py'))
-
-        print('trying to submit importing_that: {}'.format(res))
 
         res = e.execute('stu', 'importing_that', 'test', kwargs={})
 
-        print(res)
+        self.assertEqual(res[1], 12345 - 1000)
