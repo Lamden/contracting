@@ -40,4 +40,23 @@ class TestComplexContracts(TestCase):
                             author='sys')
 
     def tearDown(self):
-        self.d.flush()
+        #self.d.flush()
+        pass
+
+    def test_token_constuction_works(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/token.s.py'))
+
+        res = e.execute('stu', 'token', 'balance', kwargs={'account': 'colin'})
+
+        self.assertEqual(res[1], 100)
+
+        res = e.execute('stu', 'token', 'balance', kwargs={'account': 'stu'})
+
+        self.assertEqual(res[1], 1000000)
+
+        res = e.execute('stu', 'token', 'balance', kwargs={'account': 'raghu'})
+
+        self.assertEqual(res[1], None)
