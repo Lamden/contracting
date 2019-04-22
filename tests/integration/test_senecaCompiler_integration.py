@@ -140,3 +140,22 @@ def e():
         code_str = astor.to_source(comp)
 
         self.assertEqual(len([m.start() for m in re.finditer(config.PRIVATE_METHOD_PREFIX, code_str)]), 9)
+
+    def test_seneca_construct_renames_properly(self):
+        code = '''
+@seneca_construct
+def seed():
+    print('yes')
+
+@seneca_export
+def hello():
+    print('no')
+    
+def goodbye():
+    print('idk')
+        '''
+
+        c = SenecaCompiler()
+        comp = c.parse(code, lint=False)
+        code_str = astor.to_source(comp)
+        print(code_str)

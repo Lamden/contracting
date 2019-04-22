@@ -1,7 +1,8 @@
 from seneca.db.driver import ContractDriver
 from seneca.execution.runtime import rt
 from seneca import config
-from seneca.interpreter.linter import Linter
+#from seneca.interpreter.linter import Linter
+#from seneca.execution.compiler import SenecaCompiler
 import ast
 
 class Datum:
@@ -79,7 +80,11 @@ class Contract:
 
     def submit(self, name, code, author):
         tree = ast.parse(code, '<smart contract>', 'exec')
+
         l = Linter()
         errors = l.check(tree)
         assert errors is None, 'Could not submit smart contract!'
+
+        c = SenecaCompiler(module_name=name)
+
         self.driver.set_contract(name=name, code=code, author=author, overwrite=False)

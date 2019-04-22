@@ -1,4 +1,5 @@
 import ast
+import astor
 
 from .. import config
 
@@ -54,7 +55,6 @@ class SenecaCompiler(ast.NodeTransformer):
     def compile(self, source: str, lint=True):
         tree = self.parse(source, lint=lint)
 
-        import astor
         astor.to_source(tree)
 
         compiled_code = compile(tree, '<ast>', 'exec')
@@ -68,8 +68,8 @@ class SenecaCompiler(ast.NodeTransformer):
             decorator = node.decorator_list.pop()
 
             # change the name of the init function to '____' so it is uncallable except once
-            # if decorator == config.INIT_DECORATOR_STRING:
-            #     node.name = '____'
+            if decorator.id == config.INIT_DECORATOR_STRING:
+                node.name = '____'
         else:
             self.private_expr.add(node.name)
             node.name = self.privatize(node.name)
