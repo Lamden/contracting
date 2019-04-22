@@ -52,17 +52,12 @@ class Linter(ast.NodeVisitor):
         # for n in node.names:
         #     self.validate_imports(n.name, alias=n.asname, lnum = node.lineno)
         return node
-        return self._visit_any_import(node)
 
 
     def visit_ImportFrom(self, node):
         str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[3]
         self._violations.append(str)
         self._is_success = False
-
-    def _visit_any_import(self, node):
-        self.generic_visit(node)
-        return node
 
     '''
     Why are we even doing any logic instead of just failing on visiting these?
@@ -94,7 +89,6 @@ class Linter(ast.NodeVisitor):
                 if 'contract' in kwargs or 'name' in kwargs:
                     str = 'Keyword overloading not allowed for ORM assignments.'
                     self._violations.append(str)
-            print(node.targets)
             if ast.Tuple in [type(t) for t in node.targets] or isinstance(node.value, ast.Tuple):
                 str = 'Multiple targets to an ORM definition is not allowed.'
                 self._violations.append(str)

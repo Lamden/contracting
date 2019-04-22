@@ -313,5 +313,40 @@ def set(i):
     '''
         c = ast.parse(code)
         chk = self.l.check(c)
-        print(self.l._violations)
         self.assertEqual(self.l._violations, ['Multiple targets to an ORM definition is not allowed.'])
+
+    def test_multi_decorator_fails(self):
+        code = '''
+@seneca_construct
+@seneca_export
+def kaboom():
+    print('i like to break things')
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.assertEqual(self.l._violations, ['Function definition can only contain 1 decorator. Currently contains 2.'])
+
+    def test_invalid_decorator_fails(self):
+        code = '''
+@seneca_invalid
+def wont_work():
+    print('i hope')
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.assertEqual(self.l._violations, ["seneca_invalid is an invalid decorator. Must be one of {'seneca_construct', 'seneca_export'}", 'S13- No valid seneca decorator found'])
+
+    def test_multiple_constructors_fails(self):
+        code = '''
+@seneca_construct
+def seed_1():
+    print('hi')
+    
+@seneca_construct
+def seed_2():
+    print('howdy')
+'''
+
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.assertEqual(self.l._violations, ['Multiple constructors not allowed.', 'S13- No valid seneca decorator found'])
