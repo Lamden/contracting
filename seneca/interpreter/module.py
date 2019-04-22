@@ -5,8 +5,8 @@ from importlib import invalidate_caches
 
 from ..db.driver import ContractDriver
 #from ..execution.compiler import SenecaCompiler
-from ..db.orm import Variable, ForeignVariable, Hash, ForeignHash, Contract
-
+#from ..db.orm import Variable, ForeignVariable, Hash, ForeignHash, Contract
+from ..stdlib import env
 from ..execution.runtime import rt
 
 from types import ModuleType
@@ -71,14 +71,8 @@ class DatabaseLoader(Loader):
         ctx.signer = rt.ctx[0]
 
         # replace this with the new stdlib stuff
-        env = {
-            'ctx': ctx,
-            'Variable': Variable,
-            'ForeignVariable': ForeignVariable,
-            'Hash': Hash,
-            'ForeignHash': ForeignHash,
-            '__Contract': Contract
-        }
+        scope = env.gather()
+        scope.update({'ctx': ctx})
 
         rt.ctx.append(module.__name__)
         self.sc.module_name = rt.ctx[-1]
@@ -86,8 +80,8 @@ class DatabaseLoader(Loader):
         code_obj = self.sc.compile(code, lint=False)
 
         # execute the module with the std env and update the module to pass forward
-        exec(code_obj, env)
-        vars(module).update(env)
+        exec(code_obj, scope)
+        vars(module).update(scope)
 
         rt.ctx.pop()
 

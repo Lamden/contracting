@@ -258,7 +258,7 @@ def get_v():
         r = e.execute(**TEST_SUBMISSION_KWARGS,
             kwargs=submission_kwargs_for_file('./test_contracts/test_construct_function_works.s.py'))
 
-        print(r)
         res = e.execute('stu', 'test_construct_function_works', 'get', kwargs={})
 
-        print(res)
+        self.assertEqual(res[1], 42)
+

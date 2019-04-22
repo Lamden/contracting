@@ -1,9 +1,8 @@
 from seneca.db.driver import ContractDriver
 from seneca.execution.runtime import rt
 from seneca import config
-#from seneca.interpreter.linter import Linter
 from seneca.execution.compiler import SenecaCompiler
-import ast
+from seneca.stdlib import env
 
 class Datum:
     def __init__(self, contract, name, driver: ContractDriver):
@@ -91,18 +90,12 @@ class Contract:
         ctx.this = name
         ctx.signer = rt.ctx[0]
 
-        env = {
-            'ctx': rt.ctx,
-            'Variable': Variable,
-            'ForeignVariable': ForeignVariable,
-            'Hash': Hash,
-            'ForeignHash': ForeignHash,
-            '__Contract': Contract
-        }
+        scope = env.gather()
+        scope.update({'ctx': ctx})
 
-        exec(code_obj, env)
+        exec(code_obj, scope)
 
-        if env.get('____') is not None:
-            env['____']()
+        if scope.get(config.INIT_FUNC_NAME) is not None:
+            scope[config.INIT_FUNC_NAME]()
 
         self.driver.set_contract(name=name, code=code, author=author, overwrite=False)
