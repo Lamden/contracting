@@ -49,8 +49,9 @@ class Linter(ast.NodeVisitor):
         return node
 
     def visit_Import(self, node):
-        for n in node.names:
-            self.validate_imports(n.name, alias=n.asname, lnum = node.lineno)
+        # for n in node.names:
+        #     self.validate_imports(n.name, alias=n.asname, lnum = node.lineno)
+        return node
         return self._visit_any_import(node)
 
 
