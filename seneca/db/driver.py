@@ -188,9 +188,9 @@ class CRDriver(DatabaseDriver):
     def get(self, key):
         cmd = self.cmds['get']
         cmd.set_params(working_db=self.working_db, master_db=self.master_db, contract_idx=self.contract_idx, data=self.cr_context)
-        return cmd
+        return cmd(key)
 
     def set(self, key, value):
         cmd = self.cmds['set']
         cmd.set_params(working_db=self.working_db, master_db=self.master_db, contract_idx=self.contract_idx, data=self.cr_context)
-        return cmd
+        return cmd(key, value)
