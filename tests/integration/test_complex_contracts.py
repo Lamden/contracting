@@ -47,16 +47,18 @@ class TestComplexContracts(TestCase):
         e = Executor()
 
         e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/token.s.py'))
+                  kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'))
 
-        res = e.execute('stu', 'token', 'balance', kwargs={'account': 'colin'})
+        res = e.execute('stu', 'currency', 'balance', kwargs={'account': 'colin'})
+
+        print(res[1])
 
         self.assertEqual(res[1], 100)
 
-        res = e.execute('stu', 'token', 'balance', kwargs={'account': 'stu'})
+        res = e.execute('stu', 'currency', 'balance', kwargs={'account': 'stu'})
 
         self.assertEqual(res[1], 1000000)
 
-        res = e.execute('stu', 'token', 'balance', kwargs={'account': 'raghu'})
+        res = e.execute('stu', 'currency', 'balance', kwargs={'account': 'raghu'})
 
         self.assertEqual(res[1], None)

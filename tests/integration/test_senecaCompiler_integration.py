@@ -162,6 +162,12 @@ def goodbye():
 
     def test_token_contract_parses_correctly(self):
 
-        f = open('./test_contracts/token.s.py')
+        f = open('./test_contracts/currency.s.py')
         code = f.read()
         f.close()
+
+        c = SenecaCompiler()
+        comp = c.parse(code, lint=False)
+        code_str = astor.to_source(comp)
+
+        print(code_str)
