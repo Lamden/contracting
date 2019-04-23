@@ -92,7 +92,7 @@ class CacheDriver(AbstractDatabaseDriver):
         if key_location is None:
             value = self.conn.get(key)
         else:
-            value = self.contract_modifications[key_location][key]
+            value = self.contract_modifications[key_location[-1]][key]
         return value
 
     def set(self, key, value):
