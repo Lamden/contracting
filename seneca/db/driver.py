@@ -65,9 +65,12 @@ class CacheDriver(AbstractDatabaseDriver):
         self.conn = Redis(host=host, port=port, db=db)
 
         # modified keys stores a map to the last location of the key
+        self._reset()
+
+    def _reset(self):
         self.modified_keys = dict()
         self.contract_modifications = list()
-        self.contract_modifications.append(dict())
+        self.new_tx()
 
     def get(self, key):
         key_location = self.modified_keys.get(key)
@@ -87,12 +90,13 @@ class CacheDriver(AbstractDatabaseDriver):
     def commit(self):
         for key, idx in self.modified_keys.items():
             self.conn.set(key, self.contract_modifications[idx][key])
-        self.modified_keys = dict()
-        self.contract_modifications = list()
-        self.contract_modifications.append(dict())
+
+        self._reset()
 
     def new_tx(self):
         self.contract_modifications.append(dict())
+
+
 
 
 class RedisDriver(AbstractDatabaseDriver):
