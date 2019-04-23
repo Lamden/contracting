@@ -59,6 +59,21 @@ class AbstractDatabaseDriver:
 
         return k
 
+from collections import deque, defaultdict
+class dequemap:
+    def __init__(self):
+        self.d = deque()
+
+    def append(self, x):
+        self.d.append(x)
+
+    def pop(self, i=0):
+        self.d.pop(i)
+
+    def __repr__(self):
+        if len(self.d) <= 0:
+            return None
+        return self.d[-1]
 
 class CacheDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
@@ -68,7 +83,7 @@ class CacheDriver(AbstractDatabaseDriver):
         self._reset()
 
     def _reset(self):
-        self.modified_keys = dict()
+        self.modified_keys = defaultdict(deque)
         self.contract_modifications = list()
         self.new_tx()
 
@@ -82,7 +97,10 @@ class CacheDriver(AbstractDatabaseDriver):
 
     def set(self, key, value):
         self.contract_modifications[-1].update({key: value})
-        self.modified_keys.update({key: len(self.contract_modifications) - 1})
+
+        # add modification idx to deque
+        self.modified_keys[key].append(len(self.contract_modifications) - 1)
+        #self.modified_keys.update({key: len(self.contract_modifications) - 1})
 
     def revert(self, idx=0):
         if idx == 0:

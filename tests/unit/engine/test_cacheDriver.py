@@ -1,6 +1,12 @@
 from unittest import TestCase
 from seneca.db.driver import CacheDriver
-from collections import deque
+from collections import deque, defaultdict
+
+def dict_to_default_dict(d):
+    _d = defaultdict(deque)
+    for k, v in d.items():
+        [_d[k].append(i) for i in v]
+    return _d
 
 class TestCacheDriver(TestCase):
     def setUp(self):
@@ -54,7 +60,9 @@ class TestCacheDriver(TestCase):
         self.c.set('col', 'bro')
         self.c.set('raghu', 'set')
 
-        self.assertDictEqual(self.c.modified_keys, {'stu': 0, 'col': 0, 'raghu': 0})
+        d = dict_to_default_dict({'stu': [0], 'col': [0], 'raghu': [0]})
+
+        self.assertDictEqual(self.c.modified_keys, d)
         self.assertDictEqual(self.c.contract_modifications[-1], {'stu': 'farm', 'col': 'bro', 'raghu': 'set'})
 
     def test_new_tx_adds_length_to_contract_modifications(self):
@@ -71,7 +79,9 @@ class TestCacheDriver(TestCase):
         self.c.set('col', 'orb')
         self.c.set('raghu', 'tes')
 
-        self.assertDictEqual(self.c.modified_keys, {'stu': 0, 'col': 1, 'raghu': 1})
+        d = dict_to_default_dict({'stu': [0], 'col': [0, 1], 'raghu': [0, 1]})
+
+        self.assertDictEqual(self.c.modified_keys, d)
 
     def test_new_tx_creates_new_key_space_and_gets_correct_keys(self):
         self.c.set('stu', 'farm')
