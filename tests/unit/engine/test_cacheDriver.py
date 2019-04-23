@@ -102,3 +102,22 @@ class TestCacheDriver(TestCase):
         self.assertDictEqual(self.c.contract_modifications[-1], {})
         self.assertDictEqual(self.c.modified_keys, {})
 
+    def test_commit_writes_to_db(self):
+        self.c.set('stu', 'farm')
+        self.c.set('col', 'bro')
+        self.c.set('raghu', 'set')
+
+        self.c.new_tx()
+
+        self.c.set('col', 'orb')
+        self.c.set('raghu', 'tes')
+
+        self.c.commit()
+
+        s = self.c.conn.get('stu')
+        c = self.c.conn.get('col')
+        r = self.c.conn.get('raghu')
+
+        self.assertEqual(s, b'farm')
+        self.assertEqual(c, b'orb')
+        self.assertEqual(r, b'tes')
