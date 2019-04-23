@@ -18,7 +18,8 @@ class TestCacheDriver(TestCase):
 
     def test_get_from_contract_modification_if_already_set(self):
         update = {'test': 'val2'}
-        self.c.contract_modifications.append(update)
+
+        self.c.contract_modifications[-1].update(update)
         self.c.modified_keys.update({'test': 0})
 
         self.c.conn.set('test', 'val1')
@@ -29,7 +30,7 @@ class TestCacheDriver(TestCase):
 
     def test_get_from_contract_modification_chains(self):
         update = {'test': 'val2', 'stu': 1234, 'colin': 0}
-        self.c.contract_modifications.append(update)
+        self.c.contract_modifications[-1].update(update)
         self.c.modified_keys.update({'test': 0, 'stu': 1234, 'colin': 0})
 
         update = {'test': 'val3'}
@@ -85,3 +86,6 @@ class TestCacheDriver(TestCase):
         self.assertEqual(self.c.get('raghu'), 'tes')
         self.assertEqual(self.c.get('stu'), 'farm')
         self.assertEqual(self.c.get('col'), 'orb')
+
+    def test_commit_sets_all_to_db_and_resets_state(self):
+        pass

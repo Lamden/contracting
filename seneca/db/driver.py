@@ -85,7 +85,10 @@ class CacheDriver(AbstractDatabaseDriver):
         pass
 
     def commit(self):
-        pass
+        for key, idx in self.modified_keys.items():
+            self.conn.set(key, self.contract_modifications[idx][key])
+        self.modified_keys = dict()
+        self.contract_modifications = dict()
 
     def new_tx(self):
         self.contract_modifications.append(dict())
