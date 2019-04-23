@@ -107,11 +107,7 @@ class CacheDriver(AbstractDatabaseDriver):
             self._reset()
         else:
             tmp = self.modified_keys.copy()
-            print(tmp)
-
             for key, i in tmp.items():
-                print(len(i))
-                print(i)
                 while len(i) >= 1:
                     if i[-1] >= idx:
                         i.pop()

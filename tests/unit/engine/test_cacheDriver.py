@@ -26,7 +26,7 @@ class TestCacheDriver(TestCase):
         update = {'test': 'val2'}
 
         self.c.contract_modifications[-1].update(update)
-        self.c.modified_keys.update({'test': 0})
+        self.c.modified_keys.update({'test': deque([0])})
 
         self.c.conn.set('test', 'val1')
 
@@ -41,15 +41,15 @@ class TestCacheDriver(TestCase):
 
         update = {'test': 'val3'}
         self.c.contract_modifications.append(update)
-        self.c.modified_keys.update({'test': 1})
+        self.c.modified_keys.update({'test': deque([1])})
 
         update = {'stu': 500000}
         self.c.contract_modifications.append(update)
-        self.c.modified_keys.update({'stu': 2})
+        self.c.modified_keys.update({'stu': deque([1, 2])})
 
         update = {'colin': 1000000}
         self.c.contract_modifications.append(update)
-        self.c.modified_keys.update({'colin': 3})
+        self.c.modified_keys.update({'colin': deque([1, 2, 3])})
 
         self.assertEqual(self.c.get('test'), 'val3')
         self.assertEqual(self.c.get('stu'), 500000)
