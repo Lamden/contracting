@@ -123,7 +123,7 @@ class CacheDriver(AbstractDatabaseDriver):
 
     def commit(self):
         for key, idx in self.modified_keys.items():
-            self.conn.set(key, self.contract_modifications[idx][key])
+            self.conn.set(key, self.contract_modifications[idx[-1]][key])
 
         self._reset()
 
