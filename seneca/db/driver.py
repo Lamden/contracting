@@ -9,7 +9,6 @@ from seneca.logger import get_logger
 from seneca.db.cr.conflict_resolution import CRContext
 from seneca.db.cr.cr_commands import CRCmdGet, CRCmdSet
 
-from collections import deque
 
 class AbstractDatabaseDriver:
     __metaclass__ = abc.ABCMeta
@@ -83,9 +82,7 @@ class CacheDriver(AbstractDatabaseDriver):
 
     def set(self, key, value):
         self.contract_modifications[-1].update({key: value})
-        if self.modified_keys.get(key) is None:
-            self.modified_keys[key] = deque()
-        self.modified_keys[key].append(len(self.contract_modifications) - 1)
+        self.modified_keys.update({key: len(self.contract_modifications) - 1})
 
     def revert(self, idx=0):
         if idx == 0:
