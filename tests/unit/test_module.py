@@ -36,6 +36,7 @@ class TestDatabase(TestCase):
         name = 'test'
 
         self.d.set_contract(name, code)
+        self.d.commit()
         self.d.flush()
 
         self.assertIsNone(self.d.get_contract(name))
@@ -132,6 +133,7 @@ class TestModuleLoadingIntegration(TestCase):
             author = 'stuart'
 
             driver.set_contract(name=name, code=code, author=author)
+            driver.commit()
 
     def tearDown(self):
         sys.meta_path.remove(DatabaseFinder)

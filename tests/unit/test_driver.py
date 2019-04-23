@@ -195,6 +195,8 @@ def stu():
             '{}{}{}'.format(name, self.d.delimiter, config.TYPE_KEY)
         ]
 
+        self.d.commit()
+
         k = self.d.get_contract_keys(name)
 
         keys.sort()
@@ -213,6 +215,8 @@ def stu():
             _t = 'test'
 
             self.d.set_contract(name, contract, author=author, _type=_t)
+
+            self.d.commit()
 
             self.d.delete_contract(name)
 

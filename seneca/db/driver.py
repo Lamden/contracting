@@ -9,6 +9,8 @@ from seneca.logger import get_logger
 from seneca.db.cr.conflict_resolution import CRContext
 from seneca.db.cr.cr_commands import CRCmdGet, CRCmdSet
 
+from collections import deque, defaultdict
+
 
 class AbstractDatabaseDriver:
     __metaclass__ = abc.ABCMeta
@@ -84,6 +86,7 @@ class RedisDriver(AbstractDatabaseDriver):
         self.conn.flushdb()
 
 
+
 # Defined at the bottom since needs to be instantiated
 # after the classes have been defined. Allows us to
 # parameterize the type of database driver required
@@ -106,7 +109,56 @@ def get_database_driver():
 DatabaseDriver = get_database_driver()
 
 
-class ContractDriver(DatabaseDriver):
+class CacheDriver(DatabaseDriver):
+    def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=0,):
+        super().__init__(host=host, port=port, db=db)
+        self._reset()
+
+    def _reset(self):
+        self.modified_keys = defaultdict(deque)
+        self.contract_modifications = list()
+        self.new_tx()
+
+    def get(self, key):
+        key_location = self.modified_keys.get(key)
+        if key_location is None:
+            value = self.conn.get(key)
+        else:
+            value = self.contract_modifications[key_location[-1]][key]
+        return value
+
+    def set(self, key, value):
+        self.contract_modifications[-1].update({key: value})
+        self.modified_keys[key].append(len(self.contract_modifications) - 1)
+
+    def revert(self, idx=0):
+        if idx == 0:
+            self._reset()
+        else:
+            tmp = self.modified_keys.copy()
+            for key, i in tmp.items():
+                while len(i) >= 1:
+                    if i[-1] >= idx:
+                        i.pop()
+                    else:
+                        break
+                if len(i) == 0:
+                    i = None
+                self.modified_keys[key] = i
+
+            self.contract_modifications = self.contract_modifications[:idx + 1]
+
+    def commit(self):
+        for key, idx in self.modified_keys.items():
+            self.conn.set(key, self.contract_modifications[idx[-1]][key])
+
+        self._reset()
+
+    def new_tx(self):
+        self.contract_modifications.append(dict())
+
+
+class ContractDriver(CacheDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, delimiter=config.INDEX_SEPARATOR, db=0,
                  code_key=config.CODE_KEY, type_key=config.TYPE_KEY, author_key=config.AUTHOR_KEY):
         super().__init__(host=host, port=port, db=db)

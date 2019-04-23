@@ -60,6 +60,7 @@ class Executor:
         try:
             result = self.sandbox.execute(sender, contract_name, function_name, kwargs)
             status_code = 0
+            runtime.rt.driver.commit()
         # TODO: catch SenecaExceptions distinctly, this is pending on Raghu looking into Exception override in compiler
         except Exception as e:
             result = e

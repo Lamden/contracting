@@ -38,6 +38,7 @@ class TestComplexContracts(TestCase):
         self.d.set_contract(name='submission',
                             code=contract,
                             author='sys')
+        self.d.commit()
 
     def tearDown(self):
         #self.d.flush()
