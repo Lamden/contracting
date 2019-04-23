@@ -54,20 +54,7 @@ class Hash(Datum):
         self.set(key, value)
 
     def __getitem__(self, key):
-        if isinstance(key, tuple):
-            assert len(key) <= config.MAX_HASH_DIMENSIONS, 'Too many dimensions ({}) for hash. Max is {}'.format(
-                len(key), config.MAX_HASH_DIMENSIONS
-            )
-
-            new_key_str = ''
-            for k in key:
-                assert not isinstance(k, slice), 'Slices prohibited in hashes.'
-                new_key_str += '{}{}'.format(k, self.delimiter)
-
-            key = new_key_str[:-len(self.delimiter)]
-
-        assert len(key) <= config.MAX_KEY_SIZE, 'Key is too long ({}). Max is {}.'.format(len(key), config.MAX_KEY_SIZE)
-
+        key = self._validate_key(key)
         return self.get(key)
 
 

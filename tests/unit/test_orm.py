@@ -195,6 +195,21 @@ class TestHash(TestCase):
         with self.assertRaises(Exception):
             h[key1, key2, key3] = 100
 
+    def test_getitems_keys(self):
+        contract = 'blah'
+        name = 'scoob'
+        delimiter = driver.delimiter
+
+        h = Hash(contract, name, driver=driver)
+
+        prefix = '{}{}{}{}'.format(contract, delimiter, name, h.delimiter)
+
+        raw_key = '{}stu:raghu'.format(prefix)
+
+        driver.set(raw_key, 54321)
+
+        self.assertEqual(h['stu', 'raghu'], 54321)
+
 class TestForeignVariable(TestCase):
     def setUp(self):
         driver.flush()
