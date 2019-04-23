@@ -121,3 +121,32 @@ class TestCacheDriver(TestCase):
         self.assertEqual(s, b'farm')
         self.assertEqual(c, b'orb')
         self.assertEqual(r, b'tes')
+
+    def test_revert_idx_0_resets(self):
+        self.c.set('stu', 'farm')
+        self.c.set('col', 'bro')
+        self.c.set('raghu', 'set')
+
+        self.c.revert()
+
+        self.assertDictEqual(self.c.contract_modifications[-1], {})
+        self.assertDictEqual(self.c.modified_keys, {})
+
+    def test_revert_idx_1_resets_to_contract_0_modifications(self):
+        self.c.set('stu', 'farm')
+        self.c.set('col', 'bro')
+        self.c.set('raghu', 'set')
+
+        self.c.new_tx()
+
+        self.c.set('col', 'orb')
+        self.c.set('raghu', 'tes')
+
+        self.c.revert(1)
+
+        print(self.c.contract_modifications)
+        print(self.c.modified_keys)
+
+        self.assertEqual(self.c.get('stu'), 'farm')
+        self.assertEqual(self.c.get('col'), 'bro')
+        self.assertEqual(self.c.get('raghu'), 'set')

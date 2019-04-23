@@ -84,8 +84,21 @@ class CacheDriver(AbstractDatabaseDriver):
         self.contract_modifications[-1].update({key: value})
         self.modified_keys.update({key: len(self.contract_modifications) - 1})
 
-    def revert(self, idx):
-        pass
+    def revert(self, idx=0):
+        if idx == 0:
+            self._reset()
+        else:
+            tmp = self.modified_keys.copy()
+            print(tmp)
+
+            for key, i in tmp.items():
+                if i <= idx:
+                    self.modified_keys[key] = idx - 1
+                elif i > idx:
+                    del self.modified_keys[key]
+
+            self.contract_modifications = self.contract_modifications[:idx]
+
 
     def commit(self):
         for key, idx in self.modified_keys.items():
