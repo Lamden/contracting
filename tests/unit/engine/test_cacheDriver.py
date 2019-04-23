@@ -54,3 +54,20 @@ class TestCacheDriver(TestCase):
         self.c.set('raghu', 'set')
 
         self.assertDictEqual(self.c.modified_keys, {'stu': 0, 'col': 0, 'raghu': 0})
+        self.assertDictEqual(self.c.contract_modifications[-1], {'stu': 'farm', 'col': 'bro', 'raghu': 'set'})
+
+    def test_new_tx_adds_length_to_contract_modifications(self):
+        self.c.new_tx()
+        self.assertEqual(len(self.c.contract_modifications), 2)
+
+    def test_new_tx_creates_new_key_space(self):
+        self.c.set('stu', 'farm')
+        self.c.set('col', 'bro')
+        self.c.set('raghu', 'set')
+
+        self.c.new_tx()
+
+        self.c.set('col', 'orb')
+        self.c.set('raghu', 'tes')
+
+        self.assertDictEqual(self.c.modified_keys, {'stu': 0, 'col': 1, 'raghu': 1})

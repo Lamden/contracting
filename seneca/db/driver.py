@@ -88,7 +88,7 @@ class CacheDriver(AbstractDatabaseDriver):
         pass
 
     def new_tx(self):
-        pass
+        self.contract_modifications.append(dict())
 
 
 class RedisDriver(AbstractDatabaseDriver):
