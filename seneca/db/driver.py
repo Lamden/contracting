@@ -110,8 +110,15 @@ class CacheDriver(AbstractDatabaseDriver):
             print(tmp)
 
             for key, i in tmp.items():
-                while i[-1] >= idx:
-                    i.pop()
+                print(len(i))
+                print(i)
+                while len(i) >= 1:
+                    if i[-1] >= idx:
+                        i.pop()
+                    else:
+                        break
+                if len(i) == 0:
+                    i = None
                 self.modified_keys[key] = i
 
             self.contract_modifications = self.contract_modifications[:idx + 1]
