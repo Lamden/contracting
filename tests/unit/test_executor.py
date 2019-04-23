@@ -55,6 +55,7 @@ class DBTests(unittest.TestCase):
                 code = f.read()
 
             driver.set_contract(name=name, code=code, author=self.author)
+            driver.commit()
 
     def tearDown(self):
         self.mpsb.terminate()

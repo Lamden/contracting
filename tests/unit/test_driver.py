@@ -216,6 +216,8 @@ def stu():
 
             self.d.set_contract(name, contract, author=author, _type=_t)
 
+            self.d.commit()
+
             self.d.delete_contract(name)
 
             self.assertIsNone(self.d.get_contract(name))
