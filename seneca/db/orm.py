@@ -33,8 +33,6 @@ class Hash(Datum):
         return self.driver.get('{}{}{}'.format(self.key, self.delimiter, item))
 
     def __setitem__(self, key, value):
-        print(key)
-
         # handle multiple hashes differently
         if isinstance(key, tuple):
             assert len(key) <= config.MAX_HASH_DIMENSIONS, 'Too many dimensions ({}) for hash. Max is {}'.format(
@@ -47,6 +45,8 @@ class Hash(Datum):
                 new_key_str += '{}{}'.format(k, self.delimiter)
 
             key = new_key_str[:-len(self.delimiter)]
+
+        assert len(key) <= config.MAX_KEY_SIZE, 'Key is too long ({}). Max is {}.'.format(len(key), config.MAX_KEY_SIZE)
 
         self.set(key, value)
 

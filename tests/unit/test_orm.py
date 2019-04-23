@@ -153,16 +153,34 @@ class TestHash(TestCase):
     def test_setitems(self):
         contract = 'blah'
         name = 'scoob'
-        delimiter = driver.delimiter
 
         h = Hash(contract, name, driver=driver)
         h['stu'] = 123
         h['stu', 'raghu'] = 1000
         driver.commit()
 
-        val = driver.conn.get('blah.scoob:stu:raghu')
+        val = driver.get('blah.scoob:stu:raghu')
         self.assertEqual(val, 1000)
 
+    def test_setitems_too_many_dimensions_fails(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+
+        with self.assertRaises(Exception):
+            h['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c'] = 1000
+
+    def test_setitems_key_too_large(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+
+        key = 'a' * 1025
+
+        with self.assertRaises(Exception):
+            h[key] = 100
 
 class TestForeignVariable(TestCase):
     def setUp(self):
