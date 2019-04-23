@@ -62,63 +62,6 @@ class AbstractDatabaseDriver:
         return k
 
 
-class CacheDriver(AbstractDatabaseDriver):
-    def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
-        self.conn = Redis(host=host, port=port, db=db)
-
-        # modified keys stores a map to the last location of the key
-        self._reset()
-
-    def _reset(self):
-        self.modified_keys = defaultdict(deque)
-        self.contract_modifications = list()
-        self.new_tx()
-
-    def get(self, key):
-        key_location = self.modified_keys.get(key)
-        if key_location is None:
-            value = self.conn.get(key)
-        else:
-            value = self.contract_modifications[key_location[-1]][key]
-        return value
-
-    def set(self, key, value):
-        self.contract_modifications[-1].update({key: value})
-
-        # add modification idx to deque
-        self.modified_keys[key].append(len(self.contract_modifications) - 1)
-        #self.modified_keys.update({key: len(self.contract_modifications) - 1})
-
-    def revert(self, idx=0):
-        if idx == 0:
-            self._reset()
-        else:
-            tmp = self.modified_keys.copy()
-            for key, i in tmp.items():
-                while len(i) >= 1:
-                    if i[-1] >= idx:
-                        i.pop()
-                    else:
-                        break
-                if len(i) == 0:
-                    i = None
-                self.modified_keys[key] = i
-
-            self.contract_modifications = self.contract_modifications[:idx + 1]
-
-
-    def commit(self):
-        for key, idx in self.modified_keys.items():
-            self.conn.set(key, self.contract_modifications[idx[-1]][key])
-
-        self._reset()
-
-    def new_tx(self):
-        self.contract_modifications.append(dict())
-
-
-
-
 class RedisDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
         self.conn = Redis(host=host, port=port, db=db)
@@ -222,6 +165,56 @@ class ContractDriver(DatabaseDriver):
     def get_contract_keys(self, name):
         keys = [k.decode() for k in self.iter(prefix='{}{}'.format(name, self.delimiter))]
         return keys
+
+
+class CacheDriver(ContractDriver):
+    def __init__(self, host=config.DB_URL, port=config.DB_PORT, delimiter=config.INDEX_SEPARATOR, db=0,
+                 code_key=config.CODE_KEY, type_key=config.TYPE_KEY, author_key=config.AUTHOR_KEY):
+        super().__init__(host=host, port=port, db=db)
+        self._reset()
+
+    def _reset(self):
+        self.modified_keys = defaultdict(deque)
+        self.contract_modifications = list()
+        self.new_tx()
+
+    def get(self, key):
+        key_location = self.modified_keys.get(key)
+        if key_location is None:
+            value = self.conn.get(key)
+        else:
+            value = self.contract_modifications[key_location[-1]][key]
+        return value
+
+    def set(self, key, value):
+        self.contract_modifications[-1].update({key: value})
+        self.modified_keys[key].append(len(self.contract_modifications) - 1)
+
+    def revert(self, idx=0):
+        if idx == 0:
+            self._reset()
+        else:
+            tmp = self.modified_keys.copy()
+            for key, i in tmp.items():
+                while len(i) >= 1:
+                    if i[-1] >= idx:
+                        i.pop()
+                    else:
+                        break
+                if len(i) == 0:
+                    i = None
+                self.modified_keys[key] = i
+
+            self.contract_modifications = self.contract_modifications[:idx + 1]
+
+    def commit(self):
+        for key, idx in self.modified_keys.items():
+            self.conn.set(key, self.contract_modifications[idx[-1]][key])
+
+        self._reset()
+
+    def new_tx(self):
+        self.contract_modifications.append(dict())
 
 
 class CRDriver(DatabaseDriver):
