@@ -106,17 +106,13 @@ class CacheDriver(AbstractDatabaseDriver):
         if idx == 0:
             self._reset()
         else:
-            idx -= 1
-
             tmp = self.modified_keys.copy()
             print(tmp)
 
             for key, i in tmp.items():
-                print(key, i)
-                if i >= idx:
-                    self.modified_keys[key] = idx
-                elif i < idx:
-                    del self.modified_keys[key]
+                while i[-1] >= idx:
+                    i.pop()
+                self.modified_keys[key] = i
 
             self.contract_modifications = self.contract_modifications[:idx + 1]
 
