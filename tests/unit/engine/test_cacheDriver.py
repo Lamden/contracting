@@ -87,5 +87,18 @@ class TestCacheDriver(TestCase):
         self.assertEqual(self.c.get('stu'), 'farm')
         self.assertEqual(self.c.get('col'), 'orb')
 
-    def test_commit_sets_all_to_db_and_resets_state(self):
-        pass
+    def test_commit_resets_state(self):
+        self.c.set('stu', 'farm')
+        self.c.set('col', 'bro')
+        self.c.set('raghu', 'set')
+
+        self.c.new_tx()
+
+        self.c.set('col', 'orb')
+        self.c.set('raghu', 'tes')
+
+        self.c.commit()
+
+        self.assertDictEqual(self.c.contract_modifications[-1], {})
+        self.assertDictEqual(self.c.modified_keys, {})
+
