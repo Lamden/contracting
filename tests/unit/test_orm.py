@@ -208,7 +208,22 @@ class TestHash(TestCase):
 
         driver.set(raw_key, 54321)
 
+        driver.commit()
+
         self.assertEqual(h['stu', 'raghu'], 54321)
+
+    def test_getsetitems(self):
+        contract = 'blah'
+        name = 'scoob'
+        delimiter = driver.delimiter
+
+        h = Hash(contract, name, driver=driver)
+
+        h['stu', 'raghu'] = 999
+
+        driver.commit()
+
+        self.assertEqual(h['stu', 'raghu'], 999)
 
 class TestForeignVariable(TestCase):
     def setUp(self):
