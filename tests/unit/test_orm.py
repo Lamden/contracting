@@ -1,6 +1,12 @@
 from unittest import TestCase
 from seneca.db.driver import ContractDriver
-from seneca.db.orm import Datum, Variable, Hash, ForeignVariable, ForeignHash
+from seneca.db.orm import Datum, Variable, ForeignHash, ForeignVariable, Hash
+# from seneca.stdlib.env import gather
+
+# Variable = gather()['Variable']
+# Hash = gather()['Hash']
+# ForeignVariable = gather()['ForeignVariable']
+# ForeignHash = gather()['ForeignHash']
 
 driver = ContractDriver(db=1)
 
@@ -142,6 +148,15 @@ class TestHash(TestCase):
         driver.set(raw_key, 54321)
 
         self.assertEqual(h['stu'], 54321)
+
+    def test_setitems(self):
+        contract = 'blah'
+        name = 'scoob'
+        delimiter = driver.delimiter
+
+        h = Hash(contract, name, driver=driver)
+
+        h['stu', 'raghu'] = 1000
 
 
 class TestForeignVariable(TestCase):
