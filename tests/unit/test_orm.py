@@ -225,6 +225,39 @@ class TestHash(TestCase):
 
         self.assertEqual(h['stu', 'raghu'], 999)
 
+    def test_getitems_keys_too_large(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+
+        key1 = 'a' * 800
+        key2 = 'b' * 100
+        key3 = 'c' * 200
+
+        with self.assertRaises(Exception):
+            x = h[key1, key2, key3]
+
+    def test_getitems_too_many_dimensions_fails(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+
+        with self.assertRaises(Exception):
+            a = h['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c']
+
+    def test_getitems_key_too_large(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+
+        key = 'a' * 1025
+
+        with self.assertRaises(Exception):
+            a = h[key]
+
 class TestForeignVariable(TestCase):
     def setUp(self):
         driver.flush()
