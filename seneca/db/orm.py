@@ -21,16 +21,23 @@ class Variable(Datum):
 
 
 class Hash(Datum):
-    def __init__(self, contract, name, driver: ContractDriver=rt.driver):
+    def __init__(self, contract, name, driver: ContractDriver=rt.driver, default_value=None):
         super().__init__(contract, name, driver=driver)
         self.delimiter = config.DELIMITER
+        self.default_value = default_value
 
     def set(self, key, value):
         print('{}{}{}'.format(self.key, self.delimiter, key))
         self.driver.set('{}{}{}'.format(self.key, self.delimiter, key), value)
 
     def get(self, item):
-        return self.driver.get('{}{}{}'.format(self.key, self.delimiter, item))
+        value = self.driver.get('{}{}{}'.format(self.key, self.delimiter, item))
+
+        # Add Python defaultdict behavior for easier smart contracting
+        if value is None:
+            value = self.default_value
+
+        return value
 
     def _validate_key(self, key):
         if isinstance(key, tuple):

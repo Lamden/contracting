@@ -258,6 +258,14 @@ class TestHash(TestCase):
         with self.assertRaises(Exception):
             a = h[key]
 
+    def test_getitem_returns_default_value_if_none(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        self.assertEqual(h['hello'], 0)
+
 class TestForeignVariable(TestCase):
     def setUp(self):
         driver.flush()
