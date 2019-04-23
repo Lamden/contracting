@@ -73,7 +73,8 @@ class TestHash(TestCase):
         driver.flush()
 
     def tearDown(self):
-        driver.flush()
+        #driver.flush()
+        pass
 
     def test_set(self):
         contract = 'stustu'
@@ -155,8 +156,12 @@ class TestHash(TestCase):
         delimiter = driver.delimiter
 
         h = Hash(contract, name, driver=driver)
-
+        h['stu'] = 123
         h['stu', 'raghu'] = 1000
+        driver.commit()
+
+        val = driver.conn.get('blah.scoob:stu:raghu')
+        self.assertEqual(val, 1000)
 
 
 class TestForeignVariable(TestCase):

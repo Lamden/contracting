@@ -26,12 +26,28 @@ class Hash(Datum):
         self.delimiter = config.DELIMITER
 
     def set(self, key, value):
+        print('{}{}{}'.format(self.key, self.delimiter, key))
         self.driver.set('{}{}{}'.format(self.key, self.delimiter, key), value)
 
     def get(self, item):
         return self.driver.get('{}{}{}'.format(self.key, self.delimiter, item))
 
     def __setitem__(self, key, value):
+        print(key)
+
+        # handle multiple hashes differently
+        if isinstance(key, tuple):
+            assert len(key) <= config.MAX_HASH_DIMENSIONS, 'Too many dimensions ({}) for hash. Max is {}'.format(
+                len(key), config.MAX_HASH_DIMENSIONS
+            )
+
+            new_key_str = ''
+            for k in key:
+                assert not isinstance(k, slice), 'Slices prohibited in hashes.'
+                new_key_str += '{}{}'.format(k, self.delimiter)
+
+            key = new_key_str[:-len(self.delimiter)]
+
         self.set(key, value)
 
     def __getitem__(self, item):
