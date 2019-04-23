@@ -60,6 +60,23 @@ class AbstractDatabaseDriver:
         return k
 
 
+class CacheDriver(AbstractDatabaseDriver):
+    def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
+        self.conn = Redis(host=host, port=port, db=db)
+
+        # modified keys stores a map to the last location of the key
+        self.modified_keys = {}
+        self.contract_modifications = []
+
+    def get(self, key):
+        key_location = self.modified_keys.get(key)
+        if key_location is None:
+            value = self.conn.get(key)
+        else:
+            value = self.contract_modifications[key_location][key]
+        return value
+
+
 class RedisDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
         self.conn = Redis(host=host, port=port, db=db)
