@@ -182,6 +182,19 @@ class TestHash(TestCase):
         with self.assertRaises(Exception):
             h[key] = 100
 
+    def test_setitems_keys_too_large(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+
+        key1 = 'a' * 800
+        key2 = 'b' * 100
+        key3 = 'c' * 200
+
+        with self.assertRaises(Exception):
+            h[key1, key2, key3] = 100
+
 class TestForeignVariable(TestCase):
     def setUp(self):
         driver.flush()
