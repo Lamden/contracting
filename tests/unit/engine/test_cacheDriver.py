@@ -2,11 +2,13 @@ from unittest import TestCase
 from seneca.db.driver import CacheDriver
 from collections import deque, defaultdict
 
+
 def dict_to_default_dict(d):
     _d = defaultdict(deque)
     for k, v in d.items():
         [_d[k].append(i) for i in v]
     return _d
+
 
 class TestCacheDriver(TestCase):
     def setUp(self):
@@ -154,9 +156,6 @@ class TestCacheDriver(TestCase):
 
         self.c.revert(1)
 
-        print(self.c.contract_modifications)
-        print(self.c.modified_keys)
-
         self.assertEqual(self.c.get('stu'), 'farm')
         self.assertEqual(self.c.get('col'), 'bro')
         self.assertEqual(self.c.get('raghu'), 'set')
@@ -185,9 +184,6 @@ class TestCacheDriver(TestCase):
         self.c.set('new', '2')
 
         self.c.revert(2)
-
-        print(self.c.contract_modifications)
-        print(self.c.modified_keys)
 
         self.assertEqual(self.c.get('stu'), 'farm')
         self.assertEqual(self.c.get('col'), 'orb')

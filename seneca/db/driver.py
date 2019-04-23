@@ -9,6 +9,8 @@ from seneca.logger import get_logger
 from seneca.db.cr.conflict_resolution import CRContext
 from seneca.db.cr.cr_commands import CRCmdGet, CRCmdSet
 
+from collections import deque, defaultdict
+
 
 class AbstractDatabaseDriver:
     __metaclass__ = abc.ABCMeta
@@ -59,21 +61,6 @@ class AbstractDatabaseDriver:
 
         return k
 
-from collections import deque, defaultdict
-class dequemap:
-    def __init__(self):
-        self.d = deque()
-
-    def append(self, x):
-        self.d.append(x)
-
-    def pop(self, i=0):
-        self.d.pop(i)
-
-    def __repr__(self):
-        if len(self.d) <= 0:
-            return None
-        return self.d[-1]
 
 class CacheDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
