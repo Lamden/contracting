@@ -149,7 +149,7 @@ class MultiProcessingSandbox(Sandbox):
     def process_loop(self, execute_fn):
         parent_pipe, _ = self.pipe
         while True:
-            sender, contract_name, function_name, kwargs = parent_pipe.recv()
+            sender, contract_name, function_name, kwargs, environment = parent_pipe.recv()
             try:
                 result = execute_fn(sender, contract_name, function_name, kwargs, environment={})
                 status_code = 0
