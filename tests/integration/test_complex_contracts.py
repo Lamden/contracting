@@ -168,12 +168,25 @@ class TestComplexContracts(TestCase):
         self.assertEqual(stu, (1000000 - 123))
         self.assertEqual(tejas, 123)
 
-    def test_approve_again(self):
+    def test_failure_after_data_writes_doesnt_commit(self):
         e = Executor()
 
         e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+                  kwargs=submission_kwargs_for_file('./test_contracts/leaky.s.py'))
 
-        _, res = e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1234, 'to': 'raghu'})
+        e.execute('colin', 'leaky', 'transfer', kwargs={'amount': 1234, 'to': 'raghu'})
 
-        e.execute(sender='raghu', contract_name='erc20_clone', function_name='transfer_from', kwargs={'amount': 123, 'to': 'tejas', 'main_account': 'stu'})
+        _, raghu = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'raghu'})
+        _, colin = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'colin'})
+
+        self.assertEqual(raghu, 0)
+        self.assertEqual(colin, 100)
+
+    def test_leaky_contract_commits_on_success(self):
+        e.execute('colin', 'leaky', 'transfer', kwargs={'amount': 1, 'to': 'raghu'})
+
+        _, raghu = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'raghu'})
+        _, colin = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'colin'})
+
+        self.assertEqual(raghu, 1)
+        self.assertEqual(colin, 99)
