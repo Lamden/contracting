@@ -28,7 +28,8 @@ class TestVariable(TestCase):
         driver.flush()
 
     def tearDown(self):
-        driver.flush()
+        #driver.flush()
+        pass
 
     def test_set(self):
         contract = 'stustu'

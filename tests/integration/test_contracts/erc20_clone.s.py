@@ -30,16 +30,14 @@ def allowance(owner, spender):
 @seneca_export
 def approve(amount, to):
     sender = ctx.signer
-    assert balances[sender] >= amount, 'Not enough coins to send!'
-
-    # Example of the multihash capabilities
-    balances[sender] -= amount
     balances[sender, to] += amount
 
 @seneca_export
-def transfer_from(account, to, amount):
+def transfer_from(amount, to, main_account):
     sender = ctx.signer
-    assert balances[account, sender] >= amount, 'Not enough coins to send!'
+    assert balances[main_account, sender] >= amount, 'Not enough coins to send!'
+    assert balances[main_account] >= amount, 'Not enough coins to send!'
 
-    balances[account, sender] -= amount
+    balances[main_account, sender] -= amount
+    balances[main_account] -= amount
     balances[to] += amount

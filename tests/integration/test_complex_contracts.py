@@ -109,3 +109,16 @@ class TestComplexContracts(TestCase):
         self.assertEqual(colin, 100)
         self.assertEqual(supply, 1000100)
 
+    def test_erc20_clone_transfer_works(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+
+        e.execute('stu', 'erc20_clone', 'transfer', kwargs={'amount': 1000000, 'to': 'raghu'})
+        _, raghu = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'raghu'})
+        _, stu = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'stu'})
+
+        self.assertEqual(raghu, 1000000)
+        self.assertEqual(stu, 0)
+
