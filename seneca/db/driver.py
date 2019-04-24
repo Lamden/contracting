@@ -3,7 +3,7 @@ import abc
 from redis import Redis
 from seneca import config
 from seneca.exceptions import DatabaseDriverNotFound
-from seneca.db.json_encoder import encode, decode
+from seneca.db.encoder import encode, decode
 
 from seneca.logger import get_logger
 from seneca.db.cr.conflict_resolution import CRContext
