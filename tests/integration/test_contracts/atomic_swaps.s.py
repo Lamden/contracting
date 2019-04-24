@@ -3,7 +3,7 @@ import currency
 swaps = Hash()
 
 
-def initiate(participant: str, expiration: str, hashlock: str, amount: float):
+def initiate(participant: str, expiration: datetime, hashlock: str, amount: float):
 
     assert currency.allowance(ctx.signer, ctx.this) >= amount, \
         'You cannot initiate an atomic swap without allowing {}' \

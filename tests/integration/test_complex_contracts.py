@@ -258,3 +258,6 @@ class TestComplexContracts(TestCase):
         date = environment['datetime'](2019, 1, 1)
 
         self.assertEqual(v, date)
+
+    def test_hash_works(self):
+        pass
