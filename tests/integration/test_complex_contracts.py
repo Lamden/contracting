@@ -243,3 +243,18 @@ class TestComplexContracts(TestCase):
         _, res = e.execute('colin', 'json_tests', 'get_some', kwargs={})
 
         self.assertListEqual([1, 2, 3, 4], res)
+
+    def test_time_storage_works(self):
+        e = Executor()
+
+        environment = gather()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                           kwargs=submission_kwargs_for_file('./test_contracts/time_storage.s.py'),
+                           environment=environment)
+
+        _, v = e.execute('colin', 'time_storage', 'get', kwargs={}, environment=environment)
+
+        date = environment['datetime'](2019, 1, 1)
+
+        self.assertEqual(v, date)
