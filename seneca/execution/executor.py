@@ -44,7 +44,7 @@ class Executor:
 
         return results
 
-    def execute(self, sender, contract_name, function_name, kwargs) -> dict:
+    def execute(self, sender, contract_name, function_name, kwargs, env={}) -> dict:
         """
         Method that does a naive execute
 
@@ -59,7 +59,7 @@ class Executor:
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
         try:
-            result = self.sandbox.execute(sender, contract_name, function_name, kwargs)
+            result = self.sandbox.execute(sender, contract_name, function_name, kwargs, env={})
             status_code = 0
             runtime.rt.driver.commit()
         # TODO: catch SenecaExceptions distinctly, this is pending on Raghu looking into Exception override in compiler
@@ -100,11 +100,12 @@ class Sandbox(object):
     def __init__(self):
         install_database_loader()
 
-    def execute(self, sender, contract_name, function_name, kwargs):
+    def execute(self, sender, contract_name, function_name, kwargs, env={}):
 
         # __main__ is replaced by the sender of the message in this case
         runtime.rt.ctx.clear()
         runtime.rt.ctx.append(sender)
+        runtime.rt.env = env
 
         module = importlib.import_module(contract_name)
 

@@ -71,6 +71,10 @@ class DatabaseLoader(Loader):
 
         # replace this with the new stdlib stuff
         scope = env.gather()
+
+        # env is set by the executor and allows passing variables into environments such as 'block time',
+        # 'block number', etc to allow cilantro -> seneca referencing
+        scope.update(rt.env)
         scope.update({'ctx': ctx})
 
         rt.ctx.append(module.__name__)
