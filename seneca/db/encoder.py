@@ -30,7 +30,7 @@ type_encoding_map = {
 }
 
 
-def encode(data):
+def encode(data: str):
     assert type(data) in type_encoding_map.keys(), 'Unsupported type being passed!'
     return type_encoding_map[type(data)](data)
 

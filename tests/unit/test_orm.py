@@ -89,6 +89,8 @@ class TestHash(TestCase):
 
         h.set('stu', 1234)
 
+        driver.commit()
+
         self.assertEqual(driver.get(raw_key_1), 1234)
 
     def test_get(self):
@@ -308,7 +310,8 @@ class TestForeignHash(TestCase):
         driver.flush()
 
     def tearDown(self):
-        driver.flush()
+        #driver.flush()
+        pass
 
     def test_set(self):
         # set up the foreign variable
