@@ -183,6 +183,8 @@ class TestComplexContracts(TestCase):
         self.assertEqual(colin, 100)
 
     def test_leaky_contract_commits_on_success(self):
+        e = Executor()
+
         e.execute('colin', 'leaky', 'transfer', kwargs={'amount': 1, 'to': 'raghu'})
 
         _, raghu = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'raghu'})
