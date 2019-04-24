@@ -1,4 +1,5 @@
 from datetime import datetime as dt
+from dateutil import parser
 
 '''
 Redefine a controlled datetime object that feels like a regular Python datetime object but is restricted so that we
@@ -9,9 +10,10 @@ security.
 
 class Datetime:
     def __init__(self, iso_string):
-        self._datetime = dt.fromisoformat(iso_string)
+        self._datetime = parser.parse(iso_string)
 
         self.year = self._datetime.year
+        self.month = self._datetime.month
         self.day = self._datetime.day
         self.hour = self._datetime.hour
         self.minute = self._datetime.minute
