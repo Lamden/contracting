@@ -1,7 +1,8 @@
 from unittest import TestCase
 from seneca.db.encoder import encode, decode
 from decimal import Decimal as dec
-
+from seneca.stdlib.bridge.time import Datetime
+from datetime import datetime
 
 class TestEncode(TestCase):
     def test_int_to_bytes(self):
@@ -44,3 +45,17 @@ class TestEncode(TestCase):
         b = b'xwow'
 
         self.assertIsNone(decode(b))
+
+    def test_date_encode(self):
+        d = Datetime(2019, 1, 1)
+
+        _d = encode(d)
+
+        self.assertEqual(_d, '{"__time__": [2019, 1, 1, 0, 0, 0, 0]}')
+
+    def test_date_decode(self):
+        _d = '{"__time__": [2019, 1, 1, 0, 0, 0, 0]}'
+
+        d = decode(_d)
+
+        self.assertEqual(Datetime(2019, 1, 1), d)
