@@ -185,6 +185,9 @@ class TestComplexContracts(TestCase):
     def test_leaky_contract_commits_on_success(self):
         e = Executor()
 
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/leaky.s.py'))
+
         e.execute('colin', 'leaky', 'transfer', kwargs={'amount': 1, 'to': 'raghu'})
 
         _, raghu = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'raghu'})
