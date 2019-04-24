@@ -44,7 +44,7 @@ class Executor:
 
         return results
 
-    def execute(self, sender, contract_name, function_name, kwargs, env={}) -> dict:
+    def execute(self, sender, contract_name, function_name, kwargs, environment={}) -> dict:
         """
         Method that does a naive execute
 
@@ -59,7 +59,7 @@ class Executor:
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
         try:
-            result = self.sandbox.execute(sender, contract_name, function_name, kwargs, env={})
+            result = self.sandbox.execute(sender, contract_name, function_name, kwargs, environment)
             status_code = 0
             runtime.rt.driver.commit()
         # TODO: catch SenecaExceptions distinctly, this is pending on Raghu looking into Exception override in compiler
@@ -100,12 +100,12 @@ class Sandbox(object):
     def __init__(self):
         install_database_loader()
 
-    def execute(self, sender, contract_name, function_name, kwargs, env={}):
+    def execute(self, sender, contract_name, function_name, kwargs, environment={}):
 
         # __main__ is replaced by the sender of the message in this case
         runtime.rt.ctx.clear()
         runtime.rt.ctx.append(sender)
-        runtime.rt.env = env
+        runtime.rt.env = environment
 
         module = importlib.import_module(contract_name)
 
@@ -124,7 +124,7 @@ class MultiProcessingSandbox(Sandbox):
         if self.p is not None:
             self.p.terminate()
 
-    def execute(self, sender, contract_name, function_name, kwargs):
+    def execute(self, sender, contract_name, function_name, kwargs, environment={}):
         if self.p is None:
             self.p = multiprocessing.Process(target=self.process_loop,
                                              args=(super().execute, ))
@@ -133,7 +133,7 @@ class MultiProcessingSandbox(Sandbox):
         _, child_pipe = self.pipe
 
         # Sends code to be executed in the process loop
-        child_pipe.send((sender, contract_name, function_name, kwargs))
+        child_pipe.send((sender, contract_name, function_name, kwargs, environment))
 
         # Receive result object back from process loop, formatted as
         # (status_code, result), loaded in using dill due to python
@@ -151,7 +151,7 @@ class MultiProcessingSandbox(Sandbox):
         while True:
             sender, contract_name, function_name, kwargs = parent_pipe.recv()
             try:
-                result = execute_fn(sender, contract_name, function_name, kwargs)
+                result = execute_fn(sender, contract_name, function_name, kwargs, environment={})
                 status_code = 0
             except Exception as e:
                 result = e

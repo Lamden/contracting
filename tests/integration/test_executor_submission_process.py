@@ -272,3 +272,17 @@ def get_v():
         res = e.execute('stu', 'importing_that', 'test', kwargs={})
 
         self.assertEqual(res[1], 12345 - 1000)
+
+    def test_arbitrary_enviornment_passing_works_via_executor(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/i_use_env.s.py'))
+
+        this_is_a_passed_in_variable = 555
+
+        env = {'this_is_a_passed_in_variable': this_is_a_passed_in_variable}
+
+        _, res = e.execute('stu', 'i_use_env', 'env_var', kwargs={}, environment=env)
+
+        self.assertEqual(res, this_is_a_passed_in_variable)
