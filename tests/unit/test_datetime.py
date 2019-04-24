@@ -1,6 +1,7 @@
 from unittest import TestCase
 from seneca.stdlib.bridge.time import Datetime
 from datetime import datetime as dt
+from datetime import timedelta
 
 
 class TestDatetime(TestCase):
@@ -17,3 +18,47 @@ class TestDatetime(TestCase):
         self.assertEqual(now.day, d.day)
         self.assertEqual(now.month, d.month)
         self.assertEqual(now.year, d.year)
+
+    def test_datetime_eq_true(self):
+        now = dt.now()
+        now_str = dt.isoformat(now)
+
+        d = Datetime(now_str)
+        e = Datetime(now_str)
+
+        self.assertTrue(d == e)
+
+    def test_datetime_eq_false(self):
+        now = dt.now()
+        now_str = dt.isoformat(now)
+
+        d = Datetime(now_str)
+
+        then = now + timedelta(days=1)
+        then_str = dt.isoformat(then)
+
+        e = Datetime(then_str)
+
+        self.assertFalse(d == e)
+
+    def test_datetime_ne_false(self):
+        now = dt.now()
+        now_str = dt.isoformat(now)
+
+        d = Datetime(now_str)
+        e = Datetime(now_str)
+
+        self.assertFalse(d != e)
+
+    def test_datetime_ne_true(self):
+        now = dt.now()
+        now_str = dt.isoformat(now)
+
+        d = Datetime(now_str)
+
+        then = now + timedelta(days=1)
+        then_str = dt.isoformat(then)
+
+        e = Datetime(then_str)
+
+        self.assertTrue(d != e)
