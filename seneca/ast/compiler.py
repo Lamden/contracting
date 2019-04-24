@@ -1,10 +1,10 @@
 import ast
 #import astor
 
-from .. import config
+from seneca import config
 
-from ..logger import get_logger
-from ..interpreter.linter import Linter
+from seneca.logger import get_logger
+from seneca.ast.linter import Linter
 
 
 class SenecaCompiler(ast.NodeTransformer):

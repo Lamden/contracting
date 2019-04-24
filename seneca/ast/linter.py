@@ -1,9 +1,9 @@
 import ast
 
-from .. import config
+from seneca import config
 
-from ..logger import get_logger
-from ..interpreter.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS
+from seneca.logger import get_logger
+from seneca.ast.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS
 #from ..interpreter.module import ContractDriver
 
 

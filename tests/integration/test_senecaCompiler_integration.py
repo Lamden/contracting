@@ -1,5 +1,5 @@
 from unittest import TestCase
-from seneca.execution.compiler import SenecaCompiler
+from seneca.ast.compiler import SenecaCompiler
 from seneca.stdlib import env
 import re
 import astor

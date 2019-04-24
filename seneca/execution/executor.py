@@ -1,6 +1,6 @@
 import multiprocessing
 import importlib
-from ..interpreter.module import install_database_loader
+from seneca.execution.module import install_database_loader
 from ..db.driver import CRDriver, ContractDriver
 from ..db.cr.transaction_bag import TransactionBag
 from . import runtime
