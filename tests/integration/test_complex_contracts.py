@@ -43,7 +43,8 @@ class TestComplexContracts(TestCase):
         self.d.commit()
 
     def tearDown(self):
-        self.d.flush()
+        #self.d.flush()
+        pass
 
     def test_token_constuction_works(self):
         e = Executor()
@@ -232,3 +233,13 @@ class TestComplexContracts(TestCase):
                            environment=environment)
 
         self.assertEqual(status, 1)
+
+    def test_json_lists_work(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                    kwargs=submission_kwargs_for_file('./test_contracts/json_tests.s.py'))
+
+        _, res = e.execute('colin', 'json_tests', 'get_some', kwargs={})
+
+        self.assertListEqual([1, 2, 3, 4], res)

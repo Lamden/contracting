@@ -1,10 +1,8 @@
-from dateutil import parser
 from datetime import datetime as dt
-'''
-Redefine a controlled datetime object that feels like a regular Python datetime object but is restricted so that we
-can regulate the user interaction with it to prevent security attack vectors. It may seem redundant, but it guarantees
-security.
-'''
+
+# Redefine a controlled datetime object that feels like a regular Python datetime object but is restricted so that we
+# can regulate the user interaction with it to prevent security attack vectors. It may seem redundant, but it guarantees
+# security.
 
 
 class Datetime:
