@@ -158,16 +158,11 @@ class TestComplexContracts(TestCase):
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
 
-        _, res = e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1234, 'to': 'raghu'})
-        print(res)
-
-        _, res = e.execute('raghu', 'erc20_clone', 'transfer_from', kwargs={'amount': 123, 'to': 'tejas', 'main_account': 'stu'})
-        print(res)
+        e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1234, 'to': 'raghu'})
+        e.execute('raghu', 'erc20_clone', 'transfer_from', kwargs={'amount': 123, 'to': 'tejas', 'main_account': 'stu'})
         _, raghu = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'raghu'})
         _, stu = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'stu'})
         _, tejas = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'tejas'})
-
-        print(raghu, stu, tejas)
 
         self.assertEqual(raghu, 0)
         self.assertEqual(stu, (1000000 - 123))

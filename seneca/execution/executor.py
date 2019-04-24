@@ -66,7 +66,6 @@ class Executor:
             result = e
             status_code = 1
             runtime.rt.driver.revert()
-        print('loaded {}'.format(runtime.rt.loaded_modules))
         runtime.rt.clean_up()
 
         return status_code, result
@@ -109,6 +108,7 @@ class Sandbox(object):
         module = importlib.import_module(contract_name)
 
         func = getattr(module, function_name)
+
         return func(**kwargs)
 
 

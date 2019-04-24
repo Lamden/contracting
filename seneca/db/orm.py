@@ -27,7 +27,6 @@ class Hash(Datum):
         self.default_value = default_value
 
     def set(self, key, value):
-        print('{}{}{}'.format(self.key, self.delimiter, key))
         self.driver.set('{}{}{}'.format(self.key, self.delimiter, key), value)
 
     def get(self, item):
@@ -40,7 +39,6 @@ class Hash(Datum):
         return value
 
     def _validate_key(self, key):
-        print('Been asked to get {}'.format(key))
         if isinstance(key, tuple):
             assert len(key) <= config.MAX_HASH_DIMENSIONS, 'Too many dimensions ({}) for hash. Max is {}'.format(
                 len(key), config.MAX_HASH_DIMENSIONS
