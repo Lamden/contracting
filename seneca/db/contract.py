@@ -5,6 +5,7 @@ from types import ModuleType
 from ..stdlib import env
 from .. import config
 
+
 class Contract:
     def __init__(self, driver: ContractDriver=rt.driver):
         self.driver = driver

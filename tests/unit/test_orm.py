@@ -74,8 +74,7 @@ class TestHash(TestCase):
         driver.flush()
 
     def tearDown(self):
-        #driver.flush()
-        pass
+        driver.flush()
 
     def test_set(self):
         contract = 'stustu'
