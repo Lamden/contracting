@@ -41,8 +41,7 @@ class TestComplexContracts(TestCase):
         self.d.commit()
 
     def tearDown(self):
-        #self.d.flush()
-        pass
+        self.d.flush()
 
     def test_token_constuction_works(self):
         e = Executor()
@@ -94,3 +93,105 @@ class TestComplexContracts(TestCase):
         _, raghu_balance = e.execute('stu', 'currency', 'balance', kwargs={'account': 'raghu'})
 
         self.assertEqual(raghu_balance, 1000)
+
+    def test_erc20_clone_construction_works(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+
+        _, stu = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'stu'})
+        _, colin = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'colin'})
+        _, supply = e.execute('stu', 'erc20_clone', 'total_supply', kwargs={})
+
+        self.assertEqual(stu, 1000000)
+        self.assertEqual(colin, 100)
+        self.assertEqual(supply, 1000100)
+
+    def test_erc20_clone_transfer_works(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+
+        e.execute('stu', 'erc20_clone', 'transfer', kwargs={'amount': 1000000, 'to': 'raghu'})
+        _, raghu = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'raghu'})
+        _, stu = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'stu'})
+
+        self.assertEqual(raghu, 1000000)
+        self.assertEqual(stu, 0)
+
+    def test_erc20_clone_transfer_fails(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+
+        status, res = e.execute('stu', 'erc20_clone', 'transfer', kwargs={'amount': 10000000, 'to': 'raghu'})
+
+        self.assertEqual(status, 1)
+        self.assertEqual(type(res), AssertionError)
+
+    def test_allowance_of_blank(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+
+        status, res = e.execute('stu', 'erc20_clone', 'allowance', kwargs={'owner': 'stu', 'spender': 'raghu'})
+        self.assertEqual(res, 0)
+
+    def test_approve_works_and_allowance_shows(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+
+        e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1234, 'to': 'raghu'})
+
+        status, res = e.execute('stu', 'erc20_clone', 'allowance', kwargs={'owner': 'stu', 'spender': 'raghu'})
+        self.assertEqual(res, 1234)
+
+    def test_approve_and_transfer_from(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+
+        e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1234, 'to': 'raghu'})
+        e.execute('raghu', 'erc20_clone', 'transfer_from', kwargs={'amount': 123, 'to': 'tejas', 'main_account': 'stu'})
+        _, raghu = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'raghu'})
+        _, stu = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'stu'})
+        _, tejas = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'tejas'})
+
+        self.assertEqual(raghu, 0)
+        self.assertEqual(stu, (1000000 - 123))
+        self.assertEqual(tejas, 123)
+
+    def test_failure_after_data_writes_doesnt_commit(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/leaky.s.py'))
+
+        e.execute('colin', 'leaky', 'transfer', kwargs={'amount': 1234, 'to': 'raghu'})
+
+        _, raghu = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'raghu'})
+        _, colin = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'colin'})
+
+        self.assertEqual(raghu, 0)
+        self.assertEqual(colin, 100)
+
+    def test_leaky_contract_commits_on_success(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/leaky.s.py'))
+
+        e.execute('colin', 'leaky', 'transfer', kwargs={'amount': 1, 'to': 'raghu'})
+
+        _, raghu = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'raghu'})
+        _, colin = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'colin'})
+
+        self.assertEqual(raghu, 1)
+        self.assertEqual(colin, 99)

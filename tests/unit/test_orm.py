@@ -1,6 +1,12 @@
 from unittest import TestCase
 from seneca.db.driver import ContractDriver
-from seneca.db.orm import Datum, Variable, Hash, ForeignVariable, ForeignHash
+from seneca.db.orm import Datum, Variable, ForeignHash, ForeignVariable, Hash
+# from seneca.stdlib.env import gather
+
+# Variable = gather()['Variable']
+# Hash = gather()['Hash']
+# ForeignVariable = gather()['ForeignVariable']
+# ForeignHash = gather()['ForeignHash']
 
 driver = ContractDriver(db=1)
 
@@ -22,7 +28,8 @@ class TestVariable(TestCase):
         driver.flush()
 
     def tearDown(self):
-        driver.flush()
+        #driver.flush()
+        pass
 
     def test_set(self):
         contract = 'stustu'
@@ -67,7 +74,8 @@ class TestHash(TestCase):
         driver.flush()
 
     def tearDown(self):
-        driver.flush()
+        #driver.flush()
+        pass
 
     def test_set(self):
         contract = 'stustu'
@@ -143,6 +151,121 @@ class TestHash(TestCase):
 
         self.assertEqual(h['stu'], 54321)
 
+    def test_setitems(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+        h['stu'] = 123
+        h['stu', 'raghu'] = 1000
+        driver.commit()
+
+        val = driver.get('blah.scoob:stu:raghu')
+        self.assertEqual(val, 1000)
+
+    def test_setitems_too_many_dimensions_fails(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+
+        with self.assertRaises(Exception):
+            h['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c'] = 1000
+
+    def test_setitems_key_too_large(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+
+        key = 'a' * 1025
+
+        with self.assertRaises(Exception):
+            h[key] = 100
+
+    def test_setitems_keys_too_large(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+
+        key1 = 'a' * 800
+        key2 = 'b' * 100
+        key3 = 'c' * 200
+
+        with self.assertRaises(Exception):
+            h[key1, key2, key3] = 100
+
+    def test_getitems_keys(self):
+        contract = 'blah'
+        name = 'scoob'
+        delimiter = driver.delimiter
+
+        h = Hash(contract, name, driver=driver)
+
+        prefix = '{}{}{}{}'.format(contract, delimiter, name, h.delimiter)
+
+        raw_key = '{}stu:raghu'.format(prefix)
+
+        driver.set(raw_key, 54321)
+
+        driver.commit()
+
+        self.assertEqual(h['stu', 'raghu'], 54321)
+
+    def test_getsetitems(self):
+        contract = 'blah'
+        name = 'scoob'
+        delimiter = driver.delimiter
+
+        h = Hash(contract, name, driver=driver)
+
+        h['stu', 'raghu'] = 999
+
+        driver.commit()
+
+        self.assertEqual(h['stu', 'raghu'], 999)
+
+    def test_getitems_keys_too_large(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+
+        key1 = 'a' * 800
+        key2 = 'b' * 100
+        key3 = 'c' * 200
+
+        with self.assertRaises(Exception):
+            x = h[key1, key2, key3]
+
+    def test_getitems_too_many_dimensions_fails(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+
+        with self.assertRaises(Exception):
+            a = h['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c']
+
+    def test_getitems_key_too_large(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+
+        key = 'a' * 1025
+
+        with self.assertRaises(Exception):
+            a = h[key]
+
+    def test_getitem_returns_default_value_if_none(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        self.assertEqual(h['hello'], 0)
 
 class TestForeignVariable(TestCase):
     def setUp(self):

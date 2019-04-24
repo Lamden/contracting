@@ -1,9 +1,7 @@
 from ..db.driver import ContractDriver
 from ..execution.runtime import rt
 from .. import config
-from ..execution.compiler import SenecaCompiler
-from types import ModuleType
-from ..stdlib import env
+
 
 class Datum:
     def __init__(self, contract, name, driver: ContractDriver):
@@ -23,21 +21,47 @@ class Variable(Datum):
 
 
 class Hash(Datum):
-    def __init__(self, contract, name, driver: ContractDriver=rt.driver):
+    def __init__(self, contract, name, driver: ContractDriver=rt.driver, default_value=None):
         super().__init__(contract, name, driver=driver)
         self.delimiter = config.DELIMITER
+        self.default_value = default_value
 
     def set(self, key, value):
         self.driver.set('{}{}{}'.format(self.key, self.delimiter, key), value)
 
     def get(self, item):
-        return self.driver.get('{}{}{}'.format(self.key, self.delimiter, item))
+        value = self.driver.get('{}{}{}'.format(self.key, self.delimiter, item))
+
+        # Add Python defaultdict behavior for easier smart contracting
+        if value is None:
+            value = self.default_value
+
+        return value
+
+    def _validate_key(self, key):
+        if isinstance(key, tuple):
+            assert len(key) <= config.MAX_HASH_DIMENSIONS, 'Too many dimensions ({}) for hash. Max is {}'.format(
+                len(key), config.MAX_HASH_DIMENSIONS
+            )
+
+            new_key_str = ''
+            for k in key:
+                assert not isinstance(k, slice), 'Slices prohibited in hashes.'
+                new_key_str += '{}{}'.format(k, self.delimiter)
+
+            key = new_key_str[:-len(self.delimiter)]
+
+        assert len(key) <= config.MAX_KEY_SIZE, 'Key is too long ({}). Max is {}.'.format(len(key), config.MAX_KEY_SIZE)
+        return key
 
     def __setitem__(self, key, value):
+        # handle multiple hashes differently
+        key = self._validate_key(key)
         self.set(key, value)
 
-    def __getitem__(self, item):
-        return self.get(item)
+    def __getitem__(self, key):
+        key = self._validate_key(key)
+        return self.get(key)
 
 
 class ForeignVariable(Variable):
@@ -74,27 +98,4 @@ class ForeignHash(Hash):
         return self.get(item)
 
 
-class Contract:
-    def __init__(self, driver: ContractDriver=rt.driver):
-        self.driver = driver
 
-    def submit(self, name, code, author):
-        c = SenecaCompiler(module_name=name)
-
-        code_obj = c.compile(code, lint=True)
-
-        ctx = ModuleType('context')
-
-        ctx.caller = rt.ctx[-1]
-        ctx.this = name
-        ctx.signer = rt.ctx[0]
-
-        scope = env.gather()
-        scope.update({'ctx': ctx})
-
-        exec(code_obj, scope)
-
-        if scope.get(config.INIT_FUNC_NAME) is not None:
-            scope[config.INIT_FUNC_NAME]()
-
-        self.driver.set_contract(name=name, code=code, author=author, overwrite=False)

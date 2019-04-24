@@ -65,6 +65,9 @@ class Executor:
         except Exception as e:
             result = e
             status_code = 1
+            runtime.rt.driver.revert()
+        runtime.rt.clean_up()
+
         return status_code, result
 
 
@@ -99,10 +102,11 @@ class Sandbox(object):
     def execute(self, sender, contract_name, function_name, kwargs):
 
         # __main__ is replaced by the sender of the message in this case
-        runtime.rt.ctx.pop()
+        runtime.rt.ctx.clear()
         runtime.rt.ctx.append(sender)
 
         module = importlib.import_module(contract_name)
+
         func = getattr(module, function_name)
 
         return func(**kwargs)
