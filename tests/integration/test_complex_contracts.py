@@ -1,6 +1,8 @@
 from unittest import TestCase
 from seneca.db.driver import ContractDriver
 from seneca.execution.executor import Executor
+from datetime import datetime
+from seneca.stdlib.env import gather
 
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
@@ -195,3 +197,38 @@ class TestComplexContracts(TestCase):
 
         self.assertEqual(raghu, 1)
         self.assertEqual(colin, 99)
+
+    def test_time_stdlib_works(self):
+        e = Executor()
+        now = datetime.now()
+
+        environment = gather()
+        date = environment['datetime'](now.year, now.month, now.day)
+        environment.update({'now': date})
+
+        _, res = e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_time.s.py'),
+                  environment=environment)
+
+        _, gt = e.execute('colin', 'test_time', 'gt', kwargs={}, environment=environment)
+        self.assertTrue(gt)
+
+        _, lt = e.execute('colin', 'test_time', 'lt', kwargs={}, environment=environment)
+        self.assertFalse(lt)
+
+        _, eq = e.execute('colin', 'test_time', 'eq', kwargs={}, environment=environment)
+        self.assertFalse(eq)
+
+    def test_bad_time_contract_not_submittable(self):
+        e = Executor()
+        now = datetime.now()
+
+        environment = gather()
+        date = environment['datetime'](now.year, now.month, now.day)
+        environment.update({'now': date})
+
+        status, res = e.execute(**TEST_SUBMISSION_KWARGS,
+                           kwargs=submission_kwargs_for_file('./test_contracts/bad_time.s.py'),
+                           environment=environment)
+
+        self.assertEqual(status, 1)

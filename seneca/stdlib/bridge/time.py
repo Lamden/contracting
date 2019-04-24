@@ -40,5 +40,5 @@ class Datetime:
 
 
 exports = {
-    'time.datetime': Datetime
+    'datetime': Datetime
 }
