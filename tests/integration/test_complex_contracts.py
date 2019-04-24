@@ -122,3 +122,34 @@ class TestComplexContracts(TestCase):
         self.assertEqual(raghu, 1000000)
         self.assertEqual(stu, 0)
 
+    def test_erc20_clone_transfer_fails(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+
+        status, res = e.execute('stu', 'erc20_clone', 'transfer', kwargs={'amount': 10000000, 'to': 'raghu'})
+
+        self.assertEqual(status, 1)
+        self.assertEqual(type(res), AssertionError)
+
+    def test_allowance_of_blank(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+
+        status, res = e.execute('stu', 'erc20_clone', 'allowance', kwargs={'owner': 'stu', 'spender': 'raghu'})
+        self.assertEqual(res, 0)
+
+    def test_approve_works_and_allowance_shows(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+
+        e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1234, 'to': 'raghu'})
+
+        status, res = e.execute('stu', 'erc20_clone', 'allowance', kwargs={'owner': 'stu', 'spender': 'raghu'})
+        self.assertEqual(res, 1234)
+
