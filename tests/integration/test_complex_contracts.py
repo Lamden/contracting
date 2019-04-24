@@ -41,8 +41,7 @@ class TestComplexContracts(TestCase):
         self.d.commit()
 
     def tearDown(self):
-        #self.d.flush()
-        pass
+        self.d.flush()
 
     def test_token_constuction_works(self):
         e = Executor()
@@ -153,3 +152,33 @@ class TestComplexContracts(TestCase):
         status, res = e.execute('stu', 'erc20_clone', 'allowance', kwargs={'owner': 'stu', 'spender': 'raghu'})
         self.assertEqual(res, 1234)
 
+    def test_approve_and_transfer_from(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+
+        _, res = e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1234, 'to': 'raghu'})
+        print(res)
+
+        _, res = e.execute('raghu', 'erc20_clone', 'transfer_from', kwargs={'amount': 123, 'to': 'tejas', 'main_account': 'stu'})
+        print(res)
+        _, raghu = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'raghu'})
+        _, stu = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'stu'})
+        _, tejas = e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'tejas'})
+
+        print(raghu, stu, tejas)
+
+        self.assertEqual(raghu, 0)
+        self.assertEqual(stu, (1000000 - 123))
+        self.assertEqual(tejas, 123)
+
+    def test_approve_again(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+
+        _, res = e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1234, 'to': 'raghu'})
+
+        e.execute(sender='raghu', contract_name='erc20_clone', function_name='transfer_from', kwargs={'amount': 123, 'to': 'tejas', 'main_account': 'stu'})

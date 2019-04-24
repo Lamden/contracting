@@ -45,6 +45,7 @@ class DatabaseFinder(MetaPathFinder):
     def find_module(fullname, path, target=None):
         return DatabaseLoader()
 
+
 class DatabaseLoader(Loader):
     def __init__(self):
         from seneca.execution.compiler import SenecaCompiler
@@ -81,7 +82,7 @@ class DatabaseLoader(Loader):
         exec(code_obj, scope)
         vars(module).update(scope)
 
-        rt.ctx.pop()
+        rt.loaded_modules.append(rt.ctx.pop())
 
     def module_repr(self, module):
         return '<module {!r} (smart contract)>'.format(module.__name__)

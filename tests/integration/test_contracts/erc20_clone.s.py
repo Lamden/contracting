@@ -31,13 +31,17 @@ def allowance(owner, spender):
 def approve(amount, to):
     sender = ctx.signer
     balances[sender, to] += amount
+    return balances[sender, to]
 
 @seneca_export
 def transfer_from(amount, to, main_account):
     sender = ctx.signer
-    assert balances[main_account, sender] >= amount, 'Not enough coins to send!'
+
+    assert balances[main_account, sender] >= amount, 'Not enough coins approved to send! You have {} and are trying to spend {}'\
+        .format(balances[main_account, sender], amount)
     assert balances[main_account] >= amount, 'Not enough coins to send!'
 
     balances[main_account, sender] -= amount
     balances[main_account] -= amount
+
     balances[to] += amount

@@ -40,6 +40,7 @@ class Hash(Datum):
         return value
 
     def _validate_key(self, key):
+        print('Been asked to get {}'.format(key))
         if isinstance(key, tuple):
             assert len(key) <= config.MAX_HASH_DIMENSIONS, 'Too many dimensions ({}) for hash. Max is {}'.format(
                 len(key), config.MAX_HASH_DIMENSIONS
