@@ -42,7 +42,7 @@ def install_system_contracts(directory=''):
 
 
 class DatabaseFinder(MetaPathFinder):
-    def find_module(fullname, path, target=None):
+    def find_module(self, fullname, path=None):
         return DatabaseLoader()
 
 
