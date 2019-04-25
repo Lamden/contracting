@@ -161,3 +161,25 @@ class TestAtomicSwapContract(TestCase):
 
         self.assertEqual(raghu, 5)
         self.assertEqual(atomic_swaps, 0)
+
+    def test_successful_redeem_deletes_entry(self):
+        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
+        self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
+            'participant': 'raghu',
+            'expiration': Datetime(2020, 1, 1),
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
+            'amount': 5
+        })
+
+        environment = {'now': Datetime(2019, 1, 1)}
+
+        self.e.execute('raghu', 'atomic_swaps', 'redeem', kwargs={'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
+                       environment=environment)
+
+        key = 'atomic_swaps.swaps:raghu:eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514'
+        v = self.d.get(key)
+
+        self.assertEqual(v, None)
+
+    def test_refund_works(self):
+        pass

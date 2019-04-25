@@ -38,6 +38,7 @@ def refund(participant, secret):
 
     expiration, amount = swaps[participant, hashlock]
 
-    if expiration < now:
-        erc20_clone.transfer(ctx.caller, amount)
-        swaps[ctx.caller, hashlock] = None
+    assert expiration < now, 'Swap has not expired.'
+
+    erc20_clone.transfer(ctx.caller, amount)
+    swaps[participant, hashlock] = None
