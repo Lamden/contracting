@@ -2,6 +2,8 @@ from .execution.executor import Executor
 from .ast.compiler import SenecaCompiler
 import types
 from functools import partial
+import astor
+import inspect
 
 class AbstractContract:
     def __init__(self, name, signer, environment, executor, funcs):
@@ -24,17 +26,17 @@ class AbstractContract:
                                         signer=self.signer,
                                         contract=self.name,
                                         executor=self.executor,
-                                        function=func,
+                                        func=func,
                                         environment=self.environment,
                                         **default_kwargs))
 
-    def _abstract_function_call(self, signer, executor, contract, environment, function, **kwargs):
-        for k, v in kwargs.items():
-            assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
+    def _abstract_function_call(self, signer, executor, contract, environment, func, **kwargs):
+        #for k, v in kwargs.items():
+        #    assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
 
         status, result = executor.execute(sender=signer,
                                           contract_name=contract,
-                                          function_name=function,
+                                          function_name=func,
                                           kwargs=kwargs,
                                           environment=environment
                                           )
@@ -55,12 +57,28 @@ class SenecaClient:
     # Returns abstract contract which has partial methods mapped to each exported function.
     def get_contract(self, name):
         contract = self.raw_driver.get_contract(name)
-        code = self.compiler.compile(contract, lint=False)
+        tree = self.compiler.parse(contract, lint=False)
 
-        codes = [cd for cd in code.co_consts if isinstance(cd, types.CodeType)]
+        # Turn the code into a string. Find all lines that start with 'def' to identify exported functions
+        code = astor.to_source(tree)
+        function_defs = list(filter(lambda x: x.startswith('def'), code.split('\n')))
+
+
+        # I am not proud of this. But, it works.
         funcs = []
-        for _c in codes:
-            funcs.append((_c.co_name, _c.co_varnames))
+        for definition in function_defs:
+            # Turn the definition into a useless function
+            definition = definition + ' pass'
+
+            env = {}
+            exec(definition, env)
+            del env['__builtins__']
+
+            func_name = list(env.keys())[0]
+            argspec = inspect.getfullargspec(env[func_name])
+            kwargs = argspec.args
+
+            funcs.append((func_name, kwargs))
 
         return AbstractContract(name=name,
                                 signer=self.signer,

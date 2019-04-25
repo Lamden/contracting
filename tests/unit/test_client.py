@@ -72,3 +72,14 @@ class TestSenecaClient(TestCase):
         submission = self.c.get_contract('submission')
         with self.assertRaises(AssertionError):
             submission.submit_contract(name=None, code='')
+
+    def test_abstract_function_succeeds_and_publishes_contract(self):
+        submission = self.c.get_contract('submission')
+        code = '''
+@seneca_export
+def test():
+    return 100
+        '''
+        submission.submit_contract(name='test', code=code)
+
+        self.assertEqual(self.c.raw_driver.get_contract('test'), code)
