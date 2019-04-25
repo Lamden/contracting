@@ -3,6 +3,7 @@ from seneca.db.driver import ContractDriver
 from seneca.execution.executor import Executor
 from datetime import datetime
 from seneca.stdlib.env import gather
+from hashlib import sha256, sha3_256
 
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
@@ -250,14 +251,36 @@ class TestComplexContracts(TestCase):
         environment = gather()
 
         e.execute(**TEST_SUBMISSION_KWARGS,
-                           kwargs=submission_kwargs_for_file('./test_contracts/time_storage.s.py'),
-                           environment=environment)
+                           kwargs=submission_kwargs_for_file('./test_contracts/time_storage.s.py'))
 
-        _, v = e.execute('colin', 'time_storage', 'get', kwargs={}, environment=environment)
+        _, v = e.execute('colin', 'time_storage', 'get', kwargs={})
 
         date = environment['datetime'](2019, 1, 1)
 
         self.assertEqual(v, date)
 
-    def test_hash_works(self):
-        pass
+    def test_hash_sha3_works(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_hashing_works.s.py'))
+
+        secret = 'c0d1cc254c2aca8716c6ef170630550d'
+        _, s3 = e.execute('colin', 'test_hashing_works', 't_sha3', kwargs={'s': secret})
+
+        h = sha3_256()
+        h.update(bytes.fromhex(secret))
+        self.assertEqual(h.hexdigest(), s3)
+
+    def test_hash_sha256_works(self):
+        e = Executor()
+
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_hashing_works.s.py'))
+
+        secret = 'c0d1cc254c2aca8716c6ef170630550d'
+        _, s3 = e.execute('colin', 'test_hashing_works', 't_sha256', kwargs={'s': secret})
+
+        h = sha256()
+        h.update(bytes.fromhex(secret))
+        self.assertEqual(h.hexdigest(), s3)

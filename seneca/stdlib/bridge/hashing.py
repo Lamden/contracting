@@ -28,6 +28,6 @@ def sha256(hex_str: str):
 
 
 exports = {
-    'crypto.sha3': sha3,
-    'crypto.sha256': sha256
+    'sha3': sha3,
+    'sha256': sha256
 }
