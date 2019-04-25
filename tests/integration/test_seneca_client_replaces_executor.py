@@ -4,6 +4,7 @@ from seneca.execution.executor import Executor
 from seneca.stdlib.bridge.time import Datetime
 from seneca.client import SenecaClient, AbstractContract
 
+
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
     split = f.split('/')
@@ -31,7 +32,7 @@ TEST_SUBMISSION_KWARGS = {
 
 class TestSenecaClientReplacesExecutor(TestCase):
     def setUp(self):
-        self.c = SenecaClient()
+        self.c = SenecaClient(signer='stu')
         self.c.raw_driver.flush()
 
         with open('../../seneca/contracts/submission.s.py') as f:
@@ -46,11 +47,13 @@ class TestSenecaClientReplacesExecutor(TestCase):
         submission = self.c.get_contract('submission')
 
         # submit erc20 clone
-        code = open('./test_contracts/erc20_clone.s.py').read()
-        submission.submit_contract(name='erc20_clone', code=code)
+        with open('./test_contracts/erc20_clone.s.py') as f:
+            code = f.read()
+            submission.submit_contract(name='erc20_clone', code=code)
 
-        code = open('./test_contracts/atomic_swaps.s.py').read()
-        submission.submit_contract(name='atomic_swaps', code=code)
+        with open('./test_contracts/atomic_swaps.s.py') as f:
+            code = f.read()
+            submission.submit_contract(name='atomic_swaps', code=code)
 
         self.erc20_clone = self.c.get_contract('erc20_clone')
         self.atomic_swaps = self.c.get_contract('atomic_swaps')
@@ -68,22 +71,19 @@ class TestSenecaClientReplacesExecutor(TestCase):
                                        hashlock='eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
                                        amount=5000000)
 
-
     def test_initiate_transfers_coins_correctly(self):
-        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
-        self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
-            'participant': 'raghu',
-            'expiration': Datetime(2020, 1, 1),
-            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
-            'amount': 5
-        })
+        self.erc20_clone.approve(amount=1000000, to='atomic_swaps')
+        self.atomic_swaps.initiate(participant='raghu',
+                                   expiration=Datetime(2020, 1, 1),
+                                   hashlock='eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
+                                   amount=5)
 
-        _, atomic_swaps = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account':'atomic_swaps'})
-        _, stu = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'stu'})
-        _, stu_as = self.e.execute('stu', 'erc20_clone', 'allowance', kwargs={'owner': 'stu', 'spender': 'atomic_swaps'})
+        atomic_swaps = self.erc20_clone.balance_of(account='atomic_swaps')
+        stu_bal = self.erc20_clone.balance_of(account='stu')
+        stu_as = self.erc20_clone.allowance(owner='stu', spender='atomic_swaps')
 
         self.assertEqual(atomic_swaps, 5)
-        self.assertEqual(stu, 999995)
+        self.assertEqual(stu_bal, 999995)
         self.assertEqual(stu_as, 999995)
 
     def test_initiate_writes_to_correct_key_and_properly(self):
