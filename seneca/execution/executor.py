@@ -47,12 +47,7 @@ class Executor:
                     }
                  }
         """
-        results = {}
-        for idx, tx in bag:
-            self.driver.setup(idx, bag.cr_context)
-            results[idx] = self.execute(tx.sender, tx.contract_name, tx.function_name, tx.kwargs)
-
-        return results
+        return
 
     def execute(self, sender, contract_name, function_name, kwargs) -> dict:
         """
@@ -147,6 +142,14 @@ class MultiProcessingSandbox(Sandbox):
         _, child_pipe = self.pipe
 
         # Sends code to be executed in the process loop
+        msg = {
+            'type': 'tx',
+            'data': {
+                'sender': sender,
+                'contract_name': contract_name,
+
+            }
+        }
         child_pipe.send((sender, contract_name, function_name, kwargs))
 
         # Receive result object back from process loop, formatted as
@@ -171,5 +174,5 @@ class MultiProcessingSandbox(Sandbox):
                 result = e
                 status_code = 1
             finally:
-                # Pickle the result using dill so module object can be retained
                 parent_pipe.send((status_code, result))
+
