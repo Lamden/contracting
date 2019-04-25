@@ -1,5 +1,5 @@
 from unittest import TestCase
-from seneca.client import SenecaClient, abstract_contract_call
+from seneca.client import SenecaClient, AbstractContract
 from seneca.db.driver import ContractDriver
 from seneca.execution.executor import Executor
 
@@ -45,8 +45,30 @@ class TestSenecaClient(TestCase):
     def tearDown(self):
         self.c.raw_driver.flush()
 
-    def test_get_contract(self):
-        print(self.c.get_contract('submission'))
+    def test_get_contract_returns_correct_type(self):
+        submission = self.c.get_contract('submission')
+        self.assertTrue(isinstance(submission, AbstractContract))
 
-    def test_abstract_contract_call(self):
-        abstract_contract_call(0, 0, 0, 0, ass=1, bass=2)
+    def test_get_contract_returns_contract_with_correct_functions(self):
+        submission = self.c.get_contract('submission')
+        self.assertIn('submit_contract', dir(submission))
+
+    def test_get_contract_inits_mirror_clients(self):
+        submission = self.c.get_contract('submission')
+        self.assertEqual(self.c.executor, submission.executor)
+        self.assertEqual(self.c.signer, submission.signer)
+
+    def test_abstract_function_fails_without_proper_kwargs(self):
+        submission = self.c.get_contract('submission')
+        with self.assertRaises(AssertionError):
+            submission.submit_contract()
+
+    def test_abstract_function_fails_without_kwargs_not_none(self):
+        submission = self.c.get_contract('submission')
+        with self.assertRaises(AssertionError):
+            submission.submit_contract(name=None, code=None)
+
+    def test_abstract_function_fails_without_both_kwargs_none(self):
+        submission = self.c.get_contract('submission')
+        with self.assertRaises(AssertionError):
+            submission.submit_contract(name=None, code='')

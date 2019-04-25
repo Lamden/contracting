@@ -20,8 +20,13 @@ class AbstractContract:
             for kwarg in kwargs:
                 default_kwargs[kwarg] = None
 
-            setattr(self, func, partial(self._abstract_function_call, function=func, **default_kwargs))
-
+            setattr(self, func, partial(self._abstract_function_call,
+                                        signer=self.signer,
+                                        contract=self.name,
+                                        executor=self.executor,
+                                        function=func,
+                                        environment=self.environment,
+                                        **default_kwargs))
 
     def _abstract_function_call(self, signer, executor, contract, environment, function, **kwargs):
         for k, v in kwargs.items():
@@ -36,7 +41,9 @@ class AbstractContract:
 
         if status == 1:
             raise result
+
         return result
+
 
 class SenecaClient:
     def __init__(self, signer='sys', executor=Executor(), compiler=SenecaCompiler()):
