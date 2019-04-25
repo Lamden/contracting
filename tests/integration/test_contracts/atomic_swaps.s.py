@@ -28,8 +28,8 @@ def redeem(secret: str):
 
     assert expiration >= now, 'Swap has expired.'
 
-    erc20_clone.transfer(ctx.signer, amount)
-    swaps[ctx.signer, hashlock] = None # change this to respond to the del keyword?
+    erc20_clone.transfer(amount, ctx.caller)
+    swaps[ctx.caller, hashlock] = None # change this to respond to the del keyword?
 
 @seneca_export
 def refund(participant, secret):
@@ -39,5 +39,5 @@ def refund(participant, secret):
     expiration, amount = swaps[participant, hashlock]
 
     if expiration < now:
-        erc20_clone.transfer(ctx.signer, amount)
-        swaps[ctx.signer, hashlock] = None
+        erc20_clone.transfer(ctx.caller, amount)
+        swaps[ctx.caller, hashlock] = None

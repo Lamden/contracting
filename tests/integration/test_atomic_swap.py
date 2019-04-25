@@ -43,8 +43,8 @@ class TestAtomicSwapContract(TestCase):
 
         self.e = Executor()
 
-        print(self.e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py')))
+        self.e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
 
         self.e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/atomic_swaps.s.py'))
@@ -111,7 +111,6 @@ class TestAtomicSwapContract(TestCase):
         self.assertEqual(s, 1)
         self.assertEqual(str(r), 'Incorrect sender or secret passed.')
 
-
     def test_redeem_on_wrong_sender_fails(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
         self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
@@ -125,7 +124,6 @@ class TestAtomicSwapContract(TestCase):
 
         self.assertEqual(s, 1)
         self.assertEqual(str(r), 'Incorrect sender or secret passed.')
-
 
     def test_past_expiration_fails(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
@@ -143,3 +141,23 @@ class TestAtomicSwapContract(TestCase):
 
         self.assertEqual(s, 1)
         self.assertEqual(str(r), 'Swap has expired.')
+
+    def test_successful_redeem_transfers_coins_correctly(self):
+        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
+        self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
+            'participant': 'raghu',
+            'expiration': Datetime(2020, 1, 1),
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
+            'amount': 5
+        })
+
+        environment = {'now': Datetime(2019, 1, 1)}
+
+        self.e.execute('raghu', 'atomic_swaps', 'redeem', kwargs={'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
+                       environment=environment)
+
+        _, atomic_swaps = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'atomic_swaps'})
+        _, raghu = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'raghu'})
+
+        self.assertEqual(raghu, 5)
+        self.assertEqual(atomic_swaps, 0)
