@@ -1,10 +1,9 @@
 import ast
 
-from seneca import config
+from .. import config
 
-from seneca.logger import get_logger
-from seneca.ast.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS
-#from ..interpreter.module import ContractDriver
+from ..logger import get_logger
+from ..ast.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS
 
 
 class Linter(ast.NodeVisitor):
@@ -16,7 +15,6 @@ class Linter(ast.NodeVisitor):
         self._is_one_export = False
         self._is_success = True
         self._constructor_visited = False
-        #self.driver = ContractDriver()
 
     def ast_types(self, t, lnum):
         if type(t) not in ALLOWED_AST_TYPES:
@@ -87,10 +85,12 @@ class Linter(ast.NodeVisitor):
             if node.value.func.id in ['Variable', 'Hash']:
                 kwargs = [k.arg for k in node.value.keywords]
                 if 'contract' in kwargs or 'name' in kwargs:
-                    str = 'Keyword overloading not allowed for ORM assignments.'
+                    self._is_success = False
+                    str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[10]
                     self._violations.append(str)
             if ast.Tuple in [type(t) for t in node.targets] or isinstance(node.value, ast.Tuple):
-                str = 'Multiple targets to an ORM definition is not allowed.'
+                self._is_success = False
+                str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[11]
                 self._violations.append(str)
 
         self.generic_visit(node)
@@ -118,23 +118,27 @@ class Linter(ast.NodeVisitor):
 
         # Only allow 1 decorator per function definition.
         if len(node.decorator_list) > 1:
-            str = 'Function definition can only contain 1 decorator. Currently contains {}.'\
-                .format(len(node.decorator_list))
+            str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[9] + \
+                  ": Detected: {} MAX limit: 1".format(len(node.decorator_list))
             self._violations.append(str)
+            self._is_success = False
 
         for d in node.decorator_list:
             # Only allow decorators from the allowed set.
             if d.id not in config.VALID_DECORATORS:
-                str = '{} is an invalid decorator. Must be one of {}'.format(d.id,
-                                                                             config.VALID_DECORATORS)
+                str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[7] + \
+                      ": valid list: {}".format(d.id, config.VALID_DECORATORS)
                 self._violations.append(str)
+                self._is_success = False
+
             if d.id == config.EXPORT_DECORATOR_STRING:
                 self._is_one_export = True
 
             if d.id == config.INIT_DECORATOR_STRING:
                 if self._constructor_visited:
-                    str = 'Multiple constructors not allowed.'
+                    str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[8]
                     self._violations.append(str)
+                    self._is_success = False
                 self._constructor_visited = True
 
         self.generic_visit(node)
@@ -149,10 +153,8 @@ class Linter(ast.NodeVisitor):
 
     def _final_checks(self):
         if not self._is_one_export:
-            str = VIOLATION_TRIGGERS[12]
+            str = "Line 0: " + VIOLATION_TRIGGERS[12]
             self._violations.append(str)
-            # self.log.error("Need atleast one method with @seneca_export() decorator that outside world use to interact "
-            #                "with this contract")
             self._is_success = False
     
     def _collect_function_defs(self, root):
