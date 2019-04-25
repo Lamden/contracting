@@ -84,6 +84,9 @@ class DatabaseLoader(Loader):
 
         # execute the module with the std env and update the module to pass forward
         exec(code_obj, scope)
+
+        #del scope['__builtins__']
+
         vars(module).update(scope)
 
         rt.loaded_modules.append(rt.ctx.pop())

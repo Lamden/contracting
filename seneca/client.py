@@ -34,6 +34,7 @@ class AbstractContract:
         #for k, v in kwargs.items():
         #    assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
 
+
         status, result = executor.execute(sender=signer,
                                           contract_name=contract,
                                           function_name=func,
@@ -67,6 +68,7 @@ class SenecaClient:
         # I am not proud of this. But, it works.
         funcs = []
         for definition in function_defs:
+            print(definition)
             # Turn the definition into a useless function
             definition = definition + ' pass'
 
@@ -79,6 +81,7 @@ class SenecaClient:
             kwargs = argspec.args
 
             funcs.append((func_name, kwargs))
+            print(funcs)
 
         return AbstractContract(name=name,
                                 signer=self.signer,

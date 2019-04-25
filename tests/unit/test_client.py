@@ -43,7 +43,8 @@ class TestSenecaClient(TestCase):
         self.c.raw_driver.commit()
 
     def tearDown(self):
-        self.c.raw_driver.flush()
+        #self.c.raw_driver.flush()
+        pass
 
     def test_get_contract_returns_correct_type(self):
         submission = self.c.get_contract('submission')
@@ -83,3 +84,17 @@ def test():
         submission.submit_contract(name='test', code=code)
 
         self.assertEqual(self.c.raw_driver.get_contract('test'), code)
+
+    def test_abstract_function_succeeds_and_new_contract_can_be_abstracted(self):
+            submission = self.c.get_contract('submission')
+            code = '''
+@seneca_export
+def test():
+    return 100
+            '''
+            submission.submit_contract(name='tester', code=code)
+
+            tester = self.c.get_contract('tester')
+
+
+            self.assertEqual(tester.test(), 100)
