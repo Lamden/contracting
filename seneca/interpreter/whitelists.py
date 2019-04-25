@@ -85,7 +85,7 @@ VIOLATION_TRIGGERS = [
     "S8- Invalid decorator used",
     "S9- Multiple use of constructors detected",
     "S10- Illicit use of multiple decorators",
-    "S11- Illicit keyword overloading",
+    "S11- Illicit keyword overloading for ORM assignments",
     "S12- Multiple targets to ORM definition detected",
     "S13- No valid seneca decorator found"
 ]
