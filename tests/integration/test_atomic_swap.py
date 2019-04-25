@@ -65,7 +65,7 @@ class TestAtomicSwapContract(TestCase):
         self.assertEqual(status, 1)
         self.assertTrue(isinstance(res, AssertionError))
 
-    def test_initiate_writes_to_correct_key_and_properly(self):
+    def test_initiate_transfers_coins_correctly(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
         self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
             'participant': 'raghu',
@@ -82,3 +82,17 @@ class TestAtomicSwapContract(TestCase):
         self.assertEqual(stu, 999995)
         self.assertEqual(stu_as, 999995)
 
+    def test_initiate_writes_to_correct_key_and_properly(self):
+        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
+        self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
+            'participant': 'raghu',
+            'expiration': Datetime(2020, 1, 1),
+            'hashlock': '6c839446b4d4fa2582af5011730c680b3ee39929f041b7bee6f376211cc710f7',
+            'amount': 5
+        })
+
+        key = 'atomic_swaps.swaps:raghu:6c839446b4d4fa2582af5011730c680b3ee39929f041b7bee6f376211cc710f7'
+
+        expiration, amount = self.d.get(key)
+        self.assertEqual(expiration, Datetime(2020, 1, 1))
+        self.assertEqual(amount, 5)
