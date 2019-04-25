@@ -119,16 +119,18 @@ class Linter(ast.NodeVisitor):
         # Only allow 1 decorator per function definition.
         if len(node.decorator_list) > 1:
             str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[9] + \
-                  "decorator list: {}".format(len(node.decorator_list))
+                  ": Detected: {} MAX limit: 1".format(len(node.decorator_list))
             self._violations.append(str)
+            self._is_success = False
 
         for d in node.decorator_list:
             # Only allow decorators from the allowed set.
             if d.id not in config.VALID_DECORATORS:
                 str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[7] + \
-                      "valid options: {}".format(d.id, config.VALID_DECORATORS)
-
+                      ": valid list: {}".format(d.id, config.VALID_DECORATORS)
                 self._violations.append(str)
+                self._is_success = False
+
             if d.id == config.EXPORT_DECORATOR_STRING:
                 self._is_one_export = True
 
@@ -136,6 +138,7 @@ class Linter(ast.NodeVisitor):
                 if self._constructor_visited:
                     str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[8]
                     self._violations.append(str)
+                    self._is_success = False
                 self._constructor_visited = True
 
         self.generic_visit(node)
