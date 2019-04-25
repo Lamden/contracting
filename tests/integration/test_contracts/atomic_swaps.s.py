@@ -34,11 +34,18 @@ def redeem(secret: str):
 @seneca_export
 def refund(participant, secret):
 
+    assert participant != ctx.caller and participant != ctx.signer, \
+        'Caller and signer cannot issue a refund.'
+
     hashlock = sha256(secret)
 
-    expiration, amount = swaps[participant, hashlock]
+    result = swaps[participant, hashlock]
+
+    assert result is not None, 'No swap to refund found.'
+
+    expiration, amount = result
 
     assert expiration < now, 'Swap has not expired.'
 
-    erc20_clone.transfer(ctx.caller, amount)
+    erc20_clone.transfer(amount, ctx.caller)
     swaps[participant, hashlock] = None

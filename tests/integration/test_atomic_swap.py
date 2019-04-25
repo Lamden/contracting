@@ -182,4 +182,92 @@ class TestAtomicSwapContract(TestCase):
         self.assertEqual(v, None)
 
     def test_refund_works(self):
-        pass
+        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
+        self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
+            'participant': 'raghu',
+            'expiration': Datetime(2020, 1, 1),
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
+            'amount': 5
+        })
+
+        environment = {'now': Datetime(2021, 1, 1)}
+
+        self.e.execute('stu', 'atomic_swaps', 'refund', kwargs={'participant': 'raghu', 'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
+                       environment=environment)
+
+        _, atomic_swaps = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'atomic_swaps'})
+        _, stu = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'stu'})
+
+        self.assertEqual(stu, 1000000)
+        self.assertEqual(atomic_swaps, 0)
+
+    def test_refund_too_early_fails(self):
+        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
+        self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
+            'participant': 'raghu',
+            'expiration': Datetime(2020, 1, 1),
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
+            'amount': 5
+        })
+
+        environment = {'now': Datetime(2019, 1, 1)}
+
+        _, res = self.e.execute('stu', 'atomic_swaps', 'refund',
+                       kwargs={'participant': 'raghu', 'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
+                       environment=environment)
+
+        self.assertEqual(str(res), 'Swap has not expired.')
+
+    def test_refund_participant_is_signer_fails(self):
+        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
+        self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
+            'participant': 'raghu',
+            'expiration': Datetime(2020, 1, 1),
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
+            'amount': 5
+        })
+
+        environment = {'now': Datetime(2021, 1, 1)}
+
+        _, res = self.e.execute('raghu', 'atomic_swaps', 'refund',
+                       kwargs={'participant': 'raghu', 'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
+                       environment=environment)
+
+        self.assertEqual(str(res), 'Caller and signer cannot issue a refund.')
+
+    def test_refund_fails_with_wrong_secret(self):
+        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
+        self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
+            'participant': 'raghu',
+            'expiration': Datetime(2020, 1, 1),
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
+            'amount': 5
+        })
+
+        environment = {'now': Datetime(2019, 1, 1)}
+
+        _, res = self.e.execute('stu', 'atomic_swaps', 'refund',
+                                kwargs={'participant': 'raghu', 'secret': '00'},
+                                environment=environment)
+
+        self.assertEqual(str(res), 'No swap to refund found.')
+
+    def test_refund_resets_swaps(self):
+        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
+        self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
+            'participant': 'raghu',
+            'expiration': Datetime(2020, 1, 1),
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
+            'amount': 5
+        })
+
+        environment = {'now': Datetime(2021, 1, 1)}
+
+        self.e.execute('stu', 'atomic_swaps', 'refund',
+                       kwargs={'participant': 'raghu', 'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
+                       environment=environment)
+
+        key = 'atomic_swaps.swaps:raghu:eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514'
+        v = self.d.get(key)
+
+        self.assertEqual(v, None)
