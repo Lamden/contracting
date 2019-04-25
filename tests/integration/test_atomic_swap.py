@@ -111,3 +111,17 @@ class TestAtomicSwapContract(TestCase):
         self.assertEqual(s, 1)
         self.assertEqual(str(r), 'Incorrect sender or secret passed.')
 
+
+    def test_redeem_on_wrong_sender_fails(self):
+        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
+        self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
+            'participant': 'raghu',
+            'expiration': Datetime(2020, 1, 1),
+            'hashlock': '6c839446b4d4fa2582af5011730c680b3ee39929f041b7bee6f376211cc710f7',
+            'amount': 5
+        })
+
+        s, r = self.e.execute('stu', 'atomic_swaps', 'redeem', kwargs={'secret': '1a54390942257a70bb843c1bd94eb996'})
+
+        self.assertEqual(s, 1)
+        self.assertEqual(str(r), 'Incorrect sender or secret passed.')
