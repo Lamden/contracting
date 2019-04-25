@@ -5,7 +5,7 @@ swaps = Hash()
 @seneca_export
 def initiate(participant: str, expiration: datetime, hashlock: str, amount: float):
 
-    allowance = erc20_clone.allowance(ctx.signer, ctx.this)
+    allowance = erc20_clone.allowance(ctx.caller, ctx.this)
 
     assert allowance >= amount, \
         "You cannot initiate an atomic swap without allowing '{}' " \
@@ -13,14 +13,18 @@ def initiate(participant: str, expiration: datetime, hashlock: str, amount: floa
 
     swaps[participant, hashlock] = [expiration, amount]
 
-    erc20_clone.transfer_from(amount, ctx.this, ctx.signer)
+    erc20_clone.transfer_from(amount, ctx.this, ctx.caller)
 
 @seneca_export
 def redeem(secret: str):
 
     hashlock = sha256(secret)
 
-    expiration, amount = swaps[ctx.signer, hashlock]
+    result = swaps[ctx.caller, hashlock]
+
+    assert result is not None, 'Incorrect sender or secret passed.'
+
+    expiration, amount = result
 
     if expiration >= now:
         erc20_clone.transfer(ctx.signer, amount)

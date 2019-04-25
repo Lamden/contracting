@@ -96,3 +96,18 @@ class TestAtomicSwapContract(TestCase):
         expiration, amount = self.d.get(key)
         self.assertEqual(expiration, Datetime(2020, 1, 1))
         self.assertEqual(amount, 5)
+
+    def test_redeem_on_wrong_secret_fails(self):
+        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
+        self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
+            'participant': 'raghu',
+            'expiration': Datetime(2020, 1, 1),
+            'hashlock': '6c839446b4d4fa2582af5011730c680b3ee39929f041b7bee6f376211cc710f7',
+            'amount': 5
+        })
+
+        s, r = self.e.execute('raghu', 'atomic_swaps', 'redeem', kwargs={'secret': '00'})
+
+        self.assertEqual(s, 1)
+        self.assertEqual(str(r), 'Incorrect sender or secret passed.')
+
