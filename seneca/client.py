@@ -4,6 +4,7 @@ import types
 from functools import partial
 import astor
 import inspect
+import ast
 
 class AbstractContract:
     def __init__(self, name, signer, environment, executor, funcs):
@@ -31,8 +32,8 @@ class AbstractContract:
                                         **default_kwargs))
 
     def _abstract_function_call(self, signer, executor, contract, environment, func, **kwargs):
-        #for k, v in kwargs.items():
-        #    assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
+        for k, v in kwargs.items():
+            assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
 
 
         status, result = executor.execute(sender=signer,
@@ -60,28 +61,14 @@ class SenecaClient:
         contract = self.raw_driver.get_contract(name)
         tree = self.compiler.parse(contract, lint=False)
 
-        # Turn the code into a string. Find all lines that start with 'def' to identify exported functions
-        code = astor.to_source(tree)
-        function_defs = list(filter(lambda x: x.startswith('def'), code.split('\n')))
+        function_defs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
 
-
-        # I am not proud of this. But, it works.
         funcs = []
         for definition in function_defs:
-            print(definition)
-            # Turn the definition into a useless function
-            definition = definition + ' pass'
-
-            env = {}
-            exec(definition, env)
-            del env['__builtins__']
-
-            func_name = list(env.keys())[0]
-            argspec = inspect.getfullargspec(env[func_name])
-            kwargs = argspec.args
+            func_name = definition.name
+            kwargs = [arg.arg for arg in definition.args.args]
 
             funcs.append((func_name, kwargs))
-            print(funcs)
 
         return AbstractContract(name=name,
                                 signer=self.signer,

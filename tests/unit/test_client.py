@@ -1,7 +1,5 @@
 from unittest import TestCase
 from seneca.client import SenecaClient, AbstractContract
-from seneca.db.driver import ContractDriver
-from seneca.execution.executor import Executor
 
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
@@ -95,6 +93,5 @@ def test():
             submission.submit_contract(name='tester', code=code)
 
             tester = self.c.get_contract('tester')
-
 
             self.assertEqual(tester.test(), 100)
