@@ -74,8 +74,7 @@ class TestHash(TestCase):
         driver.flush()
 
     def tearDown(self):
-        #driver.flush()
-        pass
+        driver.flush()
 
     def test_set(self):
         contract = 'stustu'
@@ -88,6 +87,8 @@ class TestHash(TestCase):
         h = Hash(contract, name, driver=driver)
 
         h.set('stu', 1234)
+
+        driver.commit()
 
         self.assertEqual(driver.get(raw_key_1), 1234)
 
@@ -308,7 +309,8 @@ class TestForeignHash(TestCase):
         driver.flush()
 
     def tearDown(self):
-        driver.flush()
+        #driver.flush()
+        pass
 
     def test_set(self):
         # set up the foreign variable

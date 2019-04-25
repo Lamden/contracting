@@ -9,7 +9,7 @@ def seed():
 
 @seneca_export
 def transfer(amount, to):
-    sender = ctx.signer
+    sender = ctx.caller
     assert balances[sender] >= amount, 'Not enough coins to send!'
 
     balances[sender] -= amount
@@ -29,13 +29,13 @@ def allowance(owner, spender):
 
 @seneca_export
 def approve(amount, to):
-    sender = ctx.signer
+    sender = ctx.caller
     balances[sender, to] += amount
     return balances[sender, to]
 
 @seneca_export
 def transfer_from(amount, to, main_account):
-    sender = ctx.signer
+    sender = ctx.caller
 
     assert balances[main_account, sender] >= amount, 'Not enough coins approved to send! You have {} and are trying to spend {}'\
         .format(balances[main_account, sender], amount)

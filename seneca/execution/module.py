@@ -3,9 +3,9 @@ import sys
 from importlib.abc import Loader, MetaPathFinder
 from importlib import invalidate_caches
 
-from ..db.driver import ContractDriver
-from ..stdlib import env
-from ..execution.runtime import rt
+from seneca.db.driver import ContractDriver
+from seneca.stdlib import env
+from seneca.execution.runtime import rt
 
 from types import ModuleType
 
@@ -42,13 +42,13 @@ def install_system_contracts(directory=''):
 
 
 class DatabaseFinder(MetaPathFinder):
-    def find_module(fullname, path, target=None):
+    def find_module(self, fullname, path=None):
         return DatabaseLoader()
 
 
 class DatabaseLoader(Loader):
     def __init__(self):
-        from seneca.execution.compiler import SenecaCompiler
+        from seneca.ast.compiler import SenecaCompiler
 
         self.d = ContractDriver()
         self.sc = SenecaCompiler()
@@ -71,6 +71,10 @@ class DatabaseLoader(Loader):
 
         # replace this with the new stdlib stuff
         scope = env.gather()
+
+        # env is set by the executor and allows passing variables into environments such as 'block time',
+        # 'block number', etc to allow cilantro -> seneca referencing
+        scope.update(rt.env)
         scope.update({'ctx': ctx})
 
         rt.ctx.append(module.__name__)

@@ -9,6 +9,7 @@ class Runtime:
     ctx.append('__main__')
     driver = ContractDriver()
     loaded_modules = []
+    env = {}
 
     @classmethod
     def clean_up(cls):
@@ -20,6 +21,7 @@ class Runtime:
                 del sys.modules[mod]
 
         cls.loaded_modules = []
+        cls.env = {}
 
 
 rt = Runtime()

@@ -1,13 +1,13 @@
 import abc
 
 from redis import Redis
-from seneca import config
-from seneca.exceptions import DatabaseDriverNotFound
-from seneca.db.encoder import encode, decode
+from .. import config
+from ..exceptions import DatabaseDriverNotFound
+from ..db.encoder import encode, decode
 
-from seneca.logger import get_logger
-from seneca.db.cr.conflict_resolution import CRContext
-from seneca.db.cr.cr_commands import CRCmdGet, CRCmdSet
+from ..logger import get_logger
+from ..db.cr.conflict_resolution import CRContext
+from ..db.cr.cr_commands import CRCmdGet, CRCmdSet
 
 from collections import deque, defaultdict
 
@@ -218,7 +218,6 @@ class ContractDriver(CacheDriver):
 
 
 class CRDriver(DatabaseDriver):
-
     def __init__(self):
         # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
         self.log = get_logger("CRDriver")

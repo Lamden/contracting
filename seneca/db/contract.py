@@ -1,9 +1,10 @@
-from ..execution.compiler import SenecaCompiler
+from seneca.ast.compiler import SenecaCompiler
 from ..db.driver import ContractDriver
 from ..execution.runtime import rt
 from types import ModuleType
 from ..stdlib import env
 from .. import config
+
 
 class Contract:
     def __init__(self, driver: ContractDriver=rt.driver):
