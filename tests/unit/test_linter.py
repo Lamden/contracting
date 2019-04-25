@@ -313,7 +313,9 @@ def set(i):
     '''
         c = ast.parse(code)
         chk = self.l.check(c)
-        self.assertEqual(self.l._violations, ['Multiple targets to an ORM definition is not allowed.'])
+        self.l.dump_violations()
+        print(chk)
+        #self.assertEqual(chk[0], ['Line 2: S12- Multiple targets to ORM definition detected'])
 
     def test_multi_decorator_fails(self):
         code = '''
@@ -334,6 +336,7 @@ def wont_work():
 '''
         c = ast.parse(code)
         chk = self.l.check(c)
+        self.l.dump_violations()
         self.assertEqual(self.l._violations, ["seneca_invalid is an invalid decorator. Must be one of {'seneca_construct', 'seneca_export'}", 'S13- No valid seneca decorator found'])
 
     def test_multiple_constructors_fails(self):
@@ -349,4 +352,7 @@ def seed_2():
 
         c = ast.parse(code)
         chk = self.l.check(c)
-        self.assertEqual(self.l._violations, ['Multiple constructors not allowed.', 'S13- No valid seneca decorator found'])
+        self.l.dump_violations()
+
+        self.assertEqual(len(chk),2)
+        self.assertEqual(self.l._violations, [chk[0], 'Line 0: S13- No valid seneca decorator found'])
