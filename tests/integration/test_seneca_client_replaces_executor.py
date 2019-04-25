@@ -56,18 +56,18 @@ class TestSenecaClientReplacesExecutor(TestCase):
         self.atomic_swaps = self.c.get_contract('atomic_swaps')
 
     def tearDown(self):
-        #self.d.flush()
+        self.c.raw_driver.flush()
         pass
 
     def test_initiate_not_enough_approved(self):
         self.erc20_clone.approve(amount=1000000, to='atomic_swaps')
 
-        result = self.atomic_swaps.initiate(participant='raghu',
-                                            expiration=Datetime(2020, 1, 1),
-                                            hashlock='eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
-                                            amount=5000000)
+        with self.assertRaises(AssertionError):
+            self.atomic_swaps.initiate(participant='raghu',
+                                       expiration=Datetime(2020, 1, 1),
+                                       hashlock='eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
+                                       amount=5000000)
 
-        self.assertTrue(isinstance(result, AssertionError))
 
     def test_initiate_transfers_coins_correctly(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})

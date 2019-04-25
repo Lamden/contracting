@@ -35,13 +35,11 @@ class AbstractContract:
         for k, v in kwargs.items():
             assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
 
-
         status, result = executor.execute(sender=signer,
                                           contract_name=contract,
                                           function_name=func,
                                           kwargs=kwargs,
-                                          environment=environment
-                                          )
+                                          environment=environment)
 
         if status == 1:
             raise result
