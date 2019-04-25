@@ -58,7 +58,7 @@ class TestAtomicSwapContract(TestCase):
         status, res = self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
             'participant': 'raghu',
             'expiration': Datetime(2020, 1, 1),
-            'hashlock': '6c839446b4d4fa2582af5011730c680b3ee39929f041b7bee6f376211cc710f7',
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
             'amount': 5000000
         })
 
@@ -70,7 +70,7 @@ class TestAtomicSwapContract(TestCase):
         self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
             'participant': 'raghu',
             'expiration': Datetime(2020, 1, 1),
-            'hashlock': '6c839446b4d4fa2582af5011730c680b3ee39929f041b7bee6f376211cc710f7',
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
             'amount': 5
         })
 
@@ -87,11 +87,11 @@ class TestAtomicSwapContract(TestCase):
         self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
             'participant': 'raghu',
             'expiration': Datetime(2020, 1, 1),
-            'hashlock': '6c839446b4d4fa2582af5011730c680b3ee39929f041b7bee6f376211cc710f7',
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
             'amount': 5
         })
 
-        key = 'atomic_swaps.swaps:raghu:6c839446b4d4fa2582af5011730c680b3ee39929f041b7bee6f376211cc710f7'
+        key = 'atomic_swaps.swaps:raghu:eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514'
 
         expiration, amount = self.d.get(key)
         self.assertEqual(expiration, Datetime(2020, 1, 1))
@@ -102,7 +102,7 @@ class TestAtomicSwapContract(TestCase):
         self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
             'participant': 'raghu',
             'expiration': Datetime(2020, 1, 1),
-            'hashlock': '6c839446b4d4fa2582af5011730c680b3ee39929f041b7bee6f376211cc710f7',
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
             'amount': 5
         })
 
@@ -117,11 +117,29 @@ class TestAtomicSwapContract(TestCase):
         self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
             'participant': 'raghu',
             'expiration': Datetime(2020, 1, 1),
-            'hashlock': '6c839446b4d4fa2582af5011730c680b3ee39929f041b7bee6f376211cc710f7',
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
             'amount': 5
         })
 
-        s, r = self.e.execute('stu', 'atomic_swaps', 'redeem', kwargs={'secret': '1a54390942257a70bb843c1bd94eb996'})
+        s, r = self.e.execute('stu', 'atomic_swaps', 'redeem', kwargs={'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'})
 
         self.assertEqual(s, 1)
         self.assertEqual(str(r), 'Incorrect sender or secret passed.')
+
+
+    def test_past_expiration_fails(self):
+        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
+        self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
+            'participant': 'raghu',
+            'expiration': Datetime(2020, 1, 1),
+            'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
+            'amount': 5
+        })
+
+        environment = {'now': Datetime(2021, 1, 1)}
+
+        s, r = self.e.execute('raghu', 'atomic_swaps', 'redeem', kwargs={'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
+                              environment=environment)
+
+        self.assertEqual(s, 1)
+        self.assertEqual(str(r), 'Swap has expired.')
