@@ -99,8 +99,4 @@ class TestSingleCRCache(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    t = TransactionStub('colin', 'test', 'test', {'hello': 'world'})
-    print(t.payload.sender)
-    print(t.contract_name)
-    print(t.func_name)
-    print(t.kwargs)
+    unittest.main()
