@@ -1,5 +1,6 @@
 from unittest import TestCase
 from seneca.client import SenecaClient, AbstractContract
+from seneca.ast.compiler import SenecaCompiler
 
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
@@ -79,9 +80,13 @@ class TestSenecaClient(TestCase):
 def test():
     return 100
         '''
+
         submission.submit_contract(name='test', code=code)
 
-        self.assertEqual(self.c.raw_driver.get_contract('test'), code)
+        compiler = SenecaCompiler()
+        new_code = compiler.parse_to_code(code)
+
+        self.assertEqual(self.c.raw_driver.get_contract('test'), new_code)
 
     def test_abstract_function_succeeds_and_new_contract_can_be_abstracted(self):
             submission = self.c.get_contract('submission')
