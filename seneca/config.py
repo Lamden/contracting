@@ -18,6 +18,7 @@ NUM_CACHES = 2
 EXEC_TIMEOUT = 14 # Timeout for other subblocks finishing exec
 CR_TIMEOUT = 14 # Timeout for other subblocks finishing CR
 BLOCK_TIMEOUT = 30 # Timeout to wait for CRCache to be written to master
+CLEAN_TIMEOUT = 30 # Timeout to wait for DBs to synchronize their reset calls
 AVAIL_DB_TIMEOUT = 60
 POLL_INTERVAL = 0.5
 

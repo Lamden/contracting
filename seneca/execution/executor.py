@@ -18,38 +18,34 @@ class Executor:
         #self.tracer = Tracer(cu_cost_fname)
 
         self.tracer = None
+        self.driver = ContractDriver()
 
         if production:
-            self.driver = CRDriver()
             self.sandbox = MultiProcessingSandbox()
         else:
             self.sandbox = Sandbox()
-            self.driver = ContractDriver()
 
-    def execute_bag(self, bag: TransactionBag) -> Dict[int, dict]:
+    def execute_bag(self, bag: TransactionBag, driver=None) -> Dict[int, tuple]:
         """
         The execute bag method sends a list of transactions to the sandbox to be executed
+        In the case of bag execution the
 
         :param bag: a list of deserialized transaction objects
         :return: A dictionary with transaction index as the key and execution result
                  objects as the value. Formatted as follows:
 
                  {
-                    1: {
-                        'status_code': 0,
-                        'result': 'hello',
-                        'error': None
-                    },
-                    2: {
-                        'status_code': 1,
-                        'result': None,
-                        'error': ImportError
-                    }
+                    1: (0, 'balance=10')
+                    2: (1, ImportError)
                  }
         """
-        return
+        results = {}
+        for idx, tx in bag:
+            results[idx] = self.execute(tx.sender, tx.contract_name, tx.func_name,
+                                        tx.kwargs, auto_commit=False, driver=driver)
+        return results
 
-    def execute(self, sender, contract_name, function_name, kwargs) -> dict:
+    def execute(self, sender, contract_name, function_name, kwargs, auto_commit=True, driver=None) -> dict:
         """
         Method that does a naive execute
 
@@ -59,25 +55,28 @@ class Executor:
         :param kwargs:
         :return: Dictionary containing the keys 'status_code' 'result' and 'error'
         """
+        # Use driver if one is provided, otherwise use the default driver, ensuring to set it
+        # back to default only if it was set previously to something else
+        if driver:
+            runtime.rt.driver = driver
+        else:
+            if runtime.rt.driver != self.driver:
+                runtime.rt.driver = self.driver
+
         # A successful run is determined by if the sandbox execute command successfully runs.
         # Therefor we need to have a try catch to communicate success/fail back to the
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
-        result = {
-            'status_code': 0,
-            'result': None,
-            'error': None
-        }
         try:
             result = self.sandbox.execute(sender, contract_name, function_name, kwargs)
             status_code = 0
-            runtime.rt.driver.commit()
+            if auto_commit:
+                runtime.rt.driver.commit()
         # TODO: catch SenecaExceptions distinctly, this is pending on Raghu looking into Exception override in compiler
         except Exception as e:
             result = e
             status_code = 1
             runtime.rt.driver.revert()
-        runtime.rt.clean_up()
 
         return status_code, result
 
@@ -110,6 +109,14 @@ class Sandbox(object):
     def __init__(self):
         install_database_loader()
 
+    def _clean(self):
+        """
+        Convenience method to cleanup the sandbox's imports
+
+        :return:
+        """
+        runtime.rt.clean_up()
+
     def execute(self, sender, contract_name, function_name, kwargs):
 
         # __main__ is replaced by the sender of the message in this case
@@ -120,9 +127,15 @@ class Sandbox(object):
 
         func = getattr(module, function_name)
 
-        return func(**kwargs)
+        result = func(**kwargs)
+
+        # Cleanup imports
+        self._clean()
+
+        return result
 
 
+# THIS SHOULD BE USED LATER
 class MultiProcessingSandbox(Sandbox):
     def __init__(self):
         super().__init__()
@@ -142,14 +155,6 @@ class MultiProcessingSandbox(Sandbox):
         _, child_pipe = self.pipe
 
         # Sends code to be executed in the process loop
-        msg = {
-            'type': 'tx',
-            'data': {
-                'sender': sender,
-                'contract_name': contract_name,
-
-            }
-        }
         child_pipe.send((sender, contract_name, function_name, kwargs))
 
         # Receive result object back from process loop, formatted as

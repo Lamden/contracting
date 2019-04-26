@@ -1,9 +1,11 @@
 import asyncio
+import time
 from seneca.logger import get_logger
 from seneca.execution.executor import Executor
+from seneca.db.cr.cache import CRCache
 from seneca import config
 from seneca.db.cr.transaction_bag import TransactionBag
-from seneca.db.driver import DatabaseDriver
+from seneca.db.driver import ContractDriver
 from collections import deque
 from typing import Callable
 import traceback
@@ -11,51 +13,48 @@ import traceback
 
 
 class SubBlockClient:
-    def __init__(self, sbb_idx, num_sbb):
+    def __init__(self, sbb_idx, num_sbb, loop=None):
         name = self.__class__.__name__ + "[sbb-{}]".format(sbb_idx)
         self.log = get_logger(name)
 
-        self.master_db = DatabaseDriver()
+        self.num_sbb = num_sbb
+        self.sbb_idx
+
+        self.master_db = ContractDriver()
         self.current_cache = None
         self.available_caches = deque() # LIFO
         self.pending_caches = deque() # FIFO
+        self.executor = Executor()
         for i in config.NUM_CACHES:
-            self.available_caches.append(CRCache(config.DB_OFFSET+i, self.master_db))
+            self.available_caches.append(CRCache(config.DB_OFFSET+i, self.master_db,
+                                                 self.sbb_idx, self.num_sbb,
+                                                 self.executor))
 
-    def merge_to_master(self):
-        return
+    def flush_all(self):
+        """
+        Convenience function for testing
 
+        FULLY SYNCHRONOUS
 
+        :return:
+        """
+        intervals = config.CLEAN_TIMEOUT/config.POLL_INTERVAL
+        for cache in self.pending_caches:
+            cache.discard()
+            for i in range(intervals):
+                cache.sync_reset()
+                if cache.state == 'CLEAN':
+                    break
+                time.sleep(config.POLL_INTERVAL)
 
-class CRDriver(DatabaseDriver):
+            if i == intervals-1:
+                raise TimeoutError("Timed out waiting for all subblocks to sync cleanup on cache #{}".format(cache.idx))
+            self.available_caches.append(cache)
 
-    def __init__(self):
-        # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
-        self.log = get_logger("CRDriver")
-        self.working_db, self.master_db, self.contract_idx, self.cmds, self.cr_data = None, None, None, None, None
-        self.cmds = None
+        self.pending_caches.clear()
 
-    def setup(self, transaction_idx: int, cr_context: CRContext):
-        self.cr_data = cr_context
+    def execute_sb(self):
 
-        # why does this guy need a reference of working and master db? can we do away with that
-        # update -- i think its for convenience so we dont have to do data.master_db ... seems silly though...
-        self.working_db, self.master_db = cr_context.working_db, cr_context.master_db
-        self.contract_idx = transaction_idx
-
-        if self.cmds is None:
-            self.cmds = {'get': CRCmdGet(self.working_db, self.master_db, self.contract_idx, self.cr_data),
-                         'set': CRCmdSet(self.working_db, self.master_db, self.contract_idx, self.cr_data)}
-
-    def get(self, key):
-        cmd = self.cmds['get']
-        cmd.set_params(working_db=self.working_db, master_db=self.master_db, contract_idx=self.contract_idx, data=self.cr_data)
-        return cmd
-
-    def set(self, key, value):
-        cmd = self.cmds['set']
-        cmd.set_params(working_db=self.working_db, master_db=self.master_db, contract_idx=self.contract_idx, data=self.cr_data)
-        return cmd
 class SenecaClient:
 
 
@@ -158,7 +157,7 @@ class SenecaClient:
             self.log.debug("RESET phase finished. Resetting db for input hash {}".format(input_hash))
             cr_data.reset_db()
 
-        cr_data.assert_reset()  # Dev check. Make sure cr_data has been properly reset_db
+        cr_data.assert_reset()  # Dev check. Make sure cr_context has been properly reset_db
 
         self.available_dbs.append(cr_data)
 
@@ -260,9 +259,9 @@ class SenecaClient:
     #     return result
 
     def _rerun_transactions_for_cr_data(self, cr_data: CRContext):
-        """ Reruns any contracts in cr_data, if necessary. This should be done before we merge cr_data to common. """
-        # This cr_data should be next in line in pending_dbs if we are rerunning contracts
-        assert self.pending_dbs[0] is cr_data, "cr_data {} is not first in line in pending_dbs! First is {}"\
+        """ Reruns any contracts in cr_context, if necessary. This should be done before we merge cr_context to common. """
+        # This cr_context should be next in line in pending_dbs if we are rerunning contracts
+        assert self.pending_dbs[0] is cr_data, "cr_context {} is not first in line in pending_dbs! First is {}"\
                                                .format(cr_data, self.pending_dbs[0])
 
         self.log.notice("Rerunning any necessary contracts for CRData with input hash {}".format(cr_data.input_hash))
@@ -380,11 +379,11 @@ class SenecaClient:
     async def _wait_and_merge_to_common(self, cr_data: CRContext, completion_handler: Callable[[CRContext], None]):
         """
         - Waits for all other SBBs to finish execution. Raises an error if this takes longer than Phase.EXEC_TIMEOUT
-        - Waits for this cr_data to be first in line in 'pending_dbs' (bottom of stack)
+        - Waits for this cr_context to be first in line in 'pending_dbs' (bottom of stack)
         - Waits for all subblocks before it finish conflict resolution. Raises an error if it takes longer than Phase.CR_TIMEOUT
         - Starts conflict resolution, which involves:
             - Rerun any necessary contracts
-            - Merges cr_data to common layer, and then increment the CONFLICT_RESOLUTION phase variable
+            - Merges cr_context to common layer, and then increment the CONFLICT_RESOLUTION phase variable
         - If the 'merge' flag is set by an earlier update_master_db call, then this is done next
         """
         await self._wait_for_execution_stage(cr_data)
@@ -447,7 +446,7 @@ class SenecaClient:
         Phase.incr(cr_data.working_db, Macros.CONFLICT_RESOLUTION)
 
     async def _wait_until_top_of_pending(self, cr_data: CRContext):
-        """ Waits until cr_data is at the top (first element) of self.pending_dbs """
+        """ Waits until cr_context is at the top (first element) of self.pending_dbs """
         # TODO technically this 'wait' can be triggered reactively when we leftpop pending_dbs in merge_to_master
         # This is an optimization we can do later
         elapsed = 0
