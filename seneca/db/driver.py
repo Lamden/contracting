@@ -123,6 +123,7 @@ class CacheDriver(DatabaseDriver):
         key_location = self.modified_keys.get(key)
         if key_location is None:
             value = self.conn.get(key)
+
         else:
             value = self.contract_modifications[key_location[-1]][key]
         return value

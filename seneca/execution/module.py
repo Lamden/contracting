@@ -78,12 +78,13 @@ class DatabaseLoader(Loader):
         scope.update({'ctx': ctx})
 
         rt.ctx.append(module.__name__)
-        self.sc.module_name = rt.ctx[-1]
 
-        code_obj = self.sc.compile(code, lint=False)
+        #self.sc.module_name = rt.ctx[-1]
+
+        #code_obj = self.sc.compile(code, lint=False)
 
         # execute the module with the std env and update the module to pass forward
-        exec(code_obj, scope)
+        exec(code, scope)
 
         #del scope['__builtins__']
 
