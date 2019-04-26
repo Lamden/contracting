@@ -90,8 +90,7 @@ class CRCache:
                 'source': 'CR_STARTED',
                 'dest': 'READY_TO_COMMIT',
                 'prepare': 'prepare_reruns',
-                'unless': 'requires_reruns',
-                'after': 'commit'
+                'unless': 'requires_reruns'
             },
             {
                 'trigger': 'start_cr',
@@ -104,8 +103,7 @@ class CRCache:
                 'trigger': 'rerun',
                 'source': 'REQUIRES_RERUN',
                 'dest': 'READY_TO_COMMIT',
-                'before': 'rerun_transactions',
-                'after': 'commit'
+                'before': 'rerun_transactions'
             },
             {
                 'trigger': 'commit',
@@ -221,7 +219,7 @@ class CRCache:
     def rerun_transactions(self):
         self.db.revert(idx=self.rerun_idx)
         self.bag.yield_from(idx=self.rerun_idx)
-        self.results.update(self.executor.execute_bag())
+        self.results.update(self.executor.execute_bag(self.bag))
 
     def merge_to_common(self):
         self.db.commit()

@@ -30,6 +30,10 @@ class SubBlockClient:
                                                  self.sbb_idx, self.num_sbb,
                                                  self.executor))
 
+    ###################
+    ## EXTERNAL APIS ##
+    ###################
+
     def flush_all(self):
         """
         Convenience function for testing
@@ -53,8 +57,16 @@ class SubBlockClient:
 
         self.pending_caches.clear()
 
-    def execute_sb(self):
+    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
         return
+
+    def update_master_db(self):
+        return
+
+    ######################
+    ## INTERNAL METHODS ##
+    ######################
+
 
 class SenecaClient:
 
