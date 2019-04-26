@@ -132,7 +132,7 @@ class CacheDriver(DatabaseDriver):
         # the DB
         self.original_values = original_values
         # If we do not have any contract modifications, add a new one
-        if len(contract_modifications) == 0:
+        if len(self.contract_modifications) == 0:
             self.new_tx()
 
     def get(self, key):

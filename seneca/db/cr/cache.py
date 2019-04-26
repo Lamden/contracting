@@ -34,11 +34,11 @@ class CRCache:
 
     states = [
         {'name': 'CLEAN'},
-        {'name': 'EXECUTED', 'timeout': config.EXEC_TIMEOUT, 'on_timeout': 'error'},
+        {'name': 'EXECUTED', 'timeout': config.EXEC_TIMEOUT, 'on_timeout': 'discard'},
         {'name': 'CR_STARTED'},
         {'name': 'REQUIRES_RERUN'},
         {'name': 'READY_TO_COMMIT'},
-        {'name': 'COMMITTED', 'timeout': config.CR_TIMEOUT, 'on_timeout': 'error'},
+        {'name': 'COMMITTED', 'timeout': config.CR_TIMEOUT, 'on_timeout': 'discard'},
         {'name': 'READY_TO_MERGE'},
         {'name': 'MERGED'},
         {'name': 'DISCARDED'},
@@ -120,13 +120,6 @@ class CRCache:
                 'after': 'reset'
             },
             {
-                'trigger': 'discard',
-                'source': 'ERROR',
-                'dest': 'DISCARDED',
-                'before': 'discard_commit',
-                'after': 'reset'
-            },
-            {
                 'trigger': 'reset',
                 'source': ['MERGED', 'DISCARDED'],
                 'dest': 'RESET',
@@ -140,7 +133,7 @@ class CRCache:
             },
             {
                 'trigger': 'discard',
-                'source': ['EXECUTED', 'REQUIRES_RERUN', 'READY_TO_COMMIT', 'COMMITTED', 'READY_TO_MERGE', 'MERGED'],
+                'source': ['EXECUTED', 'CR_STARTED', 'REQUIRES_RERUN', 'READY_TO_COMMIT', 'COMMITTED', 'READY_TO_MERGE'],
                 'dest': 'DISCARDED',
                 'after': 'reset'
             }
@@ -243,5 +236,5 @@ class CRCache:
         return self._check_macro_key(Macros.RESET) == self.num_sbb
 
 if __name__ == "__main__":
-    c = CRCache(1,1,1,1,1,1)
+    c = CRCache(1,1,1,1,1)
     c.machine.get_graph().draw('CRCache_StateMachine.png', prog='dot')

@@ -54,6 +54,7 @@ class SubBlockClient:
         self.pending_caches.clear()
 
     def execute_sb(self):
+        return
 
 class SenecaClient:
 
