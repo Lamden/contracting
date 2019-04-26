@@ -56,7 +56,7 @@ class SenecaClient:
     # Returns abstract contract which has partial methods mapped to each exported function.
     def get_contract(self, name):
         contract = self.raw_driver.get_contract(name)
-        tree = self.compiler.parse(contract, lint=False)
+        tree = ast.parse(contract)
 
         function_defs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
 
