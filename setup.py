@@ -79,7 +79,7 @@ setup(
     zip_safe=True,
     include_package_data=True,
     ext_modules=[
-        Extension('seneca.libs.metering.tracer', sources = ['seneca/libs/metering/tracer.c'])
+        Extension('seneca.execution.metering.tracer', sources = ['seneca/execution/metering/tracer.c'])
     ],
     cmdclass={
         'build_ext': ve_build_ext,
