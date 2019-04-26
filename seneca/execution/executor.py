@@ -1,7 +1,7 @@
 import multiprocessing
 import importlib
 from ..interpreter.module import install_database_loader
-from ..db.driver import CRDriver, ContractDriver
+from ..db.driver import ContractDriver, CacheDriver
 from ..db.cr.transaction_bag import TransactionBag
 from . import runtime
 from typing import Dict
@@ -41,8 +41,10 @@ class Executor:
         """
         results = {}
         for idx, tx in bag:
-            results[idx] = self.execute(tx.sender, tx.contract_name, tx.func_name,
+            results[idx] = self.execute(tx.payload.sender, tx.contract_name, tx.func_name,
                                         tx.kwargs, auto_commit=False, driver=driver)
+            if isinstance(driver, CacheDriver):
+                driver.new_tx()
         return results
 
     def execute(self, sender, contract_name, function_name, kwargs, auto_commit=True, driver=None) -> dict:

@@ -48,16 +48,6 @@ class AbstractDatabaseDriver:
             return True
         return False
 
-    def incrby(self, key, amount=1):
-        """Increment a numeric key by one"""
-        k = self.get(key)
-
-        if k is None:
-            k = 0
-        k = int(k) + amount
-        self.set(key, k)
-
-        return k
 
 
 class RedisDriver(AbstractDatabaseDriver):
@@ -82,6 +72,17 @@ class RedisDriver(AbstractDatabaseDriver):
 
     def flush(self, db=None):
         self.conn.flushdb()
+
+    def incrby(self, key, amount=1):
+        """Increment a numeric key by one"""
+        k = self.conn.get(key)
+
+        if k is None:
+            k = 0
+        k = int(k) + amount
+        self.conn.set(key, k)
+
+        return k
 
 
 
@@ -115,19 +116,16 @@ class CacheDriver(DatabaseDriver):
         self.original_values = None
         self.reset_cache()
 
-    def reset_cache(self, modified_keys=None, contract_modifications=None, original_values={}):
+    def reset_cache(self, modified_keys=None, contract_modifications=[], original_values={}):
         # Modified keys is a dictionary of deques representing the contracts that have modified
         # that key
-        if self.modified_keys:
+        if modified_keys:
             self.modified_keys = modified_keys
         else:
             self.modified_keys = defaultdict(deque)
         # Contract modififications is a list of dicts containing the keys updated by a contract
         # and their final value
-        if self.contract_modifications:
-            self.contract_modifications = contract_modifications
-        else:
-            self.contract_modifications = list()
+        self.contract_modifications = contract_modifications
         # Original values is a dictionary of keys representing the original value fetched from
         # the DB
         self.original_values = original_values

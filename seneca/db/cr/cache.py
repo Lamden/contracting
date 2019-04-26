@@ -34,6 +34,7 @@ class CRCache:
 
     states = [
         {'name': 'CLEAN'},
+        {'name': 'BAG_SET'},
         {'name': 'EXECUTED', 'timeout': config.EXEC_TIMEOUT, 'on_timeout': 'discard'},
         {'name': 'CR_STARTED'},
         {'name': 'REQUIRES_RERUN'},
@@ -65,8 +66,14 @@ class CRCache:
 
         transitions = [
             {
-                'trigger': 'execute',
+                'trigger': 'set_bag',
                 'source': 'CLEAN',
+                'dest': 'BAG_SET',
+                'before': 'set_transaction_bag'
+            },
+            {
+                'trigger': 'execute',
+                'source': 'BAG_SET',
                 'dest': 'EXECUTED',
                 'prepare': '_reset_macro_keys',
                 'before': 'execute_transactions'
@@ -75,7 +82,7 @@ class CRCache:
                 'trigger': 'sync_execution',
                 'source': 'EXECUTED',
                 'dest': 'CR_STARTED',
-                'conditions': ['my_turn_for_cr', 'top_of_stack'],
+                'conditions': ['my_turn_for_cr', 'is_top_of_stack'],
                 'after': 'start_cr'
             },
             {
@@ -145,15 +152,20 @@ class CRCache:
         self.db.incrby(macro)
 
     def _check_macro_key(self, macro):
-        return self.db.get(macro)
+        return int(self.db.conn.get(macro))
 
     def _reset_macro_keys(self):
         for key in Macros.ALL_MACROS:
             self.db.delete(key)
             self.db.conn.set(key, 0)
 
-    def execute_transactions(self, bag):
+    def get_results(self):
+        return self.results
+
+    def set_transaction_bag(self, bag):
         self.bag = bag
+
+    def execute_transactions(self):
         # Execute first round using Master DB Driver since we will not have any keys in common
         # Do not commit, leveraging cache only
         self.results = self.executor.execute_bag(self.bag, self.master_db)
@@ -166,7 +178,7 @@ class CRCache:
         self.master_db.reset_cache()
 
         # Increment the execution macro
-        self.incr_macro_key(Macros.EXECUTION)
+        self._incr_macro_key(Macros.EXECUTION)
 
     def my_turn_for_cr(self):
         return self._check_macro_key(Macros.CONFLICT_RESOLUTION) == self.sbb_idx
@@ -174,7 +186,7 @@ class CRCache:
     def set_top_of_stack(self):
         self.top_of_stack = True
 
-    def top_of_stack(self):
+    def is_top_of_stack(self):
         return self.top_of_stack
 
     def prepare_reruns(self):
@@ -183,7 +195,7 @@ class CRCache:
         # exist in common, check master since another CRCache may have merged since you
         # executed.
         cr_key_hits = []
-        for key, value in self.db.original_values.keys():
+        for key, value in self.db.original_values.items():
             if key not in cr_key_hits:
                 common_db_value = self.db.conn.get(key)
                 if common_db_value is not None:
@@ -213,7 +225,7 @@ class CRCache:
 
     def merge_to_common(self):
         self.db.commit()
-        self.incr_macro_key(Macros.CONFLICT_RESOLUTION)
+        self._incr_macro_key(Macros.CONFLICT_RESOLUTION)
 
     def all_committed(self):
         return self._check_macro_key(Macros.CONFLICT_RESOLUTION) == self.num_sbb
@@ -230,7 +242,7 @@ class CRCache:
         self.db.reset_cache()
         self.master_db.reset_cache()
         self.rerun_idx = None
-        self.incr_macro_key(Macros.RESET)
+        self._incr_macro_key(Macros.RESET)
 
     def all_reset(self):
         return self._check_macro_key(Macros.RESET) == self.num_sbb
