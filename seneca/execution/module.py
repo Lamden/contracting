@@ -48,10 +48,7 @@ class DatabaseFinder(MetaPathFinder):
 
 class DatabaseLoader(Loader):
     def __init__(self):
-        from seneca.ast.compiler import SenecaCompiler
-
         self.d = ContractDriver()
-        self.sc = SenecaCompiler()
 
     def create_module(self, spec):
         return None
@@ -78,10 +75,6 @@ class DatabaseLoader(Loader):
         scope.update({'ctx': ctx})
 
         rt.ctx.append(module.__name__)
-
-        #self.sc.module_name = rt.ctx[-1]
-
-        #code_obj = self.sc.compile(code, lint=False)
 
         # execute the module with the std env and update the module to pass forward
         exec(code, scope)
