@@ -118,12 +118,16 @@ class CacheDriver(DatabaseDriver):
         self.modified_keys = defaultdict(deque)
         self.contract_modifications = list()
         self.new_tx()
+        self.get_cache = {}
 
     def get(self, key):
         key_location = self.modified_keys.get(key)
         if key_location is None:
-            value = self.conn.get(key)
+            value = self.get_cache.get(key)
 
+            if value is None:
+                value = self.conn.get(key)
+                self.get_cache[key] = value
         else:
             value = self.contract_modifications[key_location[-1]][key]
         return value

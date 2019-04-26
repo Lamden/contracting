@@ -45,6 +45,11 @@ class DatabaseFinder(MetaPathFinder):
     def find_module(self, fullname, path=None):
         return DatabaseLoader()
 
+class Context:
+    def __init__(self, caller, this, signer):
+        self.caller = caller
+        self.this = this
+        self.signer = signer
 
 MODULE_CACHE = {}
 
