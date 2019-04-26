@@ -170,7 +170,7 @@ class ContractDriver(CacheDriver):
         self.author_key = author_key
 
         # Tests if access to the DB is available
-        self.conn.ping()
+        #self.conn.ping()
 
     def get(self, key):
         value = super().get(key)

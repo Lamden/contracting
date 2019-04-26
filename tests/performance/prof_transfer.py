@@ -63,3 +63,4 @@ d.flush()
 
 print(profiler.output_text(unicode=True, color=True))
 
+profiler.open_in_browser()
