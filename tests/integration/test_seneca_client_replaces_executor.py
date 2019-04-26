@@ -1,5 +1,4 @@
 from unittest import TestCase
-from seneca.execution.executor import Executor
 from seneca.stdlib.bridge.time import Datetime
 from seneca.client import SenecaClient
 
@@ -15,8 +14,6 @@ class TestSenecaClientReplacesExecutor(TestCase):
         self.c.raw_driver.set_contract(name='submission', code=contract, author='sys')
 
         self.c.raw_driver.commit()
-
-        self.e = Executor()
 
         submission = self.c.get_contract('submission')
 
@@ -34,7 +31,6 @@ class TestSenecaClientReplacesExecutor(TestCase):
 
     def tearDown(self):
         self.c.raw_driver.flush()
-        pass
 
     def test_initiate_not_enough_approved(self):
         self.erc20_clone.approve(amount=1000000, to='atomic_swaps')

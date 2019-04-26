@@ -1,10 +1,9 @@
 from .execution.executor import Executor
 from .ast.compiler import SenecaCompiler
-import types
 from functools import partial
-import astor
-import inspect
 import ast
+import inspect
+import autopep8
 
 class AbstractContract:
     def __init__(self, name, signer, environment, executor, funcs):
@@ -73,3 +72,33 @@ class SenecaClient:
                                 environment={},
                                 executor=self.executor,
                                 funcs=funcs)
+
+    # def submit(self, f, name, bypass=False):
+    #     tree = ast.parse(f)
+    #
+    #     assert isinstance(tree, ast.Module)
+    #
+    #     parent_func = tree.body[0]
+    #
+    #     assert isinstance(parent_func, ast.FunctionDef)
+    #
+    #     tree.body = parent_func.body
+    #
+    #
+    #
+    #     standard_indented_code = autopep8.fix_code(code_str, options={'select': ['E101']})
+    #
+    #     final_code = ''
+    #     for line in standard_indented_code.split('\n'):
+    #         if line.startswith('    '):
+    #             final_code += line[4:] + '\n'
+    #
+    #     final_code = autopep8.fix_code(final_code)
+    #
+    #     self.submit_string(final_code, name, bypass)
+
+    def submit_string(self, code_string, name, bypass=False):
+        if not bypass:
+            self.compiler.parse(code_string, lint=True)
+
+        self.raw_driver.set_contract(name=name, code=code_string)
