@@ -99,41 +99,37 @@ class DBTests(unittest.TestCase):
         contract_name = 'module_func'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        result = self.e.execute(self.author, contract_name,
+        status_code, result = self.e.execute(self.author, contract_name,
                                              function_name, kwargs)
-        self.assertEqual(result['result'], 'Working')
-        self.assertEqual(result['status_code'], 0)
-        self.assertEqual(result['error'], None)
+        self.assertEqual(result, 'Working')
+        self.assertEqual(status_code, 0)
 
     def test_executor_execute_fail(self):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        result = self.e.execute(self.author, contract_name,
+        status_code, result = self.e.execute(self.author, contract_name,
                                              function_name, kwargs)
-        self.assertEqual(result['status_code'], 1)
-        self.assertIsInstance(result['error'], ImportError)
-        self.assertEqual(result['result'], None)
+        self.assertEqual(status_code, 1)
+        self.assertIsInstance(result, ImportError)
 
     def test_executor_prod_execute(self):
         contract_name = 'module_func'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        result = self.e_prod.execute(self.author, contract_name,
+        status_code, result = self.e_prod.execute(self.author, contract_name,
                                                   function_name, kwargs)
-        self.assertEqual(result['result'], 'Working')
-        self.assertEqual(result['status_code'], 0)
-        self.assertEqual(result['error'], None)
+        self.assertEqual(result, 'Working')
+        self.assertEqual(status_code, 0)
 
     def test_executor_prod_execute_fail(self):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        result = self.e_prod.execute(self.author, contract_name,
+        status_code, result = self.e_prod.execute(self.author, contract_name,
                                                   function_name, kwargs)
-        self.assertEqual(result['status_code'], 1)
-        self.assertIsInstance(result['error'], ImportError)
-        self.assertEqual(result['result'], None)
+        self.assertEqual(status_code, 1)
+        self.assertIsInstance(result, ImportError)
 
 
 # Stub out the Contract Transaction object for use in the unit test

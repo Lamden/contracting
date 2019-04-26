@@ -2,7 +2,7 @@ import unittest
 import sys
 import glob
 import time
-from seneca.interpreter.module import DatabaseFinder
+from seneca.execution.module import DatabaseFinder
 from seneca.db.cr.cache import CRCache, Macros
 from seneca.execution.executor import Executor
 from seneca.db.driver import ContractDriver

@@ -4,7 +4,7 @@ from typing import Dict
 
 from . import runtime
 from ..db.cr.transaction_bag import TransactionBag
-from ..db.driver import CRDriver, ContractDriver
+from ..db.driver import ContractDriver, CacheDriver
 from ..execution.module import install_database_loader
 
 
