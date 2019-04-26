@@ -1,32 +1,26 @@
-from seneca.db.cr.conflict_resolution import CRContext
-from typing import List
+from ...logger import get_logger
+
+from transitions import Machine
 
 
 class TransactionBag:
-    def __init__(self, transactions: List[tuple], cr_context: CRContext):
-        self.cr_context = cr_context
-        self.transactions = sorted(transactions, key=lambda x: x[0])
+    def __init__(self, transactions):
+        self.transactions = transactions
+        self.to_yield = list(range(len(self.transactions)))
 
     def __iter__(self):
-        for t in self.transactions:
-            yield t
+        for i in self.to_yield:
+            yield i, self.transactions[i]
 
-    # ideally we should have designed the bag to do this in O(1) but w/e yolo imma just b search that shit
-    def get_tx_at_idx(self, idx: int):
-        i, j = 0, len(self.transactions) - 1
+    def yield_from(self, idx):
+        """
+        Update the list of indicies to yield from a new start point
 
-        while j >= i:
-            mid = (i+j) // 2
-            if self.transactions[mid][0] == idx:
-                return self.transactions[mid][1]
-            elif self.transactions[mid][0] > idx:
-                j = mid-1
-            else:
-                i = mid+1
+        :param idx: index to begin the yield from
+        :return:
+        """
+        if idx > 0:
+            self.to_yield = list(range(idx, len(self.transactions)))
 
-        raise Exception("No transaction found in bag with index {}! Bag's transactions: {}"
-                        .format(idx, self.transactions))
-
-
-
-
+    def get_tx_at_idx(self, idx):
+        return self.transactions[idx]

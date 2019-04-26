@@ -17,17 +17,17 @@ class TestConflictResolution(TestCase):
         self.master.flush()
         self.working.flush()
 
-    def _set_rp(self, sbb_idx=0, contract_idx=0, finalize=False):
+    def _set_rp(self, contract_idx=0):
         if contract_idx in self.sbb_data:
-            data = self.sbb_data[contract_idx]
+            cr_context = self.sbb_data[contract_idx]
         else:
-            data = self._new_cr_data(sbb_idx=sbb_idx, finalize=finalize)
-            self.sbb_data[contract_idx] = data
+            cr_context = self._new_cr_context()
+            self.sbb_data[contract_idx] = cr_context
 
-        self.sp = CRDriver()
-        self.sp.setup(contract_idx, data)
+        self.cr_driver = CRDriver()
+        self.cr_driver.setup(contract_idx, cr_context)
 
-    def _new_cr_data(self, sbb_idx=0, finalize=False):
+    def _new_cr_context(self):
         cr = CRContext(working_db=self.working, master_db=self.master)
         cr.locked = False
         return cr
@@ -44,14 +44,15 @@ class TestConflictResolution(TestCase):
         self.master.set(KEY2, VAL2)
         self.working.set(KEY3, VAL3)
 
-        self.sp.set(KEY1, NEW_VAL1)
-        self.sp.contract_idx = 1
-        self.sp.get(KEY2)  # To trigger a copy to sbb specific layer
-        self.sp.contract_idx = 2
-        self.sp.set(KEY3, NEW_VAL3)  # To trigger a copy to sbb specific layer
+        self.cr_driver.set(KEY1, NEW_VAL1)
+        self.cr_driver.contract_idx = 1
+        self.cr_driver.get(KEY2)  # To trigger a copy to sbb specific layer
+        self.cr_driver.contract_idx = 2
+        self.cr_driver.set(KEY3, NEW_VAL3)  # To trigger a copy to sbb specific layer
 
         # Check the modified and original values
-        getset = self.sp.cr_data.cr_data
+        getset = self.cr_driver.cr_context.cr_data
+        print("7: cr_driver's CRContext id: {}".format(id(self.cr_driver.cr_context.cr_data)))
         k1_expected = {'og': VAL1, 'mod': NEW_VAL1, 'contracts': {0}}
         k2_expected = {'og': VAL2, 'mod': None, 'contracts': set()}
         k3_expected = {'og': VAL3, 'mod': NEW_VAL3, 'contracts': {2}}
@@ -61,7 +62,7 @@ class TestConflictResolution(TestCase):
 
         # Check modifications list
         expected_mods = {0: {KEY1}, 2: {KEY3}}
-        self.assertEqual(self.sp.cr_data.writes, expected_mods)
+        self.assertEqual(self.cr_driver.cr_context.cr_data.writes, expected_mods)
 
         # Check should_rerun (tinker with common first)
         cr_data = self.sbb_data[0].cr_data
@@ -86,12 +87,12 @@ class TestConflictResolution(TestCase):
         self.master.set(KEY3, b'val 3 on master that should be ignored in presence of KEY3 on common layer')
         self.working.set(KEY3, VAL3)
 
-        self.sp.set(KEY1, NEW_VAL1)
-        self.sp.contract_idx = 2
-        self.sp.get(KEY2)  # To trigger a copy to sbb specific layer
-        self.sp.contract_idx = 2
-        self.sp.set(KEY3, NEW_VAL3)
-        self.sp.set(KEY4, NEW_VAL4)
+        self.cr_driver.set(KEY1, NEW_VAL1)
+        self.cr_driver.contract_idx = 2
+        self.cr_driver.get(KEY2)  # To trigger a copy to sbb specific layer
+        self.cr_driver.contract_idx = 2
+        self.cr_driver.set(KEY3, NEW_VAL3)
+        self.cr_driver.set(KEY4, NEW_VAL4)
 
         # Check merge_to_common
         cr_data = self.sbb_data[0]
@@ -116,12 +117,12 @@ class TestConflictResolution(TestCase):
         self.master.set(KEY3, b'val 3 on master that should be ignored in presence of KEY3 on common layer')
         self.working.set(KEY3, VAL3)
 
-        self.sp.set(KEY1, NEW_VAL1)
-        self.sp.contract_idx = 2
-        self.sp.get(KEY2)  # To trigger a copy to sbb specific layer
-        self.sp.contract_idx = 2
-        self.sp.set(KEY3, NEW_VAL3)
-        self.sp.set(KEY4, NEW_VAL4)
+        self.cr_driver.set(KEY1, NEW_VAL1)
+        self.cr_driver.contract_idx = 2
+        self.cr_driver.get(KEY2)  # To trigger a copy to sbb specific layer
+        self.cr_driver.contract_idx = 2
+        self.cr_driver.set(KEY3, NEW_VAL3)
+        self.cr_driver.set(KEY4, NEW_VAL4)
 
         # First merge_to_common
         cr_data = self.sbb_data[0]
@@ -149,12 +150,12 @@ class TestConflictResolution(TestCase):
         self.master.set(KEY3, 'val 3 on master that should be ignored in presence of KEY3 on common layer')
         self.working.set(KEY3, VAL3)
 
-        self.sp.set(KEY1, NEW_VAL1)
-        self.sp.contract_idx = 1
-        self.sp.get(KEY2)  # To trigger a copy to sbb specific layer
-        self.sp.contract_idx = 2
-        self.sp.set(KEY3, NEW_VAL3)
-        self.sp.set(KEY4, NEW_VAL4)
+        self.cr_driver.set(KEY1, NEW_VAL1)
+        self.cr_driver.contract_idx = 1
+        self.cr_driver.get(KEY2)  # To trigger a copy to sbb specific layer
+        self.cr_driver.contract_idx = 2
+        self.cr_driver.set(KEY3, NEW_VAL3)
+        self.cr_driver.set(KEY4, NEW_VAL4)
 
         # Manually add the contracts/results being run. Store them so we can assert on them later
         expected_contracts = []
@@ -173,7 +174,7 @@ class TestConflictResolution(TestCase):
         self.assertEqual(self.sbb_data[0].cr_data.get_state_rep(), expected_state)
 
         # Check individual contract states
-        cr_data = self.sp.data
+        cr_data = self.cr_driver.cr_context
         state_0 = "SET {} {};".format(KEY1, NEW_VAL1)
         state_1 = ""
         state_2 = "SET {} {};SET {} {};".format(KEY3, NEW_VAL3, KEY4, NEW_VAL4)
@@ -192,10 +193,6 @@ class TestConflictResolution(TestCase):
             expected_rep.append((expected_contracts[i], expected_results[i], expected_states[i]))
 
         self.assertEqual(expected_rep, cr_data.get_subblock_rep())
-
-    def test_unimplemented_method_raises_assert(self):
-        with self.assertRaises(AssertionError):
-            self.sp.this_is_not_implemented('some_key')
 
 
 if __name__ == "__main__":

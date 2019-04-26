@@ -6,8 +6,6 @@ from ..exceptions import DatabaseDriverNotFound
 from ..db.encoder import encode, decode
 
 from ..logger import get_logger
-from ..db.cr.conflict_resolution import CRContext
-from ..db.cr.cr_commands import CRCmdGet, CRCmdSet
 
 from collections import deque, defaultdict
 
@@ -50,16 +48,6 @@ class AbstractDatabaseDriver:
             return True
         return False
 
-    def incrby(self, key, amount=1):
-        """Increment a numeric key by one"""
-        k = self.get(key)
-
-        if k is None:
-            k = 0
-        k = int(k) + amount
-        self.set(key, k)
-
-        return k
 
 
 class RedisDriver(AbstractDatabaseDriver):
@@ -84,6 +72,17 @@ class RedisDriver(AbstractDatabaseDriver):
 
     def flush(self, db=None):
         self.conn.flushdb()
+
+    def incrby(self, key, amount=1):
+        """Increment a numeric key by one"""
+        k = self.conn.get(key)
+
+        if k is None:
+            k = 0
+        k = int(k) + amount
+        self.conn.set(key, k)
+
+        return k
 
 
 
@@ -112,31 +111,47 @@ DatabaseDriver = get_database_driver()
 class CacheDriver(DatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=0,):
         super().__init__(host=host, port=port, db=db)
-        self._reset()
+        self.modified_keys = None
+        self.contract_modifications = None
+        self.original_values = None
+        self.reset_cache()
 
-    def _reset(self):
-        self.modified_keys = defaultdict(deque)
-        self.contract_modifications = list()
-        self.new_tx()
+    def reset_cache(self, modified_keys=None, contract_modifications=[], original_values={}):
+        # Modified keys is a dictionary of deques representing the contracts that have modified
+        # that key
+        if modified_keys:
+            self.modified_keys = modified_keys
+        else:
+            self.modified_keys = defaultdict(deque)
+        # Contract modififications is a list of dicts containing the keys updated by a contract
+        # and their final value
+        self.contract_modifications = contract_modifications
+        # Original values is a dictionary of keys representing the original value fetched from
+        # the DB
+        self.original_values = original_values
+        # If we do not have any contract modifications, add a new one
+        if len(self.contract_modifications) == 0:
+            self.new_tx()
 
     def get(self, key):
         key_location = self.modified_keys.get(key)
         if key_location is None:
             value = self.conn.get(key)
+            self.original_values[key] = value
         else:
             value = self.contract_modifications[key_location[-1]][key]
         return value
 
     def set(self, key, value):
         self.contract_modifications[-1].update({key: value})
+        # TODO: May have multiple instances of contract_idx if multiple sets on same key
         self.modified_keys[key].append(len(self.contract_modifications) - 1)
 
     def revert(self, idx=0):
         if idx == 0:
-            self._reset()
+            self.reset_cache()
         else:
-            tmp = self.modified_keys.copy()
-            for key, i in tmp.items():
+            for key, i in self.modified_keys.items():
                 while len(i) >= 1:
                     if i[-1] >= idx:
                         i.pop()
@@ -152,7 +167,7 @@ class CacheDriver(DatabaseDriver):
         for key, idx in self.modified_keys.items():
             self.conn.set(key, self.contract_modifications[idx[-1]][key])
 
-        self._reset()
+        self.reset_cache()
 
     def new_tx(self):
         self.contract_modifications.append(dict())
@@ -217,31 +232,3 @@ class ContractDriver(CacheDriver):
         return keys
 
 
-class CRDriver(DatabaseDriver):
-    def __init__(self):
-        # TODO do all these fellas need to be passed in? Can we just grab it from the Bookkeeper? --davis
-        self.log = get_logger("CRDriver")
-        self.working_db, self.master_db, self.contract_idx, self.cmds, self.cr_data = None, None, None, None, None
-        self.cmds = None
-
-    def setup(self, transaction_idx: int, cr_context: CRContext):
-        self.cr_data = cr_context
-
-        # why does this guy need a reference of working and master db? can we do away with that
-        # update -- i think its for convenience so we dont have to do data.master_db ... seems silly though...
-        self.working_db, self.master_db = cr_context.working_db, cr_context.master_db
-        self.contract_idx = transaction_idx
-
-        if self.cmds is None:
-            self.cmds = {'get': CRCmdGet(self.working_db, self.master_db, self.contract_idx, self.cr_data),
-                         'set': CRCmdSet(self.working_db, self.master_db, self.contract_idx, self.cr_data)}
-
-    def get(self, key):
-        cmd = self.cmds['get']
-        cmd.set_params(working_db=self.working_db, master_db=self.master_db, contract_idx=self.contract_idx, data=self.cr_data)
-        return cmd
-
-    def set(self, key, value):
-        cmd = self.cmds['set']
-        cmd.set_params(working_db=self.working_db, master_db=self.master_db, contract_idx=self.contract_idx, data=self.cr_data)
-        return cmd
