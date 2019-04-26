@@ -82,6 +82,8 @@ class TestSingleCRCache(unittest.TestCase):
 
         self.cache.set_top_of_stack()
         self.cache.sync_execution()
+        self.assertEqual(self.cache.state, 'READY_TO_COMMIT')
+        self.cache.commit()
         self.assertEqual(self.cache.state, 'COMMITTED')
 
     def test_3_merge_ready(self):
