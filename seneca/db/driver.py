@@ -1,6 +1,5 @@
 import abc
 
-from sophy import *
 from redis import Redis
 from .. import config
 from ..exceptions import DatabaseDriverNotFound
