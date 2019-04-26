@@ -1,56 +1,63 @@
-from tests.utils import TestExecutor
-import unittest, time
+from unittest import TestCase
+import secrets
+from seneca.db.driver import ContractDriver
+from seneca.execution.executor import Executor
 
-CONTRACT_COUNT = 10000
+
+def submission_kwargs_for_file(f):
+    # Get the file name only by splitting off directories
+    split = f.split('/')
+    split = split[-1]
+
+    # Now split off the .s
+    split = split.split('.')
+    contract_name = split[0]
+
+    with open(f) as file:
+        contract_code = file.read()
+
+    return {
+        'name': contract_name,
+        'code': contract_code,
+    }
 
 
-class TestTransfer(TestExecutor):
+TEST_SUBMISSION_KWARGS = {
+    'sender': 'stu',
+    'contract_name': 'submission',
+    'function_name': 'submit_contract'
+}
 
+
+class TestSandbox(TestCase):
     def setUp(self):
-        super().setUp()
-        self.ex.execute_function('currency', 'mint', '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502', kwargs={'to': 'stu', 'amount': CONTRACT_COUNT ** 2})
-        self.balances = self.ex.get_resource('currency', 'balances')
-        self.print_balance()
-        self.start = time.time()
+        self.d = ContractDriver()
+        self.d.flush()
+
+        with open('../../seneca/contracts/submission.s.py') as f:
+            contract = f.read()
+
+        self.d.set_contract(name='submission',
+                            code=contract,
+                            author='sys')
+        self.d.commit()
+
+        self.recipients = [secrets.token_hex(16) for _ in range(10000)]
 
     def tearDown(self):
-        elapsed = time.time() - self.start
-        print('Finished {} contracts in {}s!'.format(CONTRACT_COUNT, elapsed))
-        print('Rate: {}tps'.format(CONTRACT_COUNT / elapsed))
-        self.print_balance()
+        self.d.flush()
 
-    def print_balance(self):
-        self.ex.metering = False
-        stu = self.balances['stu']
-        ass = self.balances['ass']
-        print('stu has a balance of: {}'.format(stu))
-        print('ass has a balance of: {}'.format(ass))
+    def test_transfer_performance(self):
+        e = Executor()
 
-    def test_transfer_template_without_metering(self):
-        for i in range(CONTRACT_COUNT):
-            self.ex.execute_function('currency', 'transfer', 'stu', kwargs={
-                'to': 'ass',
-                'amount': 1
-            })
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('../integration/test_contracts/erc20_clone.s.py'))
 
-    def test_transfer_template_with_metering(self):
-        self.ex.metering = True
-        for i in range(CONTRACT_COUNT):
-            self.ex.execute_function('currency', 'transfer', 'stu', 3000, kwargs={
-                'to': 'ass',
-                'amount': 1
-            })
-
-    def test_transfer_template_with_metering_all_fail(self):
-        self.ex.metering = True
-        for i in range(CONTRACT_COUNT):
-            try:
-                self.ex.execute_function('currency', 'transfer', 'stu', 100, kwargs={
-                    'to': 'ass',
-                    'amount': 1
-                })
-            except Exception as e:
-                pass
-
-if __name__ == '__main__':
-    unittest.main()
+        for r in self.recipients:
+            e.execute(sender='stu',
+                      contract_name='erc20_clone',
+                      function_name='transfer',
+                      kwargs={
+                          'amount': 1,
+                          'to': r
+                      })
