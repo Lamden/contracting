@@ -140,7 +140,7 @@ class CRCache:
             },
             {
                 'trigger': 'discard',
-                'source': ['EXECUTED', 'CR_STARTED', 'REQUIRES_RERUN', 'READY_TO_COMMIT', 'COMMITTED', 'READY_TO_MERGE'],
+                'source': ['BAG_SET', 'EXECUTED', 'CR_STARTED', 'REQUIRES_RERUN', 'READY_TO_COMMIT', 'COMMITTED', 'READY_TO_MERGE'],
                 'dest': 'DISCARDED',
                 'after': 'reset'
             }
