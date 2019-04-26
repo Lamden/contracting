@@ -1,4 +1,5 @@
 import ast
+import astor
 
 from seneca import config
 
@@ -57,6 +58,11 @@ class SenecaCompiler(ast.NodeTransformer):
         compiled_code = compile(tree, '<ast>', 'exec')
 
         return compiled_code
+
+    def parse_to_code(self, source, lint=True):
+        tree = self.parse(source, lint=lint)
+        code = astor.to_source(tree)
+        return code
 
     def visit_FunctionDef(self, node):
         # Presumes all decorators are valid, as caught by linter.

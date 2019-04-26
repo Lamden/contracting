@@ -56,7 +56,7 @@ class SenecaClient:
     # Returns abstract contract which has partial methods mapped to each exported function.
     def get_contract(self, name):
         contract = self.raw_driver.get_contract(name)
-        tree = self.compiler.parse(contract, lint=False)
+        tree = ast.parse(contract)
 
         function_defs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
 
@@ -72,30 +72,6 @@ class SenecaClient:
                                 environment={},
                                 executor=self.executor,
                                 funcs=funcs)
-
-    # def submit(self, f, name, bypass=False):
-    #     tree = ast.parse(f)
-    #
-    #     assert isinstance(tree, ast.Module)
-    #
-    #     parent_func = tree.body[0]
-    #
-    #     assert isinstance(parent_func, ast.FunctionDef)
-    #
-    #     tree.body = parent_func.body
-    #
-    #
-    #
-    #     standard_indented_code = autopep8.fix_code(code_str, options={'select': ['E101']})
-    #
-    #     final_code = ''
-    #     for line in standard_indented_code.split('\n'):
-    #         if line.startswith('    '):
-    #             final_code += line[4:] + '\n'
-    #
-    #     final_code = autopep8.fix_code(final_code)
-    #
-    #     self.submit_string(final_code, name, bypass)
 
     def submit_string(self, code_string, name, bypass=False):
         if not bypass:

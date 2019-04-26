@@ -116,7 +116,7 @@ class CacheDriver(DatabaseDriver):
         self.original_values = None
         self.reset_cache()
 
-    def reset_cache(self, modified_keys=None, contract_modifications=[], original_values={}):
+    def reset_cache(self, modified_keys=None, contract_modifications=[], original_values={}, get_cache={}):
         # Modified keys is a dictionary of deques representing the contracts that have modified
         # that key
         if modified_keys:
@@ -129,6 +129,7 @@ class CacheDriver(DatabaseDriver):
         # Original values is a dictionary of keys representing the original value fetched from
         # the DB
         self.original_values = original_values
+        self.get_cache = get_cache
         # If we do not have any contract modifications, add a new one
         if len(self.contract_modifications) == 0:
             self.new_tx()
@@ -136,7 +137,11 @@ class CacheDriver(DatabaseDriver):
     def get(self, key):
         key_location = self.modified_keys.get(key)
         if key_location is None:
-            value = self.conn.get(key)
+            value = self.get_cache.get(key)
+
+            if value is None:
+                value = self.conn.get(key)
+                self.get_cache[key] = value
             self.original_values[key] = value
         else:
             value = self.contract_modifications[key_location[-1]][key]

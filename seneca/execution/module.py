@@ -45,20 +45,29 @@ class DatabaseFinder(MetaPathFinder):
     def find_module(self, fullname, path=None):
         return DatabaseLoader()
 
+class Context:
+    def __init__(self, caller, this, signer):
+        self.caller = caller
+        self.this = this
+        self.signer = signer
+
+MODULE_CACHE = {}
+
 
 class DatabaseLoader(Loader):
     def __init__(self):
-        from seneca.ast.compiler import SenecaCompiler
-
         self.d = ContractDriver()
-        self.sc = SenecaCompiler()
 
     def create_module(self, spec):
         return None
 
     def exec_module(self, module):
         # fetch the individual contract
-        code = self.d.get_contract(module.__name__)
+        code = MODULE_CACHE.get(module.__name__)
+
+        if MODULE_CACHE.get(module.__name__) is None:
+            code = self.d.get_contract(module.__name__)
+            MODULE_CACHE[module.__name__] = code
 
         if code is None:
             raise ImportError("Module {} not found".format(module.__name__))
@@ -78,12 +87,9 @@ class DatabaseLoader(Loader):
         scope.update({'ctx': ctx})
 
         rt.ctx.append(module.__name__)
-        self.sc.module_name = rt.ctx[-1]
-
-        code_obj = self.sc.compile(code, lint=False)
 
         # execute the module with the std env and update the module to pass forward
-        exec(code_obj, scope)
+        exec(code, scope)
 
         #del scope['__builtins__']
 
