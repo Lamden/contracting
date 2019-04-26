@@ -1,10 +1,11 @@
-import multiprocessing
 import importlib
-from ..interpreter.module import install_database_loader
-from ..db.driver import ContractDriver, CacheDriver
-from ..db.cr.transaction_bag import TransactionBag
-from . import runtime
+import multiprocessing
 from typing import Dict
+
+from . import runtime
+from ..db.cr.transaction_bag import TransactionBag
+from ..db.driver import CRDriver, ContractDriver
+from ..execution.module import install_database_loader
 
 
 class Executor:
@@ -47,7 +48,7 @@ class Executor:
                 driver.new_tx()
         return results
 
-    def execute(self, sender, contract_name, function_name, kwargs, auto_commit=True, driver=None) -> dict:
+    def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None) -> dict:
         """
         Method that does a naive execute
 
@@ -70,7 +71,7 @@ class Executor:
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
         try:
-            result = self.sandbox.execute(sender, contract_name, function_name, kwargs)
+            result = self.sandbox.execute(sender, contract_name, function_name, kwargs, environment)
             status_code = 0
             if auto_commit:
                 runtime.rt.driver.commit()
@@ -119,11 +120,12 @@ class Sandbox(object):
         """
         runtime.rt.clean_up()
 
-    def execute(self, sender, contract_name, function_name, kwargs):
+    def execute(self, sender, contract_name, function_name, kwargs, environment={}):
 
         # __main__ is replaced by the sender of the message in this case
         runtime.rt.ctx.clear()
         runtime.rt.ctx.append(sender)
+        runtime.rt.env = environment
 
         module = importlib.import_module(contract_name)
 
@@ -148,7 +150,7 @@ class MultiProcessingSandbox(Sandbox):
         if self.p is not None:
             self.p.terminate()
 
-    def execute(self, sender, contract_name, function_name, kwargs):
+    def execute(self, sender, contract_name, function_name, kwargs, environment={}):
         if self.p is None:
             self.p = multiprocessing.Process(target=self.process_loop,
                                              args=(super().execute, ))
@@ -157,7 +159,7 @@ class MultiProcessingSandbox(Sandbox):
         _, child_pipe = self.pipe
 
         # Sends code to be executed in the process loop
-        child_pipe.send((sender, contract_name, function_name, kwargs))
+        child_pipe.send((sender, contract_name, function_name, kwargs, environment))
 
         # Receive result object back from process loop, formatted as
         # (status_code, result), loaded in using dill due to python
@@ -173,9 +175,9 @@ class MultiProcessingSandbox(Sandbox):
     def process_loop(self, execute_fn):
         parent_pipe, _ = self.pipe
         while True:
-            sender, contract_name, function_name, kwargs = parent_pipe.recv()
+            sender, contract_name, function_name, kwargs, environment = parent_pipe.recv()
             try:
-                result = execute_fn(sender, contract_name, function_name, kwargs)
+                result = execute_fn(sender, contract_name, function_name, kwargs, environment={})
                 status_code = 0
             except Exception as e:
                 result = e

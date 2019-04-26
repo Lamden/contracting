@@ -1,10 +1,9 @@
 import ast
-#import astor
 
-from .. import config
+from seneca import config
 
-from ..logger import get_logger
-from ..interpreter.linter import Linter
+from seneca.logger import get_logger
+from seneca.ast.linter import Linter
 
 
 class SenecaCompiler(ast.NodeTransformer):
@@ -92,18 +91,3 @@ class SenecaCompiler(ast.NodeTransformer):
             self.visited_expr.add(node)
 
         return node
-
-
-    # def visit_AugAssign(self, node):
-    #     self._global_variables.append(node.target.id)
-    #     return node
-    #
-    # def visit_AnnAssign(self, node):
-    #     self._global_variables.append(node.target.id)
-    #     return node
-    #
-    # # globals shouldn't be allowed
-    # def visit_Global(self, node):
-    #     for n in node.names:
-    #         self._global_variables.append(n)
-    #     return node

@@ -1,12 +1,9 @@
-SENECA_SC_PATH = 'seneca.contracts'
-
 DB_TYPE = 'redis'
 
 DB_URL = 'localhost'
 DB_PORT = 6379
 MASTER_DB = 0
 DB_OFFSET = 1
-CODE_OBJ_MAX_CACHE = 64
 
 DB_DELIMITER = ':'
 
@@ -26,7 +23,7 @@ POLL_INTERVAL = 0.5
 MAX_SB_QUEUE_SIZE = 8
 
 # Resource limits
-MEMORY_LIMIT = 32768 # 32kb
+MEMORY_LIMIT = 32768  # 32kb
 RECURSION_LIMIT = 1024
 
 DELIMITER = ':'
@@ -34,7 +31,6 @@ CODE_KEY = '__code__'
 TYPE_KEY = '__type__'
 AUTHOR_KEY = '__author__'
 INDEX_SEPARATOR = '.'
-
 
 DECIMAL_PRECISION = 64
 

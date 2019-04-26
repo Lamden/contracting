@@ -1,8 +1,7 @@
 from unittest import TestCase
-from seneca.interpreter.linter import Linter
-from seneca.exceptions import CompilationException
+from seneca.ast.linter import Linter
 import ast
-from seneca.interpreter.whitelists import ALLOWED_AST_TYPES
+from seneca.ast.whitelists import ALLOWED_AST_TYPES
 
 
 class TestLinter(TestCase):
@@ -239,7 +238,7 @@ def a():
         c = ast.parse(code)
         chk = self.l.check(c)
         self.l.dump_violations()
-        self.assertEqual(chk, ['S13- No valid seneca decorator found'])
+        self.assertEqual(chk, ['Line 0: S13- No valid seneca decorator found'])
         self.assertFalse(self.l._is_one_export)
 
     def test_collect_function_defs(self):
@@ -301,7 +300,7 @@ def set(i):
 '''
         c = ast.parse(code)
         chk = self.l.check(c)
-        self.assertEqual(self.l._violations, ['Keyword overloading not allowed for ORM assignments.'])
+        self.assertEqual(chk[0], 'Line 2: S11- Illicit keyword overloading for ORM assignments')
 
     def test_multi_targets_orm_fails(self):
         code = '''
@@ -313,7 +312,9 @@ def set(i):
     '''
         c = ast.parse(code)
         chk = self.l.check(c)
-        self.assertEqual(self.l._violations, ['Multiple targets to an ORM definition is not allowed.'])
+        self.l.dump_violations()
+        print(chk)
+        self.assertEqual(chk[0], 'Line 2: S12- Multiple targets to ORM definition detected')
 
     def test_multi_decorator_fails(self):
         code = '''
@@ -324,7 +325,8 @@ def kaboom():
 '''
         c = ast.parse(code)
         chk = self.l.check(c)
-        self.assertEqual(self.l._violations, ['Function definition can only contain 1 decorator. Currently contains 2.'])
+        self.l.dump_violations()
+        self.assertEqual(chk[0], 'Line 2: S10- Illicit use of multiple decorators: Detected: 2 MAX limit: 1')
 
     def test_invalid_decorator_fails(self):
         code = '''
@@ -334,7 +336,8 @@ def wont_work():
 '''
         c = ast.parse(code)
         chk = self.l.check(c)
-        self.assertEqual(self.l._violations, ["seneca_invalid is an invalid decorator. Must be one of {'seneca_construct', 'seneca_export'}", 'S13- No valid seneca decorator found'])
+        self.l.dump_violations()
+        self.assertEqual(chk[0], 'Line 2: S8- Invalid decorator used: valid list: seneca_invalid')
 
     def test_multiple_constructors_fails(self):
         code = '''
@@ -349,4 +352,7 @@ def seed_2():
 
         c = ast.parse(code)
         chk = self.l.check(c)
-        self.assertEqual(self.l._violations, ['Multiple constructors not allowed.', 'S13- No valid seneca decorator found'])
+        self.l.dump_violations()
+
+        self.assertEqual(len(chk),2)
+        self.assertEqual(self.l._violations, [chk[0], 'Line 0: S13- No valid seneca decorator found'])

@@ -1,62 +1,44 @@
-from decimal import Decimal as dec
+import json
+import decimal
+from ..stdlib.bridge.time import Datetime
 
-INT_FLAG = b'i'
-STR_FLAG = b's'
-DEC_FLAG = b'd'
-BYT_FLAG = b'b'
-
-
-def int_to_bytes(i: int):
-    return INT_FLAG + str(i).encode()
-
-
-def str_to_bytes(s: str):
-    return STR_FLAG + s.encode()
+##
+# ENCODER CLASS
+# Add to this to encode Python types for storage.
+# Right now, this is only for datetime types. They are passed into the system as ISO strings, cast into Datetime objs
+# and stored as dicts. Is there a better way? I don't know, maybe.
+##
 
 
-def decimal_to_bytes(d: dec):
-    return DEC_FLAG + str(d).encode()
+class Encoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Datetime):
+            return {
+                '__time__': [o.year, o.month, o.day, o.hour, o.minute, o.second, o.microsecond]
+            }
+        return super().default(self, o)
 
 
-def bytes_to_bytes(b: bytes):
-    return BYT_FLAG + b
+# JSON library from Python 3 doesn't let you instantiate your custom Encoder. You have to pass it as an obj to json
+def encode(data: str):
+    return json.dumps(data, cls=Encoder)
 
 
-type_encoding_map = {
-    int: int_to_bytes,
-    str: str_to_bytes,
-    dec: decimal_to_bytes,
-    bytes: bytes_to_bytes
-}
+def as_object(d):
+    if '__time__' in d:
+        return Datetime(*d['__time__'])
 
 
-def encode(data):
-    assert type(data) in type_encoding_map.keys(), 'Unsupported type being passed!'
-    return type_encoding_map[type(data)](data)
-
-
+# Decode has a hook for JSON objects, which are just Python dictionaries. You have to specify the logic in this hook.
+# This is not uniform, but this is how Python made it.
 def decode(data):
-    assert type(data) == bytes or data is None, 'Unsupported type being passed!'
-
     if data is None:
-        return data
+        return None
 
-    t = data[0:1]
-    data = data[1:]
+    if isinstance(data, bytes):
+        data = data.decode()
 
-    if t == INT_FLAG:
-        d = data.decode()
-        return int(d)
-
-    elif t == STR_FLAG:
-        return data.decode()
-
-    elif t == DEC_FLAG:
-        d = data.decode()
-        return dec(d)
-
-    elif t == BYT_FLAG:
-        return data
-
-    else:
+    try:
+        return json.loads(data, parse_float=decimal.Decimal, object_hook=as_object)
+    except json.decoder.JSONDecodeError:
         return None

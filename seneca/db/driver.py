@@ -1,11 +1,11 @@
 import abc
 
 from redis import Redis
-from seneca import config
-from seneca.exceptions import DatabaseDriverNotFound
-from seneca.db.encoder import encode, decode
+from .. import config
+from ..exceptions import DatabaseDriverNotFound
+from ..db.encoder import encode, decode
 
-from seneca.logger import get_logger
+from ..logger import get_logger
 
 from collections import deque, defaultdict
 
@@ -185,7 +185,7 @@ class ContractDriver(CacheDriver):
         self.author_key = author_key
 
         # Tests if access to the DB is available
-        self.conn.ping()
+        #self.conn.ping()
 
     def get(self, key):
         value = super().get(key)
@@ -230,4 +230,5 @@ class ContractDriver(CacheDriver):
     def get_contract_keys(self, name):
         keys = [k.decode() for k in self.iter(prefix='{}{}'.format(name, self.delimiter))]
         return keys
+
 
