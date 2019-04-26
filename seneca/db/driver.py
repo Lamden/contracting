@@ -1,5 +1,6 @@
 import abc
 
+from sophy import *
 from redis import Redis
 from .. import config
 from ..exceptions import DatabaseDriverNotFound
@@ -61,6 +62,33 @@ class AbstractDatabaseDriver:
 
         return k
 
+
+class RocksDBDriver(AbstractDatabaseDriver):
+    def __init__(self, **kwargs):
+        self.conn = rocksdb.DB("./tester.db", rocksdb.Options(create_if_missing=True))
+
+    def get(self, key):
+        return self.conn.get(key)
+
+    def set(self, key, value):
+        self.conn.put(key, value)
+
+    def delete(self, key):
+        self.conn.delete(key)
+
+    def iter(self, prefix):
+        it = self.conn.iterkeys()
+        it.seek(prefix)
+        return it
+
+    def keys(self):
+        it = self.conn.iterkeys()
+        it.seek_to_first()
+        return it
+
+    def flush(self, db=None):
+        for k in self.keys():
+            self.conn.delete(k)
 
 class RedisDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
@@ -170,7 +198,7 @@ class ContractDriver(CacheDriver):
         self.author_key = author_key
 
         # Tests if access to the DB is available
-        self.conn.ping()
+        #self.conn.ping()
 
     def get(self, key):
         value = super().get(key)
