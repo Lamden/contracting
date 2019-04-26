@@ -46,6 +46,9 @@ class DatabaseFinder(MetaPathFinder):
         return DatabaseLoader()
 
 
+MODULE_CACHE = {}
+
+
 class DatabaseLoader(Loader):
     def __init__(self):
         self.d = ContractDriver()
@@ -55,7 +58,11 @@ class DatabaseLoader(Loader):
 
     def exec_module(self, module):
         # fetch the individual contract
-        code = self.d.get_contract(module.__name__)
+        code = MODULE_CACHE.get(module.__name__)
+
+        if MODULE_CACHE.get(module.__name__) is None:
+            code = self.d.get_contract(module.__name__)
+            MODULE_CACHE[module.__name__] = code
 
         if code is None:
             raise ImportError("Module {} not found".format(module.__name__))
