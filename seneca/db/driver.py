@@ -12,7 +12,7 @@ from ..db.cr.conflict_resolution import CRContext
 from ..db.cr.cr_commands import CRCmdGet, CRCmdSet
 
 from collections import deque, defaultdict
-
+import marshal
 
 class AbstractDatabaseDriver:
     __metaclass__ = abc.ABCMeta
@@ -232,6 +232,13 @@ class ContractDriver(CacheDriver):
             self.hset(name, self.code_key, code)
             self.hset(name, self.author_key, author)
             self.hset(name, self.type_key, _type)
+
+            code_obj = compile(code, '', 'exec')
+            code_blob = marshal.dumps(code_obj)
+            self.hset(name, '__compiled__', code_blob)
+
+    def get_compiled(self, name):
+        return self.hget(name, '__compiled__')
 
     def delete_contract(self, name):
         for k in self.iter(prefix=name):

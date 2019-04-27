@@ -11,12 +11,14 @@ from ..stdlib.bridge.time import Datetime
 
 
 class Encoder(json.JSONEncoder):
-    def default(self, o):
+    def default(self, o, *args):
         if isinstance(o, Datetime):
             return {
                 '__time__': [o.year, o.month, o.day, o.hour, o.minute, o.second, o.microsecond]
             }
-        return super().default(self, o)
+        if isinstance(o, bytes):
+            return o.hex()
+        return super().default(o)
 
 
 # JSON library from Python 3 doesn't let you instantiate your custom Encoder. You have to pass it as an obj to json

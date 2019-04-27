@@ -113,9 +113,6 @@ class Sandbox(object):
 
         func = getattr(module, function_name)
 
-        #with runtime.Context as ctx:
-        #    return func(**kwargs)
-
         return func(**kwargs)
 
 # TODO: Test environment variable passing in multiprocess sandboxing
