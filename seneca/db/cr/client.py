@@ -6,10 +6,52 @@ from seneca.db.cr.cache import CRCache
 from seneca import config
 from seneca.db.cr.transaction_bag import TransactionBag
 from seneca.db.driver import ContractDriver
-from collections import deque
+from collections import deque, defaultdict
 from typing import Callable
 import traceback
 
+
+class FSMPoller:
+
+    def __init__(self, loop):
+        self.log = get_logger("Poller")
+        self.events = defaultdict(set)
+        self.loop = loop
+
+        self.log.debug("Starting poller")
+        self.fut = asyncio.ensure_future(self._poll_events())
+
+    def add_poll(self, cache: CRCache, func: callable, succ_state: str):
+        self.events[cache].add((func, succ_state))
+
+    def clear_polls_for_cache(self, cache: CRCache):
+        if cache not in self.events:
+            self.log.debug("Attempting to clear poll for cache {}, but no polls were registered".format(instance))
+            return
+
+        del self.events[cache]
+
+    async def _poll_events(self):
+        self.log.debugv("Polling events")
+
+        rm_set = defaultdict(set)  # set of function pointer to remove if the poll call was successful
+
+        for cache, poll_set in self.events.items():
+            for func, succ_state in poll_set:
+
+                # Execute the func to poll the FSM, and check if that resulted in the desired state change.
+                # If so, remove this event from Poller
+                # TODO how to add the next event to the Poller tho?
+                func()
+                if cache.state == succ_state:
+                    self.log.debug("Polling function call {} resulting in succ state {}. Removing function from poll "
+                                   "set.".format(func, succ_state))
+                    rm_set[cache].add((cache, func, succ_state))
+
+        for cache_hash, tup in rm_set.items():
+            self.events[cache_hash].remove(tup)
+
+        await asyncio.sleep(config.POLL_INTERVAL)
 
 
 class SubBlockClient:
@@ -18,7 +60,7 @@ class SubBlockClient:
         self.log = get_logger(name)
 
         self.num_sbb = num_sbb
-        self.sbb_idx
+        self.sbb_idx = sbb_idx
 
         self.master_db = ContractDriver()
         self.current_cache = None

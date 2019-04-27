@@ -12,6 +12,7 @@ from seneca.db.driver import ContractDriver
 from seneca.db.cr.transaction_bag import TransactionBag
 from seneca import config
 
+
 # TODO include key exclusions for stamps, etc
 class Macros:
     # TODO we need to make sure these keys dont conflict with user stuff in the common layer. I.e. users cannot be
@@ -29,6 +30,7 @@ class CustomStateMachine(GraphMachine):
         kwargs['show_conditions'] = True
         kwargs['title'] = 'CRCache State Machine'
         super().__init__(*args, **kwargs)
+
 
 class CRCache:
 
@@ -246,6 +248,11 @@ class CRCache:
 
     def all_reset(self):
         return self._check_macro_key(Macros.RESET) == self.num_sbb
+
+    def __repr__(self):
+        return "<CRCache state={}, idx={}, sbb_idx={}, top_of_stk={}>"\
+               .format(self.state, self.idx, self.sbb_idx, self.top_of_stack)
+
 
 if __name__ == "__main__":
     c = CRCache(1,1,1,1,1)
