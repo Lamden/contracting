@@ -61,6 +61,35 @@ class AbstractDatabaseDriver:
 
         return k
 
+from redis.connection import Connection
+# Lower level driver for added speed
+class RedisConnectionDriver(AbstractDatabaseDriver):
+    def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
+        self.conn = Connection(host, port, db)
+
+    def get(self, key):
+        self.conn.send_command('GET', key)
+        return self.conn.read_response()
+
+    def set(self, key, value):
+        self.conn.send_command('SET', key, value)
+        self.conn.read_response()
+
+    def delete(self, key):
+        self.conn.send_command('DEL', key)
+        self.conn.read_response()
+
+    def iter(self, prefix):
+        self.conn.send_command('KEYS', prefix+'*')
+        return self.conn.read_response()
+
+    def keys(self):
+        return self.iter(prefix='')
+
+    def flush(self, db=None):
+        self.conn.send_command('FLUSHDB')
+        self.conn.read_response()
+
 
 class RedisDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
@@ -107,6 +136,7 @@ def get_database_driver():
 
 
 DatabaseDriver = get_database_driver()
+DatabaseDriver = RedisConnectionDriver
 
 
 class CacheDriver(DatabaseDriver):
@@ -122,7 +152,7 @@ class CacheDriver(DatabaseDriver):
     def get(self, key):
         key_location = self.modified_keys.get(key)
         if key_location is None:
-            value = self.conn.get(key)
+            value = super().get(key)
 
         else:
             value = self.contract_modifications[key_location[-1]][key]
@@ -151,7 +181,7 @@ class CacheDriver(DatabaseDriver):
 
     def commit(self):
         for key, idx in self.modified_keys.items():
-            self.conn.set(key, self.contract_modifications[idx[-1]][key])
+            super().set(key, self.contract_modifications[idx[-1]][key])
 
         self._reset()
 
