@@ -89,8 +89,8 @@ class TestComplexContracts(TestCase):
     def test_token_transfer_to_new_account(self):
         e = Executor()
 
-        e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'))
+        print(e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py')))
 
         e.execute('stu', 'currency', 'transfer', kwargs={'amount': 1000, 'to': 'raghu'})
 

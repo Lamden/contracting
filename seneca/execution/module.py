@@ -57,6 +57,7 @@ class DatabaseLoader(Loader):
         return None
 
     def exec_module(self, module):
+
         # fetch the individual contract
         code = MODULE_CACHE.get(module.__name__)
 
@@ -79,6 +80,8 @@ class DatabaseLoader(Loader):
         # env is set by the executor and allows passing variables into environments such as 'block time',
         # 'block number', etc to allow cilantro -> seneca referencing
         scope.update(rt.env)
+
+        # ctx = _Context()
         scope.update({'ctx': ctx})
 
         rt.ctx.append(module.__name__)

@@ -58,6 +58,8 @@ class Executor:
         # Therefor we need to have a try catch to communicate success/fail back to the
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
+
+        environment.update({'__Context': runtime.Context})
         try:
             result = self.sandbox.execute(sender, contract_name, function_name, kwargs, environment)
             status_code = 0
@@ -110,6 +112,9 @@ class Sandbox(object):
         module = importlib.import_module(contract_name)
 
         func = getattr(module, function_name)
+
+        #with runtime.Context as ctx:
+        #    return func(**kwargs)
 
         return func(**kwargs)
 

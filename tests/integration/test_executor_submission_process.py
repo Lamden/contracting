@@ -45,13 +45,15 @@ class TestExecutor(TestCase):
         self.compiler = SenecaCompiler()
 
     def tearDown(self):
-        self.d.flush()
+        #self.d.flush()
+        pass
 
     def test_submission(self):
         e = Executor()
 
         code = '''@seneca_export
 def d():
+    a = 1
     return 1            
 '''
 
@@ -63,6 +65,8 @@ def d():
         e.execute(**TEST_SUBMISSION_KWARGS, kwargs=kwargs)
 
         new_code = self.compiler.parse_to_code(code)
+
+        print(new_code)
 
         self.assertEqual(self.d.get_contract('stubucks'), new_code)
 
@@ -116,8 +120,8 @@ def get_v():
     def test_orm_variable_gets_in_contract(self):
         e = Executor()
 
-        e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'))
+        print(e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py')))
 
         res = e.execute('stu', 'test_orm_variable_contract', 'get_v', kwargs={})
 

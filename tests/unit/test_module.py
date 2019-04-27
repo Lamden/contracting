@@ -147,3 +147,7 @@ print("now i can run my functions!")
 '''
 
         exec(code, vars(ctx))
+
+        print('ok do it again')
+
+        exec(code, vars(ctx))

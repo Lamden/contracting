@@ -1,6 +1,8 @@
 import abc
 
 from redis import Redis
+from redis.connection import Connection
+import lmdb
 from .. import config
 from ..exceptions import DatabaseDriverNotFound
 from ..db.encoder import encode, decode
@@ -61,8 +63,7 @@ class AbstractDatabaseDriver:
 
         return k
 
-from redis.connection import Connection
-# Lower level driver for added speed
+
 class RedisConnectionDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
         self.conn = Connection(host, port, db)
@@ -122,7 +123,7 @@ class RedisDriver(AbstractDatabaseDriver):
 # from the top level instead of having to manually change
 # a bunch of code to get to it.
 DATABASE_DRIVER_MAPS = {
-    'redis': RedisDriver
+    'redis': RedisConnectionDriver
 }
 
 
@@ -136,8 +137,6 @@ def get_database_driver():
 
 
 DatabaseDriver = get_database_driver()
-DatabaseDriver = RedisConnectionDriver
-
 
 class CacheDriver(DatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=0,):
