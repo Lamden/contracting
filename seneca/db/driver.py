@@ -142,7 +142,10 @@ class RedisDriver(AbstractDatabaseDriver):
     def flush(self, db=None):
         self.conn.flushdb()
 
+
 GLOBAL_DB = plyvel.DB('state.db', create_if_missing=True, error_if_exists=False)
+
+
 class LevelDBDriver(AbstractDatabaseDriver):
     def __init__(self, **kwargs):
         self.conn = GLOBAL_DB
