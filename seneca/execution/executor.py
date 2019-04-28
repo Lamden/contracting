@@ -110,6 +110,7 @@ class Sandbox(object):
         runtime.rt.env = environment
 
         module = importlib.import_module(contract_name)
+        #module = __import__(contract_name)
 
         func = getattr(module, function_name)
 

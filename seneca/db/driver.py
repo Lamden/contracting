@@ -153,26 +153,27 @@ class LevelDBDriver(AbstractDatabaseDriver):
     def get(self, key):
         try:
             key = key.encode()
-        except:
+        except AttributeError:
             pass
+
         return self.conn.get(key)
 
     def set(self, key, value):
         try:
             key = key.encode()
-        except:
+        except AttributeError:
             pass
 
         try:
             value = value.encode()
-        except:
+        except AttributeError:
             pass
         self.conn.put(key, value)
 
     def delete(self, key):
         try:
             key = key.encode()
-        except:
+        except AttributeError:
             pass
 
         self.conn.delete(key)
@@ -180,7 +181,7 @@ class LevelDBDriver(AbstractDatabaseDriver):
     def iter(self, prefix):
         try:
             prefix = prefix.encode()
-        except:
+        except AttributeError:
             pass
         it = self.conn.iterator(prefix=prefix)
         return [k[0] for k in it]
