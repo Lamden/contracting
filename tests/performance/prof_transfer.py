@@ -59,7 +59,7 @@ for r in recipients:
                   'to': r
               })
 profiler.stop()
-d.flush()
+#d.flush()
 
 print(profiler.output_text(unicode=True, color=True))
 

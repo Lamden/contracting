@@ -2,7 +2,7 @@ import abc
 
 from redis import Redis
 from redis.connection import Connection
-import lmdb
+import plyvel
 from .. import config
 from ..exceptions import DatabaseDriverNotFound
 from ..db.encoder import encode, decode
@@ -63,6 +63,33 @@ class AbstractDatabaseDriver:
 
         return k
 
+# The theoretically fastest driver. It's a dictionary.
+class DictDriver(AbstractDatabaseDriver):
+    def __init__(self, **kwargs):
+        self.conn = {}
+
+    def get(self, key):
+        return self.conn.get(key)
+
+    def set(self, key, value):
+        self.conn[key] = value
+
+    def delete(self, key):
+        del self.conn[key]
+
+    def iter(self, prefix):
+        keys = []
+        for k, v in self.conn.items():
+            if k.startswith(prefix):
+                keys.append(k)
+        return keys
+
+    def keys(self):
+        return self.conn.keys()
+
+    def flush(self, db=None):
+        del self.conn
+        self.conn = {}
 
 class RedisConnectionDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
@@ -115,7 +142,52 @@ class RedisDriver(AbstractDatabaseDriver):
     def flush(self, db=None):
         self.conn.flushdb()
 
+GLOBAL_DB = plyvel.DB('state.db', create_if_missing=True, error_if_exists=False)
+class LevelDBDriver(AbstractDatabaseDriver):
+    def __init__(self, **kwargs):
+        self.conn = GLOBAL_DB
 
+    def get(self, key):
+        try:
+            key = key.encode()
+        except:
+            pass
+        return self.conn.get(key)
+
+    def set(self, key, value):
+        try:
+            key = key.encode()
+        except:
+            pass
+
+        try:
+            value = value.encode()
+        except:
+            pass
+        self.conn.put(key, value)
+
+    def delete(self, key):
+        try:
+            key = key.encode()
+        except:
+            pass
+
+        self.conn.delete(key)
+
+    def iter(self, prefix):
+        try:
+            prefix = prefix.encode()
+        except:
+            pass
+        it = self.conn.iterator(prefix=prefix)
+        return [k[0] for k in it]
+
+    def keys(self):
+        return self.iter(prefix=b'')
+
+    def flush(self, db=None):
+        for k in self.keys():
+            self.delete(k)
 
 # Defined at the bottom since needs to be instantiated
 # after the classes have been defined. Allows us to
@@ -137,6 +209,8 @@ def get_database_driver():
 
 
 DatabaseDriver = get_database_driver()
+DatabaseDriver = LevelDBDriver
+
 
 class CacheDriver(DatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=0,):

@@ -192,7 +192,8 @@ def stu():
         keys = [
             '{}{}{}'.format(name, self.d.delimiter, config.CODE_KEY),
             '{}{}{}'.format(name, self.d.delimiter, config.AUTHOR_KEY),
-            '{}{}{}'.format(name, self.d.delimiter, config.TYPE_KEY)
+            '{}{}{}'.format(name, self.d.delimiter, config.TYPE_KEY),
+            '{}{}{}'.format(name, self.d.delimiter, '__compiled__')
         ]
 
         self.d.commit()
