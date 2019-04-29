@@ -3,6 +3,7 @@ from seneca.client import SenecaClient, AbstractContract
 from seneca.ast.compiler import SenecaCompiler
 from seneca.db.orm import Variable, Hash
 
+
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
     split = f.split('/')
@@ -374,3 +375,26 @@ def test():
         howdy.h['stu'] = 123
 
         self.assertEqual(howdy.h['stu'], 123)
+
+    def test_get_contracts(self):
+        code = '''v = Variable()
+@seneca_export
+def test():
+    return v.get()'''
+
+        self.c.submit(code, name='howdy1')
+        self.c.submit(code, name='howdy2')
+        self.c.submit(code, name='howdy3')
+        self.c.submit(code, name='howdy4')
+        self.c.submit(code, name='howdy5')
+        self.c.submit(code, name='howdy6')
+        self.c.submit(code, name='howdy7')
+        self.c.submit(code, name='howdy8')
+        self.c.submit(code, name='howdy9')
+
+        contracts = ['howdy1', 'howdy2', 'howdy3', 'howdy4',
+                     'howdy5', 'howdy6', 'howdy7', 'howdy8',
+                     'howdy9', 'submission', ]
+
+        self.assertListEqual(contracts, self.c.get_contracts())
+        print(self.c.get_contracts())

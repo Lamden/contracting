@@ -10,6 +10,7 @@ from types import FunctionType
 from .db.orm import Variable
 from .db.orm import Hash
 
+
 class AbstractContract:
     def __init__(self, name, signer, environment, executor: Executor, funcs):
         self.name = name
