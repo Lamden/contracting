@@ -389,6 +389,9 @@ class ContractDriver(CacheDriver):
             self.make_key(name, self.code_key)
         )
 
+    def keys(self):
+        return [k.decode() for k in super().keys()]
+
     def get_contract_keys(self, name):
         keys = [k.decode() for k in self.iter(prefix='{}{}'.format(name, self.delimiter))]
         return keys
