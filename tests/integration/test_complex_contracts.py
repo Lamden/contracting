@@ -44,8 +44,7 @@ class TestComplexContracts(TestCase):
         self.d.commit()
 
     def tearDown(self):
-        #self.d.flush()
-        pass
+        self.d.flush()
 
     def test_token_constuction_works(self):
         e = Executor()

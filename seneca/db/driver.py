@@ -199,7 +199,8 @@ class LevelDBDriver(AbstractDatabaseDriver):
 # from the top level instead of having to manually change
 # a bunch of code to get to it.
 DATABASE_DRIVER_MAPS = {
-    'redis': RedisConnectionDriver
+    'redis': RedisConnectionDriver,
+    'leveldb': LevelDBDriver
 }
 
 

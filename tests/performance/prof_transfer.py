@@ -48,19 +48,26 @@ e = Executor()
 e.execute(**TEST_SUBMISSION_KWARGS,
           kwargs=submission_kwargs_for_file('../integration/test_contracts/erc20_clone.s.py'))
 
-for i in range(20):
-    profiler = Profiler()
-    profiler.start()
-    for r in recipients:
-        e.execute(sender='stu',
-                  contract_name='erc20_clone',
-                  function_name='transfer',
-                  kwargs={
-                      'amount': 1,
-                      'to': r
-                  })
-    profiler.stop()
-    d.flush()
 
-    print(profiler.last_session.duration)
+import datetime
+
+now = datetime.datetime.now()
+
+# profiler = Profiler()
+# profiler.start()
+for r in recipients:
+    e.execute(sender='stu',
+              contract_name='erc20_clone',
+              function_name='transfer',
+              kwargs={
+                  'amount': 1,
+                  'to': r
+              })
+# profiler.stop()
+
+print(datetime.datetime.now() - now)
+d.flush()
+
+# print(profiler.last_session.duration)
+# print(profiler.output_text(unicode=True, color=True, show_all=True))
 

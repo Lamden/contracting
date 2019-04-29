@@ -45,8 +45,7 @@ class TestExecutor(TestCase):
         self.compiler = SenecaCompiler()
 
     def tearDown(self):
-        #self.d.flush()
-        pass
+        self.d.flush()
 
     def test_submission(self):
         e = Executor()
