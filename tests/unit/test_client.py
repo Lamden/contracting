@@ -101,6 +101,21 @@ def test():
 
             self.assertEqual(tester.test(), 100)
 
+    def test_abstract_function_fails_and_raises_error(self):
+        submission = self.c.get_contract('submission')
+        code = '''
+@seneca_export
+def test(x):
+    assert x == 7, "X is not seven!"
+'''
+
+        submission.submit_contract(name='tester', code=code)
+
+        tester = self.c.get_contract('tester')
+
+        with self.assertRaises(AssertionError):
+            tester.test(x=100)
+
     def test_closure_to_code_string(self):
         def howdy():
             @seneca_export
