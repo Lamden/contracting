@@ -27,9 +27,17 @@ class FSMScheduler:
         # (SubBlockBuilder) kicks off his event loop
         self.fut = asyncio.ensure_future(self._poll_events())
 
-        self.current_cache = None
         self.available_caches = deque() # LIFO
         self.pending_caches = deque() # FIFO
+
+    def execute_bag(self, bag: TransactionBag):
+        assert len(self.available_caches) > 0, "No available caches"
+        current_cache = self.available_caches.pop()
+
+        current_cache.set_bag(bag)
+        current_cache.execute()
+
+        self.pending_caches.append(current_cache)
 
     def add_poll(self, cache: CRCache, func: callable, succ_state: str):
         self.events[cache].add((func, succ_state))
@@ -116,18 +124,6 @@ class SubBlockClient:
         assert len(self.available_caches) > 0, "no available caches srry dog"
 
         bag = TransactionBag(contracts, input_hash, completion_handler)
-        self.current_cache = self.available_caches.pop()
-
-        self.current_cache.set_bag(bag)
-        self.current_cache.execute()
-
-        self.pending_caches.append(self.current_cache)
-        self.current_cache = None
-
-        # If this is the first cache we just added to pending, signal to him to tell him he's next up
-        if len(self.pending_caches) == 1:
-            self.log.debug("Signaling to CRCache {} to tell him he is top of stack".format(self.pending_caches[0]))
-            self.pending_caches[0].set_top_of_stack()
 
     def update_master_db(self):
         assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
