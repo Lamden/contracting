@@ -337,3 +337,41 @@ def test():
         howdy = self.c.get_contract('howdy')
 
         self.assertEqual(howdy.h['stu'], 'hello')
+
+    def test_get_hash_allows_setting_on_new_keys(self):
+        def howdy():
+            h = Hash()
+            @seneca_export
+            def test(f):
+                return h[f]
+
+            @seneca_construct
+            def seed():
+                h['stu'] = 'hello'
+
+        self.c.submit(howdy)
+
+        howdy = self.c.get_contract('howdy')
+
+        howdy.h['yo'] = 123
+
+        self.assertEqual(howdy.h['yo'], 123)
+
+    def test_get_hash_allows_setting_which_overrides(self):
+        def howdy():
+            h = Hash()
+            @seneca_export
+            def test(f):
+                return h[f]
+
+            @seneca_construct
+            def seed():
+                h['stu'] = 'hello'
+
+        self.c.submit(howdy)
+
+        howdy = self.c.get_contract('howdy')
+
+        howdy.h['stu'] = 123
+
+        self.assertEqual(howdy.h['stu'], 123)

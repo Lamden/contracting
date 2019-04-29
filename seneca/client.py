@@ -27,6 +27,7 @@ class AbstractContract:
             for kwarg in kwargs:
                 default_kwargs[kwarg] = None
 
+            # each function is a partial that allows kwarg overloading and overriding
             setattr(self, func, partial(self._abstract_function_call,
                                         signer=self.signer,
                                         contract=self.name,
