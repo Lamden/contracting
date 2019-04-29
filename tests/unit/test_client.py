@@ -43,8 +43,7 @@ class TestSenecaClient(TestCase):
         self.c.raw_driver.commit()
 
     def tearDown(self):
-        #self.c.raw_driver.flush()
-        pass
+        self.c.raw_driver.flush()
 
     def test_get_contract_returns_correct_type(self):
         submission = self.c.get_contract('submission')
@@ -96,9 +95,9 @@ def test():
 def test():
     return 100
             '''
-            submission.submit_contract(name='tester', code=code)
+            submission.submit_contract(name='testy', code=code)
 
-            tester = self.c.get_contract('tester')
+            tester = self.c.get_contract('testy')
 
             self.assertEqual(tester.test(), 100)
 
