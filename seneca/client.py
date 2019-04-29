@@ -3,7 +3,9 @@ from .ast.compiler import SenecaCompiler
 from functools import partial
 import ast
 import inspect
+import astor
 import autopep8
+from types import FunctionType
 
 class AbstractContract:
     def __init__(self, name, signer, environment, executor, funcs):
@@ -47,11 +49,25 @@ class AbstractContract:
 
 
 class SenecaClient:
-    def __init__(self, signer='sys', executor=Executor(), compiler=SenecaCompiler()):
+    def __init__(self, signer='sys',
+                 submission_filename='../../seneca/contracts/submission.s.py',
+                 executor=Executor(),
+                 compiler=SenecaCompiler()):
+
         self.executor = executor
         self.raw_driver = self.executor.driver
         self.signer = signer
         self.compiler = compiler
+
+        # Seed the genesis contracts into the instance
+        with open(submission_filename) as f:
+            contract = f.read()
+
+        self.raw_driver.set_contract(name='submission',
+                                     code=contract,
+                                     author=self.signer)
+
+        self.raw_driver.commit()
 
     # Returns abstract contract which has partial methods mapped to each exported function.
     def get_contract(self, name):
@@ -73,8 +89,48 @@ class SenecaClient:
                                 executor=self.executor,
                                 funcs=funcs)
 
-    def submit_string(self, code_string, name, bypass=False):
-        if not bypass:
-            self.compiler.parse(code_string, lint=True)
+    def closure_to_code_string(self, f):
+        closure_code = inspect.getsource(f)
+        closure_code = autopep8.fix_code(closure_code)
+        closure_tree = ast.parse(closure_code)
 
-        self.raw_driver.set_contract(name=name, code=code_string)
+        # Remove the enclosing function by swapping out the function def node with its children
+        assert len(closure_tree.body) == 1, 'Module has multiple body nodes.'
+        assert isinstance(closure_tree.body[0], ast.FunctionDef), 'Function definition not found at root.'
+
+        func_def_body = closure_tree.body[0]
+        closure_tree.body = func_def_body.body
+
+        contract_code = astor.to_source(closure_tree)
+        name = func_def_body.name
+
+        return contract_code, name
+
+    def lint(self, f, raise_errors=False):
+        if isinstance(f, FunctionType):
+            f, _ = self.closure_to_code_string(f)
+
+        tree = ast.parse(f)
+        violations = self.compiler.linter.check(tree)
+
+        if violations is None:
+            return None
+        else:
+            if raise_errors:
+                for v in violations:
+                    raise v
+            else:
+                return violations
+
+    def compile(self, f, lint=True):
+        if isinstance(f, FunctionType):
+            f, _ = self.closure_to_code_string(f)
+
+        code = self.compiler.parse_to_code(f, lint=lint)
+        return code
+
+    def submit(self, f, name=None, lint=True):
+        if isinstance(f, FunctionType):
+            f, name = self.closure_to_code_string(f)
+
+        assert name is not None, 'No name provided.'

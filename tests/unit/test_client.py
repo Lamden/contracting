@@ -100,3 +100,37 @@ def test():
             tester = self.c.get_contract('tester')
 
             self.assertEqual(tester.test(), 100)
+
+    def test_closure_to_code_string(self):
+        def howdy():
+            @seneca_export
+            def sup():
+                return 5
+
+        code_string, name = self.c.closure_to_code_string(howdy)
+        code = '''@seneca_export
+def sup():
+    return 5
+'''
+
+        self.assertEqual(code_string, code)
+        self.assertEqual(name, 'howdy')
+
+    def test_lint_string_no_violations(self):
+        code = '''
+@seneca_export
+def test():
+    return 100
+'''
+        violations = self.c.lint(code)
+        self.assertIsNone(violations)
+
+    def test_lint_closure_no_violations(self):
+        def howdy():
+            @seneca_export
+            def test():
+                return 100
+
+        violations = self.c.lint(howdy)
+
+        self.assertIsNone(violations)
