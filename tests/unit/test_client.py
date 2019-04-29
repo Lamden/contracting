@@ -1,6 +1,7 @@
 from unittest import TestCase
 from seneca.client import SenecaClient, AbstractContract
 from seneca.ast.compiler import SenecaCompiler
+from seneca.db.orm import Variable, Hash
 
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
@@ -235,10 +236,21 @@ def test():
         self.assertTrue(getattr(howdy_con, 'test'))
 
     def test_submit_fails_on_no_name(self):
-        pass
+        code = '''v = Variable()
+@seneca_export
+def test():
+    return v.get()'''
+
+        with self.assertRaises(AssertionError):
+            self.c.submit(code)
 
     def test_submit_fails_on_violations(self):
-        pass
+        code = '''v = Variable()
+def test():
+    return v.get()'''
+
+        with self.assertRaises(Exception):
+            self.c.submit(code, 'howdy')
 
     def test_get_variable_that_exists(self):
         def howdy():
@@ -247,5 +259,48 @@ def test():
             def test():
                 return v.get()
 
+            @seneca_construct
+            def seed():
+                v.set(1000)
 
-        #self.c.submit(howdy)
+        self.c.submit(howdy)
+
+        howdy = self.c.get_contract('howdy')
+        self.assertEqual(howdy.v.get(), 1000)
+        self.assertTrue(isinstance(howdy.v, Variable))
+
+    def test_get_variable_that_exists_sets_on_db(self):
+        def howdy():
+            v = Variable()
+            @seneca_export
+            def test():
+                return v.get()
+
+            @seneca_construct
+            def seed():
+                v.set(1000)
+
+        self.c.submit(howdy)
+
+        howdy = self.c.get_contract('howdy')
+        howdy.v.set(1234)
+        self.assertEqual(howdy.v.get(), 1234)
+        self.assertTrue(isinstance(howdy.v, Variable))
+
+    def test_get_variable_that_doesnt_exist_throws_attribute_error(self):
+        def howdy():
+            v = Variable()
+            @seneca_export
+            def test():
+                return v.get()
+
+            @seneca_construct
+            def seed():
+                v.set(1000)
+
+        self.c.submit(howdy)
+
+        howdy = self.c.get_contract('howdy')
+
+        with self.assertRaises(AttributeError):
+            howdy.x

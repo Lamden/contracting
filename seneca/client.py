@@ -11,7 +11,7 @@ from .db.orm import Variable
 from .db.orm import Hash
 
 class AbstractContract:
-    def __init__(self, name, signer, environment, executor, funcs):
+    def __init__(self, name, signer, environment, executor: Executor, funcs):
         self.name = name
         self.signer = signer
         self.environment = environment
@@ -34,6 +34,42 @@ class AbstractContract:
                                         func=func,
                                         environment=self.environment,
                                         **default_kwargs))
+
+    def keys(self):
+        return self.executor.driver.get_contract_keys(self.name)
+
+    # a variable contains a DOT, but no __, and no :
+    # a hash contains a DOT, no __, and a :
+    # a constant contains __, a DOT, and :
+
+    def __getattr__(self, item):
+        try:
+            # return the attribute if it exists on the instance
+            return self.__getattribute__(item)
+        except AttributeError as e:
+
+            # otherwise, attempt to resolve it. full name is contract.item
+            fullname = '{}.{}'.format(self.name, item)
+
+            # if the raw name exists, it is a __protected__ or a variable, so prepare for those
+            if fullname in self.keys():
+                variable = Variable(contract=self.name, name=item)
+
+                # return just the value if it is __protected__ to prevent sets
+                if item.startswith('__'):
+                    return variable.get()
+
+                # otherwise, return the variable object with allows sets
+                return variable
+
+            # otherwise, see if contract.items: has more than one entry
+            if len(self.executor.driver.iter(prefix=self.name+'.'+item+':')) > 0:
+
+                # if so, it is a hash. return the hash object
+                return Hash(contract=self.name, name=item)
+
+            # otherwise, the attribut does not exist, so throw the error.
+            raise e
 
     def _abstract_function_call(self, signer, executor, contract, environment, func, **kwargs):
         for k, v in kwargs.items():
@@ -141,12 +177,6 @@ class SenecaClient:
         assert name is not None, 'No name provided.'
 
         self.submission_contract.submit_contract(name=name, code=f)
-
-    # ORM type methods for interacting with the raw data
-    def get_variable(self, contract, name):
-        return Variable(contract=contract,
-                        name=name,
-                        driver=self.raw_driver)
 
     def get_hash(self, contract, name):
         return Hash(contract=contract,
