@@ -7,6 +7,9 @@ import astor
 import autopep8
 from types import FunctionType
 
+from .db.orm import Variable
+from .db.orm import Hash
+
 class AbstractContract:
     def __init__(self, name, signer, environment, executor, funcs):
         self.name = name
@@ -68,6 +71,8 @@ class SenecaClient:
                                      author=self.signer)
 
         self.raw_driver.commit()
+
+        self.submission_contract = self.get_contract('submission')
 
     # Returns abstract contract which has partial methods mapped to each exported function.
     def get_contract(self, name):
@@ -134,3 +139,15 @@ class SenecaClient:
             f, name = self.closure_to_code_string(f)
 
         assert name is not None, 'No name provided.'
+
+        self.submission_contract.submit_contract(name=name, code=f)
+
+    def get_variable(self, contract, name):
+        return Variable(contract=contract,
+                        name=name,
+                        driver=self.raw_driver)
+
+    def get_hash(self, contract, name):
+        return Hash(contract=contract,
+                    name=name,
+                    driver=self.raw_driver)
