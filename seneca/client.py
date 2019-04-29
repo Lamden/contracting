@@ -118,15 +118,15 @@ class SenecaClient:
         else:
             if raise_errors:
                 for v in violations:
-                    raise v
+                    raise Exception(v)
             else:
                 return violations
 
-    def compile(self, f, lint=True):
+    def compile(self, f):
         if isinstance(f, FunctionType):
             f, _ = self.closure_to_code_string(f)
 
-        code = self.compiler.parse_to_code(f, lint=lint)
+        code = self.compiler.parse_to_code(f)
         return code
 
     def submit(self, f, name=None, lint=True):
