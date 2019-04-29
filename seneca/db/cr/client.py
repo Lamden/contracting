@@ -7,26 +7,36 @@ from seneca import config
 from seneca.db.cr.transaction_bag import TransactionBag
 from seneca.db.driver import ContractDriver
 from collections import deque, defaultdict
-from typing import Callable
+from typing import Callable, List
 import traceback
 
 
-class FSMPoller:
+class FSMScheduler:
 
-    def __init__(self, loop):
+    def __init__(self, loop, sbb_idx, num_sbb, cr_caches: List[CRCache]):
         self.log = get_logger("Poller")
         self.events = defaultdict(set)
         self.loop = loop
 
-        self.log.debug("Starting poller")
+        self.num_sbb = num_sbb
+        self.sbb_idx = sbb_idx
+
+        self.log.debug("Starting scheduler")
+
+        # Cilantro is in charge of starting the event loop. This coro will start as soon as cilantro
+        # (SubBlockBuilder) kicks off his event loop
         self.fut = asyncio.ensure_future(self._poll_events())
+
+        self.current_cache = None
+        self.available_caches = deque() # LIFO
+        self.pending_caches = deque() # FIFO
 
     def add_poll(self, cache: CRCache, func: callable, succ_state: str):
         self.events[cache].add((func, succ_state))
 
     def clear_polls_for_cache(self, cache: CRCache):
         if cache not in self.events:
-            self.log.debug("Attempting to clear poll for cache {}, but no polls were registered".format(instance))
+            self.log.debug("Attempting to clear poll for cache {}, but no polls were registered".format(cache))
             return
 
         del self.events[cache]
@@ -62,15 +72,18 @@ class SubBlockClient:
         self.num_sbb = num_sbb
         self.sbb_idx = sbb_idx
 
-        self.master_db = ContractDriver()
-        self.current_cache = None
-        self.available_caches = deque() # LIFO
-        self.pending_caches = deque() # FIFO
+        self.loop = loop or asyncio.get_event_loop()
+        asyncio.set_event_loop(self.loop)
+
         self.executor = Executor()
+        self.master_db = ContractDriver()
+
+        caches = []
+        self.poller = FSMScheduler(self.loop, sbb_idx, num_sbb, caches)
         for i in config.NUM_CACHES:
-            self.available_caches.append(CRCache(config.DB_OFFSET+i, self.master_db,
-                                                 self.sbb_idx, self.num_sbb,
-                                                 self.executor))
+            caches.append(CRCache(config.DB_OFFSET+i, self.master_db,
+                                  self.sbb_idx, self.num_sbb,
+                                  self.executor, self.poller))
 
     ###################
     ## EXTERNAL APIS ##
@@ -102,19 +115,26 @@ class SubBlockClient:
     def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRCache], None]):
         assert len(self.available_caches) > 0, "no available caches srry dog"
 
-        bag = TransactionBag(contracts, input_hash)
+        bag = TransactionBag(contracts, input_hash, completion_handler)
         self.current_cache = self.available_caches.pop()
 
-        self.current_cache.set_transaction_bag(bag)
-        self.current_cache.execute_transactions()
+        self.current_cache.set_bag(bag)
+        self.current_cache.execute()
 
         self.pending_caches.append(self.current_cache)
         self.current_cache = None
+
+        # If this is the first cache we just added to pending, signal to him to tell him he's next up
+        if len(self.pending_caches) == 1:
+            self.log.debug("Signaling to CRCache {} to tell him he is top of stack".format(self.pending_caches[0]))
+            self.pending_caches[0].set_top_of_stack()
 
     def update_master_db(self):
         assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
         cache = self.pending_caches.popleft()
         cache.merge_to_master()
+
+
 
         # COLIN do i need to reset this guy when i be done
         self.available_caches.append(cache)

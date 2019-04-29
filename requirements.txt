@@ -7,3 +7,4 @@ numpy==1.16.2
 #ledis==0.0.1
 -e git+https://github.com/holys/ledis-py.git#egg=ledis
 walrus==0.7.1
+transitions

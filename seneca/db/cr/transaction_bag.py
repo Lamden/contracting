@@ -1,13 +1,15 @@
 from ...logger import get_logger
+from typing import Callable
 
 from transitions import Machine
 
 
 class TransactionBag:
-    def __init__(self, transactions, input_hash):
+    def __init__(self, transactions: list, input_hash: str, completion_handler: Callable):
         self.input_hash = input_hash
         self.transactions = transactions
         self.to_yield = list(range(len(self.transactions)))
+        self.completion_handler = completion_handler
 
     def __iter__(self):
         for i in self.to_yield:

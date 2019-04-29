@@ -48,11 +48,12 @@ class CRCache:
         {'name': 'RESET'}
     ]
 
-    def __init__(self, idx, master_db, sbb_idx, num_sbb, executor):
+    def __init__(self, idx, master_db, sbb_idx, num_sbb, executor, scheduler):
         self.idx = idx
         self.sbb_idx = sbb_idx
         self.num_sbb = num_sbb
         self.executor = executor
+        self.scheduler = scheduler
 
         self.bag = None            # Bag will be set by the execute call
         self.rerun_idx = None      # The index to being reruns at
@@ -72,14 +73,15 @@ class CRCache:
                 'trigger': 'set_bag',
                 'source': 'CLEAN',
                 'dest': 'BAG_SET',
-                'before': 'set_transaction_bag'
+                'before': 'set_transaction_bag',
             },
             {
                 'trigger': 'execute',
                 'source': 'BAG_SET',
                 'dest': 'EXECUTED',
                 'prepare': '_reset_macro_keys',
-                'before': 'execute_transactions'
+                'before': 'execute_transactions',
+                'after': '_schedule_cr'
             },
             { # ASYNC CALL TO MOVE OUT FROM EXECUTED sync_execution
                 'trigger': 'sync_execution',
@@ -114,7 +116,8 @@ class CRCache:
                 'trigger': 'commit',
                 'source': 'READY_TO_COMMIT',
                 'dest': 'COMMITTED',
-                'before': 'merge_to_common'
+                'before': 'merge_to_common',
+                'after': '_schedule_merge_ready'
             },
             { # ASYNC CALL FROM OUTSIDE, TIMEOUT HERE TO ERROR
                 'trigger': 'sync_merge_ready',
@@ -133,7 +136,8 @@ class CRCache:
                 'trigger': 'reset',
                 'source': ['MERGED', 'DISCARDED'],
                 'dest': 'RESET',
-                'before': 'reset_dbs'
+                'before': 'reset_dbs',
+                'after': '_schedule_reset'
             },
             {
                 'trigger': 'sync_reset',
@@ -150,6 +154,16 @@ class CRCache:
         ]
         self.machine = CustomStateMachine(model=self, states=CRCache.states,
                                           transitions=transitions, initial='CLEAN')
+
+    def _schedule_cr(self):
+        # Add sync_execution to the scheduler to wait for the CR step
+        self.scheduler.add_poll(self, self.sync_execution, 'COMMITTED')
+
+    def _schedule_merge_ready(self):
+        self.scheduler.add_poll(self, self.sync_merge_ready, 'READY_TO_MERGE')
+
+    def _schedule_reset(self):
+        self.scheduler.add_poll(self, self.sync_reset, 'CLEAN')
 
     def _incr_macro_key(self, macro):
         self.db.incrby(macro)
@@ -251,8 +265,9 @@ class CRCache:
         return self._check_macro_key(Macros.RESET) == self.num_sbb
 
     def __repr__(self):
-        return "<CRCache state={}, idx={}, sbb_idx={}, top_of_stk={}>"\
-               .format(self.state, self.idx, self.sbb_idx, self.top_of_stack)
+        input_hash = 'NOT_SET' if self.bag is None else self.bag.input_hash
+        return "<CRCache input_hash={}, state={}, idx={}, sbb_idx={}, top_of_stk={}>"\
+               .format(input_hash, self.state, self.idx, self.sbb_idx, self.top_of_stack)
 
 
 if __name__ == "__main__":
