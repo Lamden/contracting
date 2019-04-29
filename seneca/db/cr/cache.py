@@ -4,7 +4,6 @@
 # Third party imports
 from transitions import Machine
 from transitions.extensions.states import add_state_features, Timeout
-from transitions.extensions import GraphMachine
 
 # Local imports
 from seneca.logger import get_logger
@@ -24,14 +23,19 @@ class Macros:
 
     ALL_MACROS = [EXECUTION, CONFLICT_RESOLUTION, RESET]
 
-
 @add_state_features(Timeout)
-class CustomStateMachine(GraphMachine):
+class CustomStateMachine(Machine):
     def __init__(self, *args, **kwargs):
-        kwargs['show_conditions'] = True
-        kwargs['title'] = 'CRCache State Machine'
         super().__init__(*args, **kwargs)
 
+# Uncomment this if you want to generate a new visual representation of the state machine
+#from transitions.extensions import GraphMachine
+#@add_state_features(Timeout)
+#class CustomStateMachine(GraphMachine):
+#    def __init__(self, *args, **kwargs):
+#        kwargs['show_conditions'] = True
+#        kwargs['title'] = 'CRCache State Machine'
+#        super().__init__(*args, **kwargs)
 
 class CRCache:
 
@@ -142,7 +146,8 @@ class CRCache:
                 'trigger': 'sync_reset',
                 'source': 'RESET',
                 'dest': 'CLEAN',
-                'conditions': 'all_reset'
+                'conditions': 'all_reset',
+                'after': '_mark_clean'
             },
             {
                 'trigger': 'discard',
@@ -201,11 +206,8 @@ class CRCache:
     def my_turn_for_cr(self):
         return self._check_macro_key(Macros.CONFLICT_RESOLUTION) == self.sbb_idx
 
-    def set_top_of_stack(self):
-        self.top_of_stack = True
-
     def is_top_of_stack(self):
-        return self.top_of_stack
+        return self.scheduler.check_top_of_stack(self)
 
     def prepare_reruns(self):
         # Find all instances where our originally grabbed value from the cache does not
@@ -264,6 +266,10 @@ class CRCache:
 
     def all_reset(self):
         return self._check_macro_key(Macros.RESET) == self.num_sbb
+
+    def _mark_clean(self):
+        # Mark myself as clean for the FSMScheduler to be able to reuse me
+        self.scheduler.mark_clean(self)
 
     def __repr__(self):
         input_hash = 'NOT_SET' if self.bag is None else self.bag.input_hash
