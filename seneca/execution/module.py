@@ -8,6 +8,7 @@ from seneca.stdlib import env
 from seneca.execution.runtime import rt
 
 from types import ModuleType
+import marshal
 
 
 '''
@@ -45,23 +46,53 @@ class DatabaseFinder(MetaPathFinder):
     def find_module(self, fullname, path=None):
         return DatabaseLoader()
 
+from copy import deepcopy
+MODULE_CACHE = {}
+CACHE = {}
 
 class DatabaseLoader(Loader):
     def __init__(self):
-        from seneca.ast.compiler import SenecaCompiler
-
         self.d = ContractDriver()
-        self.sc = SenecaCompiler()
 
     def create_module(self, spec):
         return None
 
     def exec_module(self, module):
+
+        # m = CACHE.get(module.__name__)
+        # if m is None:
+        #     code = self.d.get_contract(module.__name__)
+        #
+        #     if code is None:
+        #         raise ImportError("Module {} not found".format(module.__name__))
+        #
+        #     m = ModuleType(module.__name__)
+        #     exec(code, vars(m))
+        #     CACHE[module.__name__] = m
+        #
+        # mod_copy = dict(deepcopy(vars(m)))
+        #
+        # for k, v in vars(mod_copy).items():
+        #     if not k.startswith('__'):
+        #         vars(module).update({k: v})
+
         # fetch the individual contract
-        code = self.d.get_contract(module.__name__)
+        code = MODULE_CACHE.get(module.__name__)
+
+        if MODULE_CACHE.get(module.__name__) is None:
+            code = self.d.get_compiled(module.__name__)
+            if code is None:
+                raise ImportError("Module {} not found".format(module.__name__))
+
+            code = bytes.fromhex(code)
+            code = marshal.loads(code)
+            MODULE_CACHE[module.__name__] = code
 
         if code is None:
             raise ImportError("Module {} not found".format(module.__name__))
+
+        scope = env.gather()
+        scope.update(rt.env)
 
         ctx = ModuleType('context')
 
@@ -69,25 +100,16 @@ class DatabaseLoader(Loader):
         ctx.this = module.__name__
         ctx.signer = rt.ctx[0]
 
-        # replace this with the new stdlib stuff
-        scope = env.gather()
-
-        # env is set by the executor and allows passing variables into environments such as 'block time',
-        # 'block number', etc to allow cilantro -> seneca referencing
-        scope.update(rt.env)
         scope.update({'ctx': ctx})
 
         rt.ctx.append(module.__name__)
-        self.sc.module_name = rt.ctx[-1]
-
-        code_obj = self.sc.compile(code, lint=False)
 
         # execute the module with the std env and update the module to pass forward
-        exec(code_obj, scope)
 
-        #del scope['__builtins__']
-
+        exec(code, scope)
         vars(module).update(scope)
+
+        del vars(module)['__builtins__']
 
         rt.loaded_modules.append(rt.ctx.pop())
 

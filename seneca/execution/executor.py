@@ -62,14 +62,13 @@ class Executor:
         # back to default only if it was set previously to something else
         if driver:
             runtime.rt.driver = driver
-        else:
-            if runtime.rt.driver != self.driver:
-                runtime.rt.driver = self.driver
 
         # A successful run is determined by if the sandbox execute command successfully runs.
         # Therefor we need to have a try catch to communicate success/fail back to the
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
+
+        environment.update({'__Context': runtime.Context})
         try:
             result = self.sandbox.execute(sender, contract_name, function_name, kwargs, environment)
             status_code = 0
@@ -80,6 +79,8 @@ class Executor:
             result = e
             status_code = 1
             runtime.rt.driver.revert()
+
+        self.sandbox.clean()
 
         return status_code, result
 
@@ -112,7 +113,7 @@ class Sandbox(object):
     def __init__(self):
         install_database_loader()
 
-    def _clean(self):
+    def clean(self):
         """
         Convenience method to cleanup the sandbox's imports
 
@@ -128,13 +129,11 @@ class Sandbox(object):
         runtime.rt.env = environment
 
         module = importlib.import_module(contract_name)
+        #module = __import__(contract_name)
 
         func = getattr(module, function_name)
 
         result = func(**kwargs)
-
-        # Cleanup imports
-        self._clean()
 
         return result
 

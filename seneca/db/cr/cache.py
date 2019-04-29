@@ -8,7 +8,8 @@ from transitions.extensions import GraphMachine
 
 # Local imports
 from seneca.logger import get_logger
-from seneca.db.driver import ContractDriver
+from seneca.db.driver import ContractDriver, CacheDriver
+from seneca.db.encoder import decode, encode
 from seneca.db.cr.transaction_bag import TransactionBag
 from seneca import config
 
@@ -95,8 +96,7 @@ class CRCache:
                 'source': 'CR_STARTED',
                 'dest': 'READY_TO_COMMIT',
                 'prepare': 'prepare_reruns',
-                'unless': 'requires_reruns',
-                'after': 'commit'
+                'unless': 'requires_reruns'
             },
             {
                 'trigger': 'start_cr',
@@ -109,8 +109,7 @@ class CRCache:
                 'trigger': 'rerun',
                 'source': 'REQUIRES_RERUN',
                 'dest': 'READY_TO_COMMIT',
-                'before': 'rerun_transactions',
-                'after': 'commit'
+                'before': 'rerun_transactions'
             },
             {
                 'trigger': 'commit',
@@ -169,12 +168,14 @@ class CRCache:
         self.db.incrby(macro)
 
     def _check_macro_key(self, macro):
-        return int(self.db.conn.get(macro))
+        val = decode(super(CacheDriver, self.db).get(macro))
+        print("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
+        return val
 
     def _reset_macro_keys(self):
         for key in Macros.ALL_MACROS:
             self.db.delete(key)
-            self.db.conn.set(key, 0)
+            super(CacheDriver, self.db).set(key, encode(0))
 
     def get_results(self):
         return self.results
@@ -214,12 +215,12 @@ class CRCache:
         cr_key_hits = []
         for key, value in self.db.original_values.items():
             if key not in cr_key_hits:
-                common_db_value = self.db.conn.get(key)
+                common_db_value = super(CacheDriver, self.db).get(key)
                 if common_db_value is not None:
                     if common_db_value != value:
                         cr_key_hits.append(key)
                 else:
-                    master_db_value = self.master_db.conn.get(key)
+                    master_db_value = super(CacheDriver, self.master_db).get(key)
                     if master_db_value != value:
                         cr_key_hits.append(key)
 
@@ -238,7 +239,7 @@ class CRCache:
     def rerun_transactions(self):
         self.db.revert(idx=self.rerun_idx)
         self.bag.yield_from(idx=self.rerun_idx)
-        self.results.update(self.executor.execute_bag())
+        self.results.update(self.executor.execute_bag(self.bag))
 
     def merge_to_common(self):
         self.db.commit()

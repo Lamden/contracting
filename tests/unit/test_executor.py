@@ -6,7 +6,7 @@ import glob
 # assertions for self.e.driver
 from seneca.db.driver import AbstractDatabaseDriver, ContractDriver
 from seneca.execution.module import DatabaseFinder
-
+from seneca.ast.compiler import SenecaCompiler
 
 class TestExecutor(unittest.TestCase):
     def setUp(self):
@@ -47,6 +47,8 @@ class DBTests(unittest.TestCase):
         self.e = Executor()
         self.e_prod = Executor(production=True)
 
+        compiler = SenecaCompiler()
+
         for contract in contracts:
             name = contract.split('/')[-1]
             name = name.split('.')[0]
@@ -54,7 +56,9 @@ class DBTests(unittest.TestCase):
             with open(contract) as f:
                 code = f.read()
 
-            driver.set_contract(name=name, code=code, author=self.author)
+            new_code = compiler.parse_to_code(code, lint=False)
+
+            driver.set_contract(name=name, code=new_code, author=self.author)
             driver.commit()
 
     def tearDown(self):

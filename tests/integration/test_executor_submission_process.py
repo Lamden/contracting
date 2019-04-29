@@ -1,6 +1,7 @@
 from unittest import TestCase
 from seneca.db.driver import ContractDriver
 from seneca.execution.executor import Executor
+from seneca.ast.compiler import SenecaCompiler
 
 
 def submission_kwargs_for_file(f):
@@ -41,6 +42,8 @@ class TestExecutor(TestCase):
                             author='sys')
         self.d.commit()
 
+        self.compiler = SenecaCompiler()
+
     def tearDown(self):
         self.d.flush()
 
@@ -49,6 +52,7 @@ class TestExecutor(TestCase):
 
         code = '''@seneca_export
 def d():
+    a = 1
     return 1            
 '''
 
@@ -59,7 +63,11 @@ def d():
 
         e.execute(**TEST_SUBMISSION_KWARGS, kwargs=kwargs)
 
-        self.assertEqual(self.d.get_contract('stubucks'), code)
+        new_code = self.compiler.parse_to_code(code)
+
+        print(new_code)
+
+        self.assertEqual(self.d.get_contract('stubucks'), new_code)
 
     def test_submission_then_function_call(self):
         e = Executor()
@@ -111,8 +119,8 @@ def get_v():
     def test_orm_variable_gets_in_contract(self):
         e = Executor()
 
-        e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'))
+        print(e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py')))
 
         res = e.execute('stu', 'test_orm_variable_contract', 'get_v', kwargs={})
 
