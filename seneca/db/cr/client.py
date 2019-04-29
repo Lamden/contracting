@@ -42,6 +42,13 @@ class FSMScheduler:
     def add_poll(self, cache: CRCache, func: callable, succ_state: str):
         self.events[cache].add((func, succ_state))
 
+    def set_clean(self, cache: CRCache):
+        self.pending_caches.remove(cache)
+        self.available_caches.append(cache)
+
+    def check_top_of_stack(self, cache: CRCache):
+        return self.pending_caches[0] == cache
+
     def clear_polls_for_cache(self, cache: CRCache):
         if cache not in self.events:
             self.log.debug("Attempting to clear poll for cache {}, but no polls were registered".format(cache))
