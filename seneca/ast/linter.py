@@ -176,7 +176,7 @@ class Linter(ast.NodeVisitor):
         self._final_checks()
 
         if self._is_success is False:
-            print(self.dump_violations())
+            #print(self.dump_violations())
             return self._violations
         else:
             return None
