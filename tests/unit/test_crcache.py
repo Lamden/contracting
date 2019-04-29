@@ -28,11 +28,23 @@ class TestSingleCRCache(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         num_sbb = 1
-        self.master_db = ContractDriver()
+        self.master_db = driver
         executor = Executor()
         self.author = 'unittest'
         sys.meta_path.append(DatabaseFinder)
         driver.flush()
+
+        # Add submission contract
+        with open('../../seneca/contracts/submission.s.py') as f:
+            contract = f.read()
+
+        driver.set_contract(name='submission',
+                            code=contract,
+                            author='sys')
+        driver.commit()
+
+        # Use executor submit
+        e = Executor()
         contracts = glob.glob('./test_sys_contracts/*.py')
         for contract in contracts:
             name = contract.split('/')[-1]
@@ -41,8 +53,9 @@ class TestSingleCRCache(unittest.TestCase):
             with open(contract) as f:
                 code = f.read()
 
-            driver.set_contract(name=name, code=code, author=self.author)
-            driver.commit()
+            e.execute(sender=self.author, contract_name='submission', function_name='submit_contract', kwargs={'name': name, 'code': code})
+
+        # Setup tx
         tx1 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'Working'})
         tx2 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'AlsoWorking'})
         self.bag = TransactionBag([tx1, tx2])
@@ -66,6 +79,7 @@ class TestSingleCRCache(unittest.TestCase):
         self.cache.execute()
         results = self.cache.get_results()
 
+        print(results)
         self.assertEqual(results[0][0], 0)
         self.assertEqual(results[0][1], 'Working')
         self.assertEqual(results[1][0], 0)
