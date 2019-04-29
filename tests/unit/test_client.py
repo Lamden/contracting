@@ -304,3 +304,36 @@ def test():
 
         with self.assertRaises(AttributeError):
             howdy.x
+
+    def test_get_protected_variable_that_exists_and_returns_string(self):
+        def howdy():
+            v = Variable()
+            @seneca_export
+            def test():
+                return v.get()
+
+            @seneca_construct
+            def seed():
+                v.set(1000)
+
+        self.c.submit(howdy)
+
+        howdy = self.c.get_contract('howdy')
+        self.assertEqual(howdy.__author__, 'sys')
+
+    def test_get_hash_returns_properly(self):
+        def howdy():
+            h = Hash()
+            @seneca_export
+            def test(f):
+                return h[f]
+
+            @seneca_construct
+            def seed():
+                h['stu'] = 'hello'
+
+        self.c.submit(howdy)
+
+        howdy = self.c.get_contract('howdy')
+
+        self.assertEqual(howdy.h['stu'], 'hello')

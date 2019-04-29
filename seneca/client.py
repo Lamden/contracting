@@ -178,17 +178,6 @@ class SenecaClient:
 
         self.submission_contract.submit_contract(name=name, code=f)
 
-    def get_hash(self, contract, name):
-        return Hash(contract=contract,
-                    name=name,
-                    driver=self.raw_driver)
-
-    def get_keys(self, contract=None):
-        if contract is None:
-            return self.raw_driver.keys()
-
-        return self.raw_driver.iter(prefix=contract)
-
     def get_contracts(self):
         contracts = []
         for key in self.raw_driver.keys():
