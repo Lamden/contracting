@@ -4,7 +4,8 @@ from transitions import Machine
 
 
 class TransactionBag:
-    def __init__(self, transactions):
+    def __init__(self, transactions, input_hash):
+        self.input_hash = input_hash
         self.transactions = transactions
         self.to_yield = list(range(len(self.transactions)))
 

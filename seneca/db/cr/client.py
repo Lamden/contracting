@@ -99,11 +99,25 @@ class SubBlockClient:
 
         self.pending_caches.clear()
 
-    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRContext], None]):
-        return
+    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRCache], None]):
+        assert len(self.available_caches) > 0, "no available caches srry dog"
+
+        bag = TransactionBag(contracts, input_hash)
+        self.current_cache = self.available_caches.pop()
+
+        self.current_cache.set_transaction_bag(bag)
+        self.current_cache.execute_transactions()
+
+        self.pending_caches.append(self.current_cache)
+        self.current_cache = None
 
     def update_master_db(self):
-        return
+        assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
+        cache = self.pending_caches.popleft()
+        cache.merge_to_master()
+
+        # COLIN do i need to reset this guy when i be done
+        self.available_caches.append(cache)
 
     ######################
     ## INTERNAL METHODS ##

@@ -59,6 +59,7 @@ class CRCache:
         self.results = {}          # The results of the execution
         self.top_of_stack = False  # Whether or not we're top of the stack (told by Client)
         self.macros = Macros()     # Instance of the macros class for mutex/sync
+        self.input_hash = None     # The 'input hash' of the bag we are executing, a 64 char hex str
 
         name = self.__class__.__name__ + "[cache-{}]".format(self.idx)
         self.log = get_logger(name)
