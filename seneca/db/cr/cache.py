@@ -247,6 +247,9 @@ class CRCache:
         self.db.commit()
         self._incr_macro_key(Macros.CONFLICT_RESOLUTION)
 
+        # call completion handler on bag so Cilantro can build a SubBlockContender
+        self.bag.completion_handler(self)
+
     def all_committed(self):
         return self._check_macro_key(Macros.CONFLICT_RESOLUTION) == self.num_sbb
 

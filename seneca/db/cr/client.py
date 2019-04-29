@@ -34,6 +34,9 @@ class FSMScheduler:
         assert len(self.available_caches) > 0, "No available caches"
         current_cache = self.available_caches.pop()
 
+        assert current_cache.state == 'CLEAN', "Pulled cache from available db with state {}, but expected CLEAN state"\
+                                               .format(current_cache.state)
+
         current_cache.set_bag(bag)
         current_cache.execute()
 
@@ -42,7 +45,7 @@ class FSMScheduler:
     def add_poll(self, cache: CRCache, func: callable, succ_state: str):
         self.events[cache].add((func, succ_state))
 
-    def set_clean(self, cache: CRCache):
+    def mark_clean(self, cache: CRCache):
         self.pending_caches.remove(cache)
         self.available_caches.append(cache)
 
@@ -78,6 +81,11 @@ class FSMScheduler:
 
         await asyncio.sleep(config.POLL_INTERVAL)
 
+    def update_master_db(self):
+        assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
+        cache = self.pending_caches[0]
+        cache.merge_to_master()
+
 
 class SubBlockClient:
     def __init__(self, sbb_idx, num_sbb, loop=None):
@@ -94,11 +102,11 @@ class SubBlockClient:
         self.master_db = ContractDriver()
 
         caches = []
-        self.poller = FSMScheduler(self.loop, sbb_idx, num_sbb, caches)
+        self.scheduler = FSMScheduler(self.loop, sbb_idx, num_sbb, caches)
         for i in config.NUM_CACHES:
-            caches.append(CRCache(config.DB_OFFSET+i, self.master_db,
+            caches.append(CRCache(config.DB_OFFSET + i, self.master_db,
                                   self.sbb_idx, self.num_sbb,
-                                  self.executor, self.poller))
+                                  self.executor, self.scheduler))
 
     ###################
     ## EXTERNAL APIS ##
@@ -128,9 +136,8 @@ class SubBlockClient:
         self.pending_caches.clear()
 
     def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRCache], None]):
-        assert len(self.available_caches) > 0, "no available caches srry dog"
-
         bag = TransactionBag(contracts, input_hash, completion_handler)
+        self.scheduler.execute_bag(bag)
 
     def update_master_db(self):
         assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
