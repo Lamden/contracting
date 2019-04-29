@@ -134,7 +134,7 @@ class SenecaClient:
         code = self.compiler.parse_to_code(f)
         return code
 
-    def submit(self, f, name=None, lint=True):
+    def submit(self, f, name=None):
         if isinstance(f, FunctionType):
             f, name = self.closure_to_code_string(f)
 
@@ -142,6 +142,7 @@ class SenecaClient:
 
         self.submission_contract.submit_contract(name=name, code=f)
 
+    # ORM type methods for interacting with the raw data
     def get_variable(self, contract, name):
         return Variable(contract=contract,
                         name=name,
@@ -151,3 +152,16 @@ class SenecaClient:
         return Hash(contract=contract,
                     name=name,
                     driver=self.raw_driver)
+
+    def get_keys(self, contract=None):
+        if contract is None:
+            return self.raw_driver.keys()
+
+        return self.raw_driver.iter(prefix=contract)
+
+    def get_contracts(self):
+        contracts = []
+        for key in self.raw_driver.keys():
+            if key.endswith('.__code__'):
+                contracts.append(key.strip('.__code__'))
+        return contracts

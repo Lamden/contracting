@@ -210,3 +210,42 @@ def test():
         expected_code = self.c.compiler.parse_to_code(code)
 
         self.assertEqual(compiled_code, expected_code)
+
+    def test_submit_closure_works(self):
+        def howdy():
+            v = Variable()
+            @seneca_export
+            def test():
+                return v.get()
+
+        self.c.submit(howdy)
+        howdy_con = self.c.get_contract('howdy')
+        self.assertTrue(isinstance(howdy_con, AbstractContract))
+        self.assertTrue(getattr(howdy_con, 'test'))
+
+    def test_submit_string_works(self):
+        code = '''v = Variable()
+@seneca_export
+def test():
+    return v.get()'''
+
+        self.c.submit(code, name='howdy')
+        howdy_con = self.c.get_contract('howdy')
+        self.assertTrue(isinstance(howdy_con, AbstractContract))
+        self.assertTrue(getattr(howdy_con, 'test'))
+
+    def test_submit_fails_on_no_name(self):
+        pass
+
+    def test_submit_fails_on_violations(self):
+        pass
+
+    def test_get_variable_that_exists(self):
+        def howdy():
+            v = Variable()
+            @seneca_export
+            def test():
+                return v.get()
+
+
+        #self.c.submit(howdy)
