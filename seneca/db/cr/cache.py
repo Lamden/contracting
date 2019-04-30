@@ -100,7 +100,8 @@ class CRCache:
                 'source': 'CR_STARTED',
                 'dest': 'READY_TO_COMMIT',
                 'prepare': 'prepare_reruns',
-                'unless': 'requires_reruns'
+                'unless': 'requires_reruns',
+                'after': 'commit'
             },
             {
                 'trigger': 'start_cr',
@@ -113,7 +114,8 @@ class CRCache:
                 'trigger': 'rerun',
                 'source': 'REQUIRES_RERUN',
                 'dest': 'READY_TO_COMMIT',
-                'before': 'rerun_transactions'
+                'before': 'rerun_transactions',
+                'after': 'commit'
             },
             {
                 'trigger': 'commit',

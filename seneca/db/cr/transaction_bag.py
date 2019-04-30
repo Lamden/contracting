@@ -5,7 +5,7 @@ from transitions import Machine
 
 
 class TransactionBag:
-    def __init__(self, transactions: list, input_hash: str, completion_handler: Callable):
+    def __init__(self, transactions: list, input_hash: str, completion_handler: Callable = None):
         self.input_hash = input_hash
         self.transactions = transactions
         self.to_yield = list(range(len(self.transactions)))
