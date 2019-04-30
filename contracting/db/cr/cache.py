@@ -7,11 +7,11 @@ from transitions.extensions.states import add_state_features, Timeout
 from transitions.extensions import GraphMachine
 
 # Local imports
-from seneca.logger import get_logger
-from seneca.db.driver import ContractDriver, CacheDriver
-from seneca.db.encoder import decode, encode
-from seneca.db.cr.transaction_bag import TransactionBag
-from seneca import config
+from contracting.logger import get_logger
+from contracting.db.driver import ContractDriver, CacheDriver
+from contracting.db.encoder import decode, encode
+from contracting.db.cr.transaction_bag import TransactionBag
+from contracting import config
 
 # TODO include key exclusions for stamps, etc
 class Macros:

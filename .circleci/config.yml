@@ -10,7 +10,7 @@ jobs:
       - image: lamden/ledis:circleci
       - image: circleci/redis:latest
 
-    working_directory: ~/seneca
+    working_directory: ~/contracting
 
     steps:
       - checkout
@@ -68,7 +68,7 @@ jobs:
   test-cilantro-from-seneca:
     docker:
       - image: circleci/python:3.6.5
-    working_directory: ~/src/lamden/seneca
+    working_directory: ~/src/lamden/contracting
 
     steps:
       - checkout
@@ -86,4 +86,4 @@ workflows:
   seneca_tests:
     jobs:
       - build
-      # - test-cilantro-from-seneca
+      # - test-cilantro-from-contracting

@@ -4,12 +4,12 @@
 # # import ujson as json
 # # from base64 import b64encode
 #
-# # from seneca.constants.config import SENECA_PATH
+# # from contracting.constants.config import SENECA_PATH
 # from unittest import TestCase
 #
-# from seneca.libs.logger import get_logger
-# from seneca.libs.logger import overwrite_logger_level, get_logger
-# from seneca.unit.interpreter.compiler import SenecaCompiler
+# from contracting.libs.logger import get_logger
+# from contracting.libs.logger import overwrite_logger_level, get_logger
+# from contracting.unit.interpreter.compiler import SenecaCompiler
 #
 #
 #
@@ -18,7 +18,7 @@
 #
 # BASIC_CONTRACT = \
 # """
-# from seneca.libs.storage.datatypes import Hash
+# from contracting.libs.storage.datatypes import Hash
 #
 # bal = Hash('amounts', default_value=0)
 #
@@ -29,12 +29,12 @@
 #
 # ADV_CONTRACT = \
 # """
-# from seneca.libs.storage.datatypes import Hash
+# from contracting.libs.storage.datatypes import Hash
 #
 # bal = Hash('amounts', default_value=0)
 # balances = Hash('balances', default_value=0)
 #
-# @seneca_construct
+# @construct
 # def seed():
 #     assert True, 'unchanged comment of balances otherwise error'
 #     balances['raghu'] = 10000;
@@ -71,7 +71,7 @@
 #         self.assertTrue('_zxqqqq_bal' in mcode)
 #         self.assertTrue('seneca_export' in mcode)
 #         self.assertTrue('_seneca_reset_context' in mcode)
-#         self.assertTrue('seneca_construct' not in mcode)
+#         self.assertTrue('construct' not in mcode)
 #
 #         # log.info("Compiled code:\n{}".format(mcode))
 #
@@ -92,7 +92,7 @@
 #         self.assertTrue('def get_balances' in mcode)
 #         self.assertTrue('seneca_export' in mcode)
 #         self.assertTrue('_seneca_reset_context' in mcode)
-#         self.assertTrue('seneca_construct' in mcode)
+#         self.assertTrue('construct' in mcode)
 #
 #
 #         # self.assertTrue(client.master_db is not None)

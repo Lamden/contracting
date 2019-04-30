@@ -1,11 +1,11 @@
 import asyncio
 import time
-from seneca.logger import get_logger
-from seneca.execution.executor import Executor
-from seneca.db.cr.cache import CRCache
-from seneca import config
-from seneca.db.cr.transaction_bag import TransactionBag
-from seneca.db.driver import ContractDriver
+from contracting.logger import get_logger
+from contracting.execution.executor import Executor
+from contracting.db.cr.cache import CRCache
+from contracting import config
+from contracting.db.cr.transaction_bag import TransactionBag
+from contracting.db.driver import ContractDriver
 from collections import deque
 from typing import Callable
 import traceback
@@ -68,7 +68,7 @@ class SubBlockClient:
     ######################
 
 
-class SenecaClient:
+class ContractingCRClient:
 
 
     def __init__(self, sbb_idx, num_sbb, loop=None, *args, **kwargs):
@@ -102,7 +102,7 @@ class SenecaClient:
 
         self._setup_dbs()
 
-        self.log.important3("---- SENECA CLIENT CREATION FINISHED -----")
+        self.log.important3("---- CONTRACTING CLIENT CREATION FINISHED -----")
 
     def _setup_dbs(self):
         self.master_db = DatabaseDriver(host='localhost', db=MASTER_DB)

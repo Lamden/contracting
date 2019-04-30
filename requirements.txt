@@ -1,9 +1,8 @@
-#redis==3.2.0
 python-dotenv==0.9.1
 ujson==1.35
 autopep8==1.4.3
 coloredlogs
 numpy==1.16.2
-#ledis==0.0.1
--e git+https://github.com/holys/ledis-py.git#egg=ledis
-walrus==0.7.1
+plyvel
+autopep8
+astor

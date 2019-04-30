@@ -1,9 +1,9 @@
 v = Variable()
 
-@seneca_export
+@export
 def set_v(i):
     v.set(i)
 
-@seneca_export
+@export
 def get_v():
     return v.get()

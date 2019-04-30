@@ -1,7 +1,7 @@
 from unittest import TestCase
-from seneca.db.driver import ContractDriver
-from seneca.execution.executor import Executor
-from seneca.stdlib.bridge.time import Datetime
+from contracting.db.driver import ContractDriver
+from contracting.execution.executor import Executor
+from contracting.stdlib.bridge.time import Datetime
 
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
@@ -33,7 +33,7 @@ class TestAtomicSwapContract(TestCase):
         self.d = ContractDriver()
         self.d.flush()
 
-        with open('../../seneca/contracts/submission.s.py') as f:
+        with open('../../contracting/contracts/submission.s.py') as f:
             contract = f.read()
 
         self.d.set_contract(name='submission',

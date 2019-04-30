@@ -12,10 +12,10 @@ DB_DELIMITER = ':'
 NUM_CACHES = 2
 
 # Set timeouts for CR
-EXEC_TIMEOUT = 14 # Timeout for other subblocks finishing exec
-CR_TIMEOUT = 14 # Timeout for other subblocks finishing CR
-BLOCK_TIMEOUT = 30 # Timeout to wait for CRCache to be written to master
-CLEAN_TIMEOUT = 30 # Timeout to wait for DBs to synchronize their reset calls
+EXEC_TIMEOUT = 14  # Timeout for other subblocks finishing exec
+CR_TIMEOUT = 14  # Timeout for other subblocks finishing CR
+BLOCK_TIMEOUT = 30  # Timeout to wait for CRCache to be written to master
+CLEAN_TIMEOUT = 30  # Timeout to wait for DBs to synchronize their reset calls
 AVAIL_DB_TIMEOUT = 60
 POLL_INTERVAL = 0.5
 
@@ -35,8 +35,8 @@ INDEX_SEPARATOR = '.'
 DECIMAL_PRECISION = 64
 
 PRIVATE_METHOD_PREFIX = '__'
-EXPORT_DECORATOR_STRING = 'seneca_export'
-INIT_DECORATOR_STRING = 'seneca_construct'
+EXPORT_DECORATOR_STRING = 'export'
+INIT_DECORATOR_STRING = 'construct'
 INIT_FUNC_NAME = '__{}'.format(PRIVATE_METHOD_PREFIX)
 VALID_DECORATORS = {EXPORT_DECORATOR_STRING, INIT_DECORATOR_STRING}
 

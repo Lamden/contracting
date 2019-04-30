@@ -15,7 +15,7 @@ class Executor:
 
         # Colin -  Setup the tracer
         # Colin TODO: Find out why Tracer is not instantiating properly. Raghu also said he wants to pull this out.
-        #cu_cost_fname = join(seneca.__path__[0], 'constants', 'cu_costs.const')
+        #cu_cost_fname = join(contracting.__path__[0], 'constants', 'cu_costs.const')
         #self.tracer = Tracer(cu_cost_fname)
 
         self.tracer = None
@@ -74,7 +74,7 @@ class Executor:
             status_code = 0
             if auto_commit:
                 runtime.rt.driver.commit()
-        # TODO: catch SenecaExceptions distinctly, this is pending on Raghu looking into Exception override in compiler
+        # TODO: catch ContractingExceptions distinctly, this is pending on Raghu looking into Exception override in compiler
         except Exception as e:
             result = e
             status_code = 1

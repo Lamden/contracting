@@ -75,7 +75,7 @@ ALLOWED_AST_TYPES = {
 }
 
 VIOLATION_TRIGGERS = [
-    "S1- Illegal seneca syntax type used",
+    "S1- Illegal contracting syntax type used",
     "S2- Illicit use of '_' before variable",
     "S3- Illicit use of Nested imports",
     "S4- ImportFrom ast nodes not yet supported",
@@ -87,13 +87,12 @@ VIOLATION_TRIGGERS = [
     "S10- Illicit use of multiple decorators",
     "S11- Illicit keyword overloading for ORM assignments",
     "S12- Multiple targets to ORM definition detected",
-    "S13- No valid seneca decorator found"
+    "S13- No valid contracting decorator found"
 ]
 
-SENECA_LIBRARY_PATH = 'seneca.libs'
 
 ALLOWED_IMPORT_PATHS = [
-    'seneca.contracts',
+    'contracting.contracts',
     'test_contracts'
 ]
 

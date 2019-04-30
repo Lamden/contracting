@@ -2,7 +2,7 @@ import erc20_clone
 
 swaps = Hash()
 
-@seneca_export
+@export
 def initiate(participant: str, expiration: datetime, hashlock: str, amount: float):
 
     allowance = erc20_clone.allowance(ctx.caller, ctx.this)
@@ -15,7 +15,7 @@ def initiate(participant: str, expiration: datetime, hashlock: str, amount: floa
 
     erc20_clone.transfer_from(amount, ctx.this, ctx.caller)
 
-@seneca_export
+@export
 def redeem(secret: str):
 
     hashlock = sha256(secret)
@@ -31,7 +31,7 @@ def redeem(secret: str):
     erc20_clone.transfer(amount, ctx.caller)
     swaps[ctx.caller, hashlock] = None # change this to respond to the del keyword?
 
-@seneca_export
+@export
 def refund(participant, secret):
 
     assert participant != ctx.caller and participant != ctx.signer, \

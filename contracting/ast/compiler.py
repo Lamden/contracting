@@ -1,15 +1,15 @@
 import ast
 import astor
 
-from seneca import config
+from contracting import config
 
-from seneca.logger import get_logger
-from seneca.ast.linter import Linter
+from contracting.logger import get_logger
+from contracting.ast.linter import Linter
 import copy
 
-class SenecaCompiler(ast.NodeTransformer):
+class ContractingCompiler(ast.NodeTransformer):
     def __init__(self, module_name='__main__', linter=Linter()):
-        self.log = get_logger('Seneca.Compiler')
+        self.log = get_logger('Contracting.Compiler')
         self.module_name = module_name
         self.linter = linter
         self.lint_alerts = None

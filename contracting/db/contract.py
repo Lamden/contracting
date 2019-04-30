@@ -1,4 +1,4 @@
-from seneca.ast.compiler import SenecaCompiler
+from contracting.ast.compiler import ContractingCompiler
 from ..db.driver import ContractDriver
 from ..execution.runtime import rt
 from types import ModuleType
@@ -11,7 +11,7 @@ class Contract:
         self.driver = driver
 
     def submit(self, name, code, author):
-        c = SenecaCompiler(module_name=name)
+        c = ContractingCompiler(module_name=name)
 
         #code_obj = c.compile(code, lint=True)
         code_obj = c.parse_to_code(code, lint=True)

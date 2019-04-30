@@ -1,7 +1,7 @@
 """
     OperationsEstimator is for computing the estimated cost of each opcode
     instructions for your system. This is not meant to be used for determining
-    the cost of a smart contract. For that, see seneca.libs.metering.cost.Cost
+    the cost of a smart contract. For that, see contracting.libs.metering.cost.Cost
 """
 
 import dis, time, os, sys, numpy as np
@@ -11,9 +11,9 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-import seneca
+import contracting
 
-constants_path = seneca.__path__[0] + '/constants/'
+constants_path = contracting.__path__[0] + '/constants/'
 
 def timeit(fn):
     def _fn(self, op, code_str, *args, **kwargs):
