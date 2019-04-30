@@ -91,7 +91,6 @@ class DictDriver(AbstractDatabaseDriver):
         return k
 
 
-
 class RedisConnectionDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
         self.conn = Connection(host, port, db)
@@ -121,12 +120,12 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
 
     def incrby(self, key, amount=1):
         """Increment a numeric key by one"""
-        k = self.get(key)
+        k = self.conn.send_command('GET', key)
 
         if k is None:
             k = 0
         k = int(k) + amount
-        self.set(key, k)
+        self.conn.send_command('SET', key, k)
 
         return k
 
@@ -158,24 +157,22 @@ class RedisDriver(AbstractDatabaseDriver):
 
     def incrby(self, key, amount=1):
         """Increment a numeric key by one"""
-        k = self.get(key)
+        k = self.conn.get(key)
 
         if k is None:
             k = 0
         k = int(k) + amount
-        self.set(key, k)
+        self.conn.set(key, k)
 
         return k
 
 
-
-
-GLOBAL_DB = plyvel.DB('state.db', create_if_missing=True, error_if_exists=False)
-
-
 class LevelDBDriver(AbstractDatabaseDriver):
-    def __init__(self, **kwargs):
-        self.conn = GLOBAL_DB
+    def __init__(self, db=config.MASTER_DB, **kwargs):
+        self.db_name = 'state.db'
+        if db != config.MASTER_DB:
+            self.db_name = 'cache_{}.db'.format(db)
+        self.conn = plyvel.DB(self.db_name, create_if_missing=True, error_if_exists=False)
 
     def get(self, key):
         try:
@@ -260,7 +257,8 @@ def get_database_driver():
 
 
 DatabaseDriver = get_database_driver()
-DatabaseDriver = LevelDBDriver
+#DatabaseDriver = LevelDBDriver
+DatabaseDriver = RedisConnectionDriver
 
 
 class CacheDriver(DatabaseDriver):

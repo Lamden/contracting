@@ -83,9 +83,10 @@ class TestSingleCRCache(unittest.TestCase):
         tx1 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'Working'})
         tx2 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'AlsoWorking'})
         input_hash = 'A'*64
+        sbb_idx = 0
         self.scheduler = SchedulerStub()
         self.bag = TransactionBag([tx1, tx2], input_hash)
-        self.cache = CRCache(idx=0, master_db=self.master_db, sbb_idx=0,
+        self.cache = CRCache(idx=0, master_db=self.master_db, sbb_idx=sbb_idx,
                              num_sbb=num_sbb, executor=executor, scheduler=self.scheduler)
 
     @classmethod

@@ -12,7 +12,6 @@ from seneca.db.encoder import decode, encode
 from seneca.db.cr.transaction_bag import TransactionBag
 from seneca import config
 
-
 # TODO include key exclusions for stamps, etc
 class Macros:
     # TODO we need to make sure these keys dont conflict with user stuff in the common layer. I.e. users cannot be
@@ -42,11 +41,11 @@ class CRCache:
     states = [
         {'name': 'CLEAN'},
         {'name': 'BAG_SET'},
-        {'name': 'EXECUTED', 'timeout': config.EXEC_TIMEOUT, 'on_timeout': 'discard'},
+        {'name': 'EXECUTED'},
         {'name': 'CR_STARTED'},
         {'name': 'REQUIRES_RERUN'},
         {'name': 'READY_TO_COMMIT'},
-        {'name': 'COMMITTED', 'timeout': config.CR_TIMEOUT, 'on_timeout': 'discard'},
+        {'name': 'COMMITTED'},
         {'name': 'READY_TO_MERGE'},
         {'name': 'MERGED'},
         {'name': 'DISCARDED'},
@@ -161,22 +160,26 @@ class CRCache:
         self.machine = CustomStateMachine(model=self, states=CRCache.states,
                                           transitions=transitions, initial='CLEAN')
 
+        self.scheduler.mark_clean(self)
+
     def _schedule_cr(self):
         # Add sync_execution to the scheduler to wait for the CR step
         self.scheduler.add_poll(self, self.sync_execution, 'COMMITTED')
 
     def _schedule_merge_ready(self):
+        self.log.important2("scheding merge rdy {}".format(self))
         self.scheduler.add_poll(self, self.sync_merge_ready, 'READY_TO_MERGE')
 
     def _schedule_reset(self):
         self.scheduler.add_poll(self, self.sync_reset, 'CLEAN')
 
     def _incr_macro_key(self, macro):
+        self.log.debug("INCREMENTING MACRO {}".format(macro))
         self.db.incrby(macro)
 
     def _check_macro_key(self, macro):
         val = decode(super(CacheDriver, self.db).get(macro))
-        print("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
+        self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
         return val
 
     def _reset_macro_keys(self):
