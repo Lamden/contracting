@@ -1,6 +1,6 @@
 from unittest import TestCase
-from contracting.client import SenecaClient, AbstractContract
-from contracting.ast.compiler import SenecaCompiler
+from contracting.client import ContractingClient, AbstractContract
+from contracting.ast.compiler import ContractingCompiler
 from contracting.db.orm import Variable, Hash
 
 
@@ -31,7 +31,7 @@ TEST_SUBMISSION_KWARGS = {
 
 class TestSenecaClient(TestCase):
     def setUp(self):
-        self.c = SenecaClient()
+        self.c = ContractingClient()
         self.c.raw_driver.flush()
 
         with open('../../contracting/contracts/submission.s.py') as f:
@@ -84,7 +84,7 @@ def test():
 
         submission.submit_contract(name='test', code=code)
 
-        compiler = SenecaCompiler()
+        compiler = ContractingCompiler()
         new_code = compiler.parse_to_code(code)
 
         self.assertEqual(self.c.raw_driver.get_contract('test'), new_code)

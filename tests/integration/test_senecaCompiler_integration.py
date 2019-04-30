@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.ast.compiler import SenecaCompiler
+from contracting.ast.compiler import ContractingCompiler
 from contracting.stdlib import env
 import re
 import astor
@@ -11,7 +11,7 @@ class TestSenecaCompiler(TestCase):
         code = '''
 v = Variable()
 '''
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -27,7 +27,7 @@ v = Variable()
         code = '''
 fv = ForeignVariable(foreign_contract='scoob', foreign_name='kumbucha')
         '''
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -44,7 +44,7 @@ fv = ForeignVariable(foreign_contract='scoob', foreign_name='kumbucha')
         code = '''
 h = Hash()
         '''
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -61,7 +61,7 @@ h = Hash()
 fv = ForeignHash(foreign_contract='scoob', foreign_name='kumbucha')
         '''
 
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -81,7 +81,7 @@ def funtimes():
     print('cool')
         '''
 
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -93,7 +93,7 @@ def private():
     print('cool')
         '''
 
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -109,7 +109,7 @@ def private(message):
     print(message)
 '''
 
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -135,7 +135,7 @@ def d():
 def e():
     d()        
 '''
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -155,7 +155,7 @@ def goodbye():
     print('idk')
         '''
 
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
         print(code_str)
@@ -166,7 +166,7 @@ def goodbye():
         code = f.read()
         f.close()
 
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 

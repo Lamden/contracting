@@ -1,11 +1,11 @@
 from unittest import TestCase
 from contracting.stdlib.bridge.time import Datetime
-from contracting.client import SenecaClient
+from contracting.client import ContractingClient
 
 
 class TestSenecaClientReplacesExecutor(TestCase):
     def setUp(self):
-        self.c = SenecaClient(signer='stu')
+        self.c = ContractingClient(signer='stu')
         self.c.raw_driver.flush()
 
         with open('../../contracting/contracts/submission.s.py') as f:

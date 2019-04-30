@@ -1,5 +1,5 @@
 from .execution.executor import Executor
-from .ast.compiler import SenecaCompiler
+from .ast.compiler import ContractingCompiler
 from functools import partial
 import ast
 import inspect
@@ -89,11 +89,11 @@ class AbstractContract:
         return result
 
 
-class SenecaClient:
+class ContractingClient:
     def __init__(self, signer='sys',
                  submission_filename='../../contracting/contracts/submission.s.py',
                  executor=Executor(),
-                 compiler=SenecaCompiler()):
+                 compiler=ContractingCompiler()):
 
         self.executor = executor
         self.raw_driver = self.executor.driver

@@ -1,7 +1,7 @@
 from unittest import TestCase
 from contracting.db.driver import ContractDriver
 from contracting.execution.executor import Executor
-from contracting.ast.compiler import SenecaCompiler
+from contracting.ast.compiler import ContractingCompiler
 
 
 def submission_kwargs_for_file(f):
@@ -42,7 +42,7 @@ class TestExecutor(TestCase):
                             author='sys')
         self.d.commit()
 
-        self.compiler = SenecaCompiler()
+        self.compiler = ContractingCompiler()
 
     def tearDown(self):
         self.d.flush()

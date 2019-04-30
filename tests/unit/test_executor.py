@@ -6,7 +6,7 @@ import glob
 # assertions for self.e.driver
 from contracting.db.driver import AbstractDatabaseDriver, ContractDriver
 from contracting.execution.module import DatabaseFinder
-from contracting.ast.compiler import SenecaCompiler
+from contracting.ast.compiler import ContractingCompiler
 
 class TestExecutor(unittest.TestCase):
     def setUp(self):
@@ -47,7 +47,7 @@ class DBTests(unittest.TestCase):
         self.e = Executor()
         self.e_prod = Executor(production=True)
 
-        compiler = SenecaCompiler()
+        compiler = ContractingCompiler()
 
         for contract in contracts:
             name = contract.split('/')[-1]
