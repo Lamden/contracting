@@ -27,14 +27,25 @@ class FSMScheduler:
         # (SubBlockBuilder) kicks off his event loop
         self.fut = asyncio.ensure_future(self._poll_events())
 
-        self.current_cache = None
         self.available_caches = deque() # LIFO
         self.pending_caches = deque() # FIFO
+
+    def execute_bag(self, bag: TransactionBag):
+        assert len(self.available_caches) > 0, "No available caches"
+        current_cache = self.available_caches.pop()
+
+        assert current_cache.state == 'CLEAN', "Pulled cache from available db with state {}, but expected CLEAN state"\
+                                               .format(current_cache.state)
+
+        current_cache.set_bag(bag)
+        current_cache.execute()
+
+        self.pending_caches.append(current_cache)
 
     def add_poll(self, cache: CRCache, func: callable, succ_state: str):
         self.events[cache].add((func, succ_state))
 
-    def set_clean(self, cache: CRCache):
+    def mark_clean(self, cache: CRCache):
         self.pending_caches.remove(cache)
         self.available_caches.append(cache)
 
@@ -70,6 +81,11 @@ class FSMScheduler:
 
         await asyncio.sleep(config.POLL_INTERVAL)
 
+    def update_master_db(self):
+        assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
+        cache = self.pending_caches[0]
+        cache.merge_to_master()
+
 
 class SubBlockClient:
     def __init__(self, sbb_idx, num_sbb, loop=None):
@@ -86,11 +102,11 @@ class SubBlockClient:
         self.master_db = ContractDriver()
 
         caches = []
-        self.poller = FSMScheduler(self.loop, sbb_idx, num_sbb, caches)
+        self.scheduler = FSMScheduler(self.loop, sbb_idx, num_sbb, caches)
         for i in config.NUM_CACHES:
-            caches.append(CRCache(config.DB_OFFSET+i, self.master_db,
+            caches.append(CRCache(config.DB_OFFSET + i, self.master_db,
                                   self.sbb_idx, self.num_sbb,
-                                  self.executor, self.poller))
+                                  self.executor, self.scheduler))
 
     ###################
     ## EXTERNAL APIS ##
@@ -120,21 +136,8 @@ class SubBlockClient:
         self.pending_caches.clear()
 
     def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRCache], None]):
-        assert len(self.available_caches) > 0, "no available caches srry dog"
-
         bag = TransactionBag(contracts, input_hash, completion_handler)
-        self.current_cache = self.available_caches.pop()
-
-        self.current_cache.set_bag(bag)
-        self.current_cache.execute()
-
-        self.pending_caches.append(self.current_cache)
-        self.current_cache = None
-
-        # If this is the first cache we just added to pending, signal to him to tell him he's next up
-        if len(self.pending_caches) == 1:
-            self.log.debug("Signaling to CRCache {} to tell him he is top of stack".format(self.pending_caches[0]))
-            self.pending_caches[0].set_top_of_stack()
+        self.scheduler.execute_bag(bag)
 
     def update_master_db(self):
         assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
