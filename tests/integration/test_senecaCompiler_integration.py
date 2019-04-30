@@ -141,9 +141,9 @@ def e():
 
         self.assertEqual(len([m.start() for m in re.finditer(config.PRIVATE_METHOD_PREFIX, code_str)]), 9)
 
-    def test_seneca_construct_renames_properly(self):
+    def test_construct_renames_properly(self):
         code = '''
-@seneca_construct
+@construct
 def seed():
     print('yes')
 

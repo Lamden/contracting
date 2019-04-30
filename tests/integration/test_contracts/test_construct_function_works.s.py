@@ -4,6 +4,6 @@ v = Variable()
 def get():
     return v.get()
 
-@seneca_construct
+@construct
 def seed():
     v.set(42)

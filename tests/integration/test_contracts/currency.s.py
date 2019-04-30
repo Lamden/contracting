@@ -1,6 +1,6 @@
 balances = Hash()
 
-@seneca_construct
+@construct
 def seed():
     balances['stu'] = 1000000
     balances['colin'] = 100
