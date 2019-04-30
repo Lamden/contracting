@@ -139,6 +139,8 @@ def e():
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
+        print(code_str)
+
         self.assertEqual(len([m.start() for m in re.finditer(config.PRIVATE_METHOD_PREFIX, code_str)]), 9)
 
     def test_construct_renames_properly(self):

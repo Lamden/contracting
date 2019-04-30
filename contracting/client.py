@@ -6,6 +6,7 @@ import inspect
 import astor
 import autopep8
 from types import FunctionType
+import os
 
 from .db.orm import Variable
 from .db.orm import Hash
@@ -17,6 +18,7 @@ class AbstractContract:
         self.signer = signer
         self.environment = environment
         self.executor = executor
+        self.functions = funcs
 
         # set up virtual functions
         for f in funcs:
@@ -91,7 +93,7 @@ class AbstractContract:
 
 class ContractingClient:
     def __init__(self, signer='sys',
-                 submission_filename='../../contracting/contracts/submission.s.py',
+                 submission_filename=os.path.join(os.path.dirname(__file__), 'contracts/submission.s.py'),
                  executor=Executor(),
                  compiler=ContractingCompiler()):
 

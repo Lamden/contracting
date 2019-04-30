@@ -33,12 +33,16 @@ class ContractingCompiler(ast.NodeTransformer):
 
         # check all visited nodes and see if they are actually private
 
+        # An Expr node can have a value func of ast.Name, or ast.Attribute which you much access the value of.
+        # This code branching is not ideal and should be investigated for simplicity.
         for node in self.visited_expr:
-            try:
-                if isinstance(node.value, ast.Call) and node.value.func.id in self.private_expr:
-                    node.value.func.id = self.privatize(node.value.func.id)
-            except:
-                pass
+            if isinstance(node.value, ast.Call):
+                if isinstance(node.value.func, ast.Name):
+                    if node.value.func.id in self.private_expr:
+                        node.value.func.id = self.privatize(node.value.func.id)
+                else:
+                    if node.value.func.value in self.private_expr:
+                        node.value.func.value = self.privatize(node.value.func.value)
 
         ast.fix_missing_locations(tree)
 

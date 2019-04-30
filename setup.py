@@ -7,7 +7,7 @@ import sys
 
 major = 0
 
-__version__ = '0.6.0'
+__version__ = '0.1.0'
 
 print('#' * 128)
 print('\n    VERSION = {}\n'.format(__version__))
