@@ -74,9 +74,9 @@ fv = ForeignHash(foreign_contract='scoob', foreign_name='kumbucha')
         self.assertEqual(fv.key, '__main__.fv')
         self.assertEqual(fv.foreign_key, 'scoob.kumbucha')
 
-    def test_seneca_export_decorator_pops(self):
+    def test_export_decorator_pops(self):
         code = '''
-@seneca_export
+@export
 def funtimes():
     print('cool')
         '''
@@ -85,7 +85,7 @@ def funtimes():
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
-        self.assertNotIn('@seneca_export', code_str)
+        self.assertNotIn('@export', code_str)
 
     def test_private_function_prefixes_properly(self):
         code = '''
@@ -101,7 +101,7 @@ def private():
 
     def test_private_func_call_in_public_func_properly_renamed(self):
         code = '''
-@seneca_export
+@export
 def public():
     private('hello')
     
@@ -147,7 +147,7 @@ def e():
 def seed():
     print('yes')
 
-@seneca_export
+@export
 def hello():
     print('no')
     

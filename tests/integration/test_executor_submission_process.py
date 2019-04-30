@@ -50,7 +50,7 @@ class TestExecutor(TestCase):
     def test_submission(self):
         e = Executor()
 
-        code = '''@seneca_export
+        code = '''@export
 def d():
     a = 1
     return 1            
@@ -72,7 +72,7 @@ def d():
     def test_submission_then_function_call(self):
         e = Executor()
 
-        code = '''@seneca_export
+        code = '''@export
 def d():
     return 1            
 '''
@@ -93,11 +93,11 @@ def d():
 
         code = '''v = Variable()
 
-@seneca_export
+@export
 def set_v(i):
     v.set(i)
 
-@seneca_export
+@export
 def get_v():
     return v.get()
 '''
@@ -268,7 +268,7 @@ def get_v():
 
         self.assertEqual(res[1], 42)
 
-    def test_import_seneca_exported_function_works(self):
+    def test_import_exported_function_works(self):
         e = Executor()
 
         e.execute(**TEST_SUBMISSION_KWARGS,

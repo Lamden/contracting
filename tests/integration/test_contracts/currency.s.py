@@ -5,7 +5,7 @@ def seed():
     balances['stu'] = 1000000
     balances['colin'] = 100
 
-@seneca_export
+@export
 def transfer(amount, to):
     sender = ctx.signer
     assert balances[sender] >= amount, 'Not enough coins to send!'
@@ -17,6 +17,6 @@ def transfer(amount, to):
     else:
         balances[to] += amount
 
-@seneca_export
+@export
 def balance(account):
     return balances[account]

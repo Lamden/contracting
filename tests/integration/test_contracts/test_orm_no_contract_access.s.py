@@ -1,9 +1,9 @@
 c = __Contract()
 
-@seneca_export
+@export
 def set_c():
     code = '''
-@seneca_export
+@export
 def a():
     print('gottem')    
 '''

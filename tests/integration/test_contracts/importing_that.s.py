@@ -1,6 +1,6 @@
 import import_this
 
-@seneca_export
+@export
 def test():
     a = import_this.howdy()
     a -= 1000

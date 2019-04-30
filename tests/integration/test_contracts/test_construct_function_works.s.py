@@ -1,6 +1,6 @@
 v = Variable()
 
-@seneca_export
+@export
 def get():
     return v.get()
 

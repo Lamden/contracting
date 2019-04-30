@@ -7,7 +7,7 @@ def seed():
     balances['colin'] = 100
     supply.set(balances['stu'] + balances['colin'])
 
-@seneca_export
+@export
 def transfer(amount, to):
     sender = ctx.signer
 
@@ -17,6 +17,6 @@ def transfer(amount, to):
     # putting the assert down here shouldn't matter to the execution and data environment
     assert balances[sender] >= amount, 'Not enough coins to send!'
 
-@seneca_export
+@export
 def balance_of(account):
     return balances[account]

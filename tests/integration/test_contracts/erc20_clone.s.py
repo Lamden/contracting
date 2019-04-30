@@ -7,7 +7,7 @@ def seed():
     balances['colin'] = 100
     supply.set(balances['stu'] + balances['colin'])
 
-@seneca_export
+@export
 def transfer(amount, to):
     sender = ctx.caller
     assert balances[sender] >= amount, 'Not enough coins to send!'
@@ -15,25 +15,25 @@ def transfer(amount, to):
     balances[sender] -= amount
     balances[to] += amount
 
-@seneca_export
+@export
 def balance_of(account):
     return balances[account]
 
-@seneca_export
+@export
 def total_supply():
     return supply.get()
 
-@seneca_export
+@export
 def allowance(owner, spender):
     return balances[owner, spender]
 
-@seneca_export
+@export
 def approve(amount, to):
     sender = ctx.caller
     balances[sender, to] += amount
     return balances[sender, to]
 
-@seneca_export
+@export
 def transfer_from(amount, to, main_account):
     sender = ctx.caller
 
