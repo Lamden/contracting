@@ -259,7 +259,7 @@ def test():
             def test():
                 return v.get()
 
-            @seneca_construct
+            @construct
             def seed():
                 v.set(1000)
 
@@ -276,7 +276,7 @@ def test():
             def test():
                 return v.get()
 
-            @seneca_construct
+            @construct
             def seed():
                 v.set(1000)
 
@@ -294,7 +294,7 @@ def test():
             def test():
                 return v.get()
 
-            @seneca_construct
+            @construct
             def seed():
                 v.set(1000)
 
@@ -312,7 +312,7 @@ def test():
             def test():
                 return v.get()
 
-            @seneca_construct
+            @construct
             def seed():
                 v.set(1000)
 
@@ -328,7 +328,7 @@ def test():
             def test(f):
                 return h[f]
 
-            @seneca_construct
+            @construct
             def seed():
                 h['stu'] = 'hello'
 
@@ -345,7 +345,7 @@ def test():
             def test(f):
                 return h[f]
 
-            @seneca_construct
+            @construct
             def seed():
                 h['stu'] = 'hello'
 
@@ -364,7 +364,7 @@ def test():
             def test(f):
                 return h[f]
 
-            @seneca_construct
+            @construct
             def seed():
                 h['stu'] = 'hello'
 

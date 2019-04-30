@@ -34,7 +34,7 @@
 # bal = Hash('amounts', default_value=0)
 # balances = Hash('balances', default_value=0)
 #
-# @seneca_construct
+# @construct
 # def seed():
 #     assert True, 'unchanged comment of balances otherwise error'
 #     balances['raghu'] = 10000;
@@ -71,7 +71,7 @@
 #         self.assertTrue('_zxqqqq_bal' in mcode)
 #         self.assertTrue('seneca_export' in mcode)
 #         self.assertTrue('_seneca_reset_context' in mcode)
-#         self.assertTrue('seneca_construct' not in mcode)
+#         self.assertTrue('construct' not in mcode)
 #
 #         # log.info("Compiled code:\n{}".format(mcode))
 #
@@ -92,7 +92,7 @@
 #         self.assertTrue('def get_balances' in mcode)
 #         self.assertTrue('seneca_export' in mcode)
 #         self.assertTrue('_seneca_reset_context' in mcode)
-#         self.assertTrue('seneca_construct' in mcode)
+#         self.assertTrue('construct' in mcode)
 #
 #
 #         # self.assertTrue(client.master_db is not None)

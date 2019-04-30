@@ -318,7 +318,7 @@ def set(i):
 
     def test_multi_decorator_fails(self):
         code = '''
-@seneca_construct
+@construct
 @export
 def kaboom():
     print('i like to break things')
@@ -341,11 +341,11 @@ def wont_work():
 
     def test_multiple_constructors_fails(self):
         code = '''
-@seneca_construct
+@construct
 def seed_1():
     print('hi')
     
-@seneca_construct
+@construct
 def seed_2():
     print('howdy')
 '''
