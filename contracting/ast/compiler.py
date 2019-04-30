@@ -9,7 +9,7 @@ import copy
 
 class ContractingCompiler(ast.NodeTransformer):
     def __init__(self, module_name='__main__', linter=Linter()):
-        self.log = get_logger('Seneca.Compiler')
+        self.log = get_logger('Contracting.Compiler')
         self.module_name = module_name
         self.linter = linter
         self.lint_alerts = None
