@@ -139,20 +139,7 @@ def e():
 
         self.assertEqual(len([m.start() for m in re.finditer(config.PRIVATE_METHOD_PREFIX, code_str)]), 9)
 
-    def test_sanity_check(self):
-        code = '''@export
-def secret():
-    return abcd()
-    
-def abcd():
-    return 5'''
 
-        c = ContractingCompiler()
-        comp = c.parse(code, lint=False)
-
-        code_str = astor.to_source(comp)
-
-        print(code_str)
     def test_construct_renames_properly(self):
         code = '''
 @construct
@@ -170,7 +157,6 @@ def goodbye():
         c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
-        print(code_str)
 
     def test_token_contract_parses_correctly(self):
 
@@ -181,5 +167,3 @@ def goodbye():
         c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
-
-        print(code_str)

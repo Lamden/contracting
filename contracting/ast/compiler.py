@@ -77,18 +77,6 @@ class ContractingCompiler(ast.NodeTransformer):
             self.private_names.add(node.name)
             node.name = self.privatize(node.name)
 
-        # body = copy.deepcopy(node.body)
-        # node.body = [ast.With(items=[ast.withitem(
-        #                         context_expr=ast.Name(
-        #                             id='__Context()',
-        #                             ctx=ast.Load()),
-        #                         optional_vars=ast.Name(
-        #                             id='ctx',
-        #                             ctx=ast.Store()
-        #                         )
-        #                     )],
-        #                         body=body)]
-
         self.generic_visit(node)
 
         return node
@@ -100,17 +88,6 @@ class ContractingCompiler(ast.NodeTransformer):
             node.value.keywords.append(ast.keyword('name', ast.Str(node.targets[0].id)))
 
         return node
-
-    # def visit_Expr(self, node):
-    #     # keeps track of visited expressions for private method prefixing after parsing tree
-    #     if isinstance(node.value, ast.Call):
-    #         self.visited_names.add(node)
-    #
-    #     return node
-
-    # def visit_Call(self, node):
-    #     self.visited_names.add(node)
-    #     return node
 
     def visit_Name(self, node):
         self.visited_names.add(node)

@@ -30,7 +30,4 @@ class Contract:
         if scope.get(config.INIT_FUNC_NAME) is not None:
             scope[config.INIT_FUNC_NAME]()
 
-        tree = c.parse(code, lint=True)
-        compiled_code = astor.to_source(tree)
-
-        self.driver.set_contract(name=name, code=compiled_code, author=author, overwrite=False)
+        self.driver.set_contract(name=name, code=code_obj, author=author, overwrite=False)
