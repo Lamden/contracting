@@ -135,7 +135,7 @@ class SubBlockClient:
 
         self.pending_caches.clear()
 
-    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[CRCache], None]):
+    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[List[tuple]], None]):
         bag = TransactionBag(contracts, input_hash, completion_handler)
         self.scheduler.execute_bag(bag)
 

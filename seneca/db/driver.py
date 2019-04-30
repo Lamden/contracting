@@ -317,6 +317,8 @@ class CacheDriver(DatabaseDriver):
                 self.modified_keys[key] = i
 
             self.contract_modifications = self.contract_modifications[:idx + 1]
+            # self.contract_modifications[idx].clear()
+            # for mod_dict in self.contract_modifications[:idx + 1]:
 
     def commit(self):
         for key, idx in self.modified_keys.items():

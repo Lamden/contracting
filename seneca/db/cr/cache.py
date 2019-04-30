@@ -11,6 +11,7 @@ from seneca.db.driver import ContractDriver, CacheDriver
 from seneca.db.encoder import decode, encode
 from seneca.db.cr.transaction_bag import TransactionBag
 from seneca import config
+from typing import List
 
 
 # TODO include key exclusions for stamps, etc
@@ -248,7 +249,7 @@ class CRCache:
         self._incr_macro_key(Macros.CONFLICT_RESOLUTION)
 
         # call completion handler on bag so Cilantro can build a SubBlockContender
-        self.bag.completion_handler(self)
+        self.bag.completion_handler(self._get_sb_data())
 
     def all_committed(self):
         return self._check_macro_key(Macros.CONFLICT_RESOLUTION) == self.num_sbb
@@ -273,6 +274,36 @@ class CRCache:
     def _mark_clean(self):
         # Mark myself as clean for the FSMScheduler to be able to reuse me
         self.scheduler.mark_clean(self)
+
+    def _get_sb_data(self) -> List[tuple]:
+        """
+        Tuples are of length 4 in the form:
+         (contract_obj: ContractTransaction, status: int[0/1], result: str/exception object, state: str)
+        """
+
+        if len(self.results) != len(self.bag.transactions):
+            self.log.critical("You rly fkt up dude, length of results is {} but bag has {} txs. Discarding." \
+                              .format(len(self.results), len(self.bag.transactions)))
+            self.discard()
+            return [] # colin is this necessary?? also what should i return for cilatnro to be aware of the goof?
+
+        sb_data = []
+        i = 0
+
+        # Iterate over results to take into account transactions that have been reverted and removed from contract_mods
+        for tx_idx in sorted(self.results.keys()):
+            status_code, result = self.results[tx_idx]
+            state_str = ""
+
+            if status_code == 0:
+                mods = self.db.contract_modifications[i]
+                i += 1
+                for k, v in mods.items():
+                    state_str += '{} {};'.format(k, v)
+
+            sb_data.append((self.bag.transactions[tx_idx], status_code, result, state_str))
+
+        return sb_data
 
     def __repr__(self):
         input_hash = 'NOT_SET' if self.bag is None else self.bag.input_hash
