@@ -68,7 +68,7 @@ class SubBlockClient:
     ######################
 
 
-class SenecaClient:
+class ContractingCRClient:
 
 
     def __init__(self, sbb_idx, num_sbb, loop=None, *args, **kwargs):
@@ -102,7 +102,7 @@ class SenecaClient:
 
         self._setup_dbs()
 
-        self.log.important3("---- SENECA CLIENT CREATION FINISHED -----")
+        self.log.important3("---- CONTRACTING CLIENT CREATION FINISHED -----")
 
     def _setup_dbs(self):
         self.master_db = DatabaseDriver(host='localhost', db=MASTER_DB)

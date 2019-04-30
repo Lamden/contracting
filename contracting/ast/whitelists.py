@@ -90,7 +90,6 @@ VIOLATION_TRIGGERS = [
     "S13- No valid contracting decorator found"
 ]
 
-SENECA_LIBRARY_PATH = 'contracting.libs'
 
 ALLOWED_IMPORT_PATHS = [
     'contracting.contracts',

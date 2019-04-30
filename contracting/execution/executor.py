@@ -74,7 +74,7 @@ class Executor:
             status_code = 0
             if auto_commit:
                 runtime.rt.driver.commit()
-        # TODO: catch SenecaExceptions distinctly, this is pending on Raghu looking into Exception override in compiler
+        # TODO: catch ContractingExceptions distinctly, this is pending on Raghu looking into Exception override in compiler
         except Exception as e:
             result = e
             status_code = 1

@@ -77,7 +77,7 @@ class TestSenecaClient(TestCase):
     def test_abstract_function_succeeds_and_publishes_contract(self):
         submission = self.c.get_contract('submission')
         code = '''
-@seneca_export
+@export
 def test():
     return 100
         '''
@@ -92,7 +92,7 @@ def test():
     def test_abstract_function_succeeds_and_new_contract_can_be_abstracted(self):
             submission = self.c.get_contract('submission')
             code = '''
-@seneca_export
+@export
 def test():
     return 100
             '''
@@ -105,7 +105,7 @@ def test():
     def test_abstract_function_fails_and_raises_error(self):
         submission = self.c.get_contract('submission')
         code = '''
-@seneca_export
+@export
 def test(x):
     assert x == 7, "X is not seven!"
 '''
@@ -119,12 +119,12 @@ def test(x):
 
     def test_closure_to_code_string(self):
         def howdy():
-            @seneca_export
+            @export
             def sup():
                 return 5
 
         code_string, name = self.c.closure_to_code_string(howdy)
-        code = '''@seneca_export
+        code = '''@export
 def sup():
     return 5
 '''
@@ -134,7 +134,7 @@ def sup():
 
     def test_lint_string_no_violations(self):
         code = '''
-@seneca_export
+@export
 def test():
     return 100
 '''
@@ -143,7 +143,7 @@ def test():
 
     def test_lint_closure_no_violations(self):
         def howdy():
-            @seneca_export
+            @export
             def test():
                 return 100
 
@@ -185,7 +185,7 @@ def test():
 
     def test_compile_string(self):
         code = '''
-@seneca_export
+@export
 def test():
     return 100
 '''
@@ -197,12 +197,12 @@ def test():
 
     def test_compile_closure(self):
         def howdy():
-            @seneca_export
+            @export
             def test():
                 return 100
 
         code = '''
-@seneca_export
+@export
 def test():
     return 100
 '''
@@ -215,7 +215,7 @@ def test():
     def test_submit_closure_works(self):
         def howdy():
             v = Variable()
-            @seneca_export
+            @export
             def test():
                 return v.get()
 
@@ -226,7 +226,7 @@ def test():
 
     def test_submit_string_works(self):
         code = '''v = Variable()
-@seneca_export
+@export
 def test():
     return v.get()'''
 
@@ -237,7 +237,7 @@ def test():
 
     def test_submit_fails_on_no_name(self):
         code = '''v = Variable()
-@seneca_export
+@export
 def test():
     return v.get()'''
 
@@ -255,7 +255,7 @@ def test():
     def test_get_variable_that_exists(self):
         def howdy():
             v = Variable()
-            @seneca_export
+            @export
             def test():
                 return v.get()
 
@@ -272,7 +272,7 @@ def test():
     def test_get_variable_that_exists_sets_on_db(self):
         def howdy():
             v = Variable()
-            @seneca_export
+            @export
             def test():
                 return v.get()
 
@@ -290,7 +290,7 @@ def test():
     def test_get_variable_that_doesnt_exist_throws_attribute_error(self):
         def howdy():
             v = Variable()
-            @seneca_export
+            @export
             def test():
                 return v.get()
 
@@ -308,7 +308,7 @@ def test():
     def test_get_protected_variable_that_exists_and_returns_string(self):
         def howdy():
             v = Variable()
-            @seneca_export
+            @export
             def test():
                 return v.get()
 
@@ -324,7 +324,7 @@ def test():
     def test_get_hash_returns_properly(self):
         def howdy():
             h = Hash()
-            @seneca_export
+            @export
             def test(f):
                 return h[f]
 
@@ -341,7 +341,7 @@ def test():
     def test_get_hash_allows_setting_on_new_keys(self):
         def howdy():
             h = Hash()
-            @seneca_export
+            @export
             def test(f):
                 return h[f]
 
@@ -360,7 +360,7 @@ def test():
     def test_get_hash_allows_setting_which_overrides(self):
         def howdy():
             h = Hash()
-            @seneca_export
+            @export
             def test(f):
                 return h[f]
 
@@ -378,7 +378,7 @@ def test():
 
     def test_get_contracts(self):
         code = '''v = Variable()
-@seneca_export
+@export
 def test():
     return v.get()'''
 

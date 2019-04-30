@@ -11,7 +11,7 @@ class TestLinter(TestCase):
     def test_linter(self):
         # log = get_logger("TestSenecaLinter")
         data = '''
-@seneca_export
+@export
 def a():
     b = 10
     return b
@@ -59,7 +59,7 @@ def a():
     '''
     def test_not_system_variable_ast(self):
         code = '''
-@seneca_export
+@export
 def a():
     __ruh_roh__ = 'shaggy'
         '''
@@ -72,7 +72,7 @@ def a():
 
     def test_not_system_variable_ast_success(self):
         code = '''
-@seneca_export
+@export
 def a():
     ruh_roh = 'shaggy'
         '''
@@ -92,7 +92,7 @@ def a():
 
     def test_visit_async_func_def_fail_code(self):
         code = '''
-@seneca_export
+@export
 async def a():
     ruh_roh = 'shaggy'
 def b():
@@ -130,7 +130,7 @@ class Scooby:
 
     def test_accessing_system_vars(self):
         code = '''
-@seneca_export
+@export
 def a():
     ruh_roh = 'shaggy'
     ruh_roh.__dir__()
@@ -143,7 +143,7 @@ def a():
 
     def test_accessing_attribute(self):
         code = '''
-@seneca_export
+@export
 def a():
     ruh_roh = 'shaggy'
     ruh_roh.capitalize()
@@ -159,7 +159,7 @@ def a():
 
     def test_no_nested_imports(self):
         code = '''
-@seneca_export
+@export
 def a():
     import something
         '''
@@ -171,7 +171,7 @@ def a():
 
     def test_no_nested_imports_works(self):
         code = '''
-@seneca_export
+@export
 def a():
     ruh_roh = 'shaggy'
     ruh_roh.capitalize()
@@ -185,7 +185,7 @@ def a():
 
     def test_augassign(self):
         code = '''
-@seneca_export
+@export
 def a():
     b = 0
     b += 1
@@ -199,7 +199,7 @@ def a():
     def test_no_import_from(self):
         code = '''
 from something import a
-@seneca_export
+@export
 def a():
     b = 0
     b += 1
@@ -216,7 +216,7 @@ def a():
 #     def test_import_non_existent_contract(self):
 #         code = '''
 # import something
-# @seneca_export
+# @export
 # def a():
 #     b = 0
 #     b += 1
@@ -243,19 +243,19 @@ def a():
 
     def test_collect_function_defs(self):
         code = '''
-@seneca_export
+@export
 def a():
     return 42
 
-@seneca_export
+@export
 def b():
     return 1000000
 
-@seneca_export
+@export
 def x():
     return 64
 
-@seneca_export
+@export
 def y():
     return 24
 '''
@@ -268,7 +268,7 @@ def y():
         code = '''
 import import_this
 
-@seneca_export
+@export
 def test():
     a = import_this.howdy()
     a -= 1000
@@ -282,7 +282,7 @@ def test():
         code = '''
 v = Variable()
 
-@seneca_export
+@export
 def set(i):
     v.set(i)
 '''
@@ -294,7 +294,7 @@ def set(i):
         code = '''
 v = Variable(contract='currency', name='stus_balance')
 
-@seneca_export
+@export
 def set(i):
     v.set(i)
 '''
@@ -306,7 +306,7 @@ def set(i):
         code = '''
 v, x = Variable()
 
-@seneca_export
+@export
 def set(i):
     v.set(i)
     '''
@@ -319,7 +319,7 @@ def set(i):
     def test_multi_decorator_fails(self):
         code = '''
 @seneca_construct
-@seneca_export
+@export
 def kaboom():
     print('i like to break things')
 '''
