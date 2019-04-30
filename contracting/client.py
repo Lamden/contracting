@@ -101,9 +101,24 @@ class ContractingClient:
         self.raw_driver = self.executor.driver
         self.signer = signer
         self.compiler = compiler
+        self.submission_filename = submission_filename
 
         # Seed the genesis contracts into the instance
-        with open(submission_filename) as f:
+        with open(self.submission_filename) as f:
+            contract = f.read()
+
+        self.raw_driver.set_contract(name='submission',
+                                     code=contract,
+                                     author=self.signer)
+
+        self.raw_driver.commit()
+
+        self.submission_contract = self.get_contract('submission')
+
+    def flush(self):
+        # flushes db and resubmits genesis contracts
+        self.raw_driver.flush()
+        with open(self.submission_filename) as f:
             contract = f.read()
 
         self.raw_driver.set_contract(name='submission',
