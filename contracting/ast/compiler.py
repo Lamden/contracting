@@ -14,8 +14,8 @@ class ContractingCompiler(ast.NodeTransformer):
         self.linter = linter
         self.lint_alerts = None
         self.constructor_visited = False
-        self.private_expr = set()
-        self.visited_expr = set()  # store the method visits
+        self.private_names = set()
+        self.visited_names = set()  # store the method visits
 
     def parse(self, source: str, lint=True):
         self.constructor_visited = False
@@ -35,20 +35,15 @@ class ContractingCompiler(ast.NodeTransformer):
 
         # An Expr node can have a value func of ast.Name, or ast.Attribute which you much access the value of.
         # This code branching is not ideal and should be investigated for simplicity.
-        for node in self.visited_expr:
-            if isinstance(node.value, ast.Call):
-                if isinstance(node.value.func, ast.Name):
-                    if node.value.func.id in self.private_expr:
-                        node.value.func.id = self.privatize(node.value.func.id)
-                else:
-                    if node.value.func.value in self.private_expr:
-                        node.value.func.value = self.privatize(node.value.func.value)
+        for node in self.visited_names:
+            if node.id in self.private_names:
+                node.id = self.privatize(node.id)
 
         ast.fix_missing_locations(tree)
 
         # reset state
-        self.private_expr = set()
-        self.visited_expr = set()
+        self.private_names = set()
+        self.visited_names = set()
 
         return tree
 
@@ -79,7 +74,7 @@ class ContractingCompiler(ast.NodeTransformer):
             if decorator.id == config.INIT_DECORATOR_STRING:
                 node.name = '____'
         else:
-            self.private_expr.add(node.name)
+            self.private_names.add(node.name)
             node.name = self.privatize(node.name)
 
         # body = copy.deepcopy(node.body)
@@ -106,12 +101,17 @@ class ContractingCompiler(ast.NodeTransformer):
 
         return node
 
-    def visit_Call(self, node):
-        return node
+    # def visit_Expr(self, node):
+    #     # keeps track of visited expressions for private method prefixing after parsing tree
+    #     if isinstance(node.value, ast.Call):
+    #         self.visited_names.add(node)
+    #
+    #     return node
 
-    def visit_Expr(self, node):
-        # keeps track of visited expressions for private method prefixing after parsing tree
-        if isinstance(node.value, ast.Call):
-            self.visited_expr.add(node)
+    # def visit_Call(self, node):
+    #     self.visited_names.add(node)
+    #     return node
 
+    def visit_Name(self, node):
+        self.visited_names.add(node)
         return node
