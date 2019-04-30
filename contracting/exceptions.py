@@ -44,5 +44,5 @@ class CompilationException(Exception):
 
 class SenecaException(Exception):
     """
-    Base exeception to be returned by default from inside seneca contracts
+    Base exeception to be returned by default from inside contracting contracts
     """

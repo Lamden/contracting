@@ -1,10 +1,10 @@
 import ast
 import astor
 
-from seneca import config
+from contracting import config
 
-from seneca.logger import get_logger
-from seneca.ast.linter import Linter
+from contracting.logger import get_logger
+from contracting.ast.linter import Linter
 import copy
 
 class SenecaCompiler(ast.NodeTransformer):

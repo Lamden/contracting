@@ -1,7 +1,7 @@
 from unittest import TestCase
-from seneca.db.encoder import encode, decode
+from contracting.db.encoder import encode, decode
 from decimal import Decimal as dec
-from seneca.stdlib.bridge.time import Datetime
+from contracting.stdlib.bridge.time import Datetime
 from datetime import datetime
 
 class TestEncode(TestCase):

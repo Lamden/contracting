@@ -1,5 +1,5 @@
 from unittest import TestCase
-from seneca.stdlib.bridge.time import Datetime
+from contracting.stdlib.bridge.time import Datetime
 from datetime import datetime as dt
 from datetime import timedelta
 

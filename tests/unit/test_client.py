@@ -1,7 +1,7 @@
 from unittest import TestCase
-from seneca.client import SenecaClient, AbstractContract
-from seneca.ast.compiler import SenecaCompiler
-from seneca.db.orm import Variable, Hash
+from contracting.client import SenecaClient, AbstractContract
+from contracting.ast.compiler import SenecaCompiler
+from contracting.db.orm import Variable, Hash
 
 
 def submission_kwargs_for_file(f):
@@ -34,7 +34,7 @@ class TestSenecaClient(TestCase):
         self.c = SenecaClient()
         self.c.raw_driver.flush()
 
-        with open('../../seneca/contracts/submission.s.py') as f:
+        with open('../../contracting/contracts/submission.s.py') as f:
             contract = f.read()
 
         self.c.raw_driver.set_contract(name='submission',
@@ -157,7 +157,7 @@ def test():
     return 100
 '''
         violations = self.c.lint(code)
-        self.assertEqual(violations[0], 'Line 0: S13- No valid seneca decorator found')
+        self.assertEqual(violations[0], 'Line 0: S13- No valid contracting decorator found')
 
     def test_lint_closure_no_exports(self):
         def howdy():
@@ -165,7 +165,7 @@ def test():
                 return 100
 
         violations = self.c.lint(howdy)
-        self.assertEqual(violations[0], 'Line 0: S13- No valid seneca decorator found')
+        self.assertEqual(violations[0], 'Line 0: S13- No valid contracting decorator found')
 
     def test_lint_string_no_export_raises(self):
         code = '''

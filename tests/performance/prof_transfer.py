@@ -1,6 +1,6 @@
 import secrets
-from seneca.db.driver import ContractDriver
-from seneca.execution.executor import Executor
+from contracting.db.driver import ContractDriver
+from contracting.execution.executor import Executor
 
 from pyinstrument import Profiler
 
@@ -32,7 +32,7 @@ TEST_SUBMISSION_KWARGS = {
 d = ContractDriver()
 d.flush()
 
-with open('../../seneca/contracts/submission.s.py') as f:
+with open('../../contracting/contracts/submission.s.py') as f:
     contract = f.read()
 
 d.set_contract(name='submission',

@@ -3,9 +3,9 @@ import sys
 from importlib.abc import Loader, MetaPathFinder
 from importlib import invalidate_caches
 
-from seneca.db.driver import ContractDriver
-from seneca.stdlib import env
-from seneca.execution.runtime import rt
+from ..db.driver import ContractDriver
+from ..stdlib import env
+from ..execution.runtime import rt
 
 from types import ModuleType
 import marshal

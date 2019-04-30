@@ -1,9 +1,9 @@
 from unittest import TestCase
-from seneca.ast.compiler import SenecaCompiler
-from seneca.stdlib import env
+from contracting.ast.compiler import SenecaCompiler
+from contracting.stdlib import env
 import re
 import astor
-from seneca import config
+from contracting import config
 
 
 class TestSenecaCompiler(TestCase):

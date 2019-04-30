@@ -1,6 +1,6 @@
 from unittest import TestCase
-from seneca.db.driver import RedisDriver, ContractDriver, LevelDBDriver
-from seneca import config
+from contracting.db.driver import RedisDriver, ContractDriver, LevelDBDriver
+from contracting import config
 import random
 
 class TestAbstractDatabaseDriver(TestCase):

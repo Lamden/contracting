@@ -1,4 +1,4 @@
-from seneca.ast.compiler import SenecaCompiler
+from contracting.ast.compiler import SenecaCompiler
 from ..db.driver import ContractDriver
 from ..execution.runtime import rt
 from types import ModuleType

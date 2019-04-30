@@ -4,12 +4,12 @@
 # # import ujson as json
 # # from base64 import b64encode
 #
-# # from seneca.constants.config import SENECA_PATH
+# # from contracting.constants.config import SENECA_PATH
 # from unittest import TestCase
 #
-# from seneca.libs.logger import get_logger
-# from seneca.libs.logger import overwrite_logger_level, get_logger
-# from seneca.unit.interpreter.compiler import SenecaCompiler
+# from contracting.libs.logger import get_logger
+# from contracting.libs.logger import overwrite_logger_level, get_logger
+# from contracting.unit.interpreter.compiler import SenecaCompiler
 #
 #
 #
@@ -18,7 +18,7 @@
 #
 # BASIC_CONTRACT = \
 # """
-# from seneca.libs.storage.datatypes import Hash
+# from contracting.libs.storage.datatypes import Hash
 #
 # bal = Hash('amounts', default_value=0)
 #
@@ -29,7 +29,7 @@
 #
 # ADV_CONTRACT = \
 # """
-# from seneca.libs.storage.datatypes import Hash
+# from contracting.libs.storage.datatypes import Hash
 #
 # bal = Hash('amounts', default_value=0)
 # balances = Hash('balances', default_value=0)

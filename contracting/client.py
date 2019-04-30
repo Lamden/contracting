@@ -91,7 +91,7 @@ class AbstractContract:
 
 class SenecaClient:
     def __init__(self, signer='sys',
-                 submission_filename='../../seneca/contracts/submission.s.py',
+                 submission_filename='../../contracting/contracts/submission.s.py',
                  executor=Executor(),
                  compiler=SenecaCompiler()):
 

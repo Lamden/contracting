@@ -1,7 +1,7 @@
 from unittest import TestCase
-from seneca.ast.linter import Linter
+from contracting.ast.linter import Linter
 import ast
-from seneca.ast.whitelists import ALLOWED_AST_TYPES
+from contracting.ast.whitelists import ALLOWED_AST_TYPES
 
 
 class TestLinter(TestCase):
@@ -35,7 +35,7 @@ def a():
             self.assertListEqual([], self.l._violations)
 
     def test_bad_ast_type(self):
-        err = 'Line 1 : S1- Illegal seneca syntax type used : AsyncFunctionDef'
+        err = 'Line 1 : S1- Illegal contracting syntax type used : AsyncFunctionDef'
         t = ast.AsyncFunctionDef()
         self.l.ast_types(t, 1)
         self.l.dump_violations()
@@ -238,7 +238,7 @@ def a():
         c = ast.parse(code)
         chk = self.l.check(c)
         self.l.dump_violations()
-        self.assertEqual(chk, ['Line 0: S13- No valid seneca decorator found'])
+        self.assertEqual(chk, ['Line 0: S13- No valid contracting decorator found'])
         self.assertFalse(self.l._is_one_export)
 
     def test_collect_function_defs(self):
@@ -355,4 +355,4 @@ def seed_2():
         self.l.dump_violations()
 
         self.assertEqual(len(chk),2)
-        self.assertEqual(self.l._violations, [chk[0], 'Line 0: S13- No valid seneca decorator found'])
+        self.assertEqual(self.l._violations, [chk[0], 'Line 0: S13- No valid contracting decorator found'])
