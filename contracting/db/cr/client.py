@@ -5,9 +5,10 @@ from contracting.execution.executor import Executor
 from contracting.db.cr.cache import CRCache
 from contracting import config
 from contracting.db.cr.transaction_bag import TransactionBag
+from contracting.db.cr.callback_data import ExecutionData, SBData
 from contracting.db.driver import ContractDriver
 from collections import deque, defaultdict
-from typing import Callable, List
+from typing import Callable, List, Any
 import traceback
 
 
@@ -125,7 +126,7 @@ class SubBlockClient:
     def flush_all(self):
         self.scheduler.flush_all()
 
-    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[List[tuple]], None]):
+    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[SBData], None]):
         bag = TransactionBag(contracts, input_hash, completion_handler)
         self.scheduler.execute_bag(bag)
 
