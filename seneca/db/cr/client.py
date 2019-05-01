@@ -64,23 +64,13 @@ class FSMScheduler:
 
     async def _poll_events(self):
         try:
-            self.log.critical("starting poller for events")  # todo delete
             while True:
-                # self.log.debugv("Polling events")
-                self.log.important3("Polling events")
+                self.log.spam("Polling events")
 
                 rm_set = defaultdict(list)  # set of function pointer to remove if the poll call was successful
 
                 for cache, poll_set in self.events.items():
                     for func, succ_state in poll_set:
-
-                        # debug
-                        self.log.important("polling func {} on cache {}".format(func, cache))
-                        # end debug
-
-                        # Execute the func to poll the FSM, and check if that resulted in the desired state change.
-                        # If so, remove this event from Poller
-                        # TODO how to add the next event to the Poller tho?
                         func()
                         if cache.state == succ_state:
                             self.log.debug("Polling function call {} resulting in succ state {}. Removing function from poll "
@@ -91,18 +81,15 @@ class FSMScheduler:
                     for tup in li:
                         self.events[cache].remove(tup)
 
-                self.log.notice("sleeping {} before next poll".format(config.POLL_INTERVAL))
-
                 self.events.update(self.temp_events)
                 self.temp_events.clear()
 
                 await asyncio.sleep(config.POLL_INTERVAL)
-                self.log.notice("done with slep")
 
         except Exception as e:
-            self.log.fatal("type of error: {}".format(type(e)))
-            self.log.fatal("big yikes: {}".format(e))
-            self.log.info(traceback.format_exc())
+            self.log.fatal("big yikes in the _poll_events: {}...\nerror:".format(e))
+            self.log.fatal(traceback.format_exc())
+            raise e
 
     def update_master_db(self):
         assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
