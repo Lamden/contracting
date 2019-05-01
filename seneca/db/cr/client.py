@@ -109,6 +109,11 @@ class FSMScheduler:
         cache = self.pending_caches[0]
         cache.merge()
 
+    def flush_all(self):
+        self.log.info("Flushing all caches...")
+        for cache in self.pending_caches:
+            cache.discard()
+
 
 class SubBlockClient:
     def __init__(self, sbb_idx, num_sbb, loop=None):
@@ -131,32 +136,8 @@ class SubBlockClient:
                                   self.sbb_idx, self.num_sbb,
                                   self.executor, self.scheduler))
 
-    ###################
-    ## EXTERNAL APIS ##
-    ###################
-
     def flush_all(self):
-        """
-        Convenience function for testing
-
-        FULLY SYNCHRONOUS
-
-        :return:
-        """
-        intervals = config.CLEAN_TIMEOUT/config.POLL_INTERVAL
-        for cache in self.pending_caches:
-            cache.discard()
-            for i in range(intervals):
-                cache.sync_reset()
-                if cache.state == 'CLEAN':
-                    break
-                time.sleep(config.POLL_INTERVAL)
-
-            if i == intervals-1:
-                raise TimeoutError("Timed out waiting for all subblocks to sync cleanup on cache #{}".format(cache.idx))
-            self.available_caches.append(cache)
-
-        self.pending_caches.clear()
+        self.scheduler.flush_all()
 
     def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[List[tuple]], None]):
         bag = TransactionBag(contracts, input_hash, completion_handler)
@@ -164,7 +145,3 @@ class SubBlockClient:
 
     def update_master_db(self):
         self.scheduler.update_master_db()
-
-    ######################
-    ## INTERNAL METHODS ##
-    ######################
