@@ -29,6 +29,7 @@ def encode(data: str):
 def as_object(d):
     if '__time__' in d:
         return Datetime(*d['__time__'])
+    return dict(d)
 
 
 # Decode has a hook for JSON objects, which are just Python dictionaries. You have to specify the logic in this hook.
@@ -42,5 +43,6 @@ def decode(data):
 
     try:
         return json.loads(data, parse_float=decimal.Decimal, object_hook=as_object)
-    except json.decoder.JSONDecodeError:
+    except json.decoder.JSONDecodeError as e:
+        print(e)
         return None
