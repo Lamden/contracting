@@ -79,27 +79,35 @@ class TestSBClient(TestCase):
 
     def test_some_conflicts(self):
         def _assert_handler1(outputs: List[tuple]):
-            self.log.important("handler1: {}".format(outputs))
             contract1, status1, result1, state1 = outputs[0]
             contract2, status2, result2, state2 = outputs[1]
 
             self.assertEqual(contract1, tx1)
             self.assertEqual(contract2, tx2)
-
-            # self.assertEqual(results[0][0], 0)
-            # self.assertEqual(results[0][1], 'Working')
-            # self.assertEqual(results[1][0], 0)
-            # self.assertEqual(results[1][1], 'AlsoWorking')
+            self.assertEqual(status1, 0)
+            self.assertEqual(status2, 0)
+            self.assertEqual(result1, 'tx1_succ')
+            self.assertEqual(result2, 'tx2_succ')
+            self.assertEqual(state1, '')
+            self.assertEqual(state2, '')
 
         def _assert_handler2(outputs: List[tuple]):
-            self.log.important("handler2: {}".format(outputs))
-            pass
+            contract1, status1, result1, state1 = outputs[0]
+            contract2, status2, result2, state2 = outputs[1]
+
+            self.assertEqual(contract1, tx3)
+            self.assertEqual(contract2, tx4)
+            self.assertEqual(status1, 0)
+            self.assertEqual(status2, 1)
+            self.assertEqual(result1, 'tx3_succ')
+            self.assertIsInstance(result2, ImportError)
+            self.assertEqual(state1, '')
+            self.assertEqual(state2, '')
 
         tx1 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'tx1_succ'})
         tx2 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'tx2_succ'})
         tx3 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'tx3_succ'})
         tx4 = TransactionStub(self.author, 'module_func_bad', 'test_func', {'status': 'tx4_succ'})
-
 
         input_hash1 = 'A' * 64
         input_hash2 = 'B' * 64
@@ -107,7 +115,7 @@ class TestSBClient(TestCase):
         self.clients[0].execute_sb(input_hash1, [tx1, tx2], _assert_handler1)
         self.clients[1].execute_sb(input_hash2, [tx3, tx4], _assert_handler2)
 
-        self.run_loop(4)
+        self.run_loop(2)
 
 
 
