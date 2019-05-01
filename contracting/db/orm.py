@@ -21,7 +21,7 @@ class Variable(Datum):
 
 
 class Hash(Datum):
-    def __init__(self, contract, name, driver: ContractDriver=rt.driver, default_value=0):
+    def __init__(self, contract, name, driver: ContractDriver=rt.driver, default_value=None):
         super().__init__(contract, name, driver=driver)
         self.delimiter = config.DELIMITER
         self.default_value = default_value

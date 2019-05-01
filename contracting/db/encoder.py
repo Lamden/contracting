@@ -44,5 +44,4 @@ def decode(data):
     try:
         return json.loads(data, parse_float=decimal.Decimal, object_hook=as_object)
     except json.decoder.JSONDecodeError as e:
-        print(e)
         return None
