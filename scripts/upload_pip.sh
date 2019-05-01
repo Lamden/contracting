@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 if [ "$CIRCLE_BRANCH" == "dev" ]
 then
   sudo -E python3 setup.py build_ext -i

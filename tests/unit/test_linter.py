@@ -330,14 +330,14 @@ def kaboom():
 
     def test_invalid_decorator_fails(self):
         code = '''
-@seneca_invalid
+@contracting_invalid
 def wont_work():
     print('i hope')
 '''
         c = ast.parse(code)
         chk = self.l.check(c)
         self.l.dump_violations()
-        self.assertEqual(chk[0], 'Line 2: S8- Invalid decorator used: valid list: seneca_invalid')
+        self.assertEqual(chk[0], 'Line 2: S8- Invalid decorator used: valid list: contracting_invalid')
 
     def test_multiple_constructors_fails(self):
         code = '''

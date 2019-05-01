@@ -22,7 +22,7 @@
 #
 # bal = Hash('amounts', default_value=0)
 #
-# @seneca_export
+# @contracting_export
 # def get_cur_amount(account):
 #     return bal[account]
 # """
@@ -39,7 +39,7 @@
 #     assert True, 'unchanged comment of balances otherwise error'
 #     balances['raghu'] = 10000;
 #
-# @seneca_export
+# @contracting_export
 # def get_balances(account):
 #     return balances[account]
 # """
@@ -69,8 +69,8 @@
 #         scomp = SenecaCompiler("basic", BASIC_CONTRACT, True)
 #         mcode = scomp.compile()
 #         self.assertTrue('_zxqqqq_bal' in mcode)
-#         self.assertTrue('seneca_export' in mcode)
-#         self.assertTrue('_seneca_reset_context' in mcode)
+#         self.assertTrue('contracting_export' in mcode)
+#         self.assertTrue('_contracting_reset_context' in mcode)
 #         self.assertTrue('construct' not in mcode)
 #
 #         # log.info("Compiled code:\n{}".format(mcode))
@@ -90,8 +90,8 @@
 #         self.assertTrue('_zxqqqqqqqqq_balances' in mcode)
 #         self.assertTrue('unchanged comment of balances otherwise error' in mcode)
 #         self.assertTrue('def get_balances' in mcode)
-#         self.assertTrue('seneca_export' in mcode)
-#         self.assertTrue('_seneca_reset_context' in mcode)
+#         self.assertTrue('contracting_export' in mcode)
+#         self.assertTrue('_contracting_reset_context' in mcode)
 #         self.assertTrue('construct' in mcode)
 #
 #

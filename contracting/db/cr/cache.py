@@ -4,14 +4,14 @@
 # Third party imports
 from transitions import Machine
 from transitions.extensions.states import add_state_features, Timeout
-from transitions.extensions import GraphMachine
 
 # Local imports
 from contracting.logger import get_logger
-from contracting.db.driver import ContractDriver, CacheDriver
-from contracting.db.encoder import decode, encode
+from contracting.db.driver import ContractDriver, CacheDriver, RedisConnectionDriver
 from contracting.db.cr.transaction_bag import TransactionBag
 from contracting import config
+from typing import List
+
 
 # TODO include key exclusions for stamps, etc
 class Macros:
@@ -23,41 +23,49 @@ class Macros:
 
     ALL_MACROS = [EXECUTION, CONFLICT_RESOLUTION, RESET]
 
-
 @add_state_features(Timeout)
-class CustomStateMachine(GraphMachine):
+class CustomStateMachine(Machine):
     def __init__(self, *args, **kwargs):
-        kwargs['show_conditions'] = True
-        kwargs['title'] = 'CRCache State Machine'
         super().__init__(*args, **kwargs)
+
+# Uncomment this if you want to generate a new visual representation of the state machine
+#from transitions.extensions import GraphMachine
+#@add_state_features(Timeout)
+#class CustomStateMachine(GraphMachine):
+#    def __init__(self, *args, **kwargs):
+#        kwargs['show_conditions'] = True
+#        kwargs['title'] = 'CRCache State Machine'
+#        super().__init__(*args, **kwargs)
 
 class CRCache:
 
     states = [
         {'name': 'CLEAN'},
         {'name': 'BAG_SET'},
-        {'name': 'EXECUTED', 'timeout': config.EXEC_TIMEOUT, 'on_timeout': 'discard'},
+        {'name': 'EXECUTED'},
         {'name': 'CR_STARTED'},
         {'name': 'REQUIRES_RERUN'},
         {'name': 'READY_TO_COMMIT'},
-        {'name': 'COMMITTED', 'timeout': config.CR_TIMEOUT, 'on_timeout': 'discard'},
+        {'name': 'COMMITTED'},
         {'name': 'READY_TO_MERGE'},
         {'name': 'MERGED'},
         {'name': 'DISCARDED'},
         {'name': 'RESET'}
     ]
 
-    def __init__(self, idx, master_db, sbb_idx, num_sbb, executor):
+    def __init__(self, idx, master_db, sbb_idx, num_sbb, executor, scheduler):
         self.idx = idx
         self.sbb_idx = sbb_idx
         self.num_sbb = num_sbb
         self.executor = executor
+        self.scheduler = scheduler
 
         self.bag = None            # Bag will be set by the execute call
         self.rerun_idx = None      # The index to being reruns at
         self.results = {}          # The results of the execution
         self.top_of_stack = False  # Whether or not we're top of the stack (told by Client)
         self.macros = Macros()     # Instance of the macros class for mutex/sync
+        self.input_hash = None     # The 'input hash' of the bag we are executing, a 64 char hex str
 
         name = self.__class__.__name__ + "[cache-{}]".format(self.idx)
         self.log = get_logger(name)
@@ -70,14 +78,15 @@ class CRCache:
                 'trigger': 'set_bag',
                 'source': 'CLEAN',
                 'dest': 'BAG_SET',
-                'before': 'set_transaction_bag'
+                'before': 'set_transaction_bag',
             },
             {
                 'trigger': 'execute',
                 'source': 'BAG_SET',
                 'dest': 'EXECUTED',
                 'prepare': '_reset_macro_keys',
-                'before': 'execute_transactions'
+                'before': 'execute_transactions',
+                'after': '_schedule_cr'
             },
             { # ASYNC CALL TO MOVE OUT FROM EXECUTED sync_execution
                 'trigger': 'sync_execution',
@@ -91,7 +100,8 @@ class CRCache:
                 'source': 'CR_STARTED',
                 'dest': 'READY_TO_COMMIT',
                 'prepare': 'prepare_reruns',
-                'unless': 'requires_reruns'
+                'unless': 'requires_reruns',
+                'after': 'commit'
             },
             {
                 'trigger': 'start_cr',
@@ -104,13 +114,15 @@ class CRCache:
                 'trigger': 'rerun',
                 'source': 'REQUIRES_RERUN',
                 'dest': 'READY_TO_COMMIT',
-                'before': 'rerun_transactions'
+                'before': 'rerun_transactions',
+                'after': 'commit'
             },
             {
                 'trigger': 'commit',
                 'source': 'READY_TO_COMMIT',
                 'dest': 'COMMITTED',
-                'before': 'merge_to_common'
+                'before': 'merge_to_common',
+                'after': '_schedule_merge_ready'
             },
             { # ASYNC CALL FROM OUTSIDE, TIMEOUT HERE TO ERROR
                 'trigger': 'sync_merge_ready',
@@ -129,13 +141,15 @@ class CRCache:
                 'trigger': 'reset',
                 'source': ['MERGED', 'DISCARDED'],
                 'dest': 'RESET',
-                'before': 'reset_dbs'
+                'before': 'reset_dbs',
+                'after': '_schedule_reset'
             },
             {
                 'trigger': 'sync_reset',
                 'source': 'RESET',
                 'dest': 'CLEAN',
-                'conditions': 'all_reset'
+                'conditions': 'all_reset',
+                'after': '_mark_clean'
             },
             {
                 'trigger': 'discard',
@@ -147,18 +161,35 @@ class CRCache:
         self.machine = CustomStateMachine(model=self, states=CRCache.states,
                                           transitions=transitions, initial='CLEAN')
 
+        self.scheduler.mark_clean(self)
+
+    def _schedule_cr(self):
+        # Add sync_execution to the scheduler to wait for the CR step
+        self.scheduler.add_poll(self, self.sync_execution, 'COMMITTED')
+
+    def _schedule_merge_ready(self):
+        self.log.important2("scheding merge rdy {}".format(self))
+        self.scheduler.add_poll(self, self.sync_merge_ready, 'READY_TO_MERGE')
+
+    def _schedule_reset(self):
+        self.scheduler.add_poll(self, self.sync_reset, 'CLEAN')
+
     def _incr_macro_key(self, macro):
+        self.log.debug("INCREMENTING MACRO {}".format(macro))
         self.db.incrby(macro)
 
     def _check_macro_key(self, macro):
-        val = decode(super(CacheDriver, self.db).get(macro))
-        print("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
+        import time
+        time.sleep(0.5)
+
+        val = int(self.db.conn.get(macro))
+        self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
         return val
 
     def _reset_macro_keys(self):
         for key in Macros.ALL_MACROS:
             self.db.delete(key)
-            super(CacheDriver, self.db).set(key, encode(0))
+            self.db.conn.set(key, 0)
 
     def get_results(self):
         return self.results
@@ -184,11 +215,8 @@ class CRCache:
     def my_turn_for_cr(self):
         return self._check_macro_key(Macros.CONFLICT_RESOLUTION) == self.sbb_idx
 
-    def set_top_of_stack(self):
-        self.top_of_stack = True
-
     def is_top_of_stack(self):
-        return self.top_of_stack
+        return self.scheduler.check_top_of_stack(self)
 
     def prepare_reruns(self):
         # Find all instances where our originally grabbed value from the cache does not
@@ -225,7 +253,10 @@ class CRCache:
         self.results.update(self.executor.execute_bag(self.bag))
 
     def merge_to_common(self):
-        self.db.commit()
+        # call completion handler on bag so Cilantro can build a SubBlockContender
+        self.bag.completion_handler(self._get_sb_data())
+
+        self.db.commit()  # this will wipe the cache
         self._incr_macro_key(Macros.CONFLICT_RESOLUTION)
 
     def all_committed(self):
@@ -247,6 +278,45 @@ class CRCache:
 
     def all_reset(self):
         return self._check_macro_key(Macros.RESET) == self.num_sbb
+
+    def _mark_clean(self):
+        # Mark myself as clean for the FSMScheduler to be able to reuse me
+        self.scheduler.mark_clean(self)
+
+    def _get_sb_data(self) -> List[tuple]:
+        """
+        Tuples are of length 4 in the form
+         (contract_obj: ContractTransaction, status: int[0/1], result: str/exception object, state: str)
+        """
+        if len(self.results) != len(self.bag.transactions):
+            self.log.critical("You rly fkt up dude, length of results is {} but bag has {} txs. Discarding." \
+                              .format(len(self.results), len(self.bag.transactions)))
+            self.discard()
+            return [] # colin is this necessary?? also what should i return for cilatnro to be aware of the goof?
+
+        sb_data = []
+        i = 0
+
+        # Iterate over results to take into account transactions that have been reverted and removed from contract_mods
+        for tx_idx in sorted(self.results.keys()):
+            status_code, result = self.results[tx_idx]
+            state_str = ""
+
+            if status_code == 0:
+                mods = self.db.contract_modifications[i]
+                i += 1
+                for k, v in mods.items():
+                    state_str += '{} {};'.format(k, v)
+
+            sb_data.append((self.bag.transactions[tx_idx], status_code, result, state_str))
+
+        return sb_data
+
+    def __repr__(self):
+        input_hash = 'NOT_SET' if self.bag is None else self.bag.input_hash
+        return "<CRCache input_hash={}, state={}, idx={}, sbb_idx={}, top_of_stk={}>"\
+               .format(input_hash, self.state, self.idx, self.sbb_idx, self.top_of_stack)
+
 
 if __name__ == "__main__":
     c = CRCache(1,1,1,1,1)
