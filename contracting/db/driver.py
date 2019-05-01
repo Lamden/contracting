@@ -91,7 +91,6 @@ class DictDriver(AbstractDatabaseDriver):
         return k
 
 
-
 class RedisConnectionDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
         self.conn = Connection(host, port, db)
@@ -121,12 +120,12 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
 
     def incrby(self, key, amount=1):
         """Increment a numeric key by one"""
-        k = self.get(key)
+        k = self.conn.send_command('GET', key)
 
         if k is None:
             k = 0
         k = int(k) + amount
-        self.set(key, k)
+        self.conn.send_command('SET', key, k)
 
         return k
 
@@ -139,7 +138,10 @@ class RedisDriver(AbstractDatabaseDriver):
         self.connection_pool = self.conn.connection_pool
 
     def get(self, key):
-        return self.conn.get(key)
+        print("GETTING KEY {}".format(key))
+        val = self.conn.get(key)
+        print("GOT VAL {}".format(val))
+        return val
 
     def set(self, key, value):
         self.conn.set(key, value)
@@ -158,24 +160,22 @@ class RedisDriver(AbstractDatabaseDriver):
 
     def incrby(self, key, amount=1):
         """Increment a numeric key by one"""
-        k = self.get(key)
+        k = self.conn.get(key)
 
         if k is None:
             k = 0
         k = int(k) + amount
-        self.set(key, k)
+        self.conn.set(key, k)
 
         return k
 
 
-
-
-GLOBAL_DB = plyvel.DB('state.db', create_if_missing=True, error_if_exists=False)
-
-
 class LevelDBDriver(AbstractDatabaseDriver):
-    def __init__(self, **kwargs):
-        self.conn = GLOBAL_DB
+    def __init__(self, db=config.MASTER_DB, **kwargs):
+        self.db_name = 'state.db'
+        if db != config.MASTER_DB:
+            self.db_name = 'cache_{}.db'.format(db)
+        self.conn = plyvel.DB(self.db_name, create_if_missing=True, error_if_exists=False)
 
     def get(self, key):
         try:
@@ -260,7 +260,8 @@ def get_database_driver():
 
 
 DatabaseDriver = get_database_driver()
-DatabaseDriver = LevelDBDriver
+#DatabaseDriver = LevelDBDriver
+DatabaseDriver = RedisDriver
 
 
 class CacheDriver(DatabaseDriver):
@@ -271,7 +272,10 @@ class CacheDriver(DatabaseDriver):
         self.original_values = None
         self.reset_cache()
 
-    def reset_cache(self, modified_keys=None, contract_modifications=[], original_values={}):
+    def reset_cache(self, modified_keys=None, contract_modifications=None, original_values=None):
+        contract_modifications = contract_modifications or []
+        original_values = original_values or {}
+
         # Modified keys is a dictionary of deques representing the contracts that have modified
         # that key
         if modified_keys:
@@ -289,6 +293,7 @@ class CacheDriver(DatabaseDriver):
             self.new_tx()
 
     def get(self, key):
+        print("GET IN CACHEDRIVER")
         key_location = self.modified_keys.get(key)
         if key_location is None:
             value = super().get(key)
@@ -317,6 +322,8 @@ class CacheDriver(DatabaseDriver):
                 self.modified_keys[key] = i
 
             self.contract_modifications = self.contract_modifications[:idx + 1]
+            # self.contract_modifications[idx].clear()
+            # for mod_dict in self.contract_modifications[:idx + 1]:
 
     def commit(self):
         for key, idx in self.modified_keys.items():

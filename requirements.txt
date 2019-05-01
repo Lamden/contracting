@@ -1,4 +1,5 @@
 python-dotenv==0.9.1
+redis==3.2.0
 ujson==1.35
 autopep8==1.4.3
 coloredlogs
@@ -6,3 +7,4 @@ numpy==1.16.2
 plyvel
 autopep8
 astor
+transitions

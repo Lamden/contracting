@@ -19,6 +19,30 @@ class TransactionStub():
         self.func_name = func_name
         self.kwargs = kwargs
 
+class SchedulerStub():
+    def __init__(self):
+        self.polls = {}
+        self.top_of_stack = False
+
+    def add_poll(self, cache, fn, endstate):
+        if cache not in self.polls.keys():
+            self.polls[cache] = {}
+        self.polls[cache][fn] = endstate
+
+    def execute_poll(self, cache, fn):
+        fn()
+        return cache.state == self.polls[cache][fn]
+
+    def mark_top_of_stack(self):
+        self.top_of_stack = True
+
+    def check_top_of_stack(self, cache):
+        return self.top_of_stack
+
+    def mark_clean(self, cache):
+        pass
+
+
 
 driver = ContractDriver(db=0)
 #unittest.TestLoader.sortTestMethodsUsing = None
@@ -58,9 +82,12 @@ class TestSingleCRCache(unittest.TestCase):
         # Setup tx
         tx1 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'Working'})
         tx2 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'AlsoWorking'})
-        self.bag = TransactionBag([tx1, tx2])
-        self.cache = CRCache(idx=0, master_db=self.master_db, sbb_idx=0,
-                             num_sbb=num_sbb, executor=executor)
+        input_hash = 'A'*64
+        sbb_idx = 0
+        self.scheduler = SchedulerStub()
+        self.bag = TransactionBag([tx1, tx2], input_hash, lambda y: y)
+        self.cache = CRCache(idx=0, master_db=self.master_db, sbb_idx=sbb_idx,
+                             num_sbb=num_sbb, executor=executor, scheduler=self.scheduler)
 
     @classmethod
     def tearDownClass(self):
@@ -77,40 +104,42 @@ class TestSingleCRCache(unittest.TestCase):
 
     def test_1_execute(self):
         self.cache.execute()
-        results = self.cache.get_results()
+        self.assertEqual(self.cache.state, 'EXECUTED')
 
+        results = self.cache.get_results()
         print(results)
         self.assertEqual(results[0][0], 0)
         self.assertEqual(results[0][1], 'Working')
         self.assertEqual(results[1][0], 0)
         self.assertEqual(results[1][1], 'AlsoWorking')
-        self.assertEqual(self.cache.state, 'EXECUTED')
 
         self.assertEqual(0, self.cache._check_macro_key(Macros.CONFLICT_RESOLUTION))
         self.assertEqual(0, self.cache._check_macro_key(Macros.RESET))
         self.assertEqual(1, self.cache._check_macro_key(Macros.EXECUTION))
 
     def test_2_cr(self):
-        self.cache.sync_execution()
+        res = self.scheduler.execute_poll(self.cache, self.cache.sync_execution)
         self.assertEqual(self.cache.state, 'EXECUTED')
+        self.assertEqual(res, False)
 
-        self.cache.set_top_of_stack()
-        self.cache.sync_execution()
-        self.assertEqual(self.cache.state, 'READY_TO_COMMIT')
-        self.cache.commit()
+        self.scheduler.mark_top_of_stack()
+        res = self.scheduler.execute_poll(self.cache, self.cache.sync_execution)
         self.assertEqual(self.cache.state, 'COMMITTED')
+        self.assertEqual(res, True)
 
     def test_3_merge_ready(self):
-        self.cache.sync_merge_ready()
+        res = self.scheduler.execute_poll(self.cache, self.cache.sync_merge_ready)
         self.assertEqual(self.cache.state, 'READY_TO_MERGE')
+        self.assertEqual(res, True)
 
     def test_4_merged(self):
         self.cache.merge()
         self.assertEqual(self.cache.state, 'RESET')
 
     def test_5_clean(self):
-        self.cache.sync_reset()
+        res = self.scheduler.execute_poll(self.cache, self.cache.sync_reset)
         self.assertEqual(self.cache.state, 'CLEAN')
+        self.assertEqual(res, True)
 
 
 
