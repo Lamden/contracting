@@ -2,9 +2,9 @@ import os
 import sys
 
 if "DATADIR" in os.environ:
-    DATA_DIR = os.environ["DATADIR"] + '/seneca'
+    DATA_DIR = os.environ["DATADIR"] + '/contracting'
 else:
-    DATA_DIR = '/var/db/seneca'
+    DATA_DIR = '/var/db/contracting'
 
 REDIS_CONF_PATH = '/etc/redis.conf'
 REDIS_DIR = DATA_DIR + '/redis'

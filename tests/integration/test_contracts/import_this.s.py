@@ -1,3 +1,3 @@
-@seneca_export
+@export
 def howdy():
     return 12345

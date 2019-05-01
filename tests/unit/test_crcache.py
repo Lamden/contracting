@@ -2,11 +2,11 @@ import unittest
 import sys
 import glob
 import time
-from seneca.execution.module import DatabaseFinder
-from seneca.db.cr.cache import CRCache, Macros
-from seneca.execution.executor import Executor
-from seneca.db.driver import ContractDriver
-from seneca.db.cr.transaction_bag import TransactionBag
+from contracting.execution.module import DatabaseFinder
+from contracting.db.cr.cache import CRCache, Macros
+from contracting.execution.executor import Executor
+from contracting.db.driver import ContractDriver
+from contracting.db.cr.transaction_bag import TransactionBag
 
 class PayloadStub():
     def __init__(self, sender):
@@ -59,7 +59,7 @@ class TestSingleCRCache(unittest.TestCase):
         driver.flush()
 
         # Add submission contract
-        with open('../../seneca/contracts/submission.s.py') as f:
+        with open('../../contracting/contracts/submission.s.py') as f:
             contract = f.read()
 
         driver.set_contract(name='submission',
@@ -85,7 +85,7 @@ class TestSingleCRCache(unittest.TestCase):
         input_hash = 'A'*64
         sbb_idx = 0
         self.scheduler = SchedulerStub()
-        self.bag = TransactionBag([tx1, tx2], input_hash)
+        self.bag = TransactionBag([tx1, tx2], input_hash, lambda y: y)
         self.cache = CRCache(idx=0, master_db=self.master_db, sbb_idx=sbb_idx,
                              num_sbb=num_sbb, executor=executor, scheduler=self.scheduler)
 
@@ -107,6 +107,7 @@ class TestSingleCRCache(unittest.TestCase):
         self.assertEqual(self.cache.state, 'EXECUTED')
 
         results = self.cache.get_results()
+        print(results)
         self.assertEqual(results[0][0], 0)
         self.assertEqual(results[0][1], 'Working')
         self.assertEqual(results[1][0], 0)

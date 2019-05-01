@@ -1,5 +1,5 @@
 from unittest import TestCase
-from seneca.execution.module import *
+from contracting.execution.module import *
 import types
 import glob
 

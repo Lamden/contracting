@@ -1,9 +1,9 @@
 time = Variable()
 
-@seneca_construct
+@construct
 def seed():
     time.set(datetime(2019, 1, 1))
 
-@seneca_export
+@export
 def get():
     return time.get()

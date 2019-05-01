@@ -1,7 +1,7 @@
 from unittest import TestCase
-from seneca.db.driver import ContractDriver
-from seneca.db.orm import Datum, Variable, ForeignHash, ForeignVariable, Hash
-# from seneca.stdlib.env import gather
+from contracting.db.driver import ContractDriver
+from contracting.db.orm import Datum, Variable, ForeignHash, ForeignVariable, Hash
+# from contracting.stdlib.env import gather
 
 # Variable = gather()['Variable']
 # Hash = gather()['Hash']

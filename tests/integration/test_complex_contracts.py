@@ -1,8 +1,8 @@
 from unittest import TestCase
-from seneca.db.driver import ContractDriver
-from seneca.execution.executor import Executor
+from contracting.db.driver import ContractDriver
+from contracting.execution.executor import Executor
 from datetime import datetime
-from seneca.stdlib.env import gather
+from contracting.stdlib.env import gather
 from hashlib import sha256, sha3_256
 
 def submission_kwargs_for_file(f):
@@ -35,7 +35,7 @@ class TestComplexContracts(TestCase):
         self.d = ContractDriver()
         self.d.flush()
 
-        with open('../../seneca/contracts/submission.s.py') as f:
+        with open('../../contracting/contracts/submission.s.py') as f:
             contract = f.read()
 
         self.d.set_contract(name='submission',

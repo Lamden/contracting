@@ -1,5 +1,5 @@
 from unittest import TestCase
-from seneca.db.driver import CacheDriver
+from contracting.db.driver import CacheDriver
 from collections import deque, defaultdict
 
 

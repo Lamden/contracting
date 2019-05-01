@@ -1,5 +1,5 @@
 from unittest import TestCase
-from seneca.stdlib.bridge.hashing import sha256, sha3
+from contracting.stdlib.bridge.hashing import sha256, sha3
 
 
 class TestHashing(TestCase):

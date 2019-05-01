@@ -7,19 +7,7 @@ import sys
 
 major = 0
 
-def get_version_number():
-    if os.getenv('CIRCLECI'):
-        minor, patch = divmod(int(os.getenv('CIRCLE_BUILD_NUM')), 180)
-        ver = '{}.{}.{}'.format(major, minor, patch)
-        with open('seneca/.version', 'w+') as f:
-            f.write(ver)
-        return ver
-    else:
-        with open('seneca/.version') as f:
-            ver = f.read()
-            return ver
-
-__version__ = get_version_number()
+__version__ = '0.6.0'
 
 print('#' * 128)
 print('\n    VERSION = {}\n'.format(__version__))
@@ -65,12 +53,12 @@ class ve_build_ext(build_ext):
             raise
 
 setup(
-    name='seneca',
+    name='contracting',
     version=__version__,
     description='Python-based smart contract language and interpreter.',
     packages=find_packages(),
     install_requires=requirements,
-    url='https://github.com/Lamden/seneca',
+    url='https://github.com/Lamden/contracting',
     author='Lamden',
     author_email='team@lamden.io',
     classifiers=[
@@ -79,7 +67,7 @@ setup(
     zip_safe=True,
     include_package_data=True,
     ext_modules=[
-        Extension('seneca.execution.metering.tracer', sources = ['seneca/execution/metering/tracer.c'])
+        Extension('contracting.execution.metering.tracer', sources = ['contracting/execution/metering/tracer.c'])
     ],
     cmdclass={
         'build_ext': ve_build_ext,

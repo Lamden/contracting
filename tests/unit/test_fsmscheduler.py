@@ -3,12 +3,12 @@ import sys
 import glob
 import asyncio
 import time
-from seneca.execution.module import DatabaseFinder
-from seneca.db.cr.cache import CRCache, Macros
-from seneca.execution.executor import Executor
-from seneca.db.driver import ContractDriver
-from seneca.db.cr.transaction_bag import TransactionBag
-from seneca.db.cr.client import FSMScheduler
+from contracting.execution.module import DatabaseFinder
+from contracting.db.cr.cache import CRCache, Macros
+from contracting.execution.executor import Executor
+from contracting.db.driver import ContractDriver
+from contracting.db.cr.transaction_bag import TransactionBag
+from contracting.db.cr.client import FSMScheduler
 
 driver = ContractDriver(db=0)
 
@@ -37,7 +37,7 @@ class TestMultiCRCache(unittest.TestCase):
         driver.flush()
 
         # Add submission contract
-        with open('../../seneca/contracts/submission.s.py') as f:
+        with open('../../contracting/contracts/submission.s.py') as f:
             contract = f.read()
 
         driver.set_contract(name='submission',
@@ -106,7 +106,7 @@ class TestMultiCRCache(unittest.TestCase):
     def test_2_execution_order(self):
         for i in range(self.num_caches):
             self.scheduler.update_master_db()
-            self.run_loop()
+            self.run_loop(2)
             self.assertEqual(self.caches[i].state, 'CLEAN')
             self.assertTrue(self.caches[i] in self.scheduler.available_caches)
             self.assertTrue(self.caches[i] not in self.scheduler.pending_caches)

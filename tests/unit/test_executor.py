@@ -1,12 +1,12 @@
 import unittest
-from seneca.execution.executor import Sandbox, Executor, MultiProcessingSandbox
+from contracting.execution.executor import Sandbox, Executor, MultiProcessingSandbox
 import sys
 import glob
 # Import ContractDriver and AbstractDatabaseDriver for property type
 # assertions for self.e.driver
-from seneca.db.driver import AbstractDatabaseDriver, ContractDriver
-from seneca.execution.module import DatabaseFinder
-from seneca.ast.compiler import SenecaCompiler
+from contracting.db.driver import AbstractDatabaseDriver, ContractDriver
+from contracting.execution.module import DatabaseFinder
+from contracting.ast.compiler import ContractingCompiler
 
 class TestExecutor(unittest.TestCase):
     def setUp(self):
@@ -47,7 +47,7 @@ class DBTests(unittest.TestCase):
         self.e = Executor()
         self.e_prod = Executor(production=True)
 
-        compiler = SenecaCompiler()
+        compiler = ContractingCompiler()
 
         for contract in contracts:
             name = contract.split('/')[-1]

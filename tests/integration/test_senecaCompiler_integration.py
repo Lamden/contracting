@@ -1,9 +1,9 @@
 from unittest import TestCase
-from seneca.ast.compiler import SenecaCompiler
-from seneca.stdlib import env
+from contracting.ast.compiler import ContractingCompiler
+from contracting.stdlib import env
 import re
 import astor
-from seneca import config
+from contracting import config
 
 
 class TestSenecaCompiler(TestCase):
@@ -11,7 +11,7 @@ class TestSenecaCompiler(TestCase):
         code = '''
 v = Variable()
 '''
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -27,7 +27,7 @@ v = Variable()
         code = '''
 fv = ForeignVariable(foreign_contract='scoob', foreign_name='kumbucha')
         '''
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -44,7 +44,7 @@ fv = ForeignVariable(foreign_contract='scoob', foreign_name='kumbucha')
         code = '''
 h = Hash()
         '''
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -61,7 +61,7 @@ h = Hash()
 fv = ForeignHash(foreign_contract='scoob', foreign_name='kumbucha')
         '''
 
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -74,18 +74,18 @@ fv = ForeignHash(foreign_contract='scoob', foreign_name='kumbucha')
         self.assertEqual(fv.key, '__main__.fv')
         self.assertEqual(fv.foreign_key, 'scoob.kumbucha')
 
-    def test_seneca_export_decorator_pops(self):
+    def test_export_decorator_pops(self):
         code = '''
-@seneca_export
+@export
 def funtimes():
     print('cool')
         '''
 
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
-        self.assertNotIn('@seneca_export', code_str)
+        self.assertNotIn('@export', code_str)
 
     def test_private_function_prefixes_properly(self):
         code = '''
@@ -93,7 +93,7 @@ def private():
     print('cool')
         '''
 
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -101,7 +101,7 @@ def private():
 
     def test_private_func_call_in_public_func_properly_renamed(self):
         code = '''
-@seneca_export
+@export
 def public():
     private('hello')
     
@@ -109,7 +109,7 @@ def private(message):
     print(message)
 '''
 
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
@@ -135,19 +135,19 @@ def d():
 def e():
     d()        
 '''
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
         self.assertEqual(len([m.start() for m in re.finditer(config.PRIVATE_METHOD_PREFIX, code_str)]), 9)
 
-    def test_seneca_construct_renames_properly(self):
+    def test_construct_renames_properly(self):
         code = '''
-@seneca_construct
+@construct
 def seed():
     print('yes')
 
-@seneca_export
+@export
 def hello():
     print('no')
     
@@ -155,7 +155,7 @@ def goodbye():
     print('idk')
         '''
 
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
         print(code_str)
@@ -166,7 +166,7 @@ def goodbye():
         code = f.read()
         f.close()
 
-        c = SenecaCompiler()
+        c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 

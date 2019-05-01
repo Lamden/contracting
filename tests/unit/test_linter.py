@@ -1,7 +1,7 @@
 from unittest import TestCase
-from seneca.ast.linter import Linter
+from contracting.ast.linter import Linter
 import ast
-from seneca.ast.whitelists import ALLOWED_AST_TYPES
+from contracting.ast.whitelists import ALLOWED_AST_TYPES
 
 
 class TestLinter(TestCase):
@@ -11,7 +11,7 @@ class TestLinter(TestCase):
     def test_linter(self):
         # log = get_logger("TestSenecaLinter")
         data = '''
-@seneca_export
+@export
 def a():
     b = 10
     return b
@@ -35,7 +35,7 @@ def a():
             self.assertListEqual([], self.l._violations)
 
     def test_bad_ast_type(self):
-        err = 'Line 1 : S1- Illegal seneca syntax type used : AsyncFunctionDef'
+        err = 'Line 1 : S1- Illegal contracting syntax type used : AsyncFunctionDef'
         t = ast.AsyncFunctionDef()
         self.l.ast_types(t, 1)
         self.l.dump_violations()
@@ -59,7 +59,7 @@ def a():
     '''
     def test_not_system_variable_ast(self):
         code = '''
-@seneca_export
+@export
 def a():
     __ruh_roh__ = 'shaggy'
         '''
@@ -72,7 +72,7 @@ def a():
 
     def test_not_system_variable_ast_success(self):
         code = '''
-@seneca_export
+@export
 def a():
     ruh_roh = 'shaggy'
         '''
@@ -92,7 +92,7 @@ def a():
 
     def test_visit_async_func_def_fail_code(self):
         code = '''
-@seneca_export
+@export
 async def a():
     ruh_roh = 'shaggy'
 def b():
@@ -130,7 +130,7 @@ class Scooby:
 
     def test_accessing_system_vars(self):
         code = '''
-@seneca_export
+@export
 def a():
     ruh_roh = 'shaggy'
     ruh_roh.__dir__()
@@ -143,7 +143,7 @@ def a():
 
     def test_accessing_attribute(self):
         code = '''
-@seneca_export
+@export
 def a():
     ruh_roh = 'shaggy'
     ruh_roh.capitalize()
@@ -159,7 +159,7 @@ def a():
 
     def test_no_nested_imports(self):
         code = '''
-@seneca_export
+@export
 def a():
     import something
         '''
@@ -171,7 +171,7 @@ def a():
 
     def test_no_nested_imports_works(self):
         code = '''
-@seneca_export
+@export
 def a():
     ruh_roh = 'shaggy'
     ruh_roh.capitalize()
@@ -185,7 +185,7 @@ def a():
 
     def test_augassign(self):
         code = '''
-@seneca_export
+@export
 def a():
     b = 0
     b += 1
@@ -199,7 +199,7 @@ def a():
     def test_no_import_from(self):
         code = '''
 from something import a
-@seneca_export
+@export
 def a():
     b = 0
     b += 1
@@ -216,7 +216,7 @@ def a():
 #     def test_import_non_existent_contract(self):
 #         code = '''
 # import something
-# @seneca_export
+# @export
 # def a():
 #     b = 0
 #     b += 1
@@ -238,24 +238,24 @@ def a():
         c = ast.parse(code)
         chk = self.l.check(c)
         self.l.dump_violations()
-        self.assertEqual(chk, ['Line 0: S13- No valid seneca decorator found'])
+        self.assertEqual(chk, ['Line 0: S13- No valid contracting decorator found'])
         self.assertFalse(self.l._is_one_export)
 
     def test_collect_function_defs(self):
         code = '''
-@seneca_export
+@export
 def a():
     return 42
 
-@seneca_export
+@export
 def b():
     return 1000000
 
-@seneca_export
+@export
 def x():
     return 64
 
-@seneca_export
+@export
 def y():
     return 24
 '''
@@ -268,7 +268,7 @@ def y():
         code = '''
 import import_this
 
-@seneca_export
+@export
 def test():
     a = import_this.howdy()
     a -= 1000
@@ -282,7 +282,7 @@ def test():
         code = '''
 v = Variable()
 
-@seneca_export
+@export
 def set(i):
     v.set(i)
 '''
@@ -294,7 +294,7 @@ def set(i):
         code = '''
 v = Variable(contract='currency', name='stus_balance')
 
-@seneca_export
+@export
 def set(i):
     v.set(i)
 '''
@@ -306,7 +306,7 @@ def set(i):
         code = '''
 v, x = Variable()
 
-@seneca_export
+@export
 def set(i):
     v.set(i)
     '''
@@ -318,8 +318,8 @@ def set(i):
 
     def test_multi_decorator_fails(self):
         code = '''
-@seneca_construct
-@seneca_export
+@construct
+@export
 def kaboom():
     print('i like to break things')
 '''
@@ -330,22 +330,22 @@ def kaboom():
 
     def test_invalid_decorator_fails(self):
         code = '''
-@seneca_invalid
+@contracting_invalid
 def wont_work():
     print('i hope')
 '''
         c = ast.parse(code)
         chk = self.l.check(c)
         self.l.dump_violations()
-        self.assertEqual(chk[0], 'Line 2: S8- Invalid decorator used: valid list: seneca_invalid')
+        self.assertEqual(chk[0], 'Line 2: S8- Invalid decorator used: valid list: contracting_invalid')
 
     def test_multiple_constructors_fails(self):
         code = '''
-@seneca_construct
+@construct
 def seed_1():
     print('hi')
     
-@seneca_construct
+@construct
 def seed_2():
     print('howdy')
 '''
@@ -355,4 +355,4 @@ def seed_2():
         self.l.dump_violations()
 
         self.assertEqual(len(chk),2)
-        self.assertEqual(self.l._violations, [chk[0], 'Line 0: S13- No valid seneca decorator found'])
+        self.assertEqual(self.l._violations, [chk[0], 'Line 0: S13- No valid contracting decorator found'])

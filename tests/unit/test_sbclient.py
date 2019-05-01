@@ -1,8 +1,8 @@
 from unittest import TestCase
-from seneca.execution.executor import Executor
-from seneca.db.cr.client import SubBlockClient
-from seneca.db.driver import ContractDriver
-from seneca.logger import get_logger
+from contracting.execution.executor import Executor
+from contracting.db.cr.client import SubBlockClient
+from contracting.db.driver import ContractDriver
+from contracting.logger import get_logger
 import asyncio, glob
 from typing import List
 
@@ -37,7 +37,7 @@ class TestSBClient(TestCase):
         # Add submission contract
         self.author = 'unittest'
         self.log = get_logger("TestSBClient")
-        with open('../../seneca/contracts/submission.s.py') as f:
+        with open('../../contracting/contracts/submission.s.py') as f:
             contract = f.read()
 
         driver.set_contract(name='submission',
