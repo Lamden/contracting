@@ -10,6 +10,7 @@ from contracting.logger import get_logger
 from contracting.db.driver import ContractDriver, CacheDriver, RedisConnectionDriver
 from contracting.db.cr.transaction_bag import TransactionBag
 from contracting import config
+from contracting.db.cr.callback_data import ExecutionData, SBData
 from typing import List
 
 
@@ -36,6 +37,7 @@ class CustomStateMachine(Machine):
 #        kwargs['show_conditions'] = True
 #        kwargs['title'] = 'CRCache State Machine'
 #        super().__init__(*args, **kwargs)
+
 
 class CRCache:
 
@@ -283,18 +285,14 @@ class CRCache:
         # Mark myself as clean for the FSMScheduler to be able to reuse me
         self.scheduler.mark_clean(self)
 
-    def _get_sb_data(self) -> List[tuple]:
-        """
-        Tuples are of length 4 in the form
-         (contract_obj: ContractTransaction, status: int[0/1], result: str/exception object, state: str)
-        """
+    def _get_sb_data(self) -> SBData:
         if len(self.results) != len(self.bag.transactions):
             self.log.critical("You rly fkt up dude, length of results is {} but bag has {} txs. Discarding." \
                               .format(len(self.results), len(self.bag.transactions)))
             self.discard()
             return [] # colin is this necessary?? also what should i return for cilatnro to be aware of the goof?
 
-        sb_data = []
+        tx_datas = []
         i = 0
 
         # Iterate over results to take into account transactions that have been reverted and removed from contract_mods
@@ -308,9 +306,10 @@ class CRCache:
                 for k, v in mods.items():
                     state_str += '{} {};'.format(k, v)
 
-            sb_data.append((self.bag.transactions[tx_idx], status_code, result, state_str))
+            tx_datas.append(ExecutionData(contract=self.bag.transactions[tx_idx], status=status_code,
+                                          response=result, state=state_str))
 
-        return sb_data
+        return SBData(self.bag.input_hash, tx_data=tx_datas)
 
     def __repr__(self):
         input_hash = 'NOT_SET' if self.bag is None else self.bag.input_hash
