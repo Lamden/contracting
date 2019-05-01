@@ -14,8 +14,8 @@ class ContractingCompiler(ast.NodeTransformer):
         self.linter = linter
         self.lint_alerts = None
         self.constructor_visited = False
-        self.private_expr = set()
-        self.visited_expr = set()  # store the method visits
+        self.private_names = set()
+        self.visited_names = set()  # store the method visits
 
     def parse(self, source: str, lint=True):
         self.constructor_visited = False
@@ -33,18 +33,17 @@ class ContractingCompiler(ast.NodeTransformer):
 
         # check all visited nodes and see if they are actually private
 
-        for node in self.visited_expr:
-            try:
-                if isinstance(node.value, ast.Call) and node.value.func.id in self.private_expr:
-                    node.value.func.id = self.privatize(node.value.func.id)
-            except:
-                pass
+        # An Expr node can have a value func of ast.Name, or ast.Attribute which you much access the value of.
+        # This code branching is not ideal and should be investigated for simplicity.
+        for node in self.visited_names:
+            if node.id in self.private_names:
+                node.id = self.privatize(node.id)
 
         ast.fix_missing_locations(tree)
 
         # reset state
-        self.private_expr = set()
-        self.visited_expr = set()
+        self.private_names = set()
+        self.visited_names = set()
 
         return tree
 
@@ -75,20 +74,8 @@ class ContractingCompiler(ast.NodeTransformer):
             if decorator.id == config.INIT_DECORATOR_STRING:
                 node.name = '____'
         else:
-            self.private_expr.add(node.name)
+            self.private_names.add(node.name)
             node.name = self.privatize(node.name)
-
-        # body = copy.deepcopy(node.body)
-        # node.body = [ast.With(items=[ast.withitem(
-        #                         context_expr=ast.Name(
-        #                             id='__Context()',
-        #                             ctx=ast.Load()),
-        #                         optional_vars=ast.Name(
-        #                             id='ctx',
-        #                             ctx=ast.Store()
-        #                         )
-        #                     )],
-        #                         body=body)]
 
         self.generic_visit(node)
 
@@ -102,12 +89,6 @@ class ContractingCompiler(ast.NodeTransformer):
 
         return node
 
-    def visit_Call(self, node):
-        return node
-
-    def visit_Expr(self, node):
-        # keeps track of visited expressions for private method prefixing after parsing tree
-        if isinstance(node.value, ast.Call):
-            self.visited_expr.add(node)
-
+    def visit_Name(self, node):
+        self.visited_names.add(node)
         return node
