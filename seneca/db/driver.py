@@ -269,7 +269,10 @@ class CacheDriver(DatabaseDriver):
         self.original_values = None
         self.reset_cache()
 
-    def reset_cache(self, modified_keys=None, contract_modifications=[], original_values={}):
+    def reset_cache(self, modified_keys=None, contract_modifications=None, original_values=None):
+        contract_modifications = contract_modifications or []
+        original_values = original_values or {}
+
         # Modified keys is a dictionary of deques representing the contracts that have modified
         # that key
         if modified_keys:

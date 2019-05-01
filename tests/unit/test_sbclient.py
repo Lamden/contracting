@@ -36,6 +36,7 @@ class TestSBClient(TestCase):
     def setUp(self):
         # Add submission contract
         self.author = 'unittest'
+        self.log = get_logger("TestSBClient")
         with open('../../seneca/contracts/submission.s.py') as f:
             contract = f.read()
 
@@ -79,7 +80,12 @@ class TestSBClient(TestCase):
     def test_some_conflicts(self):
         def _assert_handler1(outputs: List[tuple]):
             self.log.important("handler1: {}".format(outputs))
-            pass
+            contract1, status1, result1, state1 = outputs[0]
+            contract2, status2, result2, state2 = outputs[1]
+
+            self.assertEqual(contract1, tx1)
+            self.assertEqual(contract2, tx2)
+
             # self.assertEqual(results[0][0], 0)
             # self.assertEqual(results[0][1], 'Working')
             # self.assertEqual(results[1][0], 0)

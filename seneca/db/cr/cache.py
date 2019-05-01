@@ -250,11 +250,11 @@ class CRCache:
         self.results.update(self.executor.execute_bag(self.bag))
 
     def merge_to_common(self):
-        self.db.commit()
-        self._incr_macro_key(Macros.CONFLICT_RESOLUTION)
-
         # call completion handler on bag so Cilantro can build a SubBlockContender
         self.bag.completion_handler(self._get_sb_data())
+
+        self.db.commit()  # this will wipe the cache
+        self._incr_macro_key(Macros.CONFLICT_RESOLUTION)
 
     def all_committed(self):
         return self._check_macro_key(Macros.CONFLICT_RESOLUTION) == self.num_sbb
@@ -285,7 +285,6 @@ class CRCache:
         Tuples are of length 4 in the form:
          (contract_obj: ContractTransaction, status: int[0/1], result: str/exception object, state: str)
         """
-
         if len(self.results) != len(self.bag.transactions):
             self.log.critical("You rly fkt up dude, length of results is {} but bag has {} txs. Discarding." \
                               .format(len(self.results), len(self.bag.transactions)))

@@ -130,8 +130,8 @@ class SubBlockClient:
         self.master_db = ContractDriver()
 
         caches = []
-        self.scheduler = FSMScheduler(self.loop, sbb_idx, num_sbb, caches)
-        for i in config.NUM_CACHES:
+        self.scheduler = FSMScheduler(self.loop, sbb_idx, num_sbb)
+        for i in range(config.NUM_CACHES):
             caches.append(CRCache(config.DB_OFFSET + i, self.master_db,
                                   self.sbb_idx, self.num_sbb,
                                   self.executor, self.scheduler))
