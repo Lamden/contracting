@@ -135,7 +135,6 @@ class Sandbox(object):
 
             result = func(**kwargs)
 
-
             if auto_commit:
                 runtime.rt.driver.commit()
         except Exception as e:
@@ -143,9 +142,10 @@ class Sandbox(object):
             status_code = 1
             if auto_commit:
                 runtime.rt.driver.revert()
-
-        if isinstance(driver, CacheDriver):
-            driver.new_tx()
+        finally:
+            if isinstance(driver, CacheDriver):
+                driver.new_tx()
+            self.clean()
 
         return status_code, result
 
