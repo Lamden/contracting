@@ -91,16 +91,16 @@ Tracer_dealloc(Tracer *self)
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static void reprint(PyObject *obj) {
-    PyObject * repr = PyObject_Repr(obj);
-    PyObject * str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-    const char *bytes = PyBytes_AS_STRING(str);
-
-    printf("REPR: %s\n", bytes);
-
-    Py_XDECREF(repr);
-    Py_XDECREF(str);
-}
+//static void reprint(PyObject *obj) {
+//    PyObject * repr = PyObject_Repr(obj);
+//    PyObject * str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
+//    const char *bytes = PyBytes_AS_STRING(str);
+//
+//    printf("REPR: %s\n", bytes);
+//
+//    Py_XDECREF(repr);
+//    Py_XDECREF(str);
+//}
 
 
 /*
