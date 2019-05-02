@@ -137,9 +137,7 @@ class RedisDriver(AbstractDatabaseDriver):
         self.connection_pool = self.conn.connection_pool
 
     def get(self, key):
-        print("GETTING KEY {}".format(key))
         val = self.conn.get(key)
-        print("GOT VAL {}".format(val))
         return val
 
     def set(self, key, value):
@@ -292,7 +290,6 @@ class CacheDriver(DatabaseDriver):
             self.new_tx()
 
     def get(self, key):
-        print("GET IN CACHEDRIVER")
         key_location = self.modified_keys.get(key)
         if key_location is None:
             value = super().get(key)
