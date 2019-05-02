@@ -191,7 +191,7 @@ class CRCache:
     def _reset_macro_keys(self):
         self.log.info("resetting macro keys")
         for key in Macros.ALL_MACROS:
-            self.db.delete(key)
+            # self.db.delete(key)
             self.db.set_direct(key, 0)
 
     def get_results(self):
