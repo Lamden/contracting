@@ -53,7 +53,7 @@ class TestSingleCRCache(unittest.TestCase):
     def setUpClass(self):
         num_sbb = 1
         self.master_db = driver
-        executor = Executor()
+        executor = Executor(production=True)
         self.author = 'unittest'
         sys.meta_path.append(DatabaseFinder)
         driver.flush()
@@ -68,7 +68,6 @@ class TestSingleCRCache(unittest.TestCase):
         driver.commit()
 
         # Use executor submit
-        e = Executor()
         contracts = glob.glob('./test_sys_contracts/*.py')
         for contract in contracts:
             name = contract.split('/')[-1]
@@ -77,7 +76,7 @@ class TestSingleCRCache(unittest.TestCase):
             with open(contract) as f:
                 code = f.read()
 
-            e.execute(sender=self.author, contract_name='submission', function_name='submit_contract', kwargs={'name': name, 'code': code})
+            executor.execute(sender=self.author, contract_name='submission', function_name='submit_contract', kwargs={'name': name, 'code': code})
 
         # Setup tx
         tx1 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'Working'})
@@ -86,13 +85,14 @@ class TestSingleCRCache(unittest.TestCase):
         sbb_idx = 0
         self.scheduler = SchedulerStub()
         self.bag = TransactionBag([tx1, tx2], input_hash, lambda y: y)
-        self.cache = CRCache(idx=0, master_db=self.master_db, sbb_idx=sbb_idx,
+        self.cache = CRCache(idx=1, master_db=self.master_db, sbb_idx=sbb_idx,
                              num_sbb=num_sbb, executor=executor, scheduler=self.scheduler)
 
     @classmethod
     def tearDownClass(self):
         self.cache.db.flush()
         self.master_db.flush()
+        self.cache.executor.sandbox.terminate()
         del self.cache
         sys.meta_path.remove(DatabaseFinder)
         driver.flush()
