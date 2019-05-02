@@ -1,6 +1,7 @@
 import abc
 import copy
 
+import plyvel
 from redis import Redis
 from redis.connection import Connection
 from .. import config
