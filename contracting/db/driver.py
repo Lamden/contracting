@@ -1,4 +1,5 @@
 import abc
+import copy
 
 from redis import Redis
 from redis.connection import Connection
@@ -14,6 +15,16 @@ import marshal
 
 class AbstractDatabaseDriver:
     __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def __getstate__(self):
+        """Remove unpicklable objects (i.e. conn)"""
+        return
+
+    @abc.abstractmethod
+    def __setstate__(self, state):
+        """Re-add unpicklable objects (i.e. conn)"""
+        return
 
     @abc.abstractmethod
     def get(self, key):
@@ -93,7 +104,24 @@ class DictDriver(AbstractDatabaseDriver):
 
 class RedisConnectionDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
-        self.conn = Connection(host, port, db)
+        self.host = host
+        self.db = db
+        self.port = port
+        self.conn = None
+        self._setup_conn()
+
+    def _setup_conn(self):
+        self.conn = Connection(self.host, self.port, self.db)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['conn']
+        return state
+
+    def __setstate__(self, state):
+        for k,v in state.items():
+            setattr(self, k, v)
+        self._setup_conn()
 
     def get(self, key):
         self.conn.send_command('GET', key)
@@ -134,13 +162,30 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
 
 class RedisDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
-        self.conn = Redis(host=host, port=port, db=db)
+        self.host = host
+        self.port = port
+        self.db = db
+        self.conn = None
+        self.connection_pool = None
+        self._setup_conn()
+
+    def _setup_conn(self):
+        self.conn = Redis(host=self.host, port=self.port, db=self.db)
         self.connection_pool = self.conn.connection_pool
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['conn']
+        del state['connection_pool']
+        return state
+
+    def __setstate__(self, state):
+        for k,v in state.items():
+            setattr(self, k, v)
+        self._setup_conn()
+
     def get(self, key):
-        print("GETTING KEY {}".format(key))
         val = self.conn.get(key)
-        print("GOT VAL {}".format(val))
         return val
 
     def set(self, key, value):
@@ -273,27 +318,30 @@ class CacheDriver(DatabaseDriver):
         self.reset_cache()
 
     def reset_cache(self, modified_keys=None, contract_modifications=None, original_values=None):
-        contract_modifications = contract_modifications or []
-        original_values = original_values or {}
-
         # Modified keys is a dictionary of deques representing the contracts that have modified
         # that key
         if modified_keys:
-            self.modified_keys = modified_keys
+            self.modified_keys = copy.deepcopy(modified_keys)
         else:
             self.modified_keys = defaultdict(deque)
         # Contract modififications is a list of dicts containing the keys updated by a contract
         # and their final value
-        self.contract_modifications = contract_modifications
+        if contract_modifications:
+            self.contract_modifications = copy.deepcopy(contract_modifications)
+        else:
+            self.contract_modifications = []
         # Original values is a dictionary of keys representing the original value fetched from
         # the DB
-        self.original_values = original_values
+        if original_values:
+            self.original_values = copy.deepcopy(original_values)
+        else:
+            self.original_values = {}
+
         # If we do not have any contract modifications, add a new one
         if len(self.contract_modifications) == 0:
             self.new_tx()
 
     def get(self, key):
-        print("GET IN CACHEDRIVER")
         key_location = self.modified_keys.get(key)
         if key_location is None:
             value = super().get(key)

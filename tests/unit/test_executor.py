@@ -7,6 +7,7 @@ import glob
 from contracting.db.driver import AbstractDatabaseDriver, ContractDriver
 from contracting.execution.module import DatabaseFinder
 from contracting.ast.compiler import ContractingCompiler
+from contracting.db.cr.transaction_bag import TransactionBag
 
 class TestExecutor(unittest.TestCase):
     def setUp(self):
@@ -72,32 +73,65 @@ class DBTests(unittest.TestCase):
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
 
-        result = self.sb.execute(self.author, contract_name,
-                                 function_name, kwargs)
+        status_code, result = self.sb.execute(self.author, contract_name,
+                                              function_name, kwargs)
         self.assertEqual(result, 'Working')
 
     def test_base_execute_fail(self):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        self.assertRaises(ImportError, self.sb.execute,
-                          *(self.author, contract_name, function_name, kwargs))
+        status_code, result =  self.sb.execute(self.author, contract_name, function_name, kwargs)
+
+        self.assertEqual(status_code, 1)
+        self.assertIsInstance(result, ImportError)
+
+    def test_base_execute_bag(self):
+        contract_name = 'module_func'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        input_hash = 'A'*64
+
+        tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
+        txbag = TransactionBag([tx], input_hash, completion_handler_stub)
+
+        results = self.sb.execute_bag(txbag)
+
+        self.assertEqual(results[0][0], 0)
+        self.assertEqual(results[0][1], 'Working')
 
     def test_multiproc_execute(self):
         contract_name = 'module_func'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
 
-        result = self.mpsb.execute(self.author, contract_name,
-                                   function_name, kwargs)
+        status_code, result = self.mpsb.execute(self.author, contract_name,
+                                                function_name, kwargs)
         self.assertEqual(result, 'Working')
+        self.assertEqual(status_code, 0)
 
     def test_multiproc_execute_fail(self):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        self.assertRaises(ImportError, self.mpsb.execute,
-                          *(self.author, contract_name, function_name, kwargs))
+        status_code, result = self.mpsb.execute(self.author, contract_name, function_name, kwargs)
+
+        self.assertEqual(status_code, 1)
+        self.assertIsInstance(result, ImportError)
+
+    def test_multiproc_execute_bag(self):
+        contract_name = 'module_func'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        input_hash = 'A'*64
+
+        tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
+        txbag = TransactionBag([tx], input_hash, completion_handler_stub)
+
+        results = self.mpsb.execute_bag(txbag)
+
+        self.assertEqual(results[0][0], 0)
+        self.assertEqual(results[0][1], 'Working')
 
     def test_executor_execute(self):
         contract_name = 'module_func'
@@ -117,12 +151,27 @@ class DBTests(unittest.TestCase):
         self.assertEqual(status_code, 1)
         self.assertIsInstance(result, ImportError)
 
+    def test_executor_execute_bag(self):
+        contract_name = 'module_func'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        input_hash = 'A'*64
+
+        tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
+        txbag = TransactionBag([tx], input_hash, completion_handler_stub)
+
+        results = self.e.execute_bag(txbag)
+
+        self.assertEqual(results[0][0], 0)
+        self.assertEqual(results[0][1], 'Working')
+
     def test_executor_prod_execute(self):
         contract_name = 'module_func'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
         status_code, result = self.e_prod.execute(self.author, contract_name,
                                                   function_name, kwargs)
+
         self.assertEqual(result, 'Working')
         self.assertEqual(status_code, 0)
 
@@ -135,16 +184,40 @@ class DBTests(unittest.TestCase):
         self.assertEqual(status_code, 1)
         self.assertIsInstance(result, ImportError)
 
+    def test_executor_prod_execute_bag(self):
+        contract_name = 'module_func'
+        function_name = 'test_func'
+        kwargs = {'status': 'Working'}
+        input_hash = 'A'*64
+
+        tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
+        txbag = TransactionBag([tx], input_hash, completion_handler_stub)
+
+        results = self.e_prod.execute_bag(txbag)
+
+        self.assertEqual(results[0][0], 0)
+        self.assertEqual(results[0][1], 'Working')
+
 
 # Stub out the Contract Transaction object for use in the unit test
 # We will need to write an integration test that passes real contract
 # objects, but here is not the place
+class PayloadStub(object):
+    def __init__(self, sender):
+        self.sender = sender
+
+
 class ContractTxStub(object):
     def __init__(self, sender, contract_name, func_name, kwargs):
-        self.sender = sender
+        self.payload = PayloadStub(sender)
         self.contract_name = contract_name
         self.func_name = func_name
         self.kwargs = kwargs
+
+
+def completion_handler_stub():
+    pass
+
 
 class TestExecutorIntegration(unittest.TestCase):
     def setUp(self):

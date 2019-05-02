@@ -200,7 +200,7 @@ class CRCache:
     def execute_transactions(self):
         # Execute first round using Master DB Driver since we will not have any keys in common
         # Do not commit, leveraging cache only
-        self.results = self.executor.execute_bag(self.bag, self.master_db)
+        self.results = self.executor.execute_bag(self.bag, driver=self.master_db)
 
         # Copy the cache from Master DB Driver to the contained Driver for common
         self.db.reset_cache(modified_keys=self.master_db.modified_keys,
@@ -298,6 +298,7 @@ class CRCache:
         i = 0
 
         # Iterate over results to take into account transactions that have been reverted and removed from contract_mods
+        print("RESULTANT CACHE: {}".format(self.db.contract_modifications))
         for tx_idx in sorted(self.results.keys()):
             status_code, result = self.results[tx_idx]
             state_str = ""

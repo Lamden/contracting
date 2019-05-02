@@ -31,7 +31,7 @@ class TestMultiCRCache(unittest.TestCase):
     def setUpClass(self):
         num_sbb = 1
         self.master_db = driver
-        executor = Executor()
+        executor = Executor(production=True)
         self.author = 'unittest'
         sys.meta_path.append(DatabaseFinder)
         driver.flush()
@@ -46,7 +46,6 @@ class TestMultiCRCache(unittest.TestCase):
         driver.commit()
 
         # Use executor submit
-        e = Executor()
         contracts = glob.glob('./test_sys_contracts/*.py')
         for contract in contracts:
             name = contract.split('/')[-1]
@@ -55,7 +54,7 @@ class TestMultiCRCache(unittest.TestCase):
             with open(contract) as f:
                 code = f.read()
 
-            e.execute(sender=self.author, contract_name='submission', function_name='submit_contract', kwargs={'name': name, 'code': code})
+            executor.execute(sender=self.author, contract_name='submission', function_name='submit_contract', kwargs={'name': name, 'code': code})
 
         # Setup tx
         tx1 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'tx1_succ'})
@@ -80,6 +79,7 @@ class TestMultiCRCache(unittest.TestCase):
         self.master_db.flush()
         for i in range(self.num_caches):
             self.caches[i].db.flush()
+            self.caches[i].executor.sandbox.terminate()
         sys.meta_path.remove(DatabaseFinder)
         driver.flush()
 
