@@ -189,6 +189,7 @@ class CRCache:
         return val
 
     def _reset_macro_keys(self):
+        self.log.info("resetting macro keys")
         for key in Macros.ALL_MACROS:
             self.db.delete(key)
             self.db.conn.set(key, 0)
