@@ -7,7 +7,7 @@ from transitions.extensions.states import add_state_features, Timeout
 
 # Local imports
 from contracting.logger import get_logger
-from contracting.db.driver import ContractDriver, CacheDriver, RedisConnectionDriver
+from contracting.db.driver import ContractDriver, CacheDriver
 from contracting.db.cr.transaction_bag import TransactionBag
 from contracting import config
 from contracting.db.cr.callback_data import ExecutionData, SBData
@@ -184,7 +184,7 @@ class CRCache:
         import time
         time.sleep(0.5)
 
-        val = int(self.db.conn.get(macro))
+        val = int(self.db.get_direct(macro))
         self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
         return val
 
@@ -192,7 +192,7 @@ class CRCache:
         self.log.info("resetting macro keys")
         for key in Macros.ALL_MACROS:
             self.db.delete(key)
-            self.db.conn.set(key, 0)
+            self.db.set_direct(key, 0)
 
     def get_results(self):
         return self.results
@@ -203,7 +203,7 @@ class CRCache:
     def execute_transactions(self):
         # Execute first round using Master DB Driver since we will not have any keys in common
         # Do not commit, leveraging cache only
-        self.results = self.executor.execute_bag(self.bag, self.master_db)
+        self.results = self.executor.execute_bag(self.bag, driver=self.master_db)
 
         # Copy the cache from Master DB Driver to the contained Driver for common
         self.db.reset_cache(modified_keys=self.master_db.modified_keys,
@@ -297,6 +297,7 @@ class CRCache:
         i = 0
 
         # Iterate over results to take into account transactions that have been reverted and removed from contract_mods
+        print("RESULTANT CACHE: {}".format(self.db.contract_modifications))
         for tx_idx in sorted(self.results.keys()):
             status_code, result = self.results[tx_idx]
             state_str = ""

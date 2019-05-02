@@ -207,7 +207,7 @@ Tracer_methods[] = {
 static PyTypeObject
 TracerType = {
     MyType_HEAD_INIT
-    "seneca.libs.metering.tracer",         /*tp_name*/
+    "contracting.execution.metering.tracer",         /*tp_name*/
     sizeof(Tracer),            /*tp_basicsize*/
     0,                         /*tp_itemsize*/
     (destructor)Tracer_dealloc, /*tp_dealloc*/
@@ -255,7 +255,7 @@ TracerType = {
 static PyModuleDef
 moduledef = {
     PyModuleDef_HEAD_INIT,
-    "seneca.libs.metering.tracer",
+    "contracting.execution.metering.tracer",
     MODULE_DOC,
     -1,
     NULL,       /* methods */
@@ -291,7 +291,7 @@ void
 inittracer(void)
 {
     PyObject * mod;
-    mod = Py_InitModule3("seneca.libs.metering.tracer", NULL, MODULE_DOC);
+    mod = Py_InitModule3("contracting.execution.metering.tracer", NULL, MODULE_DOC);
 
     if (mod == NULL) {
         return;

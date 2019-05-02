@@ -5,6 +5,5 @@ autopep8==1.4.3
 coloredlogs
 numpy==1.16.2
 plyvel
-autopep8
 astor
 transitions
