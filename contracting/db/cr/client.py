@@ -90,6 +90,7 @@ class FSMScheduler:
                                                    "set.".format(func, succ_state))
                                     rm_set[cache].append((func, succ_state, is_merge))
                                     self.merge_idx -= 1
+                                    self.log.info("Decrementing merge index")
                             except Exception as e:
                                 # TODO bump this guy down to spam or debugv once we feel confidence
                                 self.log.info("Got error try to call func {}...\nerr = {}".format(func, e))
@@ -110,7 +111,11 @@ class FSMScheduler:
 
     def update_master_db(self):
         assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
+        assert self.merge_idx < len(self.pending_caches), "Merge idx {} out of range of pending caches of len {}"\
+                                                          .format(self.merge_idx, len(self.pending_caches))
+
         cache = self.pending_caches[self.merge_idx]
+        self.log.info("update_master_db called with merge idx {}".format(self.merge_idx))
         self.merge_idx += 1
         self.add_poll(cache, cache.merge, 'RESET', True)
 
