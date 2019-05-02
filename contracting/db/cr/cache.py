@@ -7,7 +7,7 @@ from transitions.extensions.states import add_state_features, Timeout
 
 # Local imports
 from contracting.logger import get_logger
-from contracting.db.driver import ContractDriver, CacheDriver, RedisConnectionDriver
+from contracting.db.driver import ContractDriver, CacheDriver
 from contracting.db.cr.transaction_bag import TransactionBag
 from contracting import config
 from typing import List
@@ -182,14 +182,14 @@ class CRCache:
         import time
         time.sleep(0.5)
 
-        val = int(self.db.conn.get(macro))
+        val = int(self.db.get_direct(macro))
         self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
         return val
 
     def _reset_macro_keys(self):
         for key in Macros.ALL_MACROS:
             self.db.delete(key)
-            self.db.conn.set(key, 0)
+            self.db.set_direct(key, 0)
 
     def get_results(self):
         return self.results

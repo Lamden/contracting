@@ -125,11 +125,14 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
 
     def get(self, key):
         self.conn.send_command('GET', key)
-        return self.conn.read_response()
+        resp = self.conn.read_response()
+        #print("GET {} RESPONSE: {}".format(key, resp))
+        return resp
 
     def set(self, key, value):
         self.conn.send_command('SET', key, value)
-        self.conn.read_response()
+        resp = self.conn.read_response()
+        #print("SET {} RESPONSE: {}".format(key, resp))
 
     def delete(self, key):
         self.conn.send_command('DEL', key)
@@ -350,10 +353,16 @@ class CacheDriver(DatabaseDriver):
             value = self.contract_modifications[key_location[-1]][key]
         return value
 
+    def get_direct(self, key):
+        return super().get(key)
+
     def set(self, key, value):
         self.contract_modifications[-1].update({key: value})
         # TODO: May have multiple instances of contract_idx if multiple sets on same key
         self.modified_keys[key].append(len(self.contract_modifications) - 1)
+
+    def set_direct(self, key, value):
+        super().set(key, value)
 
     def revert(self, idx=0):
         if idx == 0:
