@@ -51,7 +51,10 @@ class FSMScheduler:
 
     def mark_clean(self, cache: CRCache):
         if cache in self.pending_caches:
+            self.log.info("Removing cache {} from pending_caches")
             self.pending_caches.remove(cache)
+
+        self.log.info("Adding cache {} to available_caches")
         self.available_caches.append(cache)
 
     def check_top_of_stack(self, cache: CRCache):
