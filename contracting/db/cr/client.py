@@ -32,6 +32,8 @@ class FSMScheduler:
         self.available_caches = deque() # LIFO
         self.pending_caches = deque() # FIFO
 
+        self.merge_idx = 0
+
     def execute_bag(self, bag: TransactionBag):
         assert len(self.available_caches) > 0, "No available caches"
         current_cache = self.available_caches.popleft()
@@ -44,8 +46,8 @@ class FSMScheduler:
 
         self.pending_caches.append(current_cache)
 
-    def add_poll(self, cache: CRCache, func: callable, succ_state: str):
-        self.temp_events[cache].add((func, succ_state))
+    def add_poll(self, cache: CRCache, func: callable, succ_state: str, is_merge=False):
+        self.temp_events[cache].add((func, succ_state, is_merge))
 
     def mark_clean(self, cache: CRCache):
         if cache in self.pending_caches:
@@ -70,12 +72,27 @@ class FSMScheduler:
                 rm_set = defaultdict(list)  # set of function pointer to remove if the poll call was successful
 
                 for cache, poll_set in self.events.items():
-                    for func, succ_state in poll_set:
-                        func()
-                        if cache.state == succ_state:
-                            self.log.debug("Polling function call {} resulting in succ state {}. Removing function from poll "
-                                           "set.".format(func, succ_state))
-                            rm_set[cache].append((func, succ_state))
+                    for func, succ_state, is_merge in poll_set:
+
+                        if not is_merge:
+                            func()
+                            if cache.state == succ_state:
+                                self.log.debug("Polling function call {} resulting in succ state {}. Removing function from poll "
+                                               "set.".format(func, succ_state))
+                                rm_set[cache].append((func, succ_state, is_merge))
+
+                        else:
+                            try:
+                                func()
+                                if cache.state == succ_state:
+                                    # TODO bump this guy down to debug or debugv once we feel confidence
+                                    self.log.info("Polling function call {} resulting in succ state {}. Removing function from poll "
+                                                   "set.".format(func, succ_state))
+                                    rm_set[cache].append((func, succ_state, is_merge))
+                                    self.merge_idx -= 1
+                            except Exception as e:
+                                # TODO bump this guy down to spam or debugv once we feel confidence
+                                self.log.info("Got error try to call func {}...\nerr = {}".format(func, e))
 
                 for cache, li in rm_set.items():
                     for tup in li:
@@ -93,8 +110,9 @@ class FSMScheduler:
 
     def update_master_db(self):
         assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
-        cache = self.pending_caches[0]
-        cache.merge()
+        cache = self.pending_caches[self.merge_idx]
+        self.merge_idx += 1
+        self.add_poll(cache, cache.merge, 'RESET', True)
 
     def flush_all(self):
         self.log.info("Flushing all caches...")
