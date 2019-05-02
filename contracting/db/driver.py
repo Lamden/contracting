@@ -2,7 +2,6 @@ import abc
 
 from redis import Redis
 from redis.connection import Connection
-import plyvel
 from .. import config
 from ..exceptions import DatabaseDriverNotFound
 from ..db.encoder import encode, decode
