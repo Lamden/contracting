@@ -278,6 +278,7 @@ class CRCache:
         # since the DB is shared, we only need to call this from one of the SBBs
         if self.sbb_idx == 0:
             self.db.flush()
+            self._reset_macro_keys()
         self.db.reset_cache()
         self.master_db.reset_cache()
         self.rerun_idx = None
