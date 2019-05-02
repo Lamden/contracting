@@ -189,18 +189,21 @@ class CRCache:
         return val
 
     def _reset_macro_keys(self):
-        self.log.info("resetting macro keys")
-        for key in Macros.ALL_MACROS:
-            # self.db.delete(key)
-            self.db.set_direct(key, 0)
+        if self.sbb_idx == 0:
+            self.log.info("{} is resetting macro keys".format(self))
+            for key in Macros.ALL_MACROS:
+                # self.db.delete(key)
+                self.db.set_direct(key, 0)
 
     def get_results(self):
         return self.results
 
     def set_transaction_bag(self, bag):
+        self.log.important3("{} is setting transactions!".format(self))
         self.bag = bag
 
     def execute_transactions(self):
+        self.log.important3("{} is executing transactions!".format(self))
         # Execute first round using Master DB Driver since we will not have any keys in common
         # Do not commit, leveraging cache only
         self.results = self.executor.execute_bag(self.bag, driver=self.master_db)
@@ -270,6 +273,7 @@ class CRCache:
             self.master_db.commit()
 
     def reset_dbs(self):
+        self.log.important3("{} is resetting!!!".format(self))
         # If we are on SBB 0, we need to flush the common layer of this cache
         # since the DB is shared, we only need to call this from one of the SBBs
         if self.sbb_idx == 0:
