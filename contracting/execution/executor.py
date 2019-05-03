@@ -20,7 +20,9 @@ class Executor:
         #cu_cost_fname = join(contracting.__path__[0], 'constants', 'cu_costs.const')
         #self.tracer = Tracer(cu_cost_fname)
 
-        self.setup_tracer()
+        if self.metering is True:
+            self.setup_tracer()
+
         self.driver = ContractDriver()
 
         if production:
