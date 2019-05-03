@@ -68,8 +68,6 @@ class FSMScheduler:
         if cache in self.pending_caches:
             self.log.info("[mark_clean] Removing cache {} from pending_caches")
             self.pending_caches.remove(cache)
-        else:
-            raise Exception("Tried to remove cache {} that is not in pending_caches {}".format(cache, self.pending_caches))
 
         self.log.info("[mark_clean] Adding cache {} to available_caches".format(cache))
         self.available_caches.append(cache)
