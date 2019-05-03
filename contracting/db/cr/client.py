@@ -70,8 +70,6 @@ class FSMScheduler:
     async def _poll_events(self):
         try:
             while True:
-                self.log.spam("Polling events")
-
                 rm_set = defaultdict(list)  # set of function pointer to remove if the poll call was successful
 
                 for cache, poll_set in self.events.items():

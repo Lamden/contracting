@@ -65,7 +65,6 @@ class CRCache:
         self.bag = None            # Bag will be set by the execute call
         self.rerun_idx = None      # The index to being reruns at
         self.results = {}          # The results of the execution
-        self.top_of_stack = False  # Whether or not we're top of the stack (told by Client)
         self.macros = Macros()     # Instance of the macros class for mutex/sync
         self.input_hash = None     # The 'input hash' of the bag we are executing, a 64 char hex str
 
@@ -321,7 +320,7 @@ class CRCache:
     def __repr__(self):
         input_hash = 'NOT_SET' if self.bag is None else self.bag.input_hash
         return "<CRCache input_hash={}, state={}, idx={}, sbb_idx={}, top_of_stk={}>"\
-               .format(input_hash, self.state, self.idx, self.sbb_idx, self.top_of_stack)
+               .format(input_hash, self.state, self.idx, self.sbb_idx, self.is_top_of_stack())
 
 
 if __name__ == "__main__":
