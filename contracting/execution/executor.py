@@ -59,7 +59,10 @@ class Executor:
                 driver.new_tx()
         return results
 
-    def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None) -> dict:
+    #TODO stamps need to be update from 1 mil to given stamps
+
+    def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
+                stamps=1000000) -> dict:
         """
         Method that does a naive execute
 
@@ -81,7 +84,7 @@ class Executor:
 
         environment.update({'__Context': runtime.Context})
         try:
-            stamps = 1000000
+            #stamps = 1000000
             self.tracer.set_stamp(stamps)
             self.tracer.start()
             result = self.sandbox.execute(sender, contract_name, function_name, kwargs, environment)
