@@ -30,7 +30,7 @@ class FSMScheduler:
         self.fut = asyncio.ensure_future(self._poll_events())
 
         # DEBUG -- TODO DELETE
-        self.fut = asyncio.ensure_future(self._log_caches())
+        self.fut = asyncio.ensure_future(self._check_on_caches())
         # END DEBUG
 
         self.available_caches = deque() # LIFO
@@ -101,7 +101,6 @@ class FSMScheduler:
         if not self.pending_caches:
             return False
 
-        # Does this need to be -1?
         return self.pending_caches[0] == cache
 
     def clear_polls_for_cache(self, cache: CRCache):
