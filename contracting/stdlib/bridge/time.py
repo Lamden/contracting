@@ -90,17 +90,6 @@ class Timedelta:
             raise NotImplementedError('Decimal division on timedeltas not currently supported.')
         return NotImplemented
 
-    def __div__(self, other):
-        if isinstance(other, Timedelta):
-            return Timedelta(days=self._timedelta.days * other._timedelta.days,
-                             seconds=self._timedelta.seconds * other._timedelta.seconds)
-        elif isinstance(other, int):
-            return Timedelta(days=self._timedelta.days * other,
-                             seconds=self._timedelta.seconds * other)
-        elif isinstance(other, float) or isinstance(other, decimal.Decimal):
-            raise NotImplementedError('Decimal division on timedeltas not currently supported.')
-        return NotImplemented
-
 
 WEEKS = Timedelta(weeks=1)
 DAYS = Timedelta(days=1)
