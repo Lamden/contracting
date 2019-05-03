@@ -3,7 +3,7 @@ from contracting.client import ContractingClient
 
 
 def random_contract():
-    seed()
+    random.seed()
 
     cards = [1, 2, 3, 4, 5, 6, 7, 8]
 
@@ -14,51 +14,51 @@ def random_contract():
 
     @export
     def shuffle_cards(**kwargs):
-        shuffle(cards)
+        random.shuffle(cards)
         return cards
 
     @export
     def random_number(k):
-        return randrange(k)
+        return random.randrange(k)
 
     @export
     def random_number_2(k):
         # adjust the random state by calling another random function
         shuffle_cards()
-        return randrange(k)
+        return random.randrange(k)
 
     @export
     def random_bits(k):
         shuffle_cards()
         shuffle_cards()
         shuffle_cards()
-        return getrandbits(k)
+        return random.getrandbits(k)
 
     @export
     def int_in_range(a, b):
         shuffle_cards()
         shuffle_cards()
-        return randint(a, b)
+        return random.randint(a, b)
 
     @export
     def deal_card():
-        shuffle(cardinal_values)
-        shuffle(cardinal_values)
-        shuffle(cardinal_values)
+        random.shuffle(cardinal_values)
+        random.shuffle(cardinal_values)
+        random.shuffle(cardinal_values)
 
-        shuffle(suits)
-        shuffle(suits)
-        shuffle(suits)
+        random.shuffle(suits)
+        random.shuffle(suits)
+        random.shuffle(suits)
 
         c = ''
-        c += choice(cardinal_values)
-        c += choice(suits)
+        c += random.choice(cardinal_values)
+        c += random.choice(suits)
 
         return c
 
     @export
     def pick_cities(k):
-        return choices(cities, k)
+        return random.choices(cities, k)
 
 
 class TestRandomsContract(TestCase):

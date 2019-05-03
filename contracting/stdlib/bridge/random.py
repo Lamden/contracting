@@ -12,6 +12,7 @@
 '''
 
 import random
+from types import ModuleType
 from ...execution.runtime import rt
 
 block_height = rt.env.get('block_height') or '0'
@@ -57,12 +58,19 @@ def choices(l, k):
     return random.choices(l, k=k)
 
 
+# Construct module for exposure in the contract runtime
+random_module = ModuleType('random')
+random_module.seed = seed
+random_module.shuffle = shuffle
+random_module.getrandbits = getrandbits
+random_module.randrange = randrange
+random_module.randint = randint
+random_module.choice = choice
+random_module.choices = choices
+
+# Add it to the export object and it's good to go
 exports = {
-    'seed': seed,
-    'getrandbits': getrandbits,
-    'shuffle': shuffle,
-    'randrange': randrange,
-    'randint': randint,
-    'choice': choice,
-    'choices': choices
+    'random': random_module
 }
+
+
