@@ -39,11 +39,21 @@ class FSMScheduler:
     def _log_caches(self):
         self.log.important("--------- PENDING CACHES ---------")
         for i, c in enumerate(self.pending_caches):
-            self.log.important("idx {} --- {}".format(i, c))
+            self.log.notice("idx {} --- {}".format(i, c))
+        self.log.important("----------------------------------")
 
         self.log.important2("--------- AVAILABLE CACHES ---------")
         for i, c in enumerate(self.available_caches):
-            self.log.important2("idx {} --- {}".format(i, c))
+            self.log.notice("idx {} --- {}".format(i, c))
+        self.log.important2("----------------------------------")
+
+        self.log.important3("--------- POLL EVENTS ---------")
+        for cache in self.events:
+            self.log.notice("Cache {}".format(cache))
+            for event_tup in self.events[cache]:
+                fn, succ_state, is_merge = event_tup
+                self.log.notice("\tfn: {}, succ_state: {}, is_merge: {}".format(fn, succ_state, is_merge))
+        self.log.important3("----------------------------------")
 
     def execute_bag(self, bag: TransactionBag):
         assert len(self.available_caches) > 0, "No available caches"
