@@ -85,7 +85,6 @@ class CRCache:
                 'trigger': 'execute',
                 'source': 'BAG_SET',
                 'dest': 'EXECUTED',
-                'prepare': '_reset_macro_keys',
                 'before': 'execute_transactions',
                 'after': '_schedule_cr'
             },
@@ -163,6 +162,7 @@ class CRCache:
                                           transitions=transitions, initial='CLEAN')
 
         self.scheduler.mark_clean(self)
+        self._reset_macro_keys()
 
     def _schedule_cr(self):
         # Add sync_execution to the scheduler to wait for the CR step
@@ -277,7 +277,6 @@ class CRCache:
         # since the DB is shared, we only need to call this from one of the SBBs
         if self.sbb_idx == 0:
             self.db.flush()
-            self._reset_macro_keys()
         self.db.reset_cache()
         self.master_db.reset_cache()
         self.rerun_idx = None
@@ -289,6 +288,7 @@ class CRCache:
     def _mark_clean(self):
         # Mark myself as clean for the FSMScheduler to be able to reuse me
         self.scheduler.mark_clean(self)
+        self._reset_macro_keys()
 
     def _get_sb_data(self) -> SBData:
         if len(self.results) != len(self.bag.transactions):
