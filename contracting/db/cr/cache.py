@@ -188,11 +188,10 @@ class CRCache:
         return val
 
     def _reset_macro_keys(self):
-        if self.sbb_idx == 0:
-            self.log.info("{} is resetting macro keys".format(self))
-            for key in Macros.ALL_MACROS:
-                # self.db.delete(key)
-                self.db.set_direct(key, 0)
+        self.log.info("{} is resetting macro keys".format(self))
+        for key in Macros.ALL_MACROS:
+            # self.db.delete(key)
+            self.db.set_direct(key, 0)
 
     def get_results(self):
         return self.results
