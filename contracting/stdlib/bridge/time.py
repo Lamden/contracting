@@ -86,8 +86,6 @@ class Timedelta:
         elif isinstance(other, int):
             return Timedelta(days=self._timedelta.days * other,
                              seconds=self._timedelta.seconds * other)
-        elif isinstance(other, float) or isinstance(other, decimal.Decimal):
-            raise NotImplementedError('Decimal division on timedeltas not currently supported.')
         return NotImplemented
 
 

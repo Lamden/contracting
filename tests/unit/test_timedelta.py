@@ -2,7 +2,7 @@ from unittest import TestCase
 from contracting.stdlib.bridge.time import Timedelta, WEEKS, DAYS, HOURS, MINUTES, SECONDS
 from datetime import datetime as dt
 from datetime import timedelta
-
+import decimal
 
 class TestTimedelta(TestCase):
     def test_implementation_mimics_actual_timedelta(self):
@@ -126,6 +126,30 @@ class TestTimedelta(TestCase):
         self.assertEqual(t_add, t_done)
         self.assertEqual(t_add._timedelta, org)
 
+    def test_subtraction_works_days(self):
+        t_add = Timedelta(days=10) - Timedelta(days=1)
+        t_done = Timedelta(days=9)
+        org = timedelta(days=9)
+
+        self.assertEqual(t_add, t_done)
+        self.assertEqual(t_add._timedelta, org)
+
+    def test_subtraction_works_seconds(self):
+        t_add = Timedelta(seconds=10) - Timedelta(seconds=1)
+        t_done = Timedelta(seconds=9)
+        org = timedelta(seconds=9)
+
+        self.assertEqual(t_add, t_done)
+        self.assertEqual(t_add._timedelta, org)
+
+    def test_subtraction_works_days_and_seconds(self):
+        t_add = Timedelta(days=10, seconds=10) - Timedelta(days=1, seconds=1)
+        t_done = Timedelta(days=9, seconds=9)
+        org = timedelta(days=9, seconds=9)
+
+        self.assertEqual(t_add, t_done)
+        self.assertEqual(t_add._timedelta, org)
+
     def test_multiplication_works(self):
         t_add = Timedelta(days=10) * Timedelta(days=3)
         t_done = Timedelta(days=30)
@@ -151,3 +175,19 @@ class TestTimedelta(TestCase):
 
         self.assertEqual(t_add, t_done)
         self.assertEqual(t_add._timedelta, org)
+
+    def test_addition_not_implemented(self):
+        with self.assertRaises(TypeError):
+            Timedelta(days=10, seconds=10) + 5
+
+    def test_subtraction_not_implemented(self):
+        with self.assertRaises(TypeError):
+            Timedelta(days=10, seconds=10) - 5
+
+    def test_multiplication_with_int_works(self):
+        self.assertEqual(Timedelta(days=10, seconds=10) * 5, Timedelta(days=50, seconds=50))
+        self.assertEqual((Timedelta(days=10, seconds=10) * 5)._timedelta, timedelta(days=50, seconds=50))
+
+    def test_multiplication_does_not_work_with_decimal(self):
+        with self.assertRaises(TypeError):
+            Timedelta(days=10, seconds=10) * decimal.Decimal(0.1)
