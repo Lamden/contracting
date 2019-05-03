@@ -196,7 +196,7 @@ class SubBlockClient:
         # END DEBUG
 
         bag = TransactionBag(contracts, input_hash, completion_handler)
-        self.scheduler.execute_bag(bag)
+        return self.scheduler.execute_bag(bag)
 
     def update_master_db(self):
         # DEBUG -- TODO DELETE
