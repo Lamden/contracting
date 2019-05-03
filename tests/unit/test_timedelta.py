@@ -89,3 +89,65 @@ class TestTimedelta(TestCase):
         _t = Timedelta(days=10)
 
         self.assertTrue(t <= _t)
+
+    def test_ne_true(self):
+        t = Timedelta(days=10)
+        _t = Timedelta(days=1)
+
+        self.assertTrue(t != _t)
+
+    def test_ne_false(self):
+        t = Timedelta(days=10)
+        _t = Timedelta(days=10)
+
+        self.assertFalse(t != _t)
+
+    def test_addition_works_days(self):
+        t_add = Timedelta(days=10) + Timedelta(days=1)
+        t_done = Timedelta(days=11)
+        org = timedelta(days=11)
+
+        self.assertEqual(t_add, t_done)
+        self.assertEqual(t_add._timedelta, org)
+
+    def test_addition_works_seconds(self):
+        t_add = Timedelta(seconds=10) + Timedelta(seconds=1)
+        t_done = Timedelta(seconds=11)
+        org = timedelta(seconds=11)
+
+        self.assertEqual(t_add, t_done)
+        self.assertEqual(t_add._timedelta, org)
+
+    def test_addition_works_days_and_seconds(self):
+        t_add = Timedelta(days=10, seconds=10) + Timedelta(days=1, seconds=1)
+        t_done = Timedelta(days=11, seconds=11)
+        org = timedelta(days=11, seconds=11)
+
+        self.assertEqual(t_add, t_done)
+        self.assertEqual(t_add._timedelta, org)
+
+    def test_multiplication_works(self):
+        t_add = Timedelta(days=10) * Timedelta(days=3)
+        t_done = Timedelta(days=30)
+        org = timedelta(days=30)
+
+        self.assertEqual(t_add, t_done)
+        self.assertEqual(t_add._timedelta, org)
+
+    def test_multiplication_works_seconds(self):
+        t_add = Timedelta(seconds=10) * Timedelta(seconds=3)
+        t_done = Timedelta(seconds=30)
+        org = timedelta(seconds=30)
+
+        self.assertEqual(t_add, t_done)
+        self.assertEqual(t_add._timedelta, org)
+
+    def test_multiplication_works_days_and_seconds(self):
+        SECONDS_IN_A_DAY = 86400
+
+        t_add = Timedelta(days=10, seconds=10) * Timedelta(days=3, seconds=3)
+        t_done = Timedelta(seconds=(30 + (30*SECONDS_IN_A_DAY)))
+        org = timedelta(seconds=(30 + (30*SECONDS_IN_A_DAY)))
+
+        self.assertEqual(t_add, t_done)
+        self.assertEqual(t_add._timedelta, org)
