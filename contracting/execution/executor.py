@@ -1,12 +1,14 @@
 import importlib
 import multiprocessing
+import contracting, os
+
 from typing import Dict
 
 from . import runtime
 from ..db.cr.transaction_bag import TransactionBag
 from ..db.driver import ContractDriver, CacheDriver
 from ..execution.module import install_database_loader
-
+from ..execution.metering.tracer import Tracer
 
 class Executor:
 
@@ -18,13 +20,20 @@ class Executor:
         #cu_cost_fname = join(contracting.__path__[0], 'constants', 'cu_costs.const')
         #self.tracer = Tracer(cu_cost_fname)
 
-        self.tracer = None
+        self.setup_tracer()
         self.driver = ContractDriver()
 
         if production:
             self.sandbox = MultiProcessingSandbox()
         else:
             self.sandbox = Sandbox()
+
+    def setup_tracer(self):
+        cu_path = contracting.__path__[0]
+        cu_path = os.path.join(cu_path, 'execution', 'metering', 'cu_costs.const')
+
+        os.environ['CU_COST_FNAME'] = cu_path
+        self.tracer = Tracer()
 
     def execute_bag(self, bag: TransactionBag, driver=None) -> Dict[int, tuple]:
         """
