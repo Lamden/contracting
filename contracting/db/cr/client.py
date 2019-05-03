@@ -58,6 +58,9 @@ class FSMScheduler:
         self.available_caches.append(cache)
 
     def check_top_of_stack(self, cache: CRCache):
+        if not self.pending_caches:
+            return False
+        
         return self.pending_caches[0] == cache
 
     def clear_polls_for_cache(self, cache: CRCache):
