@@ -30,7 +30,7 @@ class FSMScheduler:
         self.fut = asyncio.ensure_future(self._poll_events())
 
         # DEBUG -- TODO DELETE
-        self.fut = asyncio.ensure_future(self._check_on_caches())
+        self.fut2 = asyncio.ensure_future(self._check_on_caches())
         # END DEBUG
 
         self.available_caches = deque() # LIFO
@@ -41,6 +41,7 @@ class FSMScheduler:
         self._log_caches()
 
     async def _check_on_caches(self):
+        self.log.critical("<< checking on caches >>")
         self._log_caches()
         await asyncio.sleep(1)
 
