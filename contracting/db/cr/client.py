@@ -34,6 +34,15 @@ class FSMScheduler:
 
         self.merge_idx = 0
 
+    def _log_caches(self):
+        self.log.important("--------- PENDING CACHES ---------")
+        for i, c in enumerate(self.available_caches):
+            self.log.important("idx {} --- {}".format(i, c))
+
+        self.log.important2("--------- AVAILABLE CACHES ---------")
+        for i, c in enumerate(self.pending_caches):
+            self.log.important2("idx {} --- {}".format(i, c))
+
     def execute_bag(self, bag: TransactionBag):
         assert len(self.available_caches) > 0, "No available caches"
         current_cache = self.available_caches.popleft()
@@ -44,6 +53,8 @@ class FSMScheduler:
         current_cache.set_bag(bag)
         current_cache.execute()
 
+        self.log.important3("FSM executing bag using cache {} with input hash {}".format(current_cache, bag.input_hash))
+
         self.pending_caches.append(current_cache)
 
     def add_poll(self, cache: CRCache, func: callable, succ_state: str, is_merge=False):
@@ -51,10 +62,10 @@ class FSMScheduler:
 
     def mark_clean(self, cache: CRCache):
         if cache in self.pending_caches:
-            self.log.info("Removing cache {} from pending_caches")
+            self.log.info("[mark_clean] Removing cache {} from pending_caches")
             self.pending_caches.remove(cache)
 
-        self.log.info("Adding cache {} to available_caches".format(cache))
+        self.log.info("[mark_clean] Adding cache {} to available_caches".format(cache))
         self.available_caches.append(cache)
 
     def check_top_of_stack(self, cache: CRCache):
@@ -93,6 +104,11 @@ class FSMScheduler:
                                     self.log.info("Polling function call {} resulting in succ state {}. Removing function from poll "
                                                    "set.".format(func, succ_state))
                                     rm_set[cache].append((func, succ_state, is_merge))
+
+                                    # DEBUG -- TODO DELETE
+                                    self.log.important("MERGING CACHE {}".format(cache))
+                                    # END DEBUG
+
                                     self.merge_idx -= 1
                                     self.log.info("Decrementing merge index")
                             except Exception as e:
