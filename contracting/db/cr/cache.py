@@ -276,6 +276,7 @@ class CRCache:
         self.master_db.reset_cache()
         self.rerun_idx = None
         self._incr_macro_key(Macros.RESET)
+        self.bag = None
 
     def all_reset(self):
         return self._check_macro_key(Macros.RESET) == self.num_sbb

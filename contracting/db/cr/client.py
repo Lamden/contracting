@@ -15,7 +15,7 @@ import traceback
 class FSMScheduler:
 
     def __init__(self, loop, sbb_idx, num_sbb):
-        self.log = get_logger("Poller")
+        self.log = get_logger("FSM Scheduler")
         self.events = defaultdict(set)
         self.temp_events = defaultdict(set)
         self.loop = loop
@@ -38,11 +38,11 @@ class FSMScheduler:
 
     def _log_caches(self):
         self.log.important("--------- PENDING CACHES ---------")
-        for i, c in enumerate(self.available_caches):
+        for i, c in enumerate(self.pending_caches):
             self.log.important("idx {} --- {}".format(i, c))
 
         self.log.important2("--------- AVAILABLE CACHES ---------")
-        for i, c in enumerate(self.pending_caches):
+        for i, c in enumerate(self.available_caches):
             self.log.important2("idx {} --- {}".format(i, c))
 
     def execute_bag(self, bag: TransactionBag):
@@ -68,6 +68,8 @@ class FSMScheduler:
         if cache in self.pending_caches:
             self.log.info("[mark_clean] Removing cache {} from pending_caches")
             self.pending_caches.remove(cache)
+        else:
+            raise Exception("Tried to remove cache {} that is not in pending_caches {}".format(cache, self.pending_caches))
 
         self.log.info("[mark_clean] Adding cache {} to available_caches".format(cache))
         self.available_caches.append(cache)
@@ -78,6 +80,7 @@ class FSMScheduler:
         if not self.pending_caches:
             return False
 
+        # Does this need to be -1?
         return self.pending_caches[0] == cache
 
     def clear_polls_for_cache(self, cache: CRCache):
@@ -176,8 +179,15 @@ class SubBlockClient:
         self.scheduler.flush_all()
 
     def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[SBData], None]):
+        # DEBUG -- TODO DELETE
+        self.log.critical("Execute SB call for input hash {}".format(input_hash))
+        # END DEBUG
+
         bag = TransactionBag(contracts, input_hash, completion_handler)
         self.scheduler.execute_bag(bag)
 
     def update_master_db(self):
+        # DEBUG -- TODO DELETE
+        self.log.important("update_master_db called on SBClient")
+        # END DEBUG
         self.scheduler.update_master_db()
