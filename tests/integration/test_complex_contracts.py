@@ -204,12 +204,14 @@ class TestComplexContracts(TestCase):
         now = datetime.now()
 
         environment = gather()
-        date = environment['datetime'](now.year, now.month, now.day)
+        date = environment['datetime'].datetime(now.year, now.month, now.day)
         environment.update({'now': date})
 
         _, res = e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_time.s.py'),
                   environment=environment)
+
+        print(res)
 
         _, gt = e.execute('colin', 'test_time', 'gt', kwargs={}, environment=environment)
         self.assertTrue(gt)
@@ -225,7 +227,7 @@ class TestComplexContracts(TestCase):
         now = datetime.now()
 
         environment = gather()
-        date = environment['datetime'](now.year, now.month, now.day)
+        date = environment['datetime'].datetime(now.year, now.month, now.day)
         environment.update({'now': date})
 
         status, res = e.execute(**TEST_SUBMISSION_KWARGS,
@@ -254,7 +256,7 @@ class TestComplexContracts(TestCase):
 
         _, v = e.execute('colin', 'time_storage', 'get', kwargs={})
 
-        date = environment['datetime'](2019, 1, 1)
+        date = environment['datetime'].datetime(2019, 1, 1)
 
         self.assertEqual(v, date)
 

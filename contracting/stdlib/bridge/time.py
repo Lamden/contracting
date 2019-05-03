@@ -1,5 +1,6 @@
 from datetime import datetime as dt
 from datetime import timedelta as td
+from types import ModuleType
 
 # Redefine a controlled datetime object that feels like a regular Python datetime object but is restricted so that we
 # can regulate the user interaction with it to prevent security attack vectors. It may seem redundant, but it guarantees
@@ -94,12 +95,15 @@ HOURS = Timedelta(hours=1)
 MINUTES = Timedelta(minutes=1)
 SECONDS = Timedelta(seconds=1)
 
+datetime_module = ModuleType('datetime')
+datetime_module.datetime = Datetime
+datetime_module.timedelta = Timedelta
+datetime_module.WEEKS = WEEKS
+datetime_module.DAYS = DAYS
+datetime_module.HOURS = HOURS
+datetime_module.MINUTES = MINUTES
+datetime_module.SECONDS = SECONDS
+
 exports = {
-    'datetime': Datetime,
-    'timedelta': Timedelta,
-    'WEEKS': WEEKS,
-    'DAYS': DAYS,
-    'HOURS': HOURS,
-    'MINUTES': MINUTES,
-    'SECONDS': SECONDS
+    'datetime': datetime_module
 }
