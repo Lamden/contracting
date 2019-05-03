@@ -29,12 +29,20 @@ class FSMScheduler:
         # (SubBlockBuilder) kicks off his event loop
         self.fut = asyncio.ensure_future(self._poll_events())
 
+        # DEBUG -- TODO DELETE
+        self.fut = asyncio.ensure_future(self._log_caches())
+        # END DEBUG
+
         self.available_caches = deque() # LIFO
         self.pending_caches = deque() # FIFO
 
         self.merge_idx = 0
 
         self._log_caches()
+
+    async def _check_on_caches(self):
+        self._log_caches()
+        await asyncio.sleep(1)
 
     def _log_caches(self):
         self.log.important("--------- PENDING CACHES ---------")
@@ -69,9 +77,10 @@ class FSMScheduler:
         current_cache.execute()
 
         self.log.important3("FSM executing bag using cache {} with input hash {}".format(current_cache, bag.input_hash))  # TODO remove
-        self._log_caches()
 
         self.pending_caches.append(current_cache)
+
+        self._log_caches()
 
         return True
 
@@ -159,6 +168,8 @@ class FSMScheduler:
         self.log.info("update_master_db called with merge idx {}".format(self.merge_idx))
         self.merge_idx += 1
         self.add_poll(cache, cache.merge, 'RESET', True)
+
+        self._log_caches()
 
     def flush_all(self):
         self.log.info("Flushing all caches...")
