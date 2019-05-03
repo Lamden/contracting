@@ -34,6 +34,8 @@ class FSMScheduler:
 
         self.merge_idx = 0
 
+        self._log_caches()
+
     def _log_caches(self):
         self.log.important("--------- PENDING CACHES ---------")
         for i, c in enumerate(self.available_caches):
@@ -55,6 +57,8 @@ class FSMScheduler:
 
         self.log.important3("FSM executing bag using cache {} with input hash {}".format(current_cache, bag.input_hash))
 
+        self._log_caches()
+
         self.pending_caches.append(current_cache)
 
     def add_poll(self, cache: CRCache, func: callable, succ_state: str, is_merge=False):
@@ -67,6 +71,8 @@ class FSMScheduler:
 
         self.log.info("[mark_clean] Adding cache {} to available_caches".format(cache))
         self.available_caches.append(cache)
+
+        self._log_caches()
 
     def check_top_of_stack(self, cache: CRCache):
         if not self.pending_caches:
