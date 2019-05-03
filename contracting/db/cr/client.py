@@ -56,7 +56,10 @@ class FSMScheduler:
         self.log.important3("----------------------------------")
 
     def execute_bag(self, bag: TransactionBag):
-        assert len(self.available_caches) > 0, "No available caches"
+        if len(self.available_caches) == 0:
+            self.log.warning("No available caches in FSM scheduler. Returning False from execute_bag")
+            return False
+
         current_cache = self.available_caches.popleft()
 
         assert current_cache.state == 'CLEAN', "Pulled cache from available db with state {}, but expected CLEAN state"\
@@ -65,11 +68,12 @@ class FSMScheduler:
         current_cache.set_bag(bag)
         current_cache.execute()
 
-        self.log.important3("FSM executing bag using cache {} with input hash {}".format(current_cache, bag.input_hash))
-
+        self.log.important3("FSM executing bag using cache {} with input hash {}".format(current_cache, bag.input_hash))  # TODO remove
         self._log_caches()
 
         self.pending_caches.append(current_cache)
+
+        return True
 
     def add_poll(self, cache: CRCache, func: callable, succ_state: str, is_merge=False):
         self.temp_events[cache].add((func, succ_state, is_merge))
