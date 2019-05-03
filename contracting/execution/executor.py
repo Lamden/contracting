@@ -81,7 +81,14 @@ class Executor:
 
         environment.update({'__Context': runtime.Context})
         try:
+            stamps = 1000000
+            self.tracer.set_stamp(stamps)
+            self.tracer.start()
             result = self.sandbox.execute(sender, contract_name, function_name, kwargs, environment)
+            self.tracer.stop()
+            stamps -= self.tracer.get_stamp_used()
+
+            print('stamps left {}'.format(stamps))
             status_code = 0
             if auto_commit:
                 runtime.rt.driver.commit()
