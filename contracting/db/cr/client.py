@@ -42,8 +42,9 @@ class FSMScheduler:
 
     async def _check_on_caches(self):
         self.log.critical("<< checking on caches >>")
-        self._log_caches()
-        await asyncio.sleep(1)
+        while True:
+            self._log_caches()
+            await asyncio.sleep(1)
 
     def _log_caches(self):
         self.log.important("--------- PENDING CACHES ---------")
