@@ -290,12 +290,13 @@ class CRCache:
         # Mark myself as clean for the FSMScheduler to be able to reuse me
         self.scheduler.mark_clean(self)
 
+        import time
+        time.sleep(1.5)
+
         # If we are on SBB 0, we need to flush the common layer of this cache
         # since the DB is shared, we only need to call this from one of the SBBs
         if self.sbb_idx == 0:
-            import time
             self.log.important2("cache idx 0 sleeping for 1 sec before flushing db...")
-            time.sleep(1)
             self.log.important2("cache idx 0 FLUSHING DB!!!!")
             self.db.flush()
 
