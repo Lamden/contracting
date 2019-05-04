@@ -60,6 +60,8 @@ class FSMScheduler:
         self.log.important3("--------- POLL EVENTS ---------")
         for cache in self.events:
             self.log.notice("Cache {}".format(cache))
+            if len(self.events[cache]) == 0:
+                continue
             for event_tup in self.events[cache]:
                 fn, succ_state, is_merge = event_tup
                 self.log.notice("\tfn: {}, succ_state: {}, is_merge: {}".format(fn, succ_state, is_merge))
