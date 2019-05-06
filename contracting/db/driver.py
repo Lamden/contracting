@@ -1,7 +1,10 @@
 import abc
 import copy
 
-import plyvel
+# we can't include pylevel in production since its not installed on the docker images and will
+# result in an interpret time error
+# import plyvel
+
 from redis import Redis
 from redis.connection import Connection
 from .. import config
