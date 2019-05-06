@@ -5,6 +5,8 @@ import json as _json
 from .client import ContractingClient
 from multiprocessing import Queue
 
+import ast
+
 WEB_SERVER_PORT = 8080
 SSL_WEB_SERVER_PORT = 443
 NUM_WORKERS = 2
@@ -23,7 +25,25 @@ async def submit_transaction(request):
 
 @app.route('/contracts/<contract>', methods=['GET'])
 async def get_contract(request, contract):
-    return text(client.get_contract(contract))
+    return text(client.raw_driver.get_contract(contract))
+
+
+@app.route("/contracts/<contract>/methods", methods=["GET","OPTIONS",])
+async def get_methods(request, contract):
+    c = client.raw_driver.get_contract(contract)
+
+    tree = ast.parse(c)
+
+    function_defs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+
+    funcs = []
+    for definition in function_defs:
+        func_name = definition.name
+        kwargs = [arg.arg for arg in definition.args.args]
+
+        funcs.append((func_name, kwargs))
+
+    return json(funcs)
 
 def start_webserver(q):
     app.queue = q
