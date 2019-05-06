@@ -180,12 +180,9 @@ class CRCache:
         self.db.incrby(macro)
 
     def _check_macro_key(self, macro):
-        import time
-        time.sleep(0.5)
-
-        val = int(self.db.get_direct(macro))
-        self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
-        return val
+        val = self.db.get_direct(macro)
+        # self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
+        return int(val) if val is not None else 0
 
     def _reset_macro_keys(self):
         self.log.info("{} is resetting macro keys".format(self))
@@ -279,7 +276,8 @@ class CRCache:
         self.bag = None
 
     def all_reset(self):
-        return self._check_macro_key(Macros.RESET) == self.num_sbb
+        return (self._check_macro_key(Macros.RESET) == self.num_sbb) or \
+               (self._check_macro_key(Macros.RESET) == 0)
 
     def _mark_clean(self):
 
@@ -287,11 +285,8 @@ class CRCache:
         self.log.important3("Marking clean for cache {}".format(self))
         # END DEBUG
 
-        # Mark myself as clean for the FSMScheduler to be able to reuse me
-        self.scheduler.mark_clean(self)
-
-        import time
-        time.sleep(1.5)
+        # import time
+        # time.sleep(1.5)
 
         # If we are on SBB 0, we need to flush the common layer of this cache
         # since the DB is shared, we only need to call this from one of the SBBs
@@ -299,8 +294,11 @@ class CRCache:
             self.log.important2("cache idx 0 sleeping for 1 sec before flushing db...")
             self.log.important2("cache idx 0 FLUSHING DB!!!!")
             self.db.flush()
+            self._reset_macro_keys()
 
-        self._reset_macro_keys()
+        # Mark myself as clean for the FSMScheduler to be able to reuse me
+        self.scheduler.mark_clean(self)
+
 
     def _get_sb_data(self) -> SBData:
         if len(self.results) != len(self.bag.transactions):
