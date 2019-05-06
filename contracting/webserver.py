@@ -46,21 +46,37 @@ async def get_methods(request, contract):
     return json(funcs)
 
 
-# Expects a code string
+# Expects json object such that:
+'''
+{
+    'name': 'string',
+    'code': 'string'
+}
+'''
 @app.route('/lint', methods=['POST'])
 async def lint_contract(request):
-    violations = client.lint(request)
+    violations = client.lint(request.get('code'))
     return json(violations)
 
 
 @app.route('/compile', methods=['POST'])
 async def compile_contract(request):
     try:
-        compiled_code = client.compiler.parse_to_code(request)
+        compiled_code = client.compiler.parse_to_code(request.get('code'))
     except Exception as e:
         return text(str(e))
 
     return json(compiled_code)
+
+
+@app.route('/submit', methods=['POST'])
+async def submit_contract(request):
+    try:
+        client.submit(request.get('code'), name=request.get('name'))
+    except AssertionError as e:
+        return text(e.msg)
+
+    return text('success!')
 
 def start_webserver(q):
     app.queue = q
