@@ -22,6 +22,10 @@ client = ContractingClient()
 async def submit_transaction(request):
     return text('indeed')
 
+@app.route('/contracts', methods=['GET'])
+async def get_contracts():
+    contracts = client.get_contracts()
+    return json(contracts)
 
 @app.route('/contracts/<contract>', methods=['GET'])
 async def get_contract(request, contract):
