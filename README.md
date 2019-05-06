@@ -87,6 +87,13 @@ In [7]: token.balance_of(wallet_id='stu')
 Out[7]: {'status': 'success', 'output': Decimal('100000'), 'remaining_stamps': 0}
 ```
 
+### Get started with Contracting by Example
+
+1. [Setting Up the Client](/examples/01%20Setting%20Up%20the%20Client.ipynb)
+2. [Ingredients of a Smart Contract](/examples/02%20Ingredients%20of%20a%20Smart%20Contract.ipynb)
+3. [Standard Library and Extending Contracting](/examples/03%20Standard%20Library%20and%20Extending%20Contracting.ipynb)
+4. [Imports and Advanced Data Storage](/examples/04%20Imports%20and%20Advanced%20Data%20Storage.ipynb)
+
 ### Storage Model
 
 Contracting uses Redis to store the state of the blockchain. This means you can use any Redis tooling to inspect the storage and retrieval of information to and from your smart contracts.
