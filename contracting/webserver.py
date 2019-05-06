@@ -4,6 +4,7 @@ from sanic_cors import CORS, cross_origin
 import json as _json
 from contracting.client import ContractingClient
 from multiprocessing import Queue
+import ast
 
 WEB_SERVER_PORT = 8080
 SSL_WEB_SERVER_PORT = 443
@@ -17,7 +18,7 @@ CORS(app, automatic_options=True)
 client = ContractingClient()
 
 
-@app.route("/", methods=["POST","OPTIONS",])
+@app.route("/", methods=["GET",])
 async def submit_transaction(request):
     return text('indeed')
 
@@ -33,22 +34,37 @@ async def get_contract(request, contract):
     return text(client.raw_driver.get_contract(contract))
 
 
-# @app.route("/contracts/<contract>/methods", methods=["GET","OPTIONS",])
-# async def get_methods(request, contract):
-#     c = client.raw_driver.get_contract(contract)
-#
-#     tree = compilation.parse(c)
-#
-#     function_defs = [n for n in compilation.walk(tree) if isinstance(n, compilation.FunctionDef)]
-#
-#     funcs = []
-#     for definition in function_defs:
-#         func_name = definition.name
-#         kwargs = [arg.arg for arg in definition.args.args]
-#
-#         funcs.append((func_name, kwargs))
-#
-#     return json(funcs)
+@app.route("/contracts/<contract>/methods", methods=["GET","OPTIONS",])
+async def get_methods(request, contract):
+    c = client.raw_driver.get_contract(contract)
+
+    tree = ast.parse(c)
+
+    function_defs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+
+    funcs = []
+    for definition in function_defs:
+        func_name = definition.name
+        kwargs = [arg.arg for arg in definition.args.args]
+
+        funcs.append((func_name, kwargs))
+
+    return json(funcs)
+
+
+@app.route('/contracts/<contract>/<variable>')
+async def get_methods(request, contract, variable):
+    key = request.args.get('key')
+    if key is None:
+        response = client.raw_driver.get('{}.{}'.format(contract, variable))
+        print('response: {}'.format(response))
+    else:
+        response = client.raw_driver.get('{}.{}:{}'.format(contract, variable, key))
+        print('response: {}'.format(response))
+    if response is None:
+        return json('null')
+    else:
+        return json(response)
 
 
 # Expects json object such that:
@@ -76,10 +92,11 @@ async def compile_contract(request):
 
 @app.route('/submit', methods=['POST'])
 async def submit_contract(request):
+    print(request.json)
     try:
-        client.submit(request.get('code'), name=request.get('name'))
+        client.submit(request.json.get('code'), name=request.json.get('name'))
     except AssertionError as e:
-        return text(e.msg)
+        return text(str(e))
 
     return text('success!')
 
