@@ -1,5 +1,11 @@
 # Contracting - Smart Contracts with Python
 
+With Contracting you can write smart contracts in a subset of Python. You can then deploy these contracts to the Lamden Blockchain Cilantro.
+
+Contracting is simply a Python package. Because of this you can use existing Python tooling and the Contracting API to develop smart contracts with ease. That is unlike Solidity, which requires external services like Truffle or TestRPC.
+
+Below is an example of a simple token smart contract in Python. With it you can transfer tokens and check token balances.
+
 ```python
 def token_contract():
     from contracting.libs.datatypes import hmap
