@@ -66,7 +66,9 @@ setup(
     ],
     zip_safe=True,
     include_package_data=True,
-    ext_modules=None,
+    ext_modules=[
+        Extension('contracting.execution.metering.tracer', sources = ['contracting/execution/metering/tracer.c']),
+    ],
     cmdclass={
         'build_ext': ve_build_ext,
     },

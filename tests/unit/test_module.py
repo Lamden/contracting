@@ -61,12 +61,6 @@ class TestDatabaseLoader(TestCase):
 
         self.assertEqual(module.b, 1337)
 
-    def test_exec_non_existance_module(self):
-        module = types.ModuleType('test')
-
-        with self.assertRaises(ImportError):
-            self.dl.exec_module(module)
-
     def test_exec_module_nonattribute(self):
         module = types.ModuleType('test')
 
@@ -92,6 +86,8 @@ class TestDatabaseFinder(TestCase):
 
 class TestInstallLoader(TestCase):
     def test_install_loader(self):
+        uninstall_database_loader()
+
         self.assertNotIn(DatabaseFinder, sys.meta_path)
 
         install_database_loader()
@@ -105,6 +101,7 @@ class TestInstallLoader(TestCase):
     def test_integration_and_importing(self):
         dl = DatabaseLoader()
         dl.d.set_contract('testing', 'a = 1234567890')
+        dl.d.commit()
 
         install_database_loader()
 

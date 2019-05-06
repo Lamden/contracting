@@ -137,7 +137,7 @@ class DBTests(unittest.TestCase):
         contract_name = 'module_func'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result = self.e.execute(self.author, contract_name,
+        status_code, result, stamps = self.e.execute(self.author, contract_name,
                                              function_name, kwargs)
         self.assertEqual(result, 'Working')
         self.assertEqual(status_code, 0)
@@ -146,7 +146,7 @@ class DBTests(unittest.TestCase):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result = self.e.execute(self.author, contract_name,
+        status_code, result, stamp = self.e.execute(self.author, contract_name,
                                              function_name, kwargs)
         self.assertEqual(status_code, 1)
         self.assertIsInstance(result, ImportError)
@@ -169,7 +169,7 @@ class DBTests(unittest.TestCase):
         contract_name = 'module_func'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result = self.e_prod.execute(self.author, contract_name,
+        status_code, result, stamps = self.e_prod.execute(self.author, contract_name,
                                                   function_name, kwargs)
 
         self.assertEqual(result, 'Working')
@@ -179,7 +179,7 @@ class DBTests(unittest.TestCase):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result = self.e_prod.execute(self.author, contract_name,
+        status_code, result, stamps = self.e_prod.execute(self.author, contract_name,
                                                   function_name, kwargs)
         self.assertEqual(status_code, 1)
         self.assertIsInstance(result, ImportError)
