@@ -161,8 +161,6 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
         return k
 
 
-
-
 class RedisDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
         self.host = host

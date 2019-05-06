@@ -9,7 +9,7 @@ DB_DELIMITER = ':'
 
 # Number of available db's SenecaClients have available to get ahead on the next sub block while other sb's are
 # awaiting a merge confirmation
-NUM_CACHES = 2
+NUM_CACHES = 4
 
 # Set timeouts for CR
 EXEC_TIMEOUT = 14  # Timeout for other subblocks finishing exec
