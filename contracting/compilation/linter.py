@@ -3,7 +3,7 @@ import ast
 from .. import config
 
 from ..logger import get_logger
-from ..ast.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS
+from ..compilation.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS
 
 
 class Linter(ast.NodeVisitor):

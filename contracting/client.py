@@ -1,5 +1,5 @@
 from .execution.executor import Executor
-from .ast.compiler import ContractingCompiler
+from .compilation.compiler import ContractingCompiler
 from functools import partial
 import ast
 import inspect

@@ -1,7 +1,7 @@
 from unittest import TestCase
-from contracting.ast.linter import Linter
+from contracting.compilation.linter import Linter
 import ast
-from contracting.ast.whitelists import ALLOWED_AST_TYPES
+from contracting.compilation.whitelists import ALLOWED_AST_TYPES
 
 
 class TestLinter(TestCase):
@@ -84,7 +84,7 @@ def a():
 
     # def test_visit_async_func_def_fail(self):
     #     err = 'Error : Illegal AST type: AsyncFunctionDef'
-    #     n = ast.AsyncFunctionDef()
+    #     n = compilation.AsyncFunctionDef()
     #
     #     self.l.visit_AsyncFunctionDef(n)
     #     self.l.dump_violations()
@@ -109,7 +109,7 @@ def b():
 #TODO failing
     # def test_visit_class_fail(self):
     #     err = 'Error : Illegal AST type: ClassDef'
-    #     n = ast.ClassDef()
+    #     n = compilation.ClassDef()
     #     self.l.visit_ClassDef(n)
     #     self.l.dump_violations()
 
@@ -204,7 +204,7 @@ def a():
     b = 0
     b += 1
 '''
-        err = 'Line 2: S4- ImportFrom ast nodes not yet supported'
+        err = 'Line 2: S4- ImportFrom compilation nodes not yet supported'
 
         c = ast.parse(code)
         chk = self.l.check(c)
@@ -223,7 +223,7 @@ def a():
 # '''
 #         err = 'Line 2: S5- Contract not found in lib: something'
 #
-#         c = ast.parse(code)
+#         c = compilation.parse(code)
 #         self.l.check(c)
 #         self.l.dump_violations()
 #         self.assertMultiLineEqual(err, self.l._violations[0])

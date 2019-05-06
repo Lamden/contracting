@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.ast.compiler import ContractingCompiler
+from contracting.compilation.compiler import ContractingCompiler
 from contracting.stdlib import env
 import re
 import astor

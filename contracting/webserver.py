@@ -2,10 +2,8 @@ from sanic import Sanic
 from sanic.response import json, text
 from sanic_cors import CORS, cross_origin
 import json as _json
-from .client import ContractingClient
+from contracting.client import ContractingClient
 from multiprocessing import Queue
-
-import ast
 
 WEB_SERVER_PORT = 8080
 SSL_WEB_SERVER_PORT = 443
@@ -18,36 +16,39 @@ ssl = None
 CORS(app, automatic_options=True)
 client = ContractingClient()
 
+
 @app.route("/", methods=["POST","OPTIONS",])
 async def submit_transaction(request):
     return text('indeed')
 
+
 @app.route('/contracts', methods=['GET'])
-async def get_contracts():
+async def get_contracts(request):
     contracts = client.get_contracts()
     return json(contracts)
+
 
 @app.route('/contracts/<contract>', methods=['GET'])
 async def get_contract(request, contract):
     return text(client.raw_driver.get_contract(contract))
 
 
-@app.route("/contracts/<contract>/methods", methods=["GET","OPTIONS",])
-async def get_methods(request, contract):
-    c = client.raw_driver.get_contract(contract)
-
-    tree = ast.parse(c)
-
-    function_defs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
-
-    funcs = []
-    for definition in function_defs:
-        func_name = definition.name
-        kwargs = [arg.arg for arg in definition.args.args]
-
-        funcs.append((func_name, kwargs))
-
-    return json(funcs)
+# @app.route("/contracts/<contract>/methods", methods=["GET","OPTIONS",])
+# async def get_methods(request, contract):
+#     c = client.raw_driver.get_contract(contract)
+#
+#     tree = compilation.parse(c)
+#
+#     function_defs = [n for n in compilation.walk(tree) if isinstance(n, compilation.FunctionDef)]
+#
+#     funcs = []
+#     for definition in function_defs:
+#         func_name = definition.name
+#         kwargs = [arg.arg for arg in definition.args.args]
+#
+#         funcs.append((func_name, kwargs))
+#
+#     return json(funcs)
 
 
 # Expects json object such that:
@@ -81,6 +82,7 @@ async def submit_contract(request):
         return text(e.msg)
 
     return text('success!')
+
 
 def start_webserver(q):
     app.queue = q

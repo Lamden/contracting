@@ -1,4 +1,4 @@
-from contracting.ast.compiler import ContractingCompiler
+from contracting.compilation.compiler import ContractingCompiler
 from ..db.driver import ContractDriver
 from ..execution.runtime import rt
 from types import ModuleType

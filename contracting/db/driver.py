@@ -126,7 +126,7 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
     def get(self, key):
         self.conn.send_command('GET', key)
         resp = self.conn.read_response()
-        #print("GET {} RESPONSE: {}".format(key, resp))
+        #print("GET {} RESPONSE: {}".format(key,
         return resp
 
     def set(self, key, value):
