@@ -35,7 +35,7 @@ def as_object(d):
 # Decode has a hook for JSON objects, which are just Python dictionaries. You have to specify the logic in this hook.
 # This is not uniform, but this is how Python made it.
 def decode(data):
-    if data is Nonequeue-merge-cmds:
+    if data is None:
         return None
 
     if isinstance(data, bytes):
