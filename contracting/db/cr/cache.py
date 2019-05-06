@@ -169,14 +169,13 @@ class CRCache:
         self.scheduler.add_poll(self, self.sync_execution, 'COMMITTED')
 
     def _schedule_merge_ready(self):
-        self.log.important2("scheding merge rdy {}".format(self))
         self.scheduler.add_poll(self, self.sync_merge_ready, 'READY_TO_MERGE')
 
     def _schedule_reset(self):
         self.scheduler.add_poll(self, self.sync_reset, 'CLEAN')
 
     def _incr_macro_key(self, macro):
-        self.log.debug("INCREMENTING MACRO {}".format(macro))
+        self.log.debugv("INCREMENTING MACRO {}".format(macro))
         self.db.incrby(macro)
 
     def _check_macro_key(self, macro):
@@ -185,20 +184,19 @@ class CRCache:
         return int(val) if val is not None else 0
 
     def _reset_macro_keys(self):
-        self.log.info("{} is resetting macro keys".format(self))
+        self.log.spam("{} is resetting macro keys".format(self))
         for key in Macros.ALL_MACROS:
-            # self.db.delete(key)
             self.db.set_direct(key, 0)
 
     def get_results(self):
         return self.results
 
     def set_transaction_bag(self, bag):
-        self.log.important3("{} is setting transactions!".format(self))
+        self.log.spam("{} is setting transactions!".format(self))
         self.bag = bag
 
     def execute_transactions(self):
-        self.log.important3("{} is executing transactions!".format(self))
+        self.log.spam("{} is executing transactions!".format(self))
         # Execute first round using Master DB Driver since we will not have any keys in common
         # Do not commit, leveraging cache only
         self.results = self.executor.execute_bag(self.bag, driver=self.master_db)
@@ -281,18 +279,10 @@ class CRCache:
 
     def _mark_clean(self):
 
-        # DEBUG -- TODO DELETE
-        self.log.important3("Marking clean for cache {}".format(self))
-        # END DEBUG
-
-        # import time
-        # time.sleep(1.5)
-
         # If we are on SBB 0, we need to flush the common layer of this cache
         # since the DB is shared, we only need to call this from one of the SBBs
         if self.sbb_idx == 0:
-            self.log.important2("cache idx 0 sleeping for 1 sec before flushing db...")
-            self.log.important2("cache idx 0 FLUSHING DB!!!!")
+            self.log.debugv("cache idx 0 FLUSHING DB!!!!")
             self.db.flush()
             self._reset_macro_keys()
 
@@ -302,7 +292,7 @@ class CRCache:
 
     def _get_sb_data(self) -> SBData:
         if len(self.results) != len(self.bag.transactions):
-            self.log.critical("You rly fkt up dude, length of results is {} but bag has {} txs. Discarding." \
+            self.log.critical("Mismatch of state: length of results is {} but bag has {} txs. Discarding." \
                               .format(len(self.results), len(self.bag.transactions)))
             self.discard()
             return [] # colin is this necessary?? also what should i return for cilatnro to be aware of the goof?
@@ -311,7 +301,6 @@ class CRCache:
         i = 0
 
         # Iterate over results to take into account transactions that have been reverted and removed from contract_mods
-        print("RESULTANT CACHE: {}".format(self.db.contract_modifications))
         for tx_idx in sorted(self.results.keys()):
             status_code, result = self.results[tx_idx]
             state_str = ""
