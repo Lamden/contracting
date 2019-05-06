@@ -1,13 +1,9 @@
 from sanic import Sanic
 from sanic.response import json, text
-from sanic.exceptions import ServerError
-from sanic_limiter import Limiter, get_remote_address
 from sanic_cors import CORS, cross_origin
-
-from multiprocessing import Queue
-import os
-
 import json as _json
+from .client import ContractingClient
+from multiprocessing import Queue
 
 WEB_SERVER_PORT = 8080
 SSL_WEB_SERVER_PORT = 443
@@ -18,11 +14,16 @@ app = Sanic(__name__)
 
 ssl = None
 CORS(app, automatic_options=True)
-
+client = ContractingClient()
 
 @app.route("/", methods=["POST","OPTIONS",])
 async def submit_transaction(request):
     return text('indeed')
+
+
+@app.route('/contracts/<contract>', methods=['GET'])
+async def get_contract(request, contract):
+    return text(client.get_contract(contract))
 
 def start_webserver(q):
     app.queue = q
