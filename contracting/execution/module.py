@@ -29,7 +29,9 @@ def install_database_loader():
 
 
 def uninstall_database_loader():
-    sys.meta_path.remove(DatabaseFinder)
+    sys.meta_path = list(set(sys.meta_path))
+    if DatabaseFinder in sys.meta_path:
+        sys.meta_path.remove(DatabaseFinder)
 
 
 def install_system_contracts(directory=''):

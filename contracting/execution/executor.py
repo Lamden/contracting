@@ -80,7 +80,6 @@ class Executor:
                                                    auto_commit, environment, driver)
         self.tracer.stop()
         stamps -= self.tracer.get_stamp_used()
-        print('stamps left {}'.format(stamps))
 
         return status_code, result, stamps
 
