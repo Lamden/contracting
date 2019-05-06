@@ -45,6 +45,12 @@ async def get_methods(request, contract):
 
     return json(funcs)
 
+# Expects a code string
+@app.route('/lint', methods=['POST'])
+async def lint_contract(request):
+    violations = client.lint(request)
+    return json(violations)
+
 def start_webserver(q):
     app.queue = q
     if ssl:
