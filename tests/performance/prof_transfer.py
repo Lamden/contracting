@@ -2,8 +2,6 @@ import secrets
 from contracting.db.driver import ContractDriver
 from contracting.execution.executor import Executor
 
-from pyinstrument import Profiler
-
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
     split = f.split('/')
@@ -51,21 +49,24 @@ e.execute(**TEST_SUBMISSION_KWARGS,
 
 import datetime
 
-now = datetime.datetime.now()
+for i in range(20):
+    now = datetime.datetime.now()
 
-# profiler = Profiler()
-# profiler.start()
-for r in recipients:
-    e.execute(sender='stu',
-              contract_name='erc20_clone',
-              function_name='transfer',
-              kwargs={
-                  'amount': 1,
-                  'to': r
-              })
-# profiler.stop()
+    # profiler = Profiler()
+    # profiler.start()
+    for r in recipients:
+        e.execute(sender='stu',
+                  contract_name='erc20_clone',
+                  function_name='transfer',
+                  kwargs={
+                      'amount': 1,
+                      'to': r
+                  })
 
-print(datetime.datetime.now() - now)
+    # profiler.stop()
+
+    print(datetime.datetime.now() - now)
+
 d.flush()
 
 # print(profiler.last_session.duration)

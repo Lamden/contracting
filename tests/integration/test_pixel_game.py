@@ -1,6 +1,7 @@
 from contracting.client import ContractingClient
 from unittest import TestCase
 
+
 def coin():
     supply = Variable()
     balances = Hash(default_value=0)
@@ -65,49 +66,6 @@ def coin():
         assert ctx.caller == owner.get(), 'Only the owner can change ownership!'
 
         owner.set(new_owner)
-
-def pixel_game():
-    import coin
-
-    plots = Hash()
-    landlord = Variable()
-
-    max_x = 256
-    max_y = 256
-
-    decay = 0.02
-    tax_period = 1 * datetime.WEEKS
-
-    def assert_in_bounds(x, y):
-        assert 0 <= x < max_x, 'X coordinate out of bounds.'
-        assert 0 <= y < max_y, 'Y coordinate out of bounds.'
-
-    def assert_is_hex(color_string):
-        assert len(color_string) == 256, 'Invalid color string passed.'
-        assert int(color_string, 16), 'Color string is not a hex string.'
-
-    def set_plot(x, y, color_string, owner, price):
-        plots[x, y] = {
-            'colors': color_string,
-            'owner': owner,
-            'price': price
-        }
-
-    @export
-    def buy_plot(x, y, amount):
-        assert_in_bounds(x, y)
-
-        plot = plots[x, y]
-
-        assert plot['amount'] <= amount
-
-    @export
-    def set_plot(x, y, color_string):
-        assert_is_hex(color_string)
-
-        plot = plots[x, y]
-
-        assert plot['owner'] == ctx.caller, 'You do not own this plot!'
 
 
 class TestCoinContract(TestCase):
@@ -190,3 +148,89 @@ class TestCoinContract(TestCase):
 
         self.assertEqual(self.coin.balances['raghu'], 999)
         self.assertEqual(self.coin.supply.get(), 1000000 + 999)
+
+
+def pixel_game():
+    import coin
+
+    plots = Hash()
+    landlord = Variable()
+
+    max_x = 256
+    max_y = 256
+
+    decay = 0.02
+    tax_period = datetime.DAYS * 1
+
+    def assert_in_bounds(x, y):
+        assert 0 <= x < max_x, 'X coordinate out of bounds.'
+        assert 0 <= y < max_y, 'Y coordinate out of bounds.'
+
+    def assert_is_hex(color_string):
+        assert len(color_string) == 256, 'Invalid color string passed.'
+        assert int(color_string, 16), 'Color string is not a hex string.'
+
+    @construct
+    def seed():
+        landlord.set(ctx.caller)
+
+    def set_plot(x, y, color_string, owner, price):
+        plots[x, y] = {
+            'colors': color_string,
+            'owner': owner,
+            'price': price,
+            'purchase_time': now
+        }
+
+    @export
+    def buy_plot(x, y, amount, price):
+        assert_in_bounds(x, y)
+
+        plot = plots[x, y]
+        if plot is None:
+            plot = {
+                'colors': '0' * 256,
+                'owner': ctx.caller,
+                'price': price,
+                'purchase_time': now
+            }
+            plots[x. y] = plot
+        else:
+            assert plot['price'] <= amount
+            assert amount <= coin.allowance(owner=ctx.caller, spender=ctx.this)
+
+            coin.transfer_from(amount=plot['price'], to=plot['owner'], main_account=ctx.sender)
+
+            plot.update({
+                'owner': ctx.caller,
+                'price': price,
+                'purchase_time': now
+            })
+            plots[x, y] = plot
+
+    @export
+    def set_plot(x, y, color_string):
+        assert_is_hex(color_string)
+
+        plot = plots[x, y]
+
+        assert plot['owner'] == ctx.caller, 'You do not own this plot!'
+
+        plot['colors'] = color_string
+
+        plots[x, y] = plot
+
+class TestPixelGame(TestCase):
+    def setUp(self):
+        self.c = ContractingClient(signer='stu')
+        self.c.flush()
+
+        self.c.submit(coin)
+        self.c.submit(pixel_game)
+        self.pixel = self.c.get_contract('pixel_game')
+
+    def tearDown(self):
+        self.c.flush()
+
+    def test_ya(self):
+        print('mm')
