@@ -1,4 +1,4 @@
-old_time = datetime(2019, 1, 1)
+old_time = datetime.datetime(2019, 1, 1)
 
 @export
 def gt():

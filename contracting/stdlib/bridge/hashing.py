@@ -1,4 +1,5 @@
 import hashlib
+from types import ModuleType
 
 '''
 Bytes can't be stored in JSON so we use hex-strings converted into bytes and back.
@@ -26,8 +27,10 @@ def sha256(hex_str: str):
 
     return hashed_bytes.hex()
 
+hashlib_module = ModuleType('hashlib')
+hashlib_module.sha3 = sha3
+hashlib_module.sha256 = sha256
 
 exports = {
-    'sha3': sha3,
-    'sha256': sha256
+    'hashlib': hashlib_module,
 }

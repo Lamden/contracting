@@ -1,6 +1,7 @@
 import abc
 import copy
 
+import plyvel
 from redis import Redis
 from redis.connection import Connection
 from .. import config
@@ -195,7 +196,7 @@ class RedisDriver(AbstractDatabaseDriver):
         self.conn.delete(key)
 
     def iter(self, prefix):
-        return self.conn.scan_iter(match=prefix+'*')
+        return list(self.conn.scan_iter(match=prefix+'*'))
 
     def keys(self):
         return self.conn.keys(pattern='*')
