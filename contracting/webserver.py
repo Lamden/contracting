@@ -45,11 +45,22 @@ async def get_methods(request, contract):
 
     return json(funcs)
 
+
 # Expects a code string
 @app.route('/lint', methods=['POST'])
 async def lint_contract(request):
     violations = client.lint(request)
     return json(violations)
+
+
+@app.route('/compile', methods=['POST'])
+async def compile_contract(request):
+    try:
+        compiled_code = client.compiler.parse_to_code(request)
+    except Exception as e:
+        return text(str(e))
+
+    return json(compiled_code)
 
 def start_webserver(q):
     app.queue = q
