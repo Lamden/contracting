@@ -30,7 +30,7 @@ class FSMScheduler:
         self.fut = asyncio.ensure_future(self._poll_events())
 
         # DEBUG -- TODO DELETE
-        self.fut2 = asyncio.ensure_future(self._check_on_caches())
+        # self.fut2 = asyncio.ensure_future(self._check_on_caches())
         # END DEBUG
 
         self.available_caches = deque() # LIFO
@@ -41,31 +41,30 @@ class FSMScheduler:
         self._log_caches()
 
     async def _check_on_caches(self):
-        self.log.critical("<< checking on caches >>")
-        # while True:
-            # self._log_caches()
-            # await asyncio.sleep(3)
+        while True:
+            self._log_caches()
+            await asyncio.sleep(3)
 
     def _log_caches(self):
-        self.log.important("--------- PENDING CACHES ---------")
+        self.log.spam("--------- PENDING CACHES ---------")
         for i, c in enumerate(self.pending_caches):
-            self.log.notice("idx {} --- {}".format(i, c))
-        self.log.important("----------------------------------")
+            self.log.spam("idx {} --- {}".format(i, c))
+        self.log.spam("----------------------------------")
 
-        self.log.important2("--------- AVAILABLE CACHES ---------")
+        self.log.spam("--------- AVAILABLE CACHES ---------")
         for i, c in enumerate(self.available_caches):
-            self.log.notice("idx {} --- {}".format(i, c))
-        self.log.important2("----------------------------------")
+            self.log.spam("idx {} --- {}".format(i, c))
+        self.log.spam("----------------------------------")
 
-        self.log.important3("--------- POLL EVENTS ---------")
+        self.log.spam("--------- POLL EVENTS ---------")
         for cache in self.events:
-            self.log.notice("Cache {}".format(cache))
+            self.log.spam("Cache {}".format(cache))
             if len(self.events[cache]) == 0:
                 continue
             for event_tup in self.events[cache]:
                 fn, succ_state, is_merge = event_tup
-                self.log.notice("\tfn: {}, succ_state: {}, is_merge: {}".format(fn, succ_state, is_merge))
-        self.log.important3("----------------------------------")
+                self.log.spam("\tfn: {}, succ_state: {}, is_merge: {}".format(fn, succ_state, is_merge))
+        self.log.spam("----------------------------------")
 
     def execute_bag(self, bag: TransactionBag):
         if len(self.available_caches) == 0:
@@ -73,19 +72,15 @@ class FSMScheduler:
             return False
 
         current_cache = self.available_caches.popleft()
-
         assert current_cache.state == 'CLEAN', "Pulled cache from available db with state {}, but expected CLEAN state"\
                                                .format(current_cache.state)
 
         current_cache.set_bag(bag)
         current_cache.execute()
-
-        self.log.important3("FSM executing bag using cache {} with input hash {}".format(current_cache, bag.input_hash))  # TODO remove
-
+        self.log.info("FSM executing input hash {} using cache {}".format(bag.input_hash, current_cache))  # TODO remove
         self.pending_caches.append(current_cache)
 
         self._log_caches()
-
         return True
 
     def add_poll(self, cache: CRCache, func: callable, succ_state: str, is_merge=False):
@@ -93,7 +88,7 @@ class FSMScheduler:
 
     def mark_clean(self, cache: CRCache):
         if cache in self.pending_caches:
-            self.log.info("[mark_clean] Removing cache {} from pending_caches")
+            self.log.debug("[mark_clean] Removing cache {} from pending_caches")
             self.pending_caches.remove(cache)
 
         self.log.info("[mark_clean] Adding cache {} to available_caches".format(cache))
@@ -130,23 +125,24 @@ class FSMScheduler:
                                 rm_set[cache].append((func, succ_state, is_merge))
 
                         else:
+                            # try/catch here because calling fn might return an invalid transition
+                            #
                             try:
                                 func()
                                 if cache.state == succ_state:
                                     # TODO bump this guy down to debug or debugv once we feel confidence
-                                    self.log.info("Polling function call {} resulting in succ state {}. Removing function from poll "
+                                    self.log.debug("Polling function call {} resulting in succ state {}. Removing function from poll "
                                                    "set.".format(func, succ_state))
                                     rm_set[cache].append((func, succ_state, is_merge))
 
-                                    # DEBUG -- TODO DELETE
-                                    self.log.important("MERGING CACHE {}".format(cache))
-                                    # END DEBUG
+                                    self.log.info("Merging cache {} to master".format(cache))
 
                                     self.merge_idx -= 1
-                                    self.log.info("Decrementing merge index")
+
                             except Exception as e:
+                                pass
                                 # TODO bump this guy down to spam or debugv once we feel confidence
-                                self.log.info("Got error try to call func {}...\nerr = {}".format(func, e))
+                                # self.log.info("Got error try to call func {}...\nerr = {}".format(func, e))
 
                 for cache, li in rm_set.items():
                     for tup in li:
@@ -158,7 +154,7 @@ class FSMScheduler:
                 await asyncio.sleep(config.POLL_INTERVAL)
 
         except Exception as e:
-            self.log.fatal("big yikes in the _poll_events: {}...\nerror:".format(e))
+            self.log.fatal("damn son, big yikes in the _poll_events: {}...\nerror:".format(e))
             self.log.fatal(traceback.format_exc())
             raise e
 
@@ -168,7 +164,7 @@ class FSMScheduler:
                                                           .format(self.merge_idx, len(self.pending_caches))
 
         cache = self.pending_caches[self.merge_idx]
-        self.log.info("update_master_db called with merge idx {}".format(self.merge_idx))
+        self.log.info("update_master_db called for cache {}".format(cache))
         self.merge_idx += 1
         self.add_poll(cache, cache.merge, 'RESET', True)
 
@@ -178,6 +174,8 @@ class FSMScheduler:
         self.log.info("Flushing all caches...")
         for cache in self.pending_caches:
             cache.discard()
+
+        self._log_caches()
 
 
 class SubBlockClient:
@@ -205,15 +203,10 @@ class SubBlockClient:
         self.scheduler.flush_all()
 
     def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[SBData], None]):
-        # DEBUG -- TODO DELETE
-        self.log.critical("Execute SB call for input hash {}".format(input_hash))
-        # END DEBUG
+        self.log.info("Execute SB call for input hash {}".format(input_hash))
 
         bag = TransactionBag(contracts, input_hash, completion_handler)
         return self.scheduler.execute_bag(bag)
 
     def update_master_db(self):
-        # DEBUG -- TODO DELETE
-        self.log.important("update_master_db called on SBClient")
-        # END DEBUG
         self.scheduler.update_master_db()
