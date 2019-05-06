@@ -43,7 +43,8 @@ brew services start redis
 ```
 
 ### Using Contracting in a Development Environment
-With Contracting now installed, you can develop smart contracts without an instance of the blockchain. This is to improve the speed of development. Unlike Solidity that requires a 3rd party service such as Truffle or TestRPC, we leverage existing Python tooling and provide the APIs to allow people to develop smart contracts with ease out of the box. Here is how you would go about testing a token contract in a Jupyter notebook / IPython console:
+
+With Contracting now installed, you can develop smart contracts without an instance of the blockchain. This is to improve the speed of development. Here is how you would go about testing a token contract in a Jupyter notebook / IPython console:
 
 ```python
 In [1]: from contracting.tooling import *
@@ -87,7 +88,8 @@ Out[7]: {'status': 'success', 'output': Decimal('100000'), 'remaining_stamps': 0
 ```
 
 ### Storage Model
-Contracting uses Redis to store the state of the blockchain. Thus, you can use any Redis tooling to inspect the storage and retrieval of information to and from your smart contracts.
+
+Contracting uses Redis to store the state of the blockchain. This means you can use any Redis tooling to inspect the storage and retrieval of information to and from your smart contracts.
 
 You can also use a GUI like Medis without any issue.
 
@@ -97,7 +99,7 @@ You can also use a GUI like Medis without any issue.
 
 ### `pip install contracting` is not installing on my computer!
 
-If you're using a Mac, you can run into this problem where the C libraries that are required for Contracting are not being compiled and the package fails to install. This is because the proper C libraries are not installed on your Mac.
+If you're using a Mac, you can run into the problem that the C libraries required for Contracting are not getting compiled and the package fails to install.
 
 To fix this:
 
