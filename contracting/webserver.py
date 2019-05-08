@@ -76,18 +76,18 @@ async def get_methods(request, contract, variable):
 '''
 @app.route('/lint', methods=['POST'])
 async def lint_contract(request):
-    violations = client.lint(request.get('code'))
+    violations = client.lint(request.json.get('code'))
     return json(violations)
 
 
 @app.route('/compile', methods=['POST'])
 async def compile_contract(request):
     try:
-        compiled_code = client.compiler.parse_to_code(request.get('code'))
+        compiled_code = client.compiler.parse_to_code(request.json.get('code'))
     except Exception as e:
         return text(str(e))
 
-    return json(compiled_code)
+    return text(compiled_code)
 
 
 @app.route('/submit', methods=['POST'])
