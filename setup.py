@@ -18,7 +18,9 @@ requirements = [
     'python-dotenv==0.9.1',
     'ujson==1.35',
     'autopep8==1.4.3',
-    'coloredlogs==10.0'
+    'coloredlogs==10.0',
+    'transitions==0.6.9',
+    'astor==0.7.1'
 ]
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
