@@ -76,8 +76,11 @@ async def get_methods(request, contract, variable):
 '''
 @app.route('/lint', methods=['POST'])
 async def lint_contract(request):
-    violations = client.lint(request.json.get('code'))
-    return json(violations)
+    try:
+        violations = client.lint(request.json.get('code'))
+        return json(violations)
+    except Exception as e:
+        return json({'error': str(e)})
 
 
 @app.route('/compile', methods=['POST'])
