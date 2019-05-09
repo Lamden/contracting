@@ -1,5 +1,6 @@
 import abc
 import copy
+import dbm
 
 import plyvel
 from redis import Redis
@@ -92,6 +93,64 @@ class DictDriver(AbstractDatabaseDriver):
 
     def incrby(self, key, amount=1):
         """Increment a numeric key by one"""
+        k = self.get(key)
+
+        if k is None:
+            k = 0
+        k = int(k) + amount
+        self.set(key, k)
+
+        return k
+
+
+class DBMDriver(AbstractDatabaseDriver):
+    def __init__(self, dir='./', db=0, **kwargs):
+        self.filename = '{}{}'.format(dir, db)
+
+        # Make sure the DB exists and close it after writing
+        db = dbm.open(self.filename, 'c')
+        db.close()
+
+    def get(self, key):
+        with dbm.open(self.filename, 'r') as db:
+            try:
+                return db[key]
+            except:
+                return None
+
+    def set(self, key, value):
+        with dbm.open(self.filename, 'w') as db:
+            db[key] = value
+
+    def delete(self, key):
+        with dbm.open(self.filename, 'w') as db:
+            del db[key]
+
+    def iter(self, prefix):
+        try:
+            prefix = prefix.encode()
+        except:
+            pass
+
+        keys = []
+
+        for k in self.keys():
+            if k.startswith(prefix):
+                keys.append(k)
+        return keys
+
+    def keys(self):
+        all_keys = []
+
+        with dbm.open(self.filename, 'r') as db:
+            all_keys.extend(db.keys())
+        return all_keys
+
+    def flush(self, db=None):
+        for k in self.keys():
+            self.delete(k)
+
+    def incrby(self, key, amount=1):
         k = self.get(key)
 
         if k is None:
@@ -309,7 +368,7 @@ def get_database_driver():
 
 DatabaseDriver = get_database_driver()
 #DatabaseDriver = LevelDBDriver
-DatabaseDriver = RedisDriver
+DatabaseDriver = DBMDriver
 
 
 class CacheDriver(DatabaseDriver):
