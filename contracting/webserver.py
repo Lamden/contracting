@@ -95,7 +95,6 @@ async def compile_contract(request):
 
 @app.route('/submit', methods=['POST'])
 async def submit_contract(request):
-    print(request.json)
     try:
         client.submit(request.json.get('code'), name=request.json.get('name'))
     except AssertionError as e:
@@ -103,6 +102,14 @@ async def submit_contract(request):
 
     return text('success!')
 
+
+@app.route('/exists', methods=['GET'])
+async def contract_exists(request):
+    c = client.get_contract(request.json.get('name'))
+    if c is None:
+        return text(False)
+    else:
+        return text(True)
 
 def start_webserver(q):
     app.queue = q
