@@ -88,6 +88,10 @@ class AbstractContract:
         if status == 1:
             raise result
 
+        if executor.production:
+            print('howdy')
+            executor.sandbox.terminate()
+
         return result
 
 

@@ -178,6 +178,7 @@ class MultiProcessingSandbox(Sandbox):
     def terminate(self):
         if self.p is not None:
             self.p.terminate()
+        self.p = None
 
     def _lazy_instantiate(self):
         if self.p is None:
@@ -274,6 +275,5 @@ class MultiProcessingSandbox(Sandbox):
                                                              tx['kwargs'], auto_commit=tx['auto_commit'],
                                                              environment=tx['environment'], driver=driver)
 
-            print("CACHE: {}".format(runtime.rt.driver.contract_modifications))
             parent_pipe.send(response_obj)
 
