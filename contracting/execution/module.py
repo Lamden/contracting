@@ -1,7 +1,8 @@
 import sys
 
+import importlib.util
 from importlib.abc import Loader, MetaPathFinder
-from importlib import invalidate_caches
+from importlib import invalidate_caches, __import__
 
 from ..db.driver import ContractDriver
 from ..stdlib import env
@@ -10,6 +11,21 @@ from ..execution.runtime import rt
 from types import ModuleType
 import marshal
 
+
+# This function overrides the __import__ function, which is the builtin function that is called whenever Python runs
+# an 'import' statement. If the globals dictionary contains {'__contract__': True}, then this function will make sure
+# that the module being imported comes from the database and not from builtins or site packages.
+
+def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
+    if globals is not None and globals.get('__contract__') is True:
+        spec = importlib.util.find_spec(name)
+        if not isinstance(spec.loader, DatabaseLoader):
+            raise ImportError("module {} cannot be imported in a smart contract.".format(name))
+
+    return __import__(name, globals, locals, fromlist, level)
+
+
+__builtins__['__import__'] = restricted_import
 
 '''
     This module will remain untested and unused until we decide how we want to 'forget' importing.
@@ -103,6 +119,7 @@ class DatabaseLoader(Loader):
         ctx.signer = rt.ctx[0]
 
         scope.update({'ctx': ctx})
+        scope.update({'__contract__': True})
 
         rt.ctx.append(module.__name__)
 

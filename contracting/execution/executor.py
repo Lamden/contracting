@@ -7,7 +7,7 @@ from typing import Dict
 from . import runtime
 from ..db.cr.transaction_bag import TransactionBag
 from ..db.driver import ContractDriver, CacheDriver
-from ..execution.module import install_database_loader
+from ..execution.module import install_database_loader, uninstall_builtins
 from ..execution.metering.tracer import Tracer
 
 class Executor:
@@ -121,8 +121,8 @@ class Sandbox(object):
         runtime.rt.clean_up()
 
     def wipe_modules(self):
-        # Wipe all the modules
-        return
+        uninstall_builtins()
+        install_database_loader()
 
     def execute_bag(self, txbag, auto_commit=False, driver=None):
         response_obj = {}
@@ -185,6 +185,7 @@ class MultiProcessingSandbox(Sandbox):
             self.p = multiprocessing.Process(target=self.process_loop,
                                              args=(super().execute, ))
             self.p.start()
+            self.wipe_modules()
 
     def _update_driver_cache(self, driver, updated_driver):
         if updated_driver and isinstance(updated_driver, CacheDriver):
