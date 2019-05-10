@@ -24,6 +24,7 @@ class Contract:
 
         scope = env.gather()
         scope.update({'ctx': ctx})
+        scope.update({'__contract__': True})
 
         exec(code_obj, scope)
 
