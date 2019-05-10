@@ -80,16 +80,16 @@ class AbstractContract:
             assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
 
         status, result, stamps = executor.execute(sender=signer,
-                                          contract_name=contract,
-                                          function_name=func,
-                                          kwargs=kwargs,
-                                          environment=environment)
-
-        if status == 1:
-            raise result
+                                                  contract_name=contract,
+                                                  function_name=func,
+                                                  kwargs=kwargs,
+                                                  environment=environment)
 
         if executor.production:
             executor.sandbox.terminate()
+
+        if status == 1:
+            raise result
 
         return result
 
