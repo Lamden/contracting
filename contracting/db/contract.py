@@ -4,13 +4,20 @@ from ..execution.runtime import rt
 from types import ModuleType
 from ..stdlib import env
 from .. import config
-import astor
+
 
 class Contract:
     def __init__(self, driver: ContractDriver=rt.driver):
         self.driver = driver
 
     def submit(self, name, code, author):
+        #
+        # spec = importlib.util.find_spec(name)
+        # if not isinstance(spec.loader, DatabaseLoader):
+        #     raise ImportError("module {} cannot be named a Python builtin name.".format(name))
+        #
+        # assert self.driver.get_contract(name) is None, 'Module {} already exists'.format(name)
+
         c = ContractingCompiler(module_name=name)
 
         #code_obj = c.compile(code, lint=True)
@@ -25,8 +32,11 @@ class Contract:
         scope = env.gather()
         scope.update({'ctx': ctx})
         scope.update({'__contract__': True})
+        scope.update({'__builtins__': None})
 
         exec(code_obj, scope)
+
+        #del vars(code_obj)['__builtins__']
 
         if scope.get(config.INIT_FUNC_NAME) is not None:
             scope[config.INIT_FUNC_NAME]()

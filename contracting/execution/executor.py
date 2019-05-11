@@ -59,6 +59,7 @@ class Executor:
 
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
                 stamps=1000000) -> tuple:
+
         """
         Method that does a naive execute
 
@@ -78,6 +79,7 @@ class Executor:
         self.tracer.start()
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                    auto_commit, environment, driver)
+
         self.tracer.stop()
         stamps -= self.tracer.get_stamp_used()
 
@@ -140,10 +142,10 @@ class Sandbox(object):
             runtime.rt.driver = driver
 
         # __main__ is replaced by the sender of the message in this case
+
         runtime.rt.ctx.clear()
         runtime.rt.ctx.append(sender)
         runtime.rt.env = environment
-
         status_code = 0
         try:
             module = importlib.import_module(contract_name)
@@ -156,6 +158,7 @@ class Sandbox(object):
             if auto_commit:
                 runtime.rt.driver.commit()
         except Exception as e:
+            print(str(e))
             result = e
             status_code = 1
             if auto_commit:

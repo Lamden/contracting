@@ -6,7 +6,7 @@ from transitions import Machine
 from transitions.extensions.states import add_state_features, Timeout
 
 # Local imports
-from contracting.logger import get_logger
+#from contracting.logger import get_logger
 from contracting.db.driver import ContractDriver, CacheDriver
 from contracting.db.cr.transaction_bag import TransactionBag
 from contracting import config
@@ -70,7 +70,7 @@ class CRCache:
         self.input_hash = None     # The 'input hash' of the bag we are executing, a 64 char hex str
 
         name = self.__class__.__name__ + "[cache-{}]".format(self.idx)
-        self.log = get_logger(name)
+        #self.log = get_logger(name)
 
         self.db = ContractDriver(db=self.idx)
         self.master_db = master_db
@@ -170,14 +170,14 @@ class CRCache:
         self.scheduler.add_poll(self, self.sync_execution, 'COMMITTED')
 
     def _schedule_merge_ready(self):
-        self.log.important2("scheding merge rdy {}".format(self))
+        #self.log.important2("scheding merge rdy {}".format(self))
         self.scheduler.add_poll(self, self.sync_merge_ready, 'READY_TO_MERGE')
 
     def _schedule_reset(self):
         self.scheduler.add_poll(self, self.sync_reset, 'CLEAN')
 
     def _incr_macro_key(self, macro):
-        self.log.debug("INCREMENTING MACRO {}".format(macro))
+        #self.log.debug("INCREMENTING MACRO {}".format(macro))
         self.db.incrby(macro)
 
     def _check_macro_key(self, macro):
@@ -185,7 +185,7 @@ class CRCache:
         time.sleep(0.5)
 
         val = int(self.db.get_direct(macro))
-        self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
+        #self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
         return val
 
     def _reset_macro_keys(self):
@@ -287,8 +287,8 @@ class CRCache:
 
     def _get_sb_data(self) -> SBData:
         if len(self.results) != len(self.bag.transactions):
-            self.log.critical("You rly fkt up dude, length of results is {} but bag has {} txs. Discarding." \
-                              .format(len(self.results), len(self.bag.transactions)))
+            # self.log.critical("You rly fkt up dude, length of results is {} but bag has {} txs. Discarding." \
+            #                   .format(len(self.results), len(self.bag.transactions)))
             self.discard()
             return [] # colin is this necessary?? also what should i return for cilatnro to be aware of the goof?
 

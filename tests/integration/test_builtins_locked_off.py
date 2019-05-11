@@ -1,5 +1,4 @@
 from unittest import TestCase
-from contracting.stdlib.bridge.time import Datetime
 from contracting.client import ContractingClient
 from contracting.execution.executor import Executor
 
@@ -17,3 +16,6 @@ class TestBuiltinsLockedOff(TestCase):
 
         with self.assertRaises(ImportError):
             self.c.submit(contract, name='builtin')
+
+    def test_if_non_builtin_can_be_submitted(self):
+        pass

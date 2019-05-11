@@ -3,13 +3,13 @@ import astor
 
 from contracting import config
 
-from contracting.logger import get_logger
+#from contracting.logger import get_logger
 from contracting.compilation.linter import Linter
 import copy
 
 class ContractingCompiler(ast.NodeTransformer):
     def __init__(self, module_name='__main__', linter=Linter()):
-        self.log = get_logger('Contracting.Compiler')
+        #self.log = get_logger('Contracting.Compiler')
         self.module_name = module_name
         self.linter = linter
         self.lint_alerts = None
