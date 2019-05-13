@@ -92,8 +92,8 @@ Out[7]: {'status': 'success', 'output': Decimal('100000'), 'remaining_stamps': 0
 1. [A very simple Counter contract](/examples/01%20A%20very%20simple%20Counter%20contract.ipynb)
 2. [Ingredients of a Smart Contract](/examples/02%20Ingredients%20of%20a%20Smart%20Contract.ipynb)
 3. [Interacting with the Client](/examples/03%20Interacting%20with%20the%20Client.ipynb)
-4. [Standard Library and Extending Contracting](/examples/03%20Standard%20Library%20and%20Extending%20Contracting.ipynb)
-5. [Imports and Advanced Data Storage](/examples/04%20Imports%20and%20Advanced%20Data%20Storage.ipynb)
+4. [Standard Library and Extending Contracting](/examples/04%20Standard%20Library%20and%20Extending%20Contracting.ipynb)
+5. [Imports and Advanced Data Storage](/examples/05%20Imports%20and%20Advanced%20Data%20Storage.ipynb)
 
 ### Storage Model
 
