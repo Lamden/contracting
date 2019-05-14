@@ -20,7 +20,6 @@ class Contract:
 
         c = ContractingCompiler(module_name=name)
 
-        #code_obj = c.compile(code, lint=True)
         code_obj = c.parse_to_code(code, lint=True)
 
         ctx = ModuleType('context')
@@ -32,11 +31,8 @@ class Contract:
         scope = env.gather()
         scope.update({'ctx': ctx})
         scope.update({'__contract__': True})
-        scope.update({'__builtins__': None})
 
         exec(code_obj, scope)
-
-        #del vars(code_obj)['__builtins__']
 
         if scope.get(config.INIT_FUNC_NAME) is not None:
             scope[config.INIT_FUNC_NAME]()

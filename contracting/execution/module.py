@@ -32,16 +32,6 @@ def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
 __builtins__['__import__'] = restricted_import
 
 
-def raise_exception(*args, **kwargs):
-    print(args)
-    print(kwargs)
-    raise Exception
-
-
-illegal_builtins = []
-
-illegal_builtins_dict = {builtin: raise_exception for builtin in illegal_builtins}
-
 '''
     This module will remain untested and unused until we decide how we want to 'forget' importing.
 '''
@@ -146,8 +136,8 @@ class DatabaseLoader(Loader):
         exec(code, scope)
         vars(module).update(scope)
 
-        vars(module)['__builtins__'].update(illegal_builtins_dict)
-        #del vars(module)['__builtins__']
+        #vars(module)['__builtins__'].update(illegal_builtins_dict)
+        del vars(module)['__builtins__']
 
         rt.loaded_modules.append(rt.ctx.pop())
 
