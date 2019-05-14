@@ -4,8 +4,6 @@ import dbm
 
 # we can't include pylevel in production since its not installed on the docker images and will
 # result in an interpret time error
-# import plyvel
-
 from redis import Redis
 from redis.connection import Connection
 from .. import config
@@ -65,6 +63,75 @@ class AbstractDatabaseDriver:
             return True
         return False
 
+'''
+import plyvel
+class LevelDBDriver(AbstractDatabaseDriver):
+    def __init__(self, db=config.MASTER_DB, **kwargs):
+        self.db_name = 'state.db'
+        if db != config.MASTER_DB:
+            self.db_name = 'cache_{}.db'.format(db)
+        self.conn = plyvel.DB(self.db_name, create_if_missing=True, error_if_exists=False)
+
+    def get(self, key):
+        try:
+            key = key.encode()
+        except AttributeError:
+            pass
+
+        return self.conn.get(key)
+
+    def set(self, key, value):
+        try:
+            key = key.encode()
+        except AttributeError:
+            pass
+
+        try:
+            value = value.encode()
+        except AttributeError:
+            pass
+        self.conn.put(key, value)
+
+    def delete(self, key):
+        try:
+            key = key.encode()
+        except AttributeError:
+            pass
+
+        self.conn.delete(key)
+
+    def iter(self, prefix):
+        try:
+            prefix = prefix.encode()
+        except AttributeError:
+            pass
+        it = self.conn.iterator(prefix=prefix)
+        return [k[0] for k in it]
+
+    def keys(self):
+        return self.iter(prefix=b'')
+
+    def flush(self, db=None):
+        for k in self.keys():
+            self.delete(k)
+
+    def incrby(self, key, amount=1):
+        """Increment a numeric key by one"""
+        try:
+            key = key.encode()
+        except:
+            pass
+
+        k = self.conn.get(key)
+
+        if k is None:
+            k = 0
+        k = int(k) + amount
+
+        self.conn.put(key, '{}'.format(k).encode())
+
+        return k
+'''
 
 # The theoretically fastest driver. It's a dictionary.
 class DictDriver(AbstractDatabaseDriver):
@@ -284,84 +351,13 @@ class RedisDriver(AbstractDatabaseDriver):
 
         return k
 
-
-class LevelDBDriver(AbstractDatabaseDriver):
-    def __init__(self, db=config.MASTER_DB, **kwargs):
-        self.db_name = 'state.db'
-        if db != config.MASTER_DB:
-            self.db_name = 'cache_{}.db'.format(db)
-        self.conn = plyvel.DB(self.db_name, create_if_missing=True, error_if_exists=False)
-
-    def get(self, key):
-        try:
-            key = key.encode()
-        except AttributeError:
-            pass
-
-        return self.conn.get(key)
-
-    def set(self, key, value):
-        try:
-            key = key.encode()
-        except AttributeError:
-            pass
-
-        try:
-            value = value.encode()
-        except AttributeError:
-            pass
-        self.conn.put(key, value)
-
-    def delete(self, key):
-        try:
-            key = key.encode()
-        except AttributeError:
-            pass
-
-        self.conn.delete(key)
-
-    def iter(self, prefix):
-        try:
-            prefix = prefix.encode()
-        except AttributeError:
-            pass
-        it = self.conn.iterator(prefix=prefix)
-        return [k[0] for k in it]
-
-    def keys(self):
-        return self.iter(prefix=b'')
-
-    def flush(self, db=None):
-        for k in self.keys():
-            self.delete(k)
-
-    def incrby(self, key, amount=1):
-        """Increment a numeric key by one"""
-        try:
-            key = key.encode()
-        except:
-            pass
-
-        k = self.conn.get(key)
-
-        if k is None:
-            k = 0
-        k = int(k) + amount
-
-        self.conn.put(key, '{}'.format(k).encode())
-
-        return k
-
-
-
 # Defined at the bottom since needs to be instantiated
 # after the classes have been defined. Allows us to
 # parameterize the type of database driver required
 # from the top level instead of having to manually change
 # a bunch of code to get to it.
 DATABASE_DRIVER_MAPS = {
-    'redis': RedisConnectionDriver,
-    'leveldb': LevelDBDriver
+    'redis': RedisConnectionDriver
 }
 
 

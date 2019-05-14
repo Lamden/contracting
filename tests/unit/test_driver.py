@@ -1,12 +1,12 @@
 from unittest import TestCase
-from contracting.db.driver import RedisDriver, ContractDriver, LevelDBDriver, DBMDriver
+from contracting.db.driver import RedisDriver, ContractDriver, DBMDriver
 from contracting import config
 import random
 
 class TestAbstractDatabaseDriver(TestCase):
     pass
 
-
+'''
 class TestLevelDBDriver(TestCase):
     # Flush this sucker every test
     def setUp(self):
@@ -142,6 +142,7 @@ class TestLevelDBDriver(TestCase):
         keys.sort()
 
         self.assertListEqual(keys, ks)
+'''
 
 class TestRedisDatabaseDriver(TestCase):
     # Flush this sucker every test
