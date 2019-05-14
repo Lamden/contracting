@@ -73,17 +73,11 @@ class TestWebserver(TestCase):
 
         currency = client.raw_driver.get_contract('currency')
 
-        print(currency)
-
-        print(client.get_contracts())
-
         self.assertIsNotNone(currency)
 
     def test_get_variable(self):
         with open('./test_sys_contracts/currency.s.py') as f:
             contract = f.read()
-
-        print(contract)
 
         payload = {'name': 'currency', 'code': contract}
 
