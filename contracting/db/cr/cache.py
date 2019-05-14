@@ -65,7 +65,6 @@ class CRCache:
         self.bag = None            # Bag will be set by the execute call
         self.rerun_idx = None      # The index to being reruns at
         self.results = {}          # The results of the execution
-        self.top_of_stack = False  # Whether or not we're top of the stack (told by Client)
         self.macros = Macros()     # Instance of the macros class for mutex/sync
         self.input_hash = None     # The 'input hash' of the bag we are executing, a 64 char hex str
 
@@ -86,7 +85,6 @@ class CRCache:
                 'trigger': 'execute',
                 'source': 'BAG_SET',
                 'dest': 'EXECUTED',
-                'prepare': '_reset_macro_keys',
                 'before': 'execute_transactions',
                 'after': '_schedule_cr'
             },
@@ -164,6 +162,7 @@ class CRCache:
                                           transitions=transitions, initial='CLEAN')
 
         self.scheduler.mark_clean(self)
+        self._reset_macro_keys()
 
     def _schedule_cr(self):
         # Add sync_execution to the scheduler to wait for the CR step
@@ -181,25 +180,24 @@ class CRCache:
         self.db.incrby(macro)
 
     def _check_macro_key(self, macro):
-        import time
-        time.sleep(0.5)
-
-        val = int(self.db.get_direct(macro))
-        self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
-        return val
+        val = self.db.get_direct(macro)
+        # self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
+        return int(val) if val is not None else 0
 
     def _reset_macro_keys(self):
+        self.log.spam("{} is resetting macro keys".format(self))
         for key in Macros.ALL_MACROS:
-            self.db.delete(key)
             self.db.set_direct(key, 0)
 
     def get_results(self):
         return self.results
 
     def set_transaction_bag(self, bag):
+        self.log.spam("{} is setting transactions!".format(self))
         self.bag = bag
 
     def execute_transactions(self):
+        self.log.spam("{} is executing transactions!".format(self))
         # Execute first round using Master DB Driver since we will not have any keys in common
         # Do not commit, leveraging cache only
         self.results = self.executor.execute_bag(self.bag, driver=self.master_db)
@@ -271,23 +269,31 @@ class CRCache:
     def reset_dbs(self):
         # If we are on SBB 0, we need to flush the common layer of this cache
         # since the DB is shared, we only need to call this from one of the SBBs
-        if self.sbb_idx == 0:
-            self.db.flush()
         self.db.reset_cache()
         self.master_db.reset_cache()
         self.rerun_idx = None
         self._incr_macro_key(Macros.RESET)
+        self.bag = None
 
     def all_reset(self):
-        return self._check_macro_key(Macros.RESET) == self.num_sbb
+        return (self._check_macro_key(Macros.RESET) == self.num_sbb) or \
+               (self._check_macro_key(Macros.RESET) == 0)
 
     def _mark_clean(self):
+
+        # If we are on SBB 0, we need to flush the common layer of this cache
+        # since the DB is shared, we only need to call this from one of the SBBs
+        if self.sbb_idx == 0:
+            self.log.debugv("cache idx 0 FLUSHING DB!!!!")
+            self.db.flush()
+            self._reset_macro_keys()
+
         # Mark myself as clean for the FSMScheduler to be able to reuse me
         self.scheduler.mark_clean(self)
 
     def _get_sb_data(self) -> SBData:
         if len(self.results) != len(self.bag.transactions):
-            self.log.critical("You rly fkt up dude, length of results is {} but bag has {} txs. Discarding." \
+            self.log.critical("Mismatch of state: length of results is {} but bag has {} txs. Discarding." \
                               .format(len(self.results), len(self.bag.transactions)))
             self.discard()
             return [] # colin is this necessary?? also what should i return for cilatnro to be aware of the goof?
@@ -296,7 +302,6 @@ class CRCache:
         i = 0
 
         # Iterate over results to take into account transactions that have been reverted and removed from contract_mods
-        print("RESULTANT CACHE: {}".format(self.db.contract_modifications))
         for tx_idx in sorted(self.results.keys()):
             status_code, result = self.results[tx_idx]
             state_str = ""
@@ -315,7 +320,7 @@ class CRCache:
     def __repr__(self):
         input_hash = 'NOT_SET' if self.bag is None else self.bag.input_hash
         return "<CRCache input_hash={}, state={}, idx={}, sbb_idx={}, top_of_stk={}>"\
-               .format(input_hash, self.state, self.idx, self.sbb_idx, self.top_of_stack)
+               .format(input_hash, self.state, self.idx, self.sbb_idx, self.is_top_of_stack())
 
 
 if __name__ == "__main__":

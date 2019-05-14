@@ -55,13 +55,14 @@ for i in range(20):
     # profiler = Profiler()
     # profiler.start()
     for r in recipients:
-        e.execute(sender='stu',
+        _, res, _ = e.execute(sender='stu',
                   contract_name='erc20_clone',
                   function_name='transfer',
                   kwargs={
                       'amount': 1,
                       'to': r
                   })
+        print(res)
 
     # profiler.stop()
 

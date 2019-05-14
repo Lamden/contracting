@@ -3,13 +3,13 @@ import astor
 
 from contracting import config
 
-from contracting.logger import get_logger
-from contracting.ast.linter import Linter
+#from contracting.logger import get_logger
+from contracting.compilation.linter import Linter
 import copy
 
 class ContractingCompiler(ast.NodeTransformer):
     def __init__(self, module_name='__main__', linter=Linter()):
-        self.log = get_logger('Contracting.Compiler')
+        #self.log = get_logger('Contracting.Compiler')
         self.module_name = module_name
         self.linter = linter
         self.lint_alerts = None
@@ -24,7 +24,7 @@ class ContractingCompiler(ast.NodeTransformer):
 
         if lint:
             self.lint_alerts = self.linter.check(tree)
-            # ast.fix_missing_locations(tree)
+            # compilation.fix_missing_locations(tree)
 
         tree = self.visit(tree)
 
@@ -33,7 +33,7 @@ class ContractingCompiler(ast.NodeTransformer):
 
         # check all visited nodes and see if they are actually private
 
-        # An Expr node can have a value func of ast.Name, or ast.Attribute which you much access the value of.
+        # An Expr node can have a value func of compilation.Name, or compilation.Attribute which you much access the value of.
         # This code branching is not ideal and should be investigated for simplicity.
         for node in self.visited_names:
             if node.id in self.private_names:
@@ -54,7 +54,7 @@ class ContractingCompiler(ast.NodeTransformer):
     def compile(self, source: str, lint=True):
         tree = self.parse(source, lint=lint)
 
-        compiled_code = compile(tree, '<ast>', 'exec')
+        compiled_code = compile(tree, '<compilation>', 'exec')
 
         return compiled_code
 

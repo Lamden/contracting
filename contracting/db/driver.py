@@ -1,7 +1,11 @@
 import abc
 import copy
+import dbm
 
-import plyvel
+# we can't include pylevel in production since its not installed on the docker images and will
+# result in an interpret time error
+# import plyvel
+
 from redis import Redis
 from redis.connection import Connection
 from .. import config
@@ -101,6 +105,71 @@ class DictDriver(AbstractDatabaseDriver):
 
         return k
 
+import atexit
+class DBMDriver(AbstractDatabaseDriver):
+    def __init__(self, dir='./', db=0, **kwargs):
+        self.filename = '{}{}'.format(dir, db)
+
+        # Make sure the DB exists and close it after writing
+        self.db = dbm.open(self.filename, 'c')
+        atexit.register(self.close)
+
+    def close(self):
+        self.db.close()
+
+    def get(self, key):
+        #with dbm.open(self.filename, 'r') as db:
+        try:
+            return self.db[key]
+        except:
+            return None
+
+    def set(self, key, value):
+        #with dbm.open(self.filename, 'w') as db:
+        self.db[key] = value
+
+    def delete(self, key):
+        #with dbm.open(self.filename, 'w') as db:
+        del self.db[key]
+
+    def iter(self, prefix):
+        try:
+            prefix = prefix.encode()
+        except:
+            pass
+
+        keys = []
+
+        for k in self.keys():
+            try:
+                k = k.encode()
+            except:
+                pass
+            if k.startswith(prefix):
+                keys.append(k)
+        return keys
+
+    def keys(self):
+        all_keys = []
+
+        #with dbm.open(self.filename, 'r') as db:
+        all_keys.extend(self.db.keys())
+        return all_keys
+
+    def flush(self, db=None):
+        for k in self.keys():
+            self.delete(k)
+
+    def incrby(self, key, amount=1):
+        k = self.get(key)
+
+        if k is None:
+            k = 0
+        k = int(k) + amount
+        self.set(key, k)
+
+        return k
+
 
 class RedisConnectionDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
@@ -126,7 +195,7 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
     def get(self, key):
         self.conn.send_command('GET', key)
         resp = self.conn.read_response()
-        #print("GET {} RESPONSE: {}".format(key, resp))
+        #print("GET {} RESPONSE: {}".format(key,
         return resp
 
     def set(self, key, value):
@@ -159,8 +228,6 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
         self.conn.send_command('SET', key, k)
 
         return k
-
-
 
 
 class RedisDriver(AbstractDatabaseDriver):

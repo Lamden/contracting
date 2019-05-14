@@ -22,7 +22,7 @@ ALLOWED_AST_TYPES = {
     ast.Load,
     ast.arg,
     ast.Add,
-    #ast.Lambda,    # raghu todo consider removing it
+    #compilation.Lambda,    # raghu todo consider removing it
     ast.Import,
     ast.ImportFrom,
     ast.Name,
@@ -70,15 +70,15 @@ ALLOWED_AST_TYPES = {
 
     # TODO: Decide if we actually want these
     # Error handling
-    # ast.ExceptHandler,
-    # ast.Try,
+    # compilation.ExceptHandler,
+    # compilation.Try,
 }
 
 VIOLATION_TRIGGERS = [
     "S1- Illegal contracting syntax type used",
     "S2- Illicit use of '_' before variable",
     "S3- Illicit use of Nested imports",
-    "S4- ImportFrom ast nodes not yet supported",
+    "S4- ImportFrom compilation nodes not yet supported",
     "S5- Contract not found in lib",
     "S6- Illicit use of classes",
     "S7- Illicit use of Async functions",

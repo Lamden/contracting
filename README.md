@@ -1,4 +1,10 @@
-# contracting - Smart Contracts with Python
+# Contracting - Smart Contracts with Python
+
+With Contracting you can write smart contracts in a subset of Python. You can then deploy these contracts to the Lamden Blockchain Cilantro.
+
+Contracting is simply a Python package. Because of this you can use existing Python tooling and the Contracting API to develop smart contracts with ease. That is unlike Solidity, which requires external services like Truffle or TestRPC.
+
+Below is an example of a simple token smart contract in Python. With it you can transfer tokens and check token balances.
 
 ```python
 def token_contract():
@@ -36,8 +42,9 @@ brew install redis
 brew services start redis
 ```
 
-### Using contracting in a Development Enviroment
-With contracting now installed, you can develop smart contracts without an instance of the blockchain. This is to improve the speed of development. Unlike Solidity that requires a 3rd party service such as Truffle or TestRPC, we leverage existing Python tooling and provide the APIs to allow people to develop smart contracts with ease out of the box. Here is how you would go about testing a token contract in a Jupyter notebook / IPython console:
+### Using Contracting in a Development Environment
+
+With Contracting now installed, you can develop smart contracts without an instance of the blockchain. This is to improve the speed of development. Here is how you would go about testing a token contract in a Jupyter notebook / IPython console:
 
 ```python
 In [1]: from contracting.tooling import *
@@ -80,8 +87,17 @@ In [7]: token.balance_of(wallet_id='stu')
 Out[7]: {'status': 'success', 'output': Decimal('100000'), 'remaining_stamps': 0}
 ```
 
+### Get started with Contracting by Example
+
+1. [A very simple Counter contract](/examples/01%20A%20very%20simple%20Counter%20contract.ipynb)
+2. [Ingredients of a Smart Contract](/examples/02%20Ingredients%20of%20a%20Smart%20Contract.ipynb)
+3. [Interacting with the Client](/examples/03%20Interacting%20with%20the%20Client.ipynb)
+4. [Standard Library and Extending Contracting](/examples/04%20Standard%20Library%20and%20Extending%20Contracting.ipynb)
+5. [Imports and Advanced Data Storage](/examples/05%20Imports%20and%20Advanced%20Data%20Storage.ipynb)
+
 ### Storage Model
-contracting uses Redis to store the state of the blockchain. Thus, you can use any Redis tooling to inspect the storage and retrieval of information to and from your smart contracts.
+
+Contracting uses Redis to store the state of the blockchain. This means you can use any Redis tooling to inspect the storage and retrieval of information to and from your smart contracts.
 
 You can also use a GUI like Medis without any issue.
 
@@ -91,7 +107,7 @@ You can also use a GUI like Medis without any issue.
 
 ### `pip install contracting` is not installing on my computer!
 
-If you're using a Mac, you can run into this problem where the C libraries that are required for contracting are not being compiled and the package fails to install. This is because the proper C libraries are not installed on your Mac.
+If you're using a Mac, you can run into the problem that the C libraries required for Contracting are not getting compiled and the package fails to install.
 
 To fix this:
 
