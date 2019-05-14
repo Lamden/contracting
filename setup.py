@@ -7,11 +7,7 @@ import sys
 
 major = 0
 
-__version__ = '0.1.0'
-
-print('#' * 128)
-print('\n    VERSION = {}\n'.format(__version__))
-print('#' * 128)
+__version__ = '0.1.1'
 
 requirements = [
     'redis==2.10.6',
