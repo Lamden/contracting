@@ -1,19 +1,25 @@
-from contracting.ast.compiler import ContractingCompiler
+from contracting.compilation.compiler import ContractingCompiler
 from ..db.driver import ContractDriver
 from ..execution.runtime import rt
 from types import ModuleType
 from ..stdlib import env
 from .. import config
-import astor
+
 
 class Contract:
     def __init__(self, driver: ContractDriver=rt.driver):
         self.driver = driver
 
     def submit(self, name, code, author):
+        #
+        # spec = importlib.util.find_spec(name)
+        # if not isinstance(spec.loader, DatabaseLoader):
+        #     raise ImportError("module {} cannot be named a Python builtin name.".format(name))
+        #
+        # assert self.driver.get_contract(name) is None, 'Module {} already exists'.format(name)
+
         c = ContractingCompiler(module_name=name)
 
-        #code_obj = c.compile(code, lint=True)
         code_obj = c.parse_to_code(code, lint=True)
 
         ctx = ModuleType('context')
@@ -24,6 +30,7 @@ class Contract:
 
         scope = env.gather()
         scope.update({'ctx': ctx})
+        scope.update({'__contract__': True})
 
         exec(code_obj, scope)
 

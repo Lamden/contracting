@@ -6,7 +6,7 @@ import glob
 # assertions for self.e.driver
 from contracting.db.driver import AbstractDatabaseDriver, ContractDriver
 from contracting.execution.module import DatabaseFinder
-from contracting.ast.compiler import ContractingCompiler
+from contracting.compilation.compiler import ContractingCompiler
 from contracting.db.cr.transaction_bag import TransactionBag
 
 class TestExecutor(unittest.TestCase):
