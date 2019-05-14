@@ -37,14 +37,17 @@ async def get_contract(request, contract):
 
     if contract_code is None:
         return json({'error': '{} does not exist'.format(contract)}, status=404)
-    return json({'code': contract_code, 'name': contract}, status=200)
+    return json({'name': contract, 'code': contract_code}, status=200)
 
 
-@app.route("/contracts/<contract>/methods", methods=["GET","OPTIONS",])
+@app.route("/contracts/<contract>/methods", methods=['GET'])
 async def get_methods(request, contract):
-    c = client.raw_driver.get_contract(contract)
+    contract_code = client.raw_driver.get_contract(contract)
 
-    tree = ast.parse(c)
+    if contract_code is None:
+        return json({'error': '{} does not exist'.format(contract)}, status=404)
+
+    tree = ast.parse(contract_code)
 
     function_defs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
 
@@ -53,9 +56,9 @@ async def get_methods(request, contract):
         func_name = definition.name
         kwargs = [arg.arg for arg in definition.args.args]
 
-        funcs.append((func_name, kwargs))
+        funcs.append({'name': func_name, 'arguments': kwargs})
 
-    return json(funcs)
+    return json({'methods': funcs}, status=200)
 
 
 @app.route('/contracts/<contract>/<variable>')
