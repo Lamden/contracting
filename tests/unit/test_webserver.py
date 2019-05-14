@@ -9,4 +9,5 @@ class TestTimedelta(TestCase):
 
     def test_get_all_contracts(self):
         _, response = app.test_client.get('/contracts')
-        print(response.json)
+        contracts = response.json.get('contracts')
+        self.assertIn('submission', contracts)

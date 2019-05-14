@@ -87,9 +87,9 @@ async def get_methods(request, contract, variable):
 async def lint_contract(request):
     try:
         violations = client.lint(request.json.get('code'))
-        return json(violations)
+        return json({'violations': violations}, status=200)
     except Exception as e:
-        return json({'error': str(e)})
+        return json({'error': str(e)}, status=500)
 
 
 @app.route('/compile', methods=['POST'])
@@ -97,9 +97,9 @@ async def compile_contract(request):
     try:
         compiled_code = client.compiler.parse_to_code(request.json.get('code'))
     except Exception as e:
-        return text(str(e))
+        return json({'error': str(e)}, status=500)
 
-    return text(compiled_code)
+    return json({'code': compiled_code}, status=200)
 
 
 @app.route('/submit', methods=['POST'])
@@ -109,7 +109,7 @@ async def submit_contract(request):
     except AssertionError as e:
         return text(str(e))
 
-    return text('success!')
+    return json({'success': True}, status=200)
 
 
 @app.route('/exists', methods=['GET'])
