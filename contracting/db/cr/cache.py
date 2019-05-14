@@ -169,13 +169,14 @@ class CRCache:
         self.scheduler.add_poll(self, self.sync_execution, 'COMMITTED')
 
     def _schedule_merge_ready(self):
+        self.log.important2("scheding merge rdy {}".format(self))
         self.scheduler.add_poll(self, self.sync_merge_ready, 'READY_TO_MERGE')
 
     def _schedule_reset(self):
         self.scheduler.add_poll(self, self.sync_reset, 'CLEAN')
 
     def _incr_macro_key(self, macro):
-        self.log.debugv("INCREMENTING MACRO {}".format(macro))
+        self.log.debug("INCREMENTING MACRO {}".format(macro))
         self.db.incrby(macro)
 
     def _check_macro_key(self, macro):
@@ -266,7 +267,8 @@ class CRCache:
             self.master_db.commit()
 
     def reset_dbs(self):
-        self.log.important3("{} is resetting!!!".format(self))
+        # If we are on SBB 0, we need to flush the common layer of this cache
+        # since the DB is shared, we only need to call this from one of the SBBs
         self.db.reset_cache()
         self.master_db.reset_cache()
         self.rerun_idx = None
@@ -288,7 +290,6 @@ class CRCache:
 
         # Mark myself as clean for the FSMScheduler to be able to reuse me
         self.scheduler.mark_clean(self)
-
 
     def _get_sb_data(self) -> SBData:
         if len(self.results) != len(self.bag.transactions):

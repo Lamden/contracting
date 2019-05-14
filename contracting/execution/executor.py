@@ -7,7 +7,7 @@ from typing import Dict
 from . import runtime
 from ..db.cr.transaction_bag import TransactionBag
 from ..db.driver import ContractDriver, CacheDriver
-from ..execution.module import install_database_loader
+from ..execution.module import install_database_loader, uninstall_builtins
 from ..execution.metering.tracer import Tracer
 
 class Executor:
@@ -59,6 +59,7 @@ class Executor:
 
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
                 stamps=1000000) -> tuple:
+
         """
         Method that does a naive execute
 
@@ -78,6 +79,7 @@ class Executor:
         self.tracer.start()
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                    auto_commit, environment, driver)
+
         self.tracer.stop()
         stamps -= self.tracer.get_stamp_used()
 
@@ -121,8 +123,8 @@ class Sandbox(object):
         runtime.rt.clean_up()
 
     def wipe_modules(self):
-        # Wipe all the modules
-        return
+        uninstall_builtins()
+        install_database_loader()
 
     def execute_bag(self, txbag, auto_commit=False, driver=None):
         response_obj = {}
@@ -140,10 +142,10 @@ class Sandbox(object):
             runtime.rt.driver = driver
 
         # __main__ is replaced by the sender of the message in this case
+
         runtime.rt.ctx.clear()
         runtime.rt.ctx.append(sender)
         runtime.rt.env = environment
-
         status_code = 0
         try:
             module = importlib.import_module(contract_name)
@@ -156,6 +158,7 @@ class Sandbox(object):
             if auto_commit:
                 runtime.rt.driver.commit()
         except Exception as e:
+            print(str(e))
             result = e
             status_code = 1
             if auto_commit:
@@ -178,12 +181,14 @@ class MultiProcessingSandbox(Sandbox):
     def terminate(self):
         if self.p is not None:
             self.p.terminate()
+        self.p = None
 
     def _lazy_instantiate(self):
         if self.p is None:
             self.p = multiprocessing.Process(target=self.process_loop,
                                              args=(super().execute, ))
             self.p.start()
+            self.wipe_modules()
 
     def _update_driver_cache(self, driver, updated_driver):
         if updated_driver and isinstance(updated_driver, CacheDriver):
@@ -274,6 +279,5 @@ class MultiProcessingSandbox(Sandbox):
                                                              tx['kwargs'], auto_commit=tx['auto_commit'],
                                                              environment=tx['environment'], driver=driver)
 
-            print("CACHE: {}".format(runtime.rt.driver.contract_modifications))
             parent_pipe.send(response_obj)
 

@@ -67,16 +67,10 @@ class TestSingleCRCache(unittest.TestCase):
                             author='sys')
         driver.commit()
 
-        # Use executor submit
-        contracts = glob.glob('./test_sys_contracts/*.py')
-        for contract in contracts:
-            name = contract.split('/')[-1]
-            name = name.split('.')[0]
+        with open('./test_sys_contracts/module_func.py') as f:
+            code = f.read()
 
-            with open(contract) as f:
-                code = f.read()
-
-            executor.execute(sender=self.author, contract_name='submission', function_name='submit_contract', kwargs={'name': name, 'code': code})
+        executor.execute(sender=self.author, contract_name='submission', function_name='submit_contract', kwargs={'name': 'module_func', 'code': code})
 
         # Setup tx
         tx1 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'Working'})
@@ -93,8 +87,8 @@ class TestSingleCRCache(unittest.TestCase):
         self.cache.db.flush()
         self.master_db.flush()
         self.cache.executor.sandbox.terminate()
-        del self.cache
-        sys.meta_path.remove(DatabaseFinder)
+        #del self.cache
+        #sys.meta_path.remove(DatabaseFinder)
         driver.flush()
 
     def test_0_set_bag(self):
@@ -143,5 +137,5 @@ class TestSingleCRCache(unittest.TestCase):
 
 
 
-if __name__ == "__main__":
-    unittest.main()
+# if __name__ == "__main__":
+#     unittest.main()

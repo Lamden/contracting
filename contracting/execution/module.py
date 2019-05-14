@@ -1,7 +1,8 @@
 import sys
 
+import importlib.util
 from importlib.abc import Loader, MetaPathFinder
-from importlib import invalidate_caches
+from importlib import invalidate_caches, __import__
 
 from ..db.driver import ContractDriver
 from ..stdlib import env
@@ -10,6 +11,36 @@ from ..execution.runtime import rt
 from types import ModuleType
 import marshal
 
+
+# This function overrides the __import__ function, which is the builtin function that is called whenever Python runs
+# an 'import' statement. If the globals dictionary contains {'__contract__': True}, then this function will make sure
+# that the module being imported comes from the database and not from builtins or site packages.
+#
+# For all exec statements, we add the {'__contract__': True} key to the globals to protect against unwanted imports.
+#
+# Note: anything installed with pip or in site-packages will also not work, so contract package names *must* be unique.
+#
+def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
+    if globals is not None and globals.get('__contract__') is True:
+        spec = importlib.util.find_spec(name)
+        if not isinstance(spec.loader, DatabaseLoader):
+            raise ImportError("module {} cannot be imported in a smart contract.".format(name))
+
+    return __import__(name, globals, locals, fromlist, level)
+
+
+__builtins__['__import__'] = restricted_import
+
+
+def raise_exception(*args, **kwargs):
+    print(args)
+    print(kwargs)
+    raise Exception
+
+
+illegal_builtins = []
+
+illegal_builtins_dict = {builtin: raise_exception for builtin in illegal_builtins}
 
 '''
     This module will remain untested and unused until we decide how we want to 'forget' importing.
@@ -48,9 +79,12 @@ class DatabaseFinder(MetaPathFinder):
     def find_module(self, fullname, path=None):
         return DatabaseLoader()
 
+
 from copy import deepcopy
+
 MODULE_CACHE = {}
 CACHE = {}
+
 
 class DatabaseLoader(Loader):
     def __init__(self):
@@ -103,6 +137,7 @@ class DatabaseLoader(Loader):
         ctx.signer = rt.ctx[0]
 
         scope.update({'ctx': ctx})
+        scope.update({'__contract__': True})
 
         rt.ctx.append(module.__name__)
 
@@ -111,7 +146,8 @@ class DatabaseLoader(Loader):
         exec(code, scope)
         vars(module).update(scope)
 
-        del vars(module)['__builtins__']
+        vars(module)['__builtins__'].update(illegal_builtins_dict)
+        #del vars(module)['__builtins__']
 
         rt.loaded_modules.append(rt.ctx.pop())
 
