@@ -74,7 +74,7 @@ async def get_methods(request, contract, variable):
         response = client.raw_driver.get('{}.{}:{}'.format(contract, variable, key))
 
     if response is None:
-        return json({'value': 'null'}, status=404)
+        return json({'value': None}, status=404)
     else:
         return json({'value': response}, status=200)
 

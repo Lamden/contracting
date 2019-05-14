@@ -72,3 +72,73 @@ class TestWebserver(TestCase):
         currency = client.raw_driver.get_contract('currency')
 
         self.assertIsNotNone(currency)
+
+    def test_get_variable(self):
+        with open('../../contracting/contracts/currency.s.py') as f:
+            contract = f.read()
+
+        payload = {'name': 'currency', 'code': contract}
+
+        _, response = app.test_client.post('/submit', data=json.dumps(payload))
+
+        _, response = app.test_client.get('/contracts/currency/seed_amount')
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.json.get('value'), 1000000)
+
+    def test_get_variable_from_non_existent_contract(self):
+        _, response = app.test_client.get('/contracts/currency/seed_amount')
+
+        self.assertEqual(response.status, 404)
+
+    def test_get_non_existent_variable_from_contract(self):
+        with open('../../contracting/contracts/currency.s.py') as f:
+            contract = f.read()
+
+        payload = {'name': 'currency', 'code': contract}
+
+        _, response = app.test_client.post('/submit', data=json.dumps(payload))
+
+        _, response = app.test_client.get('/contracts/currency/hoooooooplah')
+
+        self.assertEqual(response.status, 404)
+        self.assertEqual(response.json.get('value'), None)
+
+    def test_get_hash_value(self):
+        with open('../../contracting/contracts/currency.s.py') as f:
+            contract = f.read()
+
+        payload = {'name': 'currency', 'code': contract}
+
+        _, response = app.test_client.post('/submit', data=json.dumps(payload))
+
+        _, response = app.test_client.get(
+            '/contracts/currency/balances?key=324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
+        )
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(response.json.get('value'), 1000000)
+
+    def test_get_hash_from_non_existent_contract(self):
+        _, response = app.test_client.get(
+            '/contracts/currency/balances?key=324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502'
+        )
+
+        self.assertEqual(response.status, 404)
+        self.assertEqual(response.json.get('value'), None)
+
+    def test_get_non_existent_hash_from_contract(self):
+        with open('../../contracting/contracts/currency.s.py') as f:
+            contract = f.read()
+
+        payload = {'name': 'currency', 'code': contract}
+
+        _, response = app.test_client.post('/submit', data=json.dumps(payload))
+
+        _, response = app.test_client.get(
+            '/contracts/currency/balances?key=ZZZZZZZZZZZZZZZZZZZZZZ'
+        )
+
+        self.assertEqual(response.status, 404)
+        self.assertEqual(response.json.get('value'), None)
+

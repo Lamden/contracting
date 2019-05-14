@@ -4,9 +4,9 @@ balances = Hash()
 allowed = Hash()
 
 @construct
-def __init__():
+def seed():
     xrate = 1.0
-    seed_amount = 1000000
+    seed_amount.set(1000000)
     balances['reserves'] = 0
 
     founder_wallets = [
@@ -19,7 +19,7 @@ def __init__():
     ]
 
     for w in founder_wallets:
-        balances[w] = seed_amount
+        balances[w] = seed_amount.get()
 
 
 def assert_stamps(stamps):
