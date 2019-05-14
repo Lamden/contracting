@@ -1,5 +1,6 @@
 from sanic import Sanic
 from sanic.response import json, text
+from sanic import response
 from sanic_cors import CORS, cross_origin
 import json as _json
 from contracting.client import ContractingClient
@@ -20,18 +21,23 @@ client = ContractingClient()
 
 @app.route("/", methods=["GET",])
 async def submit_transaction(request):
-    return text('indeed')
+    return text("I\'m a teapot", status=418)
 
 
+# Returns {'contracts': JSON List of strings}
 @app.route('/contracts', methods=['GET'])
 async def get_contracts(request):
     contracts = client.get_contracts()
-    return json(contracts)
+    return json({'contracts': contracts})
 
 
 @app.route('/contracts/<contract>', methods=['GET'])
 async def get_contract(request, contract):
-    return text(client.raw_driver.get_contract(contract))
+    contract_code = client.raw_driver.get_contract(contract)
+
+    if contract_code is None:
+        return json({'error': '{} does not exist'.format(contract)}, status=404)
+    return json({'code': contract_code, 'name': contract}, status=200)
 
 
 @app.route("/contracts/<contract>/methods", methods=["GET","OPTIONS",])
