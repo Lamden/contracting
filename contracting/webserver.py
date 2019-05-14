@@ -60,7 +60,7 @@ async def get_methods(request, contract):
 
 
 @app.route('/contracts/<contract>/<variable>')
-async def get_methods(request, contract, variable):
+async def get_variable(request, contract, variable):
     contract_code = client.raw_driver.get_contract(contract)
 
     if contract_code is None:
@@ -88,11 +88,13 @@ async def get_methods(request, contract, variable):
 '''
 @app.route('/lint', methods=['POST'])
 async def lint_contract(request):
-    try:
-        violations = client.lint(request.json.get('code'))
-        return json({'violations': violations}, status=200)
-    except Exception as e:
-        return json({'error': str(e)}, status=500)
+    code = request.json.get('code')
+
+    if code is None:
+        return json({'error': 'no code provided'}, status=500)
+
+    violations = client.lint(request.json.get('code'))
+    return json({'violations': violations}, status=200)
 
 
 @app.route('/compile', methods=['POST'])
@@ -100,7 +102,7 @@ async def compile_contract(request):
     code = request.json.get('code')
 
     if code is None:
-        json({'error': 'no code provided'}, status=500)
+        return json({'error': 'no code provided'}, status=500)
 
     violations = client.lint(request.json.get('code'))
 
@@ -119,10 +121,10 @@ async def submit_contract(request):
     if code is None or name is None:
         return json({'error': 'malformed payload'}, status=500)
 
-    violations = client.lint(request.json.get('code'))
+    violations = client.lint(code)
 
     if violations is None:
-        client.submit(request.json.get('code'), name=request.json.get('name'))
+        client.submit(code, name=name)
 
     else:
         return json({'violations': violations}, status=500)

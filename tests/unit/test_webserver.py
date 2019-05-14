@@ -1,6 +1,8 @@
 from unittest import TestCase
 from contracting.webserver import app, client
 import json
+import aiohttp
+
 
 class TestWebserver(TestCase):
     def tearDown(self):
@@ -60,7 +62,7 @@ class TestWebserver(TestCase):
         self.assertEqual(error_message, 'huuuuuuuuupluh does not exist')
 
     def test_contract_submission_hits_raw_database(self):
-        with open('../../contracting/contracts/currency.s.py') as f:
+        with open('./test_sys_contracts/currency.s.py') as f:
             contract = f.read()
 
         payload = {'name': 'currency', 'code': contract}
@@ -71,11 +73,17 @@ class TestWebserver(TestCase):
 
         currency = client.raw_driver.get_contract('currency')
 
+        print(currency)
+
+        print(client.get_contracts())
+
         self.assertIsNotNone(currency)
 
     def test_get_variable(self):
-        with open('../../contracting/contracts/currency.s.py') as f:
+        with open('./test_sys_contracts/currency.s.py') as f:
             contract = f.read()
+
+        print(contract)
 
         payload = {'name': 'currency', 'code': contract}
 
@@ -92,7 +100,7 @@ class TestWebserver(TestCase):
         self.assertEqual(response.status, 404)
 
     def test_get_non_existent_variable_from_contract(self):
-        with open('../../contracting/contracts/currency.s.py') as f:
+        with open('./test_sys_contracts/currency.s.py') as f:
             contract = f.read()
 
         payload = {'name': 'currency', 'code': contract}
@@ -105,8 +113,10 @@ class TestWebserver(TestCase):
         self.assertEqual(response.json.get('value'), None)
 
     def test_get_hash_value(self):
-        with open('../../contracting/contracts/currency.s.py') as f:
+        with open('./test_sys_contracts/currency.s.py') as f:
             contract = f.read()
+
+        print(contract)
 
         payload = {'name': 'currency', 'code': contract}
 
@@ -128,7 +138,7 @@ class TestWebserver(TestCase):
         self.assertEqual(response.json.get('value'), None)
 
     def test_get_non_existent_hash_from_contract(self):
-        with open('../../contracting/contracts/currency.s.py') as f:
+        with open('./test_sys_contracts/currency.s.py') as f:
             contract = f.read()
 
         payload = {'name': 'currency', 'code': contract}
@@ -141,4 +151,102 @@ class TestWebserver(TestCase):
 
         self.assertEqual(response.status, 404)
         self.assertEqual(response.json.get('value'), None)
+
+    def test_lint_contract(self):
+        with open('./test_sys_contracts/bad_lint.s.py') as f:
+            contract = f.read()
+
+        payload = {'code': contract}
+
+        _, response = app.test_client.post('/lint', data=json.dumps(payload))
+
+        violations = response.json.get('violations')
+
+        self.assertEqual(len(violations), 1)
+        self.assertEqual(response.status, 200)
+        self.assertEqual(violations[0], 'Line 0: S13- No valid contracting decorator found')
+
+    def test_lint_no_errors(self):
+        with open('./test_sys_contracts/good_lint.s.py') as f:
+            contract = f.read()
+
+        payload = {'code': contract}
+
+        _, response = app.test_client.post('/lint', data=json.dumps(payload))
+
+        violations = response.json.get('violations')
+
+        self.assertEqual(response.status, 200)
+        self.assertEqual(violations, None)
+
+    def test_lint_bad_params(self):
+        payload = {'not_code': 'poo'}
+
+        _, response = app.test_client.post('/lint', data=json.dumps(payload))
+
+        self.assertEqual(response.status, 500)
+
+    def test_compile_contract(self):
+        with open('./test_sys_contracts/compile_this.s.py') as f:
+            contract = f.read()
+
+        payload = {'code': contract}
+
+        _, response = app.test_client.post('/compile', data=json.dumps(payload))
+
+        compiled_code = response.json.get('code')
+
+        self.assertEqual(response.status, 200)
+
+        code = client.compiler.parse_to_code(contract)
+
+        self.assertEqual(code, compiled_code)
+
+    def test_compile_bad_code(self):
+        with open('./test_sys_contracts/bad_lint.s.py') as f:
+            contract = f.read()
+
+        payload = {'code': contract}
+
+        _, response = app.test_client.post('/compile', data=json.dumps(payload))
+
+        violations = response.json.get('violations')
+
+        self.assertEqual(len(violations), 1)
+        self.assertEqual(response.status, 500)
+        self.assertEqual(violations[0], 'Line 0: S13- No valid contracting decorator found')
+
+    def test_compile_no_code_param(self):
+        payload = {'not_code': 'yo'}
+
+        _, response = app.test_client.post('/compile', data=json.dumps(payload))
+
+        self.assertEqual(response.status, 500)
+
+    def test_submit_no_code_but_name(self):
+        payload = {'no_code': 'poo', 'name': 'something'}
+
+        _, response = app.test_client.post('/submit', data=json.dumps(payload))
+
+        self.assertEqual(response.status, 500)
+
+    def test_submit_code_but_no_name(self):
+        with open('./test_sys_contracts/compile_this.s.py') as f:
+            contract = f.read()
+
+        payload = {'code': contract, 'no_name': 'something'}
+
+        _, response = app.test_client.post('/submit', data=json.dumps(payload))
+
+        self.assertEqual(response.status, 500)
+
+    def test_submit_lint_errors(self):
+        with open('./test_sys_contracts/bad_lint.s.py') as f:
+            contract = f.read()
+
+        payload = {'code': contract, 'name': 'something'}
+
+        _, response = app.test_client.post('/submit', data=json.dumps(payload))
+
+        self.assertEqual(response.status, 500)
 

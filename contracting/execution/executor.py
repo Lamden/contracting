@@ -7,7 +7,7 @@ from typing import Dict
 from . import runtime
 from ..db.cr.transaction_bag import TransactionBag
 from ..db.driver import ContractDriver, CacheDriver
-from ..execution.module import install_database_loader, uninstall_builtins
+from ..execution.module import install_database_loader, uninstall_builtins, enable_restricted_imports, disable_restricted_imports
 from ..execution.metering.tracer import Tracer
 
 class Executor:
@@ -77,8 +77,11 @@ class Executor:
         environment.update({'__Context': runtime.Context})
         self.tracer.set_stamp(stamps)
         self.tracer.start()
+
+        enable_restricted_imports()
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                    auto_commit, environment, driver)
+        disable_restricted_imports()
 
         self.tracer.stop()
         stamps -= self.tracer.get_stamp_used()
