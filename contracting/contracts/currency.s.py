@@ -3,7 +3,7 @@ seed_amount = Variable()
 balances = Hash()
 allowed = Hash()
 
-@seed
+@construct
 def __init__():
     xrate = 1.0
     seed_amount = 1000000
