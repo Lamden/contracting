@@ -110,8 +110,6 @@ class TestWebserver(TestCase):
         with open('./test_sys_contracts/currency.s.py') as f:
             contract = f.read()
 
-        print(contract)
-
         payload = {'name': 'currency', 'code': contract}
 
         _, response = app.test_client.post('/submit', data=json.dumps(payload))
