@@ -108,7 +108,7 @@ class TestSingleCRCache(unittest.TestCase):
         self.assertEqual(results[1][1], 'AlsoWorking')
 
         self.assertEqual(0, self.cache._check_macro_key(Macros.CONFLICT_RESOLUTION))
-        self.assertEqual(0, self.cache._check_macro_key(Macros.RESET))
+        self.assertEqual(1, self.cache._check_macro_key(Macros.RESET))
         self.assertEqual(1, self.cache._check_macro_key(Macros.EXECUTION))
 
     def test_2_cr(self):
