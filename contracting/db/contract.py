@@ -16,7 +16,7 @@ class Contract:
         # if not isinstance(spec.loader, DatabaseLoader):
         #     raise ImportError("module {} cannot be named a Python builtin name.".format(name))
         #
-        # assert self.driver.get_contract(name) is None, 'Module {} already exists'.format(name)
+        # assert self._driver.get_contract(name) is None, 'Module {} already exists'.format(name)
 
         c = ContractingCompiler(module_name=name)
 

@@ -28,7 +28,7 @@ class TestVariable(TestCase):
         driver.flush()
 
     def tearDown(self):
-        #driver.flush()
+        #_driver.flush()
         pass
 
     def test_set(self):
@@ -309,7 +309,7 @@ class TestForeignHash(TestCase):
         driver.flush()
 
     def tearDown(self):
-        #driver.flush()
+        #_driver.flush()
         pass
 
     def test_set(self):

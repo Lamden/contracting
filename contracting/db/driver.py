@@ -133,7 +133,7 @@ class LevelDBDriver(AbstractDatabaseDriver):
         return k
 '''
 
-# The theoretically fastest driver. It's a dictionary.
+# The theoretically fastest _driver. It's a dictionary.
 class DictDriver(AbstractDatabaseDriver):
     def __init__(self, **kwargs):
         self.conn = {}
@@ -353,7 +353,7 @@ class RedisDriver(AbstractDatabaseDriver):
 
 # Defined at the bottom since needs to be instantiated
 # after the classes have been defined. Allows us to
-# parameterize the type of database driver required
+# parameterize the type of database _driver required
 # from the top level instead of having to manually change
 # a bunch of code to get to it.
 DATABASE_DRIVER_MAPS = {

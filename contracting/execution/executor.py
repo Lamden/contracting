@@ -136,7 +136,7 @@ class Sandbox(object):
 
     def execute(self, sender, contract_name, function_name, kwargs, auto_commit=True,
                 environment={}, driver=None):
-        # Use driver if one is provided, otherwise use the default driver, ensuring to set it
+        # Use _driver if one is provided, otherwise use the default _driver, ensuring to set it
         # back to default only if it was set previously to something else
         if driver:
             runtime.rt.driver = driver
@@ -204,7 +204,7 @@ class MultiProcessingSandbox(Sandbox):
         _, child_pipe = self.pipe
 
         msg = {
-            'driver': driver,
+            '_driver': driver,
             'txns': {}
         }
 
@@ -221,7 +221,7 @@ class MultiProcessingSandbox(Sandbox):
         child_pipe.send(msg)
 
         response_obj = child_pipe.recv()
-        self._update_driver_cache(driver, response_obj['driver'])
+        self._update_driver_cache(driver, response_obj['_driver'])
 
         return response_obj['results']
 
@@ -237,7 +237,7 @@ class MultiProcessingSandbox(Sandbox):
         # because we may be running a subset of the transactions but
         # still want to maintain order (e.g. 0,1,5)
         msg = {
-            'driver': driver,
+            '_driver': driver,
             'txns': {
                 0: {
                     'sender': sender,
@@ -256,7 +256,7 @@ class MultiProcessingSandbox(Sandbox):
         # base pickler not knowning how to pickle module object
         # returned from execute
         response_obj = child_pipe.recv()
-        self._update_driver_cache(driver, response_obj['driver'])
+        self._update_driver_cache(driver, response_obj['_driver'])
         # In the case mp.execute() is called, we know we only have one
         # entry into the response object
         status_code, result = response_obj['results'][0]
@@ -268,9 +268,9 @@ class MultiProcessingSandbox(Sandbox):
         parent_pipe, _ = self.pipe
         while True:
             msg = parent_pipe.recv()
-            driver = msg['driver']
+            driver = msg['_driver']
             response_obj = {
-                'driver': driver,
+                '_driver': driver,
                 'results': {}
             }
             for tx_idx in sorted(msg['txns'].keys()):

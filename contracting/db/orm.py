@@ -5,8 +5,8 @@ from .. import config
 
 class Datum:
     def __init__(self, contract, name, driver: ContractDriver):
-        self.driver = driver
-        self._key = self.driver.make_key(contract, name)
+        self._driver = driver
+        self._key = self._driver.make_key(contract, name)
 
 
 class Variable(Datum):
@@ -14,10 +14,10 @@ class Variable(Datum):
         super().__init__(contract, name, driver=driver)
 
     def set(self, value):
-        self.driver.set(self._key, value)
+        self._driver.set(self._key, value)
 
     def get(self):
-        return self.driver.get(self._key)
+        return self._driver.get(self._key)
 
 
 class Hash(Datum):
@@ -27,10 +27,10 @@ class Hash(Datum):
         self.default_value = default_value
 
     def set(self, key, value):
-        self.driver.set('{}{}{}'.format(self._key, self.delimiter, key), value)
+        self._driver.set('{}{}{}'.format(self._key, self.delimiter, key), value)
 
     def get(self, item):
-        value = self.driver.get('{}{}{}'.format(self._key, self.delimiter, item))
+        value = self._driver.get('{}{}{}'.format(self._key, self.delimiter, item))
 
         # Add Python defaultdict behavior for easier smart contracting
         if value is None:
@@ -67,15 +67,15 @@ class Hash(Datum):
 class ForeignVariable(Variable):
     def __init__(self, contract, name, foreign_contract, foreign_name, driver: ContractDriver=rt.driver):
         super().__init__(contract, name, driver=driver)
-        self.foreign_key = self.driver.make_key(foreign_contract, foreign_name)
+        self.foreign_key = self._driver.make_key(foreign_contract, foreign_name)
 
-        self.driver.set(self._key, self.foreign_key)
+        self._driver.set(self._key, self.foreign_key)
 
     def set(self, value):
         raise ReferenceError
 
     def get(self):
-        return self.driver.get(self.foreign_key)
+        return self._driver.get(self.foreign_key)
 
 
 class ForeignHash(Hash):
@@ -83,13 +83,13 @@ class ForeignHash(Hash):
         super().__init__(contract, name, driver=driver)
         self.delimiter = config.DELIMITER
 
-        self.foreign_key = self.driver.make_key(foreign_contract, foreign_name)
+        self.foreign_key = self._driver.make_key(foreign_contract, foreign_name)
 
     def set(self, key, value):
         raise ReferenceError
 
     def get(self, item):
-        return self.driver.get('{}{}{}'.format(self.foreign_key, self.delimiter, item))
+        return self._driver.get('{}{}{}'.format(self.foreign_key, self.delimiter, item))
 
     def __setitem__(self, key, value):
         raise ReferenceError
