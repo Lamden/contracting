@@ -6,7 +6,7 @@ from .. import config
 class Datum:
     def __init__(self, contract, name, driver: ContractDriver):
         self.driver = driver
-        self.key = self.driver.make_key(contract, name)
+        self._key = self.driver.make_key(contract, name)
 
 
 class Variable(Datum):
@@ -14,10 +14,10 @@ class Variable(Datum):
         super().__init__(contract, name, driver=driver)
 
     def set(self, value):
-        self.driver.set(self.key, value)
+        self.driver.set(self._key, value)
 
     def get(self):
-        return self.driver.get(self.key)
+        return self.driver.get(self._key)
 
 
 class Hash(Datum):
@@ -27,10 +27,10 @@ class Hash(Datum):
         self.default_value = default_value
 
     def set(self, key, value):
-        self.driver.set('{}{}{}'.format(self.key, self.delimiter, key), value)
+        self.driver.set('{}{}{}'.format(self._key, self.delimiter, key), value)
 
     def get(self, item):
-        value = self.driver.get('{}{}{}'.format(self.key, self.delimiter, item))
+        value = self.driver.get('{}{}{}'.format(self._key, self.delimiter, item))
 
         # Add Python defaultdict behavior for easier smart contracting
         if value is None:
@@ -69,7 +69,7 @@ class ForeignVariable(Variable):
         super().__init__(contract, name, driver=driver)
         self.foreign_key = self.driver.make_key(foreign_contract, foreign_name)
 
-        self.driver.set(self.key, self.foreign_key)
+        self.driver.set(self._key, self.foreign_key)
 
     def set(self, value):
         raise ReferenceError

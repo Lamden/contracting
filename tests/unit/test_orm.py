@@ -20,7 +20,7 @@ class TestDatum(TestCase):
 
     def test_init(self):
         d = Datum('stustu', 'test', driver)
-        self.assertEqual(d.key, driver.make_key('stustu', 'test'))
+        self.assertEqual(d._key, driver.make_key('stustu', 'test'))
 
 
 class TestVariable(TestCase):

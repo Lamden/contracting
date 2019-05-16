@@ -44,7 +44,7 @@ class Executor:
         In the case of bag execution the
 
         :param bag: a list of deserialized transaction objects
-        :return: A dictionary with transaction index as the key and execution result
+        :return: A dictionary with transaction index as the _key and execution result
                  objects as the value. Formatted as follows:
 
                  {
@@ -233,7 +233,7 @@ class MultiProcessingSandbox(Sandbox):
 
         # Sends code to be executed in the process loop
         # Create a message of type single execute
-        # The reason it is a dictionary with a integer key is
+        # The reason it is a dictionary with a integer _key is
         # because we may be running a subset of the transactions but
         # still want to maintain order (e.g. 0,1,5)
         msg = {

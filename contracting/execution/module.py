@@ -16,7 +16,7 @@ import marshal
 # an 'import' statement. If the globals dictionary contains {'__contract__': True}, then this function will make sure
 # that the module being imported comes from the database and not from builtins or site packages.
 #
-# For all exec statements, we add the {'__contract__': True} key to the globals to protect against unwanted imports.
+# For all exec statements, we add the {'__contract__': True} _key to the globals to protect against unwanted imports.
 #
 # Note: anything installed with pip or in site-packages will also not work, so contract package names *must* be unique.
 #

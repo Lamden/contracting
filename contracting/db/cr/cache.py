@@ -14,7 +14,7 @@ from contracting.db.cr.callback_data import ExecutionData, SBData
 from typing import List
 
 
-# TODO include key exclusions for stamps, etc
+# TODO include _key exclusions for stamps, etc
 class Macros:
     # TODO we need to make sure these keys dont conflict with user stuff in the common layer. I.e. users cannot be
     # creating keys named '_execution' or '_conflict_resolution'
@@ -220,7 +220,7 @@ class CRCache:
 
     def prepare_reruns(self):
         # Find all instances where our originally grabbed value from the cache does not
-        # match the value in the DB, cascade from common to master, if the key doesn't
+        # match the value in the DB, cascade from common to master, if the _key doesn't
         # exist in common, check master since another CRCache may have merged since you
         # executed.
         cr_key_hits = []
