@@ -129,7 +129,7 @@ class TestHash(TestCase):
 
         h = Hash(contract, name, driver=driver)
 
-        prefix = '{}{}{}{}'.format(contract, delimiter, name, h.delimiter)
+        prefix = '{}{}{}{}'.format(contract, delimiter, name, h._delimiter)
 
         h['stu'] = 9999999
 
@@ -144,7 +144,7 @@ class TestHash(TestCase):
 
         h = Hash(contract, name, driver=driver)
 
-        prefix = '{}{}{}{}'.format(contract, delimiter, name, h.delimiter)
+        prefix = '{}{}{}{}'.format(contract, delimiter, name, h._delimiter)
 
         raw_key = '{}stu'.format(prefix)
 
@@ -204,7 +204,7 @@ class TestHash(TestCase):
 
         h = Hash(contract, name, driver=driver)
 
-        prefix = '{}{}{}{}'.format(contract, delimiter, name, h.delimiter)
+        prefix = '{}{}{}{}'.format(contract, delimiter, name, h._delimiter)
 
         raw_key = '{}stu:raghu'.format(prefix)
 

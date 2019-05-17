@@ -20,7 +20,7 @@
 # """
 # from contracting.libs.storage.datatypes import Hash
 #
-# bal = Hash('amounts', default_value=0)
+# bal = Hash('amounts', _default_value=0)
 #
 # @contracting_export
 # def get_cur_amount(account):
@@ -31,8 +31,8 @@
 # """
 # from contracting.libs.storage.datatypes import Hash
 #
-# bal = Hash('amounts', default_value=0)
-# balances = Hash('balances', default_value=0)
+# bal = Hash('amounts', _default_value=0)
+# balances = Hash('balances', _default_value=0)
 #
 # @construct
 # def seed():

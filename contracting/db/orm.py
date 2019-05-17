@@ -23,18 +23,18 @@ class Variable(Datum):
 class Hash(Datum):
     def __init__(self, contract, name, driver: ContractDriver=rt.driver, default_value=None):
         super().__init__(contract, name, driver=driver)
-        self.delimiter = config.DELIMITER
-        self.default_value = default_value
+        self._delimiter = config.DELIMITER
+        self._default_value = default_value
 
     def set(self, key, value):
-        self._driver.set('{}{}{}'.format(self._key, self.delimiter, key), value)
+        self._driver.set('{}{}{}'.format(self._key, self._delimiter, key), value)
 
     def get(self, item):
-        value = self._driver.get('{}{}{}'.format(self._key, self.delimiter, item))
+        value = self._driver.get('{}{}{}'.format(self._key, self._delimiter, item))
 
         # Add Python defaultdict behavior for easier smart contracting
         if value is None:
-            value = self.default_value
+            value = self._default_value
 
         return value
 
@@ -47,9 +47,9 @@ class Hash(Datum):
             new_key_str = ''
             for k in key:
                 assert not isinstance(k, slice), 'Slices prohibited in hashes.'
-                new_key_str += '{}{}'.format(k, self.delimiter)
+                new_key_str += '{}{}'.format(k, self._delimiter)
 
-            key = new_key_str[:-len(self.delimiter)]
+            key = new_key_str[:-len(self._delimiter)]
 
         assert len(key) <= config.MAX_KEY_SIZE, 'Key is too long ({}). Max is {}.'.format(len(key), config.MAX_KEY_SIZE)
         return key
@@ -68,8 +68,6 @@ class ForeignVariable(Variable):
     def __init__(self, contract, name, foreign_contract, foreign_name, driver: ContractDriver=rt.driver):
         super().__init__(contract, name, driver=driver)
         self.foreign_key = self._driver.make_key(foreign_contract, foreign_name)
-
-        self._driver.set(self._key, self.foreign_key)
 
     def set(self, value):
         raise ReferenceError

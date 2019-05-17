@@ -19,7 +19,7 @@ class TestDatabase(TestCase):
     def test_dynamic_init(self):
         d = ContractDriver(host='localhost', port=6379, delimiter='*', db=9, code_key='jam')
 
-        self.assertEqual(d.delimiter, '*', 'self.delimiter is not being set')
+        self.assertEqual(d.delimiter, '*', 'self._delimiter is not being set')
         self.assertEqual(d.code_key, 'jam', 'self.code_key is not being set')
 
     def test_push_and_get_contract(self):

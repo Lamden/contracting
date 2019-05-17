@@ -8,7 +8,7 @@ from .. import config
 
 class Contract:
     def __init__(self, driver: ContractDriver=rt.driver):
-        self.driver = driver
+        self._driver = driver
 
     def submit(self, name, code, author):
         #
@@ -37,4 +37,4 @@ class Contract:
         if scope.get(config.INIT_FUNC_NAME) is not None:
             scope[config.INIT_FUNC_NAME]()
 
-        self.driver.set_contract(name=name, code=code_obj, author=author, overwrite=False)
+        self._driver.set_contract(name=name, code=code_obj, author=author, overwrite=False)
