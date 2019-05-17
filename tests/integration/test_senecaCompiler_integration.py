@@ -19,7 +19,7 @@ v = Variable()
 
         exec(code_str, scope)
 
-        v = scope['v']
+        v = scope['__v']
 
         self.assertEqual(v._key, '__main__.v')
 
@@ -31,13 +31,11 @@ fv = ForeignVariable(foreign_contract='scoob', foreign_name='kumbucha')
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
-        print(code_str)
-
         scope = env.gather()
 
         exec(code_str, scope)
 
-        fv = scope['fv']
+        fv = scope['__fv']
 
         self.assertEqual(fv._key, '__main__.fv')
         self.assertEqual(fv.foreign_key, 'scoob.kumbucha')
@@ -54,7 +52,7 @@ h = Hash()
 
         exec(code_str, scope)
 
-        h = scope['h']
+        h = scope['__h']
 
         self.assertEqual(h._key, '__main__.h')
 
@@ -71,7 +69,7 @@ fv = ForeignHash(foreign_contract='scoob', foreign_name='kumbucha')
 
         exec(code_str, scope)
 
-        fv = scope['fv']
+        fv = scope['__fv']
 
         self.assertEqual(fv._key, '__main__.fv')
         self.assertEqual(fv.foreign_key, 'scoob.kumbucha')
@@ -169,4 +167,3 @@ def goodbye():
         c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
-        print(code_str)

@@ -15,6 +15,8 @@ class Linter(ast.NodeVisitor):
         self._is_one_export = False
         self._is_success = True
         self._constructor_visited = False
+        self.orm_names = set()
+        self.visited_args = set()
 
     def ast_types(self, t, lnum):
         if type(t) not in ALLOWED_AST_TYPES:
@@ -92,8 +94,13 @@ class Linter(ast.NodeVisitor):
                 self._is_success = False
                 str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[11]
                 self._violations.append(str)
+            try:
+                self.orm_names.add(node.targets[0].id)
+            except AttributeError:
+                pass
 
         self.generic_visit(node)
+
         return node
 
     def visit_AugAssign(self, node):
@@ -147,6 +154,11 @@ class Linter(ast.NodeVisitor):
                     self._is_success = False
                 self._constructor_visited = True
 
+        # Add argument names to set to make sure that no ORM variable names are being reused in function def args
+        arguments = node.args
+        for a in arguments.args:
+            self.visited_args.add((a.arg, node.lineno))
+
         self.generic_visit(node)
         return node
 
@@ -156,8 +168,16 @@ class Linter(ast.NodeVisitor):
         self._is_one_export = False
         self._is_success = True
         self._constructor_visited = False
+        self.orm_names = set()
+        self.visited_args = set()
 
     def _final_checks(self):
+        for name, lineno in self.visited_args:
+            if name in self.orm_names:
+                str = "Line {}: ".format(lineno) + VIOLATION_TRIGGERS[14]
+                self._violations.append(str)
+                self._is_success = False
+
         if not self._is_one_export:
             str = "Line 0: " + VIOLATION_TRIGGERS[12]
             self._violations.append(str)

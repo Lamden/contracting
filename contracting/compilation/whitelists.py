@@ -29,5 +29,6 @@ VIOLATION_TRIGGERS = [
     "S11- Illicit keyword overloading for ORM assignments",
     "S12- Multiple targets to ORM definition detected",
     "S13- No valid contracting decorator found",
-    "S14- Illegal use of a builtin"
+    "S14- Illegal use of a builtin",
+    "S15- Reuse of ORM name definition in a function definition argument name"
 ]
