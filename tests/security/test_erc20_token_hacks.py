@@ -56,3 +56,53 @@ class TestTokenHacks(TestCase):
 
             # The balance *should not* change between these tests!
             self.assertEqual(pre_hack_balance, post_hack_balance)
+
+    def test_double_spend_if_stamps_run_out(self):
+        token = self.c.get_contract('erc20')
+
+        pre_hack_balance_stu = token.balances['stu']
+        pre_hack_balance_colin = token.balances['colin']
+
+        token.approve(amount=10000, to='hack')
+
+        with open('./contracts/double_spend_gas_attack.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='hack')
+
+        hack = self.c.get_contract('hack')
+        try:
+            hack.double_spend(reciever='colin')
+        except:
+            pass
+
+        post_hack_balance_stu = token.balances['stu']
+        post_hack_balance_colin = token.balances['colin']
+
+        self.assertEqual(pre_hack_balance_stu, post_hack_balance_stu)
+        self.assertEqual(pre_hack_balance_colin, post_hack_balance_colin)
+
+    def test_stamp_fails_when_calling_infinate_loop_from_another_contract(self):
+        with open('./contracts/infinate_loop.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='infinate_loop')
+
+        with open('./contracts/call_infinate_loop.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='call_infinate_loop')
+
+        loop = self.c.get_contract('call_infinate_loop')
+
+        with self.assertRaises(AssertionError):
+            loop.call()
+
+    def test_constructor_with_infinate_loop_fails(self):
+        with self.assertRaises(AssertionError):
+            with open('./contracts/constructor_infinate_loop.s.py') as f:
+                code = f.read()
+                self.c.submit(code, name='constructor_infinate_loop')
+
+    def test_infinate_loop_of_writes_undos_everything(self):
+        with self.assertRaises(AssertionError):
+            with open('./contracts/con_inf_writes.s.py') as f:
+                code = f.read()
+                self.c.submit(code, name='con_inf_writes')
