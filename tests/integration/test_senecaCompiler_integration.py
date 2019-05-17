@@ -31,6 +31,8 @@ fv = ForeignVariable(foreign_contract='scoob', foreign_name='kumbucha')
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
 
+        print(code_str)
+
         scope = env.gather()
 
         exec(code_str, scope)
@@ -167,3 +169,4 @@ def goodbye():
         c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
+        print(code_str)

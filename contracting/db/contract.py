@@ -22,6 +22,8 @@ class Contract:
 
         code_obj = c.parse_to_code(code, lint=True)
 
+        print(code_obj)
+
         ctx = ModuleType('context')
 
         ctx.caller = rt.ctx[-1]

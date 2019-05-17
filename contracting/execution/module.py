@@ -136,13 +136,13 @@ class DatabaseLoader(Loader):
         exec(code, scope)
 
         # Delete references to Variables and Hashes to prevent direct modification
-        keys_to_delete = []
-        for obj, typ in scope.items():
-            if isinstance(typ, Variable) or isinstance(typ, Hash):
-                keys_to_delete.append(obj)
-
-        for key in keys_to_delete:
-            del scope[key]
+        # keys_to_delete = []
+        # for obj, typ in scope.items():
+        #     if isinstance(typ, Variable) or isinstance(typ, Hash):
+        #         keys_to_delete.append(obj)
+        #
+        # for key in keys_to_delete:
+        #     del scope[key]
 
         # Update the module's attributes with the new scope
         vars(module).update(scope)
