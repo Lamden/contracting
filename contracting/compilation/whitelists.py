@@ -4,6 +4,51 @@ from decimal import Decimal
 NUMBER_TYPES = (int, float)
 APPROVED_TYPES = (Decimal, str, bool, bytes)
 
+ALLOWED_BUILTINS = {'Exception',
+                    'False',
+                    'None',
+                    'True',
+                    'abs',
+                    'all',
+                    'any',
+                    'ascii',
+                    'bin',
+                    'bool',
+                    'bytearray',
+                    'bytes',
+                    'chr',
+                    'dict',
+                    'divmod',
+                    'filter',
+                    'format',
+                    'frozenset',
+                    'hex',
+                    'int',
+                    'isinstance',
+                    'issubclass',
+                    'len',
+                    'list',
+                    'map',
+                    'max',
+                    'min',
+                    'oct',
+                    'ord',
+                    'pow',
+                    'print',
+                    'range',
+                    'reversed',
+                    'round',
+                    'set',
+                    'sorted',
+                    'str',
+                    'sum',
+                    'tuple',
+                    'type',
+                    'zip'
+}
+
+ILLEGAL_BUILTINS = set(dir(builtins)) - ALLOWED_BUILTINS
+
 ALLOWED_AST_TYPES = {
     ast.Module,
     ast.Eq,
@@ -87,7 +132,8 @@ VIOLATION_TRIGGERS = [
     "S10- Illicit use of multiple decorators",
     "S11- Illicit keyword overloading for ORM assignments",
     "S12- Multiple targets to ORM definition detected",
-    "S13- No valid contracting decorator found"
+    "S13- No valid contracting decorator found",
+    "S14- Illegal use of a builtin"
 ]
 
 

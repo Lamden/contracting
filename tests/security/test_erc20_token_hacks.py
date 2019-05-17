@@ -39,3 +39,20 @@ class TestTokenHacks(TestCase):
 
         # The balance *should not* change between these tests!
         self.assertEqual(pre_hack_balance, post_hack_balance)
+
+    def test_orm_setattr_hack(self):
+        # This hack uses setattr instead of direct property access to do the same thing as above
+
+        token = self.c.get_contract('erc20')
+
+        pre_hack_balance = token.balances['stu']
+
+        with self.assertRaises(Exception):
+            with open('./contracts/builtin_hack_token.s.py') as f:
+                code = f.read()
+                self.c.submit(code, name='token_hack')
+
+            post_hack_balance = token.balances['stu']
+
+            # The balance *should not* change between these tests!
+            self.assertEqual(pre_hack_balance, post_hack_balance)
