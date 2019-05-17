@@ -74,7 +74,6 @@ class Executor:
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
 
-        environment.update({'__Context': runtime.Context})
         self.tracer.set_stamp(stamps)
         self.tracer.start()
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,

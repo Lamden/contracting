@@ -106,3 +106,19 @@ class TestTokenHacks(TestCase):
             with open('./contracts/con_inf_writes.s.py') as f:
                 code = f.read()
                 self.c.submit(code, name='con_inf_writes')
+
+    def test_accessing_variable_on_another_contract(self):
+        token = self.c.get_contract('erc20')
+
+        pre_hack_balance_stu = token.balances['stu']
+
+        try:
+            with open('./contracts/import_hash_from_contract.s.py') as f:
+                code = f.read()
+                self.c.submit(code, name='import_hash_from_contract')
+        except:
+            pass
+
+        post_hack_balance_stu = token.balances['stu']
+
+        self.assertEqual(pre_hack_balance_stu, post_hack_balance_stu)

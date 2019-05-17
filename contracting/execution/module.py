@@ -7,6 +7,7 @@ from importlib import invalidate_caches, __import__
 from ..db.driver import ContractDriver
 from ..stdlib import env
 from ..execution.runtime import rt
+from ..db.orm import Variable, Hash
 
 from types import ModuleType
 import marshal
@@ -132,11 +133,19 @@ class DatabaseLoader(Loader):
         rt.ctx.append(module.__name__)
 
         # execute the module with the std env and update the module to pass forward
-
         exec(code, scope)
-        vars(module).update(scope)
 
-        #vars(module)['__builtins__'].update(illegal_builtins_dict)
+        # Delete references to Variables and Hashes to prevent direct modification
+        keys_to_delete = []
+        for obj, typ in scope.items():
+            if isinstance(typ, Variable) or isinstance(typ, Hash):
+                keys_to_delete.append(obj)
+
+        for key in keys_to_delete:
+            del scope[key]
+
+        # Update the module's attributes with the new scope
+        vars(module).update(scope)
         del vars(module)['__builtins__']
 
         rt.loaded_modules.append(rt.ctx.pop())
