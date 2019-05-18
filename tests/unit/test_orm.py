@@ -20,7 +20,7 @@ class TestDatum(TestCase):
 
     def test_init(self):
         d = Datum('stustu', 'test', driver)
-        self.assertEqual(d.key, driver.make_key('stustu', 'test'))
+        self.assertEqual(d._key, driver.make_key('stustu', 'test'))
 
 
 class TestVariable(TestCase):
@@ -28,7 +28,7 @@ class TestVariable(TestCase):
         driver.flush()
 
     def tearDown(self):
-        #driver.flush()
+        #_driver.flush()
         pass
 
     def test_set(self):
@@ -129,7 +129,7 @@ class TestHash(TestCase):
 
         h = Hash(contract, name, driver=driver)
 
-        prefix = '{}{}{}{}'.format(contract, delimiter, name, h.delimiter)
+        prefix = '{}{}{}{}'.format(contract, delimiter, name, h._delimiter)
 
         h['stu'] = 9999999
 
@@ -144,7 +144,7 @@ class TestHash(TestCase):
 
         h = Hash(contract, name, driver=driver)
 
-        prefix = '{}{}{}{}'.format(contract, delimiter, name, h.delimiter)
+        prefix = '{}{}{}{}'.format(contract, delimiter, name, h._delimiter)
 
         raw_key = '{}stu'.format(prefix)
 
@@ -204,7 +204,7 @@ class TestHash(TestCase):
 
         h = Hash(contract, name, driver=driver)
 
-        prefix = '{}{}{}{}'.format(contract, delimiter, name, h.delimiter)
+        prefix = '{}{}{}{}'.format(contract, delimiter, name, h._delimiter)
 
         raw_key = '{}stu:raghu'.format(prefix)
 
@@ -309,7 +309,7 @@ class TestForeignHash(TestCase):
         driver.flush()
 
     def tearDown(self):
-        #driver.flush()
+        #_driver.flush()
         pass
 
     def test_set(self):

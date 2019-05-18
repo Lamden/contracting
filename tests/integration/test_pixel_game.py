@@ -30,8 +30,8 @@ def coin():
         return supply.get()
 
     @export
-    def allowance(owner, spender):
-        return balances[owner, spender]
+    def allowance(main, spender):
+        return balances[main, spender]
 
     @export
     def approve(amount, to):
@@ -104,7 +104,7 @@ class TestCoinContract(TestCase):
 
     def test_allowance_returns_approve(self):
         self.coin.approve(amount=100, to='raghu')
-        self.assertEqual(self.coin.allowance(owner='stu', spender='raghu'), 100)
+        self.assertEqual(self.coin.allowance(main='stu', spender='raghu'), 100)
 
     def test_transfer_from_failure_not_enough_allowance(self):
         self.coin.approve(amount=100, to='raghu')
@@ -173,14 +173,6 @@ def pixel_game():
     @construct
     def seed():
         landlord.set(ctx.caller)
-
-    def set_plot(x, y, color_string, owner, price):
-        plots[x, y] = {
-            'colors': color_string,
-            'owner': owner,
-            'price': price,
-            'purchase_time': now
-        }
 
     @export
     def buy_plot(x, y, amount, price):

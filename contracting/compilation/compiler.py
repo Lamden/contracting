@@ -15,6 +15,7 @@ class ContractingCompiler(ast.NodeTransformer):
         self.lint_alerts = None
         self.constructor_visited = False
         self.private_names = set()
+        self.orm_names = set()
         self.visited_names = set()  # store the method visits
 
     def parse(self, source: str, lint=True):
@@ -36,13 +37,14 @@ class ContractingCompiler(ast.NodeTransformer):
         # An Expr node can have a value func of compilation.Name, or compilation.Attribute which you much access the value of.
         # This code branching is not ideal and should be investigated for simplicity.
         for node in self.visited_names:
-            if node.id in self.private_names:
+            if node.id in self.private_names or node.id in self.orm_names:
                 node.id = self.privatize(node.id)
 
         ast.fix_missing_locations(tree)
 
         # reset state
         self.private_names = set()
+        self.orm_names = set()
         self.visited_names = set()
 
         return tree
@@ -86,9 +88,16 @@ class ContractingCompiler(ast.NodeTransformer):
                                                                ast.Attribute) and node.value.func.id in config.ORM_CLASS_NAMES:
             node.value.keywords.append(ast.keyword('contract', ast.Str(self.module_name)))
             node.value.keywords.append(ast.keyword('name', ast.Str(node.targets[0].id)))
+            self.orm_names.add(node.targets[0].id)
+
+        self.generic_visit(node)
 
         return node
 
     def visit_Name(self, node):
         self.visited_names.add(node)
+        return node
+
+    def visit_Expr(self, node):
+        self.generic_visit(node)
         return node

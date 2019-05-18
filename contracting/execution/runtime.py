@@ -4,22 +4,6 @@ from .. import config
 from ..db.driver import ContractDriver
 
 
-class Context:
-    def __init__(self):
-        self.this = None
-        self.signer = None
-        self.caller = None
-
-    def __enter__(self):
-        self.caller = rt.ctx[-1]
-        self.this = __name__
-        self.signer = rt.ctx[0]
-        rt.ctx.append(self.this)
-
-    def __exit__(self, *args,  **kwargs):
-        rt.ctx.pop()
-
-
 class Runtime:
     ctx = deque(maxlen=config.RECURSION_LIMIT)
     ctx.append('__main__')
