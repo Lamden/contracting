@@ -223,7 +223,7 @@ Tracer_methods[] = {
     { "stop",       (PyCFunction) Tracer_stop,          METH_VARARGS,
             PyDoc_STR("Stop the tracer") },
 
-    { "reset",       (PyCFunction) Tracer_stop,          METH_VARARGS,
+    { "reset",       (PyCFunction) Tracer_reset,          METH_VARARGS,
             PyDoc_STR("Resets the tracer") },
 
     { "add_cost",       (PyCFunction) Tracer_add_cost,          METH_VARARGS,
