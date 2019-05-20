@@ -12,16 +12,12 @@ from ..execution.metering.tracer import Tracer
 
 class Executor:
 
-    def __init__(self, metering=True, production=False):
-        self.metering = metering
+    def __init__(self, production=False):
+        cu_path = contracting.__path__[0]
+        cu_path = os.path.join(cu_path, 'execution', 'metering', 'cu_costs.const')
 
-        # Colin -  Setup the tracer
-        # Colin TODO: Find out why Tracer is not instantiating properly. Raghu also said he wants to pull this out.
-        #cu_cost_fname = join(contracting.__path__[0], 'constants', 'cu_costs.const')
-        #self.tracer = Tracer(cu_cost_fname)
-
-        if self.metering is True:
-            self.setup_tracer()
+        os.environ['CU_COST_FNAME'] = cu_path
+        self.tracer = Tracer()
 
         self.driver = ContractDriver()
         self.production = production
@@ -30,13 +26,6 @@ class Executor:
             self.sandbox = MultiProcessingSandbox()
         else:
             self.sandbox = Sandbox()
-
-    def setup_tracer(self):
-        cu_path = contracting.__path__[0]
-        cu_path = os.path.join(cu_path, 'execution', 'metering', 'cu_costs.const')
-
-        os.environ['CU_COST_FNAME'] = cu_path
-        self.tracer = Tracer()
 
     def execute_bag(self, bag: TransactionBag, auto_commit=False, driver=None) -> Dict[int, tuple]:
         """
@@ -58,7 +47,7 @@ class Executor:
     #TODO stamps need to be update from 1 mil to given stamps
 
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
-                stamps=1000000) -> tuple:
+                stamps=1000000, metering=True) -> tuple:
 
         """
         Method that does a naive execute
@@ -74,13 +63,13 @@ class Executor:
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
 
-        self.tracer.set_stamp(stamps)
-        self.tracer.start()
+
+        runtime.rt.set_up(stmps=stamps, meter=metering)
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                    auto_commit, environment, driver)
 
-        self.tracer.stop()
-        stamps -= self.tracer.get_stamp_used()
+        runtime.rt.clean_up()
+        stamps -= runtime.rt.tracer.get_stamp_used()
 
         return status_code, result, stamps
 
@@ -112,14 +101,6 @@ I/O pattern:
 class Sandbox(object):
     def __init__(self):
         install_database_loader()
-
-    def clean(self):
-        """
-        Convenience method to cleanup the sandbox's imports
-
-        :return:
-        """
-        runtime.rt.clean_up()
 
     def wipe_modules(self):
         uninstall_builtins()
@@ -165,7 +146,6 @@ class Sandbox(object):
         finally:
             if isinstance(driver, CacheDriver):
                 driver.new_tx()
-            self.clean()
 
         return status_code, result
 
@@ -194,8 +174,6 @@ class MultiProcessingSandbox(Sandbox):
             driver.reset_cache(modified_keys=updated_driver.modified_keys,
                                contract_modifications=updated_driver.contract_modifications,
                                original_values=updated_driver.original_values)
-
-
 
     def execute_bag(self, txbag, auto_commit=False, driver=None):
         self._lazy_instantiate()
