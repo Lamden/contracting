@@ -46,7 +46,6 @@ class CRCache:
         {'name': 'BAG_SET'},
         {'name': 'EXECUTED'},
         {'name': 'CR_STARTED'},
-        {'name': 'REQUIRES_RERUN'},
         {'name': 'READY_TO_COMMIT'},
         {'name': 'COMMITTED'},
         {'name': 'READY_TO_MERGE'},
@@ -99,22 +98,7 @@ class CRCache:
                 'trigger': 'start_cr',
                 'source': 'CR_STARTED',
                 'dest': 'READY_TO_COMMIT',
-                'prepare': 'prepare_reruns',
-                'unless': 'requires_reruns',
-                'after': 'commit'
-            },
-            {
-                'trigger': 'start_cr',
-                'source': 'CR_STARTED',
-                'dest': 'REQUIRES_RERUN',
-                'conditions': 'requires_reruns',
-                'after': 'rerun'
-            },
-            {
-                'trigger': 'rerun',
-                'source': 'REQUIRES_RERUN',
-                'dest': 'READY_TO_COMMIT',
-                'before': 'rerun_transactions',
+                'before': 'resolve_conflicts',
                 'after': 'commit'
             },
             {
@@ -253,6 +237,11 @@ class CRCache:
         self.db.revert(idx=self.rerun_idx)
         self.bag.yield_from(idx=self.rerun_idx)
         self.results.update(self.executor.execute_bag(self.bag))
+
+    def resolve_conflicts(self):
+        self.prepare_reruns()
+        if self.requires_reruns():
+            self.rerun_transactions()
 
     def merge_to_common(self):
         # call completion handler on bag so Cilantro can build a SubBlockContender
