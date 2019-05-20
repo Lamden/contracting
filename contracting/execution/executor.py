@@ -12,20 +12,24 @@ from ..execution.metering.tracer import Tracer
 
 class Executor:
 
-    def __init__(self, production=False):
+    def __init__(self, production=False, driver=None):
         cu_path = contracting.__path__[0]
         cu_path = os.path.join(cu_path, 'execution', 'metering', 'cu_costs.const')
 
         os.environ['CU_COST_FNAME'] = cu_path
         self.tracer = Tracer()
 
-        self.driver = ContractDriver()
+        self.driver = driver
+        if not self.driver:
+            self.driver = ContractDriver()
         self.production = production
 
         if self.production:
             self.sandbox = MultiProcessingSandbox()
         else:
             self.sandbox = Sandbox()
+
+        runtime.rt.env.update({'__Driver': self.driver})
 
     def execute_bag(self, bag: TransactionBag, auto_commit=False, driver=None) -> Dict[int, tuple]:
         """
@@ -62,7 +66,6 @@ class Executor:
         # Therefor we need to have a try catch to communicate success/fail back to the
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
-
 
         runtime.rt.set_up(stmps=stamps, meter=metering)
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
@@ -118,14 +121,14 @@ class Sandbox(object):
                 environment={}, driver=None):
         # Use _driver if one is provided, otherwise use the default _driver, ensuring to set it
         # back to default only if it was set previously to something else
-        if driver:
-            runtime.rt.driver = driver
+        driver = driver or runtime.rt.env.get('__Driver')
 
         # __main__ is replaced by the sender of the message in this case
 
         runtime.rt.ctx.clear()
         runtime.rt.ctx.append(sender)
-        runtime.rt.env = environment
+        runtime.rt.env.update(environment)
+        print(runtime.rt.env)
         status_code = 0
         try:
             module = importlib.import_module(contract_name)
@@ -136,13 +139,13 @@ class Sandbox(object):
             result = func(**kwargs)
 
             if auto_commit:
-                runtime.rt.driver.commit()
+                driver.commit()
         except Exception as e:
             print(str(e))
             result = e
             status_code = 1
             if auto_commit:
-                runtime.rt.driver.revert()
+                driver.revert()
         finally:
             if isinstance(driver, CacheDriver):
                 driver.new_tx()

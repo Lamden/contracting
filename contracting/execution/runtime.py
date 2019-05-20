@@ -15,7 +15,6 @@ class Runtime:
     ctx = deque(maxlen=config.RECURSION_LIMIT)
     ctx.append('__main__')
 
-    driver = ContractDriver()
     loaded_modules = []
 
     env = {}

@@ -44,28 +44,30 @@ class SchedulerStub():
 
 
 
-driver = ContractDriver(db=0)
+
 #unittest.TestLoader.sortTestMethodsUsing = None
 
 
 class TestSingleCRCache(unittest.TestCase):
     @classmethod
     def setUpClass(self):
+        self.driver = ContractDriver(db=0)
         num_sbb = 1
-        self.master_db = driver
-        executor = Executor(production=True)
+        self.master_db = self.driver
+        executor = Executor(production=True, driver=self.driver)
         self.author = 'unittest'
         sys.meta_path.append(DatabaseFinder)
-        driver.flush()
+        self.driver.flush()
 
         # Add submission contract
         with open('../../contracting/contracts/submission.s.py') as f:
             contract = f.read()
 
-        driver.set_contract(name='submission',
+        self.driver.set_contract(name='submission',
                             code=contract,
                             author='sys')
-        driver.commit()
+
+        self.driver.commit()
 
         with open('./test_sys_contracts/module_func.py') as f:
             code = f.read()
@@ -89,7 +91,7 @@ class TestSingleCRCache(unittest.TestCase):
         self.cache.executor.sandbox.terminate()
         #del self.cache
         #sys.meta_path.remove(DatabaseFinder)
-        driver.flush()
+        self.driver.flush()
 
     def test_0_set_bag(self):
         self.cache.set_bag(self.bag)
