@@ -47,7 +47,7 @@ class Executor:
     #TODO stamps need to be update from 1 mil to given stamps
 
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
-                stamps=1000000) -> tuple:
+                stamps=1000000, metering=True) -> tuple:
 
         """
         Method that does a naive execute
@@ -63,14 +63,12 @@ class Executor:
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
 
-        environment.update({'__Context': runtime.Context})
-        self.tracer.set_stamp(stamps)
-        self.tracer.start()
+        runtime.rt.set_up(stmps=stamps, meter=metering)
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                    auto_commit, environment, driver)
 
-        self.tracer.stop()
-        stamps -= self.tracer.get_stamp_used()
+        runtime.rt.clean_up()
+        stamps -= runtime.rt.tracer.get_stamp_used()
 
         return status_code, result, stamps
 
