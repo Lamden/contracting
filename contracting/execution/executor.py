@@ -107,7 +107,8 @@ class Sandbox(object):
 
         :return:
         """
-        runtime.rt.clean_up()
+        pass
+        #runtime.rt.clean_up()
 
     def wipe_modules(self):
         uninstall_builtins()
@@ -153,7 +154,7 @@ class Sandbox(object):
         finally:
             if isinstance(driver, CacheDriver):
                 driver.new_tx()
-            self.clean()
+            #self.clean()
 
         return status_code, result
 
@@ -182,8 +183,6 @@ class MultiProcessingSandbox(Sandbox):
             driver.reset_cache(modified_keys=updated_driver.modified_keys,
                                contract_modifications=updated_driver.contract_modifications,
                                original_values=updated_driver.original_values)
-
-
 
     def execute_bag(self, txbag, auto_commit=False, driver=None):
         self._lazy_instantiate()
