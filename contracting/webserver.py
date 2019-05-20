@@ -54,7 +54,7 @@ async def get_methods(request, contract):
 
 @app.route('/contracts/<contract>/<variable>')
 async def get_methods(request, contract, variable):
-    key = request.args.get('key')
+    key = request.args.get('_key')
     if key is None:
         response = client.raw_driver.get('{}.{}'.format(contract, variable))
         print('response: {}'.format(response))

@@ -14,7 +14,7 @@ class TestBuiltinsLockedOff(TestCase):
         with open('./test_contracts/builtin_lib.s.py') as f:
             contract = f.read()
 
-        with self.assertRaises(ImportError):
+        with self.assertRaises(Exception):
             self.c.submit(contract, name='builtin')
 
     def test_if_non_builtin_can_be_submitted(self):
