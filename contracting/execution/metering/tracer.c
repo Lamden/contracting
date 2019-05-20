@@ -176,6 +176,18 @@ Tracer_set_stamp(Tracer *self, PyObject *args, PyObject *kwds)
 }
 
 static PyObject *
+Tracer_add_cost(Tracer *self, PyObject *args, PyObject *kwds)
+{
+        // This allows you to arbitrarily add to the cost variable from Python
+        // Implemented for adding costs to database read / write operations
+        int new_cost;
+        PyArg_ParseTuple(args, "i", &new_cost);
+        self->cost += new_cost
+
+    return Py_BuildValue("");
+}
+
+static PyObject *
 Tracer_get_stamp_used(Tracer *self, PyObject *args, PyObject *kwds)
 {
     return Py_BuildValue("i", self->cost);
