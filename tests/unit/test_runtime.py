@@ -3,6 +3,12 @@ from contracting.execution import runtime
 
 
 class TestRuntime(TestCase):
+    def setUp(self):
+        runtime.rt.clean_up()
+
+    def tearDown(self):
+        runtime.rt.clean_up()
+
     def test_tracer_works_roughly(self):
         stamps = 1000
         runtime.rt.set_up(stmps=stamps, meter=True)
@@ -15,6 +21,7 @@ class TestRuntime(TestCase):
         stamps = 1000
         runtime.rt.set_up(stmps=stamps, meter=False)
         a = 5
+        b = 5
         runtime.rt.clean_up()
         used = runtime.rt.tracer.get_stamp_used()
         self.assertEqual(stamps - used, stamps)
@@ -81,3 +88,11 @@ class TestRuntime(TestCase):
         used_2 = runtime.rt.tracer.get_stamp_used()
 
         print(used_1, used_2)
+
+    def test_add_exists(self):
+        stamps = 1000
+        runtime.rt.set_up(stmps=stamps, meter=True)
+        runtime.rt.tracer.add_cost(900)
+        runtime.rt.clean_up()
+        used_1 = runtime.rt.tracer.get_stamp_used()
+        print(used_1)

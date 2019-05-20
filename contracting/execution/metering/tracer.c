@@ -176,19 +176,28 @@ Tracer_set_stamp(Tracer *self, PyObject *args, PyObject *kwds)
 }
 
 static PyObject *
+Tracer_reset(Tracer *self)
+{
+    self->cost = 0;
+    self->stamp_supplied = 0;
+    self->started = 0;
+    return Py_BuildValue("");
+}
+
+static PyObject *
 Tracer_add_cost(Tracer *self, PyObject *args, PyObject *kwds)
 {
     // This allows you to arbitrarily add to the cost variable from Python
     // Implemented for adding costs to database read / write operations
     int new_cost;
     PyArg_ParseTuple(args, "i", &new_cost);
-    self->cost += new_cost
+    self->cost += new_cost;
 
     if (self->cost > self->stamp_supplied) {
          PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
          PyEval_SetTrace(NULL, NULL);
          self->started = 0;
-         return RET_ERROR;
+         return NULL;
      }
 
     return Py_BuildValue("");
@@ -213,6 +222,9 @@ Tracer_methods[] = {
 
     { "stop",       (PyCFunction) Tracer_stop,          METH_VARARGS,
             PyDoc_STR("Stop the tracer") },
+
+    { "reset",       (PyCFunction) Tracer_stop,          METH_VARARGS,
+            PyDoc_STR("Resets the tracer") },
 
     { "add_cost",       (PyCFunction) Tracer_add_cost,          METH_VARARGS,
             PyDoc_STR("Add to the cost. Throws AssertionError if cost exceeds stamps supplied.") },

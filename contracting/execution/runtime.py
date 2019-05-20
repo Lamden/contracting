@@ -25,6 +25,10 @@ class Runtime:
 
     @classmethod
     def set_up(cls, stmps, meter):
+
+        del cls.tracer
+        cls.tracer = Tracer()
+
         if meter:
             cls.stamps = stmps
             cls.tracer.set_stamp(stmps)
