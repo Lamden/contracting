@@ -7,7 +7,10 @@ Bytes can't be stored in JSON so we use hex-strings converted into bytes and bac
 
 
 def sha3(hex_str: str):
-    byte_str = bytes.fromhex(hex_str)
+    try:
+        byte_str = bytes.fromhex(hex_str)
+    except ValueError:
+        byte_str = hex_str.encode()
 
     hasher = hashlib.sha3_256()
     hasher.update(byte_str)
@@ -18,7 +21,10 @@ def sha3(hex_str: str):
 
 
 def sha256(hex_str: str):
-    byte_str = bytes.fromhex(hex_str)
+    try:
+        byte_str = bytes.fromhex(hex_str)
+    except ValueError:
+        byte_str = hex_str.encode()
 
     hasher = hashlib.sha256()
     hasher.update(byte_str)
@@ -26,6 +32,7 @@ def sha256(hex_str: str):
     hashed_bytes = hasher.digest()
 
     return hashed_bytes.hex()
+
 
 hashlib_module = ModuleType('hashlib')
 hashlib_module.sha3 = sha3

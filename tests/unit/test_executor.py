@@ -3,7 +3,7 @@ from contracting.execution.executor import Sandbox, Executor, MultiProcessingSan
 import sys
 import glob
 # Import ContractDriver and AbstractDatabaseDriver for property type
-# assertions for self.e.driver
+# assertions for self.e._driver
 from contracting.db.driver import AbstractDatabaseDriver, ContractDriver
 from contracting.execution.module import DatabaseFinder
 from contracting.compilation.compiler import ContractingCompiler
@@ -27,7 +27,7 @@ class TestExecutor(unittest.TestCase):
     def test_driver_resolution(self):
         # The CRDriver class is not able to be isolated so this test is turned off for now
         # Colin TODO: Discuss with Davis how we update CRDriver (or isolate the concept)
-        #self.assertIsInstance(self.e.driver, cr_driver.CRDriver, 'Driver type does not resolve to CRDriver type when concurrency is True')
+        #self.assertIsInstance(self.e._driver, cr_driver.CRDriver, 'Driver type does not resolve to CRDriver type when concurrency is True')
 
         e = Executor(production=False)
         self.assertIsInstance(e.driver, AbstractDatabaseDriver, 'Driver does not resolve to AbstractDatabaseDriver when concurrency is False')

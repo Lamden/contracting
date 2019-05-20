@@ -1,4 +1,4 @@
-# from contracting.db.driver import Driver
+# from contracting.db._driver import Driver
 # from unittest import TestCase
 # from contracting.config import MASTER_DB, DB_PORT
 # from contracting.interpreter.parser import Parser
@@ -36,8 +36,8 @@
 #
 # class MockExecutor:
 #     def __init__(self, *args, **kwargs):
-#         self.driver = Driver(host='localhost', port=DB_PORT, db=MASTER_DB)
-#         self.driver.flush()
+#         self._driver = Driver(host='localhost', port=DB_PORT, db=MASTER_DB)
+#         self._driver.flush()
 #         Parser.executor = self
 #         if not Parser.parser_scope.get('rt'):
 #             Parser.parser_scope['rt'] = {}
