@@ -46,7 +46,6 @@ class CRCache:
         {'name': 'BAG_SET'},
         {'name': 'EXECUTED'},
         {'name': 'CR_STARTED'},
-        {'name': 'REQUIRES_RERUN'},
         {'name': 'READY_TO_COMMIT'},
         {'name': 'COMMITTED'},
         {'name': 'READY_TO_MERGE'},
@@ -99,22 +98,7 @@ class CRCache:
                 'trigger': 'start_cr',
                 'source': 'CR_STARTED',
                 'dest': 'READY_TO_COMMIT',
-                'prepare': 'prepare_reruns',
-                'unless': 'requires_reruns',
-                'after': 'commit'
-            },
-            {
-                'trigger': 'start_cr',
-                'source': 'CR_STARTED',
-                'dest': 'REQUIRES_RERUN',
-                'conditions': 'requires_reruns',
-                'after': 'rerun'
-            },
-            {
-                'trigger': 'rerun',
-                'source': 'REQUIRES_RERUN',
-                'dest': 'READY_TO_COMMIT',
-                'before': 'rerun_transactions',
+                'before': 'resolve_conflicts',
                 'after': 'commit'
             },
             {
@@ -182,7 +166,7 @@ class CRCache:
     def _check_macro_key(self, macro):
         val = self.db.get_direct(macro)
         # self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
-        return int(val) if val is not None else 0
+        return int(val) if val is not None else -1
 
     def _reset_macro_keys(self):
         self.log.spam("{} is resetting macro keys".format(self))
@@ -195,6 +179,8 @@ class CRCache:
     def set_transaction_bag(self, bag):
         self.log.spam("{} is setting transactions!".format(self))
         self.bag = bag
+        if self.sbb_idx == 0:
+            self._incr_macro_key(Macros.RESET)
 
     def execute_transactions(self):
         self.log.spam("{} is executing transactions!".format(self))
@@ -252,6 +238,11 @@ class CRCache:
         self.bag.yield_from(idx=self.rerun_idx)
         self.results.update(self.executor.execute_bag(self.bag))
 
+    def resolve_conflicts(self):
+        self.prepare_reruns()
+        if self.requires_reruns():
+            self.rerun_transactions()
+
     def merge_to_common(self):
         # call completion handler on bag so Cilantro can build a SubBlockContender
         self.bag.completion_handler(self._get_sb_data())
@@ -272,22 +263,20 @@ class CRCache:
         self.db.reset_cache()
         self.master_db.reset_cache()
         self.rerun_idx = None
-        self._incr_macro_key(Macros.RESET)
         self.bag = None
-
-    def all_reset(self):
-        return (self._check_macro_key(Macros.RESET) == self.num_sbb) or \
-               (self._check_macro_key(Macros.RESET) == 0)
-
-    def _mark_clean(self):
 
         # If we are on SBB 0, we need to flush the common layer of this cache
         # since the DB is shared, we only need to call this from one of the SBBs
+        # TODO - this should be a macro so we can switch to other sbbers if needed
         if self.sbb_idx == 0:
             self.log.debugv("cache idx 0 FLUSHING DB!!!!")
             self.db.flush()
             self._reset_macro_keys()
 
+    def all_reset(self):
+        return (self._check_macro_key(Macros.RESET) == 0)
+
+    def _mark_clean(self):
         # Mark myself as clean for the FSMScheduler to be able to reuse me
         self.scheduler.mark_clean(self)
 
