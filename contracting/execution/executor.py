@@ -13,15 +13,11 @@ from ..execution.metering.tracer import Tracer
 class Executor:
 
     def __init__(self, metering=True, production=False):
-        self.metering = metering
+        cu_path = contracting.__path__[0]
+        cu_path = os.path.join(cu_path, 'execution', 'metering', 'cu_costs.const')
 
-        # Colin -  Setup the tracer
-        # Colin TODO: Find out why Tracer is not instantiating properly. Raghu also said he wants to pull this out.
-        #cu_cost_fname = join(contracting.__path__[0], 'constants', 'cu_costs.const')
-        #self.tracer = Tracer(cu_cost_fname)
-
-        if self.metering is True:
-            self.setup_tracer()
+        os.environ['CU_COST_FNAME'] = cu_path
+        self.tracer = Tracer()
 
         self.driver = ContractDriver()
         self.production = production
@@ -30,13 +26,6 @@ class Executor:
             self.sandbox = MultiProcessingSandbox()
         else:
             self.sandbox = Sandbox()
-
-    def setup_tracer(self):
-        cu_path = contracting.__path__[0]
-        cu_path = os.path.join(cu_path, 'execution', 'metering', 'cu_costs.const')
-
-        os.environ['CU_COST_FNAME'] = cu_path
-        self.tracer = Tracer()
 
     def execute_bag(self, bag: TransactionBag, auto_commit=False, driver=None) -> Dict[int, tuple]:
         """
