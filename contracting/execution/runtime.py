@@ -25,10 +25,6 @@ class Runtime:
 
     @classmethod
     def set_up(cls, stmps, meter):
-
-        del cls.tracer
-        cls.tracer = Tracer()
-
         if meter:
             cls.stamps = stmps
             cls.tracer.set_stamp(stmps)
@@ -38,6 +34,7 @@ class Runtime:
     @classmethod
     def clean_up(cls):
         cls.tracer.stop()
+        cls.tracer.reset()
         cls.stamps = 0
 
         cls.ctx = deque(maxlen=config.RECURSION_LIMIT)
