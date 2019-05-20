@@ -12,7 +12,7 @@ from ..execution.metering.tracer import Tracer
 
 class Executor:
 
-    def __init__(self, metering=True, production=False):
+    def __init__(self, production=False):
         cu_path = contracting.__path__[0]
         cu_path = os.path.join(cu_path, 'execution', 'metering', 'cu_costs.const')
 
@@ -101,15 +101,6 @@ class Sandbox(object):
     def __init__(self):
         install_database_loader()
 
-    def clean(self):
-        """
-        Convenience method to cleanup the sandbox's imports
-
-        :return:
-        """
-        pass
-        #runtime.rt.clean_up()
-
     def wipe_modules(self):
         uninstall_builtins()
         install_database_loader()
@@ -154,7 +145,6 @@ class Sandbox(object):
         finally:
             if isinstance(driver, CacheDriver):
                 driver.new_tx()
-            #self.clean()
 
         return status_code, result
 
