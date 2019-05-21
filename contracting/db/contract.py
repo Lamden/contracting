@@ -39,3 +39,4 @@ class Contract:
             scope[config.INIT_FUNC_NAME]()
 
         self._driver.set_contract(name=name, code=code_obj, author=author, overwrite=False)
+        self._driver.commit()
