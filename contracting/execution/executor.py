@@ -1,6 +1,5 @@
 import importlib
 import multiprocessing
-import contracting, os
 
 from typing import Dict
 
@@ -8,9 +7,9 @@ from . import runtime
 from ..db.cr.transaction_bag import TransactionBag
 from ..db.driver import ContractDriver, CacheDriver
 from ..execution.module import install_database_loader, uninstall_builtins
+from .. import config
 
 class Executor:
-
     def __init__(self, production=False, driver=None, currency_contract='currency', balances_hash='balances'):
 
         self.driver = driver
@@ -46,8 +45,6 @@ class Executor:
         results = self.sandbox.execute_bag(bag, auto_commit=auto_commit, driver=driver)
         return results
 
-    #TODO stamps need to be update from 1 mil to given stamps
-
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
                 stamps=1000000, metering=True) -> tuple:
 
@@ -70,7 +67,14 @@ class Executor:
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
         if metering:
-            balance = driver.get('currency.balances.{}'.format(sender))
+
+            balance = driver.get('{}{}{}{}{}'.format(self.currency_contract,
+                                                     config.INDEX_SEPARATOR,
+                                                     self.balances_hash,
+                                                     config.DELIMITER,
+                                                     sender)
+                                 )
+
             print(balance)
 
         runtime.rt.set_up(stmps=stamps, meter=metering)
