@@ -8,16 +8,10 @@ from . import runtime
 from ..db.cr.transaction_bag import TransactionBag
 from ..db.driver import ContractDriver, CacheDriver
 from ..execution.module import install_database_loader, uninstall_builtins
-from ..execution.metering.tracer import Tracer
 
 class Executor:
 
-    def __init__(self, production=False, driver=None):
-        cu_path = contracting.__path__[0]
-        cu_path = os.path.join(cu_path, 'execution', 'metering', 'cu_costs.const')
-
-        os.environ['CU_COST_FNAME'] = cu_path
-        self.tracer = Tracer()
+    def __init__(self, production=False, driver=None, currency_contract='currency', balances_hash='balances'):
 
         self.driver = driver
         if not self.driver:
@@ -28,6 +22,10 @@ class Executor:
             self.sandbox = MultiProcessingSandbox()
         else:
             self.sandbox = Sandbox()
+
+        # Variables to tell Executor where to look for a balance to deduct for stamps if metering is enabled
+        self.currency_contract = currency_contract
+        self.balances_hash = balances_hash
 
         runtime.rt.env.update({'__Driver': self.driver})
 
@@ -53,8 +51,10 @@ class Executor:
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
                 stamps=1000000, metering=True) -> tuple:
 
+        runtime.rt.env.update({'__Driver': self.driver})
+
         if driver is None:
-            driver = runtime.rt.env.update({'__Driver': self.driver})
+            driver = runtime.rt.env.get('__Driver')
 
         """
         Method that does a naive execute
@@ -69,6 +69,9 @@ class Executor:
         # Therefor we need to have a try catch to communicate success/fail back to the
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
+        if metering:
+            balance = driver.get('currency.balances.{}'.format(sender))
+            print(balance)
 
         runtime.rt.set_up(stmps=stamps, meter=metering)
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
