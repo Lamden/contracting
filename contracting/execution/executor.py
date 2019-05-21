@@ -53,6 +53,9 @@ class Executor:
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
                 stamps=1000000, metering=True) -> tuple:
 
+        if driver is None:
+            driver = runtime.rt.env.update({'__Driver': self.driver})
+
         """
         Method that does a naive execute
 
