@@ -5,9 +5,10 @@ from types import ModuleType
 from ..stdlib import env
 from .. import config
 
+driver = rt.env.get('__Driver') or ContractDriver()
 
 class Contract:
-    def __init__(self, driver: ContractDriver=rt.driver):
+    def __init__(self, driver: ContractDriver=driver):
         self._driver = driver
 
     def submit(self, name, code, author):
@@ -38,3 +39,4 @@ class Contract:
             scope[config.INIT_FUNC_NAME]()
 
         self._driver.set_contract(name=name, code=code_obj, author=author, overwrite=False)
+        self._driver.commit()

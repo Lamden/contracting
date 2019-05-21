@@ -2,6 +2,7 @@ from ..db.driver import ContractDriver
 from ..execution.runtime import rt
 from .. import config
 
+driver = rt.env.get('__Driver') or ContractDriver()
 
 class Datum:
     def __init__(self, contract, name, driver: ContractDriver):
@@ -10,7 +11,7 @@ class Datum:
 
 
 class Variable(Datum):
-    def __init__(self, contract, name, driver: ContractDriver=rt.driver):
+    def __init__(self, contract, name, driver: ContractDriver=driver):
         super().__init__(contract, name, driver=driver)
 
     def set(self, value):
@@ -21,7 +22,7 @@ class Variable(Datum):
 
 
 class Hash(Datum):
-    def __init__(self, contract, name, driver: ContractDriver=rt.driver, default_value=None):
+    def __init__(self, contract, name, driver: ContractDriver=driver, default_value=None):
         super().__init__(contract, name, driver=driver)
         self._delimiter = config.DELIMITER
         self._default_value = default_value
@@ -65,7 +66,7 @@ class Hash(Datum):
 
 
 class ForeignVariable(Variable):
-    def __init__(self, contract, name, foreign_contract, foreign_name, driver: ContractDriver=rt.driver):
+    def __init__(self, contract, name, foreign_contract, foreign_name, driver: ContractDriver=driver):
         super().__init__(contract, name, driver=driver)
         self.foreign_key = self._driver.make_key(foreign_contract, foreign_name)
 
@@ -77,7 +78,7 @@ class ForeignVariable(Variable):
 
 
 class ForeignHash(Hash):
-    def __init__(self, contract, name, foreign_contract, foreign_name, driver: ContractDriver=rt.driver):
+    def __init__(self, contract, name, foreign_contract, foreign_name, driver: ContractDriver=driver):
         super().__init__(contract, name, driver=driver)
         self.delimiter = config.DELIMITER
 
