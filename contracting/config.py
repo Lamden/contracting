@@ -44,3 +44,6 @@ ORM_CLASS_NAMES = {'Variable', 'Hash', 'ForeignVariable', 'ForeignHash'}
 
 MAX_HASH_DIMENSIONS = 16
 MAX_KEY_SIZE = 1024
+
+READ_COST_PER_BYTE = 25
+WRITE_COST_PER_BYTE = 250

@@ -1,10 +1,10 @@
 from collections import deque
 import sys
 from .. import config
-from ..db.driver import ContractDriver
 import contracting
 import os
 from .metering.tracer import Tracer
+
 
 class Runtime:
     cu_path = contracting.__path__[0]
@@ -28,7 +28,6 @@ class Runtime:
             cls.stamps = stmps
             cls.tracer.set_stamp(stmps)
             cls.tracer.start()
-
 
     @classmethod
     def clean_up(cls):

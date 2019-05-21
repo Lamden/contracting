@@ -11,6 +11,9 @@ from ..exceptions import DatabaseDriverNotFound
 from ..db.encoder import encode, decode
 
 from ..logger import get_logger
+from ..execution.runtime import rt
+
+from .. import config
 
 from collections import deque, defaultdict
 import marshal
@@ -317,15 +320,27 @@ class RedisDriver(AbstractDatabaseDriver):
         return state
 
     def __setstate__(self, state):
-        for k,v in state.items():
+        for k, v in state.items():
             setattr(self, k, v)
         self._setup_conn()
 
     def get(self, key):
         val = self.conn.get(key)
+
+        if val is not None and rt.tracer.is_started():
+            cost = len(key) + len(val)
+            cost *= config.READ_COST_PER_BYTE
+            rt.tracer.add_cost(cost)
+
         return val
 
     def set(self, key, value):
+
+        if rt.tracer.is_started():
+            cost = len(key) + len(value)
+            cost *= config.READ_COST_PER_BYTE
+            rt.tracer.add_cost(cost)
+
         self.conn.set(key, value)
 
     def delete(self, key):
