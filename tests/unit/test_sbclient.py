@@ -46,7 +46,7 @@ class TestSBClient(TestCase):
         driver.commit()
 
         # Use executor submit
-        e = Executor()
+        e = Executor(metering=False)
         contracts = glob.glob('./test_sys_contracts/*.py')
         for contract in contracts:
             name = contract.split('/')[-1]

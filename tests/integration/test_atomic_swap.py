@@ -42,7 +42,7 @@ class TestAtomicSwapContract(TestCase):
                             author='sys')
         self.d.commit()
 
-        self.e = Executor(currency_contract='erc20_clone')
+        self.e = Executor(currency_contract='erc20_clone', metering=False)
 
         self.e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))

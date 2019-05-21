@@ -47,7 +47,7 @@ class TestComplexContracts(TestCase):
         self.d.flush()
 
     def test_token_constuction_works(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'))
@@ -62,7 +62,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(res[1], None)
 
     def test_token_transfer_works(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'))
@@ -76,7 +76,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(colin_balance, 100 + 1000)
 
     def test_token_transfer_failure_not_enough_to_send(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'))
@@ -86,7 +86,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(status, 1)
 
     def test_token_transfer_to_new_account(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         print(e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py')))
@@ -98,7 +98,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(raghu_balance, 1000)
 
     def test_erc20_clone_construction_works(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
@@ -112,7 +112,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(supply, 1000100)
 
     def test_erc20_clone_transfer_works(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
@@ -125,7 +125,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(stu, 0)
 
     def test_erc20_clone_transfer_fails(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
@@ -136,7 +136,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(type(res), AssertionError)
 
     def test_allowance_of_blank(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
@@ -145,7 +145,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(res, 0)
 
     def test_approve_works_and_allowance_shows(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
@@ -156,7 +156,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(res, 1234)
 
     def test_approve_and_transfer_from(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
@@ -172,7 +172,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(tejas, 123)
 
     def test_failure_after_data_writes_doesnt_commit(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/leaky.s.py'))
@@ -186,7 +186,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(colin, 100)
 
     def test_leaky_contract_commits_on_success(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/leaky.s.py'))
@@ -200,7 +200,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(colin, 99)
 
     def test_time_stdlib_works(self):
-        e = Executor()
+        e = Executor(metering=False)
         now = datetime.now()
 
         environment = gather()
@@ -223,7 +223,7 @@ class TestComplexContracts(TestCase):
         self.assertFalse(eq)
 
     def test_bad_time_contract_not_submittable(self):
-        e = Executor()
+        e = Executor(metering=False)
         now = datetime.now()
 
         environment = gather()
@@ -237,7 +237,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(status, 1)
 
     def test_json_lists_work(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                     kwargs=submission_kwargs_for_file('./test_contracts/json_tests.s.py'))
@@ -247,7 +247,7 @@ class TestComplexContracts(TestCase):
         self.assertListEqual([1, 2, 3, 4], res)
 
     def test_time_storage_works(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         environment = gather()
 
@@ -261,7 +261,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(v, date)
 
     def test_hash_sha3_works(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_hashing_works.s.py'))
@@ -274,7 +274,7 @@ class TestComplexContracts(TestCase):
         self.assertEqual(h.hexdigest(), s3)
 
     def test_hash_sha256_works(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_hashing_works.s.py'))

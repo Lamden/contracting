@@ -97,7 +97,7 @@ class AbstractContract:
 class ContractingClient:
     def __init__(self, signer='sys',
                  submission_filename=os.path.join(os.path.dirname(__file__), 'contracts/submission.s.py'),
-                 executor=Executor(),
+                 executor=Executor(metering=False),
                  compiler=ContractingCompiler()):
 
         self.executor = executor

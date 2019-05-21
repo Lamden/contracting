@@ -37,8 +37,8 @@ class DBTests(unittest.TestCase):
         self.sb = Sandbox()
         self.mpsb = MultiProcessingSandbox()
 
-        self.e = Executor()
-        self.e_prod = Executor(production=True)
+        self.e = Executor(metering=False)
+        self.e_prod = Executor(production=True, metering=False)
 
         compiler = ContractingCompiler()
 

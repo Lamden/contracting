@@ -10,7 +10,8 @@ from ..execution.module import install_database_loader, uninstall_builtins
 from .. import config
 
 class Executor:
-    def __init__(self, production=False, driver=None, currency_contract='currency', balances_hash='balances'):
+    def __init__(self, production=False, driver=None, metering=True,
+                 currency_contract='currency', balances_hash='balances'):
 
         self.driver = driver
         if not self.driver:
@@ -21,6 +22,8 @@ class Executor:
             self.sandbox = MultiProcessingSandbox()
         else:
             self.sandbox = Sandbox()
+
+        self.metering = metering
 
         # Variables to tell Executor where to look for a balance to deduct for stamps if metering is enabled
         self.currency_contract = currency_contract
@@ -46,7 +49,7 @@ class Executor:
         return results
 
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
-                stamps=1000000, metering=True) -> tuple:
+                stamps=1000000) -> tuple:
 
         runtime.rt.env.update({'__Driver': self.driver})
 
@@ -66,18 +69,19 @@ class Executor:
         # Therefor we need to have a try catch to communicate success/fail back to the
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
-        if metering:
-
+        if self.metering:
             balance = driver.get('{}{}{}{}{}'.format(self.currency_contract,
                                                      config.INDEX_SEPARATOR,
                                                      self.balances_hash,
                                                      config.DELIMITER,
                                                      sender)
-                                 )
+                                 ) or 0
+
+            assert balance >= stamps, 'Sender does not have enough stamps for the transaction'
 
             print(balance)
 
-        runtime.rt.set_up(stmps=stamps, meter=metering)
+        runtime.rt.set_up(stmps=stamps, meter=self.metering)
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                    auto_commit, environment, driver)
 
