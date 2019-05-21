@@ -209,6 +209,12 @@ Tracer_get_stamp_used(Tracer *self, PyObject *args, PyObject *kwds)
     return Py_BuildValue("i", self->cost);
 }
 
+static PyObject *
+Tracer_is_started(Tracer *self)
+{
+    return Py_BuildValue("i", self->started);
+}
+
 static PyMemberDef
 Tracer_members[] = {
     { "started",       T_OBJECT, offsetof(Tracer, started), 0,
@@ -234,6 +240,9 @@ Tracer_methods[] = {
 
     { "get_stamp_used",  (PyCFunction) Tracer_get_stamp_used,     METH_VARARGS,
             PyDoc_STR("Get the stamp usage after it's been completed") },
+
+    { "is_started",  (PyCFunction) Tracer_is_started,     METH_VARARGS,
+            PyDoc_STR("Returns 1 if tracer is started, 0 if not.") },
 
     { NULL }
 };
