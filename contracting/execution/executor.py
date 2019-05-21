@@ -131,7 +131,6 @@ class Sandbox(object):
         runtime.rt.ctx.clear()
         runtime.rt.ctx.append(sender)
         runtime.rt.env.update(environment)
-        print(runtime.rt.env)
         status_code = 0
         try:
             module = importlib.import_module(contract_name)

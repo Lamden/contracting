@@ -3,6 +3,7 @@ from contracting.db.driver import ContractDriver
 from contracting.execution.executor import Executor
 from contracting.stdlib.bridge.time import Datetime
 
+
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
     split = f.split('/')
