@@ -54,7 +54,7 @@ class TestSingleCRCache(unittest.TestCase):
         self.driver = ContractDriver(db=0)
         num_sbb = 1
         self.master_db = self.driver
-        executor = Executor(production=True, driver=self.driver)
+        executor = Executor(production=True)
         self.author = 'unittest'
         sys.meta_path.append(DatabaseFinder)
         self.driver.flush()
