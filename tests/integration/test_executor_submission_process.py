@@ -65,8 +65,6 @@ def d():
 
         new_code = self.compiler.parse_to_code(code)
 
-        print(new_code)
-
         self.assertEqual(self.d.get_contract('stubucks'), new_code)
 
     def test_submission_then_function_call(self):
@@ -119,8 +117,8 @@ def get_v():
     def test_orm_variable_gets_in_contract(self):
         e = Executor(metering=False)
 
-        print(e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py')))
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'))
 
         res = e.execute('stu', 'test_orm_variable_contract', 'get_v', kwargs={})
 

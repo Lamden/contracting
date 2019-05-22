@@ -88,8 +88,8 @@ class TestComplexContracts(TestCase):
     def test_token_transfer_to_new_account(self):
         e = Executor(metering=False)
 
-        print(e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py')))
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'))
 
         e.execute('stu', 'currency', 'transfer', kwargs={'amount': 1000, 'to': 'raghu'})
 
@@ -210,8 +210,6 @@ class TestComplexContracts(TestCase):
         _, res, _ = e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_time.s.py'),
                   environment=environment)
-
-        print(res)
 
         _, gt, _ = e.execute('colin', 'test_time', 'gt', kwargs={}, environment=environment)
         self.assertTrue(gt)

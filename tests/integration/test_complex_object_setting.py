@@ -39,5 +39,3 @@ class TestComplexStorage(TestCase):
     def test_modify(self):
         self.contract.create(x=1, y=2, color='howdy')
         self.contract.update(x=1, y=2, color='yoyoyo')
-
-        print(self.contract.storage[1, 2])
