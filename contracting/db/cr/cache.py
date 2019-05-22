@@ -188,15 +188,12 @@ class CRCache:
         # Do not commit, leveraging cache only
         self.results = self.executor.execute_bag(self.bag, driver=self.master_db)
 
-        self.log.important("Master DB Cache following execution: {}".format(self.master_db.contract_modifications))
         # Copy the cache from Master DB Driver to the contained Driver for common
         self.db.reset_cache(modified_keys=self.master_db.modified_keys,
                             contract_modifications=self.master_db.contract_modifications,
                             original_values=self.master_db.original_values)
-        self.log.important("Common Cache following cache copy: {}".format(self.db.contract_modifications))
         # Reset the master_db cache back to empty
         self.master_db.reset_cache()
-        self.log.important("Common Cache following master db cache reset: {}".format(self.db.contract_modifications))
 
         # Increment the execution macro
         self._incr_macro_key(Macros.EXECUTION)
@@ -228,7 +225,6 @@ class CRCache:
         # rerun index so we can rerun all contracts following the first mismatch
         if len(cr_key_hits) > 0:
             cr_key_modifications = {k: v for k, v in self.db.modified_keys.items() if k in cr_key_hits}
-            print("CR Keys {}".format(cr_key_modifications))
             self.rerun_idx = 999999
             for key, value in cr_key_modifications.items():
                 if value[0] < self.rerun_idx:
@@ -260,10 +256,8 @@ class CRCache:
     def merge_to_master(self):
         if self.sbb_idx == 0:
             merge_keys = [ x for x in self.db.keys() if x not in Macros.ALL_MACROS ]
-            self.log_important("MERGE KEYS: {}".format(merge_keys))
             for key in merge_keys:
                 self.master_db.set(key, self.db.get(key))
-            self.log_important("MASTER DB CACHE PRIOR TO COMMIT: {}".format(self.master_db.contract_modifications))
             self.master_db.commit()
 
     def reset_dbs(self):
