@@ -66,8 +66,28 @@ class TestMetering(TestCase):
 
         small_amount_of_stamps = 500
 
-        status, result, stamps = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'}, stamps=small_amount_of_stamps)
+        status, result, stamps = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
+                                                stamps=small_amount_of_stamps)
 
         new_balance = self.d.get('currency.balances:stu')
 
         self.assertEqual(prior_balance - new_balance, small_amount_of_stamps)
+
+    def test_adding_too_many_stamps_throws_error(self):
+        prior_balance = self.d.get('currency.balances:stu')
+
+        too_many_stamps = prior_balance + 1000
+
+        with self.assertRaises(AssertionError):
+            status, result, stamps = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
+                                                    stamps=too_many_stamps)
+
+    def test_adding_all_stamps_with_infinate_loop_eats_all_balance(self):
+        prior_balance = self.d.get('currency.balances:stu')
+
+        self.e.execute(**TEST_SUBMISSION_KWARGS,
+                        kwargs=submission_kwargs_for_file('./test_contracts/inf_loop.s.py'), stamps=prior_balance)
+
+        new_balance = self.d.get('currency.balances:stu')
+
+        self.assertEqual(new_balance, 0)
