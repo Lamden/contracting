@@ -226,7 +226,7 @@ class CRCache:
         if len(cr_key_hits) > 0:
             cr_key_modifications = {k: v for k, v in self.db.modified_keys.items() if k in cr_key_hits}
             self.rerun_idx = 999999
-            for key, value in cr_key_modifications:
+            for key, value in cr_key_modifications.items():
                 if value[0] < self.rerun_idx:
                     self.rerun_idx = value[0]
 
@@ -236,7 +236,7 @@ class CRCache:
     def rerun_transactions(self):
         self.db.revert(idx=self.rerun_idx)
         self.bag.yield_from(idx=self.rerun_idx)
-        self.results.update(self.executor.execute_bag(self.bag))
+        self.results.update(self.executor.execute_bag(self.bag, driver=self.db))
 
     def resolve_conflicts(self):
         self.prepare_reruns()
@@ -255,6 +255,9 @@ class CRCache:
 
     def merge_to_master(self):
         if self.sbb_idx == 0:
+            merge_keys = [ x for x in self.db.keys() if x not in Macros.ALL_MACROS ]
+            for key in merge_keys:
+                self.master_db.set(key, self.db.get(key))
             self.master_db.commit()
 
     def reset_dbs(self):

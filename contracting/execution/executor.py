@@ -75,6 +75,7 @@ class Executor:
                                                    auto_commit, environment, driver)
 
         runtime.rt.clean_up()
+        runtime.rt.env.update({"__Driver": self.driver})
         stamps -= runtime.rt.tracer.get_stamp_used()
 
         return status_code, result, stamps
@@ -124,7 +125,10 @@ class Sandbox(object):
                 environment={}, driver=None):
         # Use _driver if one is provided, otherwise use the default _driver, ensuring to set it
         # back to default only if it was set previously to something else
-        driver = driver or runtime.rt.env.get('__Driver')
+        if driver:
+            runtime.rt.env.update({'__Driver': driver})
+        else:
+            driver = runtime.rt.env.get('__Driver')
 
         # __main__ is replaced by the sender of the message in this case
 
