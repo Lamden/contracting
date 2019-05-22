@@ -75,7 +75,7 @@ class AbstractContract:
             # otherwise, the attribut does not exist, so throw the error.
             raise e
 
-    def _abstract_function_call(self, signer, executor, contract, environment, func, **kwargs):
+    def _abstract_function_call(self, signer, executor, contract, environment, func, metering=None, **kwargs):
         for k, v in kwargs.items():
             assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
 
@@ -83,7 +83,8 @@ class AbstractContract:
                                                   contract_name=contract,
                                                   function_name=func,
                                                   kwargs=kwargs,
-                                                  environment=environment)
+                                                  environment=environment,
+                                                  metering=metering)
 
         if executor.production:
             executor.sandbox.terminate()
@@ -192,13 +193,13 @@ class ContractingClient:
         code = self.compiler.parse_to_code(f)
         return code
 
-    def submit(self, f, name=None):
+    def submit(self, f, name=None, metering=None):
         if isinstance(f, FunctionType):
             f, name = self.closure_to_code_string(f)
 
         assert name is not None, 'No name provided.'
 
-        self.submission_contract.submit_contract(name=name, code=f)
+        self.submission_contract.submit_contract(name=name, code=f, metering=metering)
 
     def get_contracts(self):
         contracts = []

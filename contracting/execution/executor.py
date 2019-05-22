@@ -75,7 +75,6 @@ class Executor:
         # Therefor we need to have a try catch to communicate success/fail back to the
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
-        balance = 0
         balances_key = None
         if metering:
 
@@ -87,7 +86,8 @@ class Executor:
 
             balance = driver.get(balances_key) or 0
 
-            assert balance >= stamps, 'Sender does not have enough stamps for the transaction'
+            assert balance >= stamps, 'Sender does not have enough stamps for the transaction. \
+                                       Balance at key {} is {}'.format(balances_key, balance)
 
         # Execute the function
         runtime.rt.set_up(stmps=stamps, meter=metering)
