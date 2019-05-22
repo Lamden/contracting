@@ -228,8 +228,9 @@ class CRCache:
         # rerun index so we can rerun all contracts following the first mismatch
         if len(cr_key_hits) > 0:
             cr_key_modifications = {k: v for k, v in self.db.modified_keys.items() if k in cr_key_hits}
+            print("CR Keys {}".format(cr_key_modifications))
             self.rerun_idx = 999999
-            for key, value in cr_key_modifications:
+            for key, value in cr_key_modifications.items():
                 if value[0] < self.rerun_idx:
                     self.rerun_idx = value[0]
 
