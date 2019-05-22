@@ -255,6 +255,9 @@ class CRCache:
 
     def merge_to_master(self):
         if self.sbb_idx == 0:
+            merge_keys = [ x for x in self.db.keys() if x not in Macros.ALL_MACROS ]
+            for key in merge_keys:
+                self.master_db.set(key, self.db.get(key))
             self.master_db.commit()
 
     def reset_dbs(self):
