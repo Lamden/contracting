@@ -45,7 +45,7 @@ class TestMetering(TestCase):
         # Execute the currency contract with metering disabled
         self.e = Executor()
         self.e.execute(**TEST_SUBMISSION_KWARGS,
-                       kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'), enable_stamps=False)
+                       kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'), metering=False)
 
     def tearDown(self):
         # self.d.flush()
