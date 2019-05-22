@@ -188,12 +188,15 @@ class CRCache:
         # Do not commit, leveraging cache only
         self.results = self.executor.execute_bag(self.bag, driver=self.master_db)
 
+        self.log.important("Master DB Cache following execution: {}".format(self.master_db.contract_modifications))
         # Copy the cache from Master DB Driver to the contained Driver for common
         self.db.reset_cache(modified_keys=self.master_db.modified_keys,
                             contract_modifications=self.master_db.contract_modifications,
                             original_values=self.master_db.original_values)
+        self.log.important("Common Cache following cache copy: {}".format(self.db.contract_modifications))
         # Reset the master_db cache back to empty
         self.master_db.reset_cache()
+        self.log.important("Common Cache following master db cache reset: {}".format(self.db.contract_modifications))
 
         # Increment the execution macro
         self._incr_macro_key(Macros.EXECUTION)
