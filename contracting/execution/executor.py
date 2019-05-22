@@ -76,6 +76,7 @@ class Executor:
                                                    auto_commit, environment, driver)
 
         runtime.rt.clean_up()
+        runtime.rt.env.update({"__Driver": self.driver})
         stamps -= runtime.rt.tracer.get_stamp_used()
 
         return status_code, result, stamps
@@ -130,7 +131,7 @@ class Sandbox(object):
             # runtime.rt.env.set('_driver', driver)
             runtime.rt.env.update({'__Driver': driver})
         else:
-            driver = runtime.rt.env.get('_driver')
+            driver = runtime.rt.env.get('__Driver')
 
         # __main__ is replaced by the sender of the message in this case
 
