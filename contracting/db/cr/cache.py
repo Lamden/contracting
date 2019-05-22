@@ -260,8 +260,10 @@ class CRCache:
     def merge_to_master(self):
         if self.sbb_idx == 0:
             merge_keys = [ x for x in self.db.keys() if x not in Macros.ALL_MACROS ]
+            self.log_important("MERGE KEYS: {}".format(merge_keys))
             for key in merge_keys:
                 self.master_db.set(key, self.db.get(key))
+            self.log_important("MASTER DB CACHE PRIOR TO COMMIT: {}".format(self.master_db.contract_modifications))
             self.master_db.commit()
 
     def reset_dbs(self):
