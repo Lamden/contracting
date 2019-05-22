@@ -53,7 +53,7 @@ class Executor:
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
                 stamps=1000000, metering=True) -> tuple:
 
-        print("executor flow")
+        print("*****  executor flow")
         if driver is None:
             driver = runtime.rt.env.update({'__Driver': self.driver})
 
@@ -125,12 +125,12 @@ class Sandbox(object):
                 environment={}, driver=None):
         # Use _driver if one is provided, otherwise use the default _driver, ensuring to set it
         # back to default only if it was set previously to something else
-        print("sandbox flow")
+        print("***********  sandbox flow")
         if driver:
-            # runtime.rt.env.set('__Driver', driver)
+            # runtime.rt.env.set('_driver', driver)
             runtime.rt.env.update({'__Driver': driver})
         else:
-            driver = runtime.rt.env.get('__Driver')
+            driver = runtime.rt.env.get('_driver')
 
         # __main__ is replaced by the sender of the message in this case
 
@@ -216,7 +216,7 @@ class MultiProcessingSandbox(Sandbox):
     def execute(self, sender, contract_name, function_name, kwargs, auto_commit=True,
                 environment={}, driver=None):
         self._lazy_instantiate()
-        print("MultiProcessingSandbox")
+        print("*****  MultiProcessingSandbox")
 
         _, child_pipe = self.pipe
 
