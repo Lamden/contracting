@@ -10,8 +10,10 @@ from ..execution.module import install_database_loader, uninstall_builtins
 from .. import config
 
 class Executor:
-    def __init__(self, production=False, driver=None, metering=True,
+    def __init__(self, production=False, driver=None, enable_stamps=True,
                  currency_contract='currency', balances_hash='balances'):
+
+        self.enable_stamps = enable_stamps
 
         self.driver = driver
         if not self.driver:
@@ -23,9 +25,9 @@ class Executor:
         else:
             self.sandbox = Sandbox()
 
-        #self.metering = metering
+        #self.enable_stamps = enable_stamps
 
-        # Variables to tell Executor where to look for a balance to deduct for stamps if metering is enabled
+        # Variables to tell Executor where to look for a balance to deduct for stamps if enable_stamps is enabled
         self.currency_contract = currency_contract
         self.balances_hash = balances_hash
 
@@ -49,11 +51,15 @@ class Executor:
         return results
 
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
-                stamps=1000000, metering=True) -> tuple:
+                stamps=1000000, enable_stamps=None) -> tuple:
 
-        # Default to the self.metering property unless provided
-        #if metering is None:
-        #    metering = self.metering
+        print('enable_stamps is: {}'.format(enable_stamps))
+
+        # Default to the self.enable_stamps property unless provided
+        if enable_stamps is None:
+            enable_stamps = self.enable_stamps
+
+        print('enable_stamps is: {}'.format(enable_stamps))
 
         runtime.rt.env.update({'__Driver': self.driver})
 
@@ -75,7 +81,7 @@ class Executor:
         # continue execution in the case of failure of one of the transactions.
         balance = 0
         balances_key = None
-        if metering:
+        if enable_stamps:
 
             balances_key = '{}{}{}{}{}'.format(self.currency_contract,
                                                config.INDEX_SEPARATOR,
@@ -88,22 +94,25 @@ class Executor:
             assert balance >= stamps, 'Sender does not have enough stamps for the transaction'
 
         # Execute the function
-        runtime.rt.set_up(stmps=stamps, meter=metering)
+        runtime.rt.set_up(stmps=stamps, meter=enable_stamps)
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                    auto_commit, environment, driver)
+        runtime.rt.tracer.stop()
 
         # Deduct the stamps if that is enabled
-        if metering:
+        if enable_stamps:
             assert balances_key is not None, 'Balance key was not set properly. Cannot deduct stamps.'
 
             to_deduct = runtime.rt.tracer.get_stamp_used()
+            balance = driver.get(balances_key) or 0
             balance -= to_deduct
 
             driver.set(balances_key, balance)
+            driver.commit()
 
+        stamps -= runtime.rt.tracer.get_stamp_used()
         runtime.rt.clean_up()
         runtime.rt.env.update({'__Driver': self.driver})
-        stamps -= runtime.rt.tracer.get_stamp_used()
 
         return status_code, result, stamps
 

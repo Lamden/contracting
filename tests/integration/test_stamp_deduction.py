@@ -1,9 +1,7 @@
 from unittest import TestCase
 from contracting.db.driver import ContractDriver
 from contracting.execution.executor import Executor
-from datetime import datetime
-from contracting.stdlib.env import gather
-from hashlib import sha256, sha3_256
+
 
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
@@ -47,12 +45,21 @@ class TestMetering(TestCase):
         # Execute the currency contract with metering disabled
         self.e = Executor()
         self.e.execute(**TEST_SUBMISSION_KWARGS,
-                       kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'), metering=False)
+                       kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'), enable_stamps=False)
 
     def tearDown(self):
-        self.d.flush()
+        # self.d.flush()
+        pass
 
     def test_simple_execution_deducts_stamps(self):
-        status, result, stamps = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'}, metering=True)
-        print(stamps)
+        prior_balance = self.d.get('currency.balances:stu')
+
+        status, result, stamps = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'})
+        stamps_used = 1000000 - stamps
+
+        new_balance = self.d.get('currency.balances:stu')
+
+        print(stamps_used)
+
+        self.assertEqual(prior_balance - new_balance - 100, stamps_used)
 
