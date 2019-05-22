@@ -157,8 +157,10 @@ class Sandbox(object):
                 environment={}, driver=None):
         # Use _driver if one is provided, otherwise use the default _driver, ensuring to set it
         # back to default only if it was set previously to something else
-        driver = driver or runtime.rt.env.get('__Driver')
-        runtime.rt.env.update({'__Driver': driver})
+        if driver:
+            runtime.rt.env.update({'__Driver': driver})
+        else:
+            driver = runtime.rt.env.get('__Driver')
 
         # __main__ is replaced by the sender of the message in this case
 
