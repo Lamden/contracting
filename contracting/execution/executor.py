@@ -23,7 +23,7 @@ class Executor:
         else:
             self.sandbox = Sandbox()
 
-        self.metering = metering
+        #self.metering = metering
 
         # Variables to tell Executor where to look for a balance to deduct for stamps if metering is enabled
         self.currency_contract = currency_contract
@@ -49,7 +49,11 @@ class Executor:
         return results
 
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
-                stamps=1000000) -> tuple:
+                stamps=1000000, metering=True) -> tuple:
+
+        # Default to the self.metering property unless provided
+        #if metering is None:
+        #    metering = self.metering
 
         runtime.rt.env.update({'__Driver': self.driver})
 
@@ -71,7 +75,7 @@ class Executor:
         # continue execution in the case of failure of one of the transactions.
         balance = 0
         balances_key = None
-        if self.metering:
+        if metering:
 
             balances_key = '{}{}{}{}{}'.format(self.currency_contract,
                                                config.INDEX_SEPARATOR,
@@ -84,12 +88,12 @@ class Executor:
             assert balance >= stamps, 'Sender does not have enough stamps for the transaction'
 
         # Execute the function
-        runtime.rt.set_up(stmps=stamps, meter=self.metering)
+        runtime.rt.set_up(stmps=stamps, meter=metering)
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                    auto_commit, environment, driver)
 
         # Deduct the stamps if that is enabled
-        if self.metering:
+        if metering:
             assert balances_key is not None, 'Balance key was not set properly. Cannot deduct stamps.'
 
             to_deduct = runtime.rt.tracer.get_stamp_used()
@@ -98,6 +102,7 @@ class Executor:
             driver.set(balances_key, balance)
 
         runtime.rt.clean_up()
+        runtime.rt.env.update({'__Driver': self.driver})
         stamps -= runtime.rt.tracer.get_stamp_used()
 
         return status_code, result, stamps
@@ -148,6 +153,7 @@ class Sandbox(object):
         # Use _driver if one is provided, otherwise use the default _driver, ensuring to set it
         # back to default only if it was set previously to something else
         driver = driver or runtime.rt.env.get('__Driver')
+        runtime.rt.env.update({'__Driver': driver})
 
         # __main__ is replaced by the sender of the message in this case
 
