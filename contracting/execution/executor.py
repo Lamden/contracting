@@ -1,6 +1,5 @@
 import importlib
 import multiprocessing
-import contracting, os
 
 from typing import Dict
 
@@ -8,16 +7,13 @@ from . import runtime
 from ..db.cr.transaction_bag import TransactionBag
 from ..db.driver import ContractDriver, CacheDriver
 from ..execution.module import install_database_loader, uninstall_builtins
-from ..execution.metering.tracer import Tracer
+from .. import config
 
 class Executor:
+    def __init__(self, production=False, driver=None, metering=True,
+                 currency_contract='currency', balances_hash='balances'):
 
-    def __init__(self, production=False, driver=None):
-        cu_path = contracting.__path__[0]
-        cu_path = os.path.join(cu_path, 'execution', 'metering', 'cu_costs.const')
-
-        os.environ['CU_COST_FNAME'] = cu_path
-        self.tracer = Tracer()
+        self.metering = metering
 
         self.driver = driver
         if not self.driver:
@@ -28,6 +24,12 @@ class Executor:
             self.sandbox = MultiProcessingSandbox()
         else:
             self.sandbox = Sandbox()
+
+        #self.metering = metering
+
+        # Variables to tell Executor where to look for a balance to deduct for stamps if metering is enabled
+        self.currency_contract = currency_contract
+        self.balances_hash = balances_hash
 
         runtime.rt.env.update({'__Driver': self.driver})
 
@@ -48,13 +50,17 @@ class Executor:
         results = self.sandbox.execute_bag(bag, auto_commit=auto_commit, driver=driver)
         return results
 
-    #TODO stamps need to be update from 1 mil to given stamps
-
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
-                stamps=1000000, metering=True) -> tuple:
+                stamps=1000000, metering=None) -> tuple:
+
+        # Default to the self.metering property unless provided
+        if metering is None:
+            metering = self.metering
+
+        runtime.rt.env.update({'__Driver': self.driver})
 
         if driver is None:
-            driver = runtime.rt.env.update({'__Driver': self.driver})
+            driver = runtime.rt.env.get('__Driver')
 
         """
         Method that does a naive execute
@@ -69,14 +75,40 @@ class Executor:
         # Therefor we need to have a try catch to communicate success/fail back to the
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
+        balances_key = None
+        if metering:
 
+            balances_key = '{}{}{}{}{}'.format(self.currency_contract,
+                                               config.INDEX_SEPARATOR,
+                                               self.balances_hash,
+                                               config.DELIMITER,
+                                               sender)
+
+            balance = driver.get(balances_key) or 0
+
+            assert balance >= stamps, 'Sender does not have enough stamps for the transaction. \
+                                       Balance at key {} is {}'.format(balances_key, balance)
+
+        # Execute the function
         runtime.rt.set_up(stmps=stamps, meter=metering)
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                    auto_commit, environment, driver)
+        runtime.rt.tracer.stop()
 
-        runtime.rt.clean_up()
-        runtime.rt.env.update({"__Driver": self.driver})
+        # Deduct the stamps if that is enabled
+        if metering:
+            assert balances_key is not None, 'Balance key was not set properly. Cannot deduct stamps.'
+
+            to_deduct = runtime.rt.tracer.get_stamp_used()
+            balance = driver.get(balances_key) or 0
+            balance -= to_deduct
+
+            driver.set(balances_key, balance)
+            driver.commit()
+
         stamps -= runtime.rt.tracer.get_stamp_used()
+        runtime.rt.clean_up()
+        runtime.rt.env.update({'__Driver': self.driver})
 
         return status_code, result, stamps
 

@@ -48,7 +48,7 @@ class TestExecutor(TestCase):
         self.d.flush()
 
     def test_submission(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         code = '''@export
 def d():
@@ -65,12 +65,10 @@ def d():
 
         new_code = self.compiler.parse_to_code(code)
 
-        print(new_code)
-
         self.assertEqual(self.d.get_contract('stubucks'), new_code)
 
     def test_submission_then_function_call(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         code = '''@export
 def d():
@@ -106,7 +104,7 @@ def get_v():
         self.assertEqual(k['code'], code)
 
     def test_orm_variable_sets_in_contract(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'))
@@ -117,17 +115,17 @@ def get_v():
         self.assertEqual(i, 1000)
 
     def test_orm_variable_gets_in_contract(self):
-        e = Executor()
+        e = Executor(metering=False)
 
-        print(e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py')))
+        e.execute(**TEST_SUBMISSION_KWARGS,
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'))
 
         res = e.execute('stu', 'test_orm_variable_contract', 'get_v', kwargs={})
 
         self.assertEqual(res[1], None)
 
     def test_orm_variable_gets_and_sets_in_contract(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'))
@@ -138,7 +136,7 @@ def get_v():
         self.assertEqual(res[1], 1000)
 
     def test_orm_hash_sets_in_contract(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'))
@@ -153,7 +151,7 @@ def get_v():
         self.assertEqual(another_key, 9999)
 
     def test_orm_hash_gets_in_contract(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'))
@@ -163,7 +161,7 @@ def get_v():
         self.assertEqual(res[1], None)
 
     def test_orm_hash_gets_and_sets_in_contract(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'))
@@ -178,7 +176,7 @@ def get_v():
         self.assertEqual(another_key, 9999)
 
     def test_orm_foreign_variable_sets_in_contract_doesnt_work(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'))
@@ -196,7 +194,7 @@ def get_v():
         self.assertEqual(i, 1000)
 
     def test_orm_foreign_variable_gets_in_contract(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'))
@@ -211,7 +209,7 @@ def get_v():
         self.assertEqual(i, 424242)
 
     def test_orm_foreign_hash_sets_in_contract_doesnt_work(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'))
@@ -233,7 +231,7 @@ def get_v():
         self.assertEqual(status_2, 1)
 
     def test_orm_foreign_hash_gets_and_sets_in_contract(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'))
@@ -251,7 +249,7 @@ def get_v():
         self.assertEqual(another_key, 9999)
 
     def test_orm_contract_not_accessible(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         res = e.execute(**TEST_SUBMISSION_KWARGS,
             kwargs=submission_kwargs_for_file('./test_contracts/test_orm_no_contract_access.s.py'))
@@ -259,7 +257,7 @@ def get_v():
         self.assertIsInstance(res[1], Exception)
 
     def test_construct_function_sets_properly(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         r = e.execute(**TEST_SUBMISSION_KWARGS,
             kwargs=submission_kwargs_for_file('./test_contracts/test_construct_function_works.s.py'))
@@ -269,7 +267,7 @@ def get_v():
         self.assertEqual(res[1], 42)
 
     def test_import_exported_function_works(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                         kwargs=submission_kwargs_for_file('./test_contracts/import_this.s.py'))
@@ -282,7 +280,7 @@ def get_v():
         self.assertEqual(res[1], 12345 - 1000)
 
     def test_arbitrary_environment_passing_works_via_executor(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/i_use_env.s.py'))
@@ -296,7 +294,7 @@ def get_v():
         self.assertEqual(res, this_is_a_passed_in_variable)
 
     def test_arbitrary_environment_passing_fails_if_not_passed_correctly(self):
-        e = Executor()
+        e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/i_use_env.s.py'))

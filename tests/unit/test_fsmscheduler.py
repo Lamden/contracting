@@ -31,7 +31,7 @@ class TestMultiCRCache(unittest.TestCase):
     def setUpClass(self):
         num_sbb = 1
         self.master_db = driver
-        executor = Executor(production=True)
+        executor = Executor(production=True, metering=False)
         self.author = 'unittest'
         sys.meta_path.append(DatabaseFinder)
         driver.flush()

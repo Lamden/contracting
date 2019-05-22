@@ -4,7 +4,7 @@ balances = Hash(default_value=0)
 @construct
 def seed():
     balances['stu'] = 1000000
-    balances['colin'] = 100
+    balances['colin'] = 1000000
     supply.set(balances['stu'] + balances['colin'])
 
 @export
