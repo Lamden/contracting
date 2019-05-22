@@ -127,7 +127,8 @@ class Sandbox(object):
         # back to default only if it was set previously to something else
         print("sandbox flow")
         if driver:
-            runtime.rt.env.set('__Driver', driver)
+            # runtime.rt.env.set('__Driver', driver)
+            runtime.rt.env.update({'__Driver': driver})
         else:
             driver = runtime.rt.env.get('__Driver')
 
