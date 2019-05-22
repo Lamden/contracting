@@ -69,21 +69,33 @@ class Executor:
         # Therefor we need to have a try catch to communicate success/fail back to the
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
+        balance = 0
+        balances_key = None
         if self.metering:
-            balance = driver.get('{}{}{}{}{}'.format(self.currency_contract,
-                                                     config.INDEX_SEPARATOR,
-                                                     self.balances_hash,
-                                                     config.DELIMITER,
-                                                     sender)
-                                 ) or 0
+
+            balances_key = '{}{}{}{}{}'.format(self.currency_contract,
+                                               config.INDEX_SEPARATOR,
+                                               self.balances_hash,
+                                               config.DELIMITER,
+                                               sender)
+
+            balance = driver.get(balances_key) or 0
 
             assert balance >= stamps, 'Sender does not have enough stamps for the transaction'
 
-            print(balance)
-
+        # Execute the function
         runtime.rt.set_up(stmps=stamps, meter=self.metering)
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                    auto_commit, environment, driver)
+
+        # Deduct the stamps if that is enabled
+        if self.metering:
+            assert balances_key is not None, 'Balance key was not set properly. Cannot deduct stamps.'
+
+            to_deduct = runtime.rt.tracer.get_stamp_used()
+            balance -= to_deduct
+
+            driver.set(balances_key, balance)
 
         runtime.rt.clean_up()
         stamps -= runtime.rt.tracer.get_stamp_used()
