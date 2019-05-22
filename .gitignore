@@ -13,3 +13,6 @@ dump.rdb
 *.log_color
 *.csv
 var
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
