@@ -91,3 +91,14 @@ class TestMetering(TestCase):
         new_balance = self.d.get('currency.balances:stu')
 
         self.assertEqual(new_balance, 0)
+
+    def test_submitting_contract_succeeds_with_enough_stamps(self):
+        prior_balance = self.d.get('currency.balances:stu')
+
+        status, result, stamps = self.e.execute(**TEST_SUBMISSION_KWARGS,
+                                                kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'),
+                                                )
+
+        new_balance = self.d.get('currency.balances:stu')
+
+        self.assertEqual(prior_balance - new_balance, 1000000 - stamps)
