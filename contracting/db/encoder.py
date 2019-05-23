@@ -37,7 +37,7 @@ def as_object(d):
     if '__time__' in d:
         return Datetime(*d['__time__'])
     elif '__delta__' in d:
-        return Timedelta(*d['__delta__'])
+        return Timedelta(days=d['__delta__'][0], seconds=d['__delta__'][1])
     return dict(d)
 
 

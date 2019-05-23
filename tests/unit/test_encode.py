@@ -66,3 +66,10 @@ class TestEncode(TestCase):
         _t = encode(t)
 
         self.assertEqual('{"__delta__": [8, 0]}', _t)
+
+    def test_timedelta_decode(self):
+        _t = '{"__delta__": [8, 0]}'
+
+        t = decode(_t)
+
+        self.assertEqual(t, Timedelta(weeks=1, days=1))
