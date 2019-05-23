@@ -293,6 +293,7 @@ class TestHash(TestCase):
         # we care about whats included, not order
         self.assertSetEqual(set(h.all()), set(l))
 
+
 class TestForeignVariable(TestCase):
     def setUp(self):
         driver.flush()

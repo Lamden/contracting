@@ -93,9 +93,6 @@ class ForeignHash(Hash):
     def get(self, item):
         return self._driver.get('{}{}{}'.format(self.foreign_key, self.delimiter, item))
 
-    def all(self):
-        return self._driver.iter(prefix='{}{}'.format(self.foreign_key, self.delimiter))
-
     def __setitem__(self, key, value):
         raise ReferenceError
 
