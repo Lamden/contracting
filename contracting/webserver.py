@@ -5,6 +5,7 @@ import json as _json
 from contracting.client import ContractingClient
 from multiprocessing import Queue
 import ast
+import ssl
 
 WEB_SERVER_PORT = 8080
 SSL_WEB_SERVER_PORT = 443
@@ -12,7 +13,10 @@ NUM_WORKERS = 2
 
 app = Sanic(__name__)
 
-ssl = None
+ssl_enabled = False
+ssl_cert = '~/.ssh/server.csr'
+ssl_key = '~/.ssh/server.key'
+
 CORS(app, automatic_options=True)
 client = ContractingClient()
 
@@ -144,8 +148,10 @@ async def contract_exists(request):
 
 def start_webserver(q):
     app.queue = q
-    if ssl:
-        app.run(host='0.0.0.0', port=SSL_WEB_SERVER_PORT, workers=NUM_WORKERS, debug=False, access_log=False, ssl=ssl)
+    if ssl_enabled:
+        context = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+        context.load_cert_chain(ssl_cert, keyfile=ssl_key)
+        app.run(host='0.0.0.0', port=SSL_WEB_SERVER_PORT, workers=NUM_WORKERS, debug=False, access_log=False, ssl=context)
     else:
         app.run(host='0.0.0.0', port=WEB_SERVER_PORT, workers=NUM_WORKERS, debug=False, access_log=False)
 
