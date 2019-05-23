@@ -67,7 +67,7 @@ class Hash(Datum):
         return key
 
     def all(self):
-        return self._driver.iter(prefix='{}{}'.format(self._key, self._delimiter))
+        return self._driver.values(prefix='{}{}'.format(self._key, self._delimiter))
 
     def __setitem__(self, key, value):
         # handle multiple hashes differently
