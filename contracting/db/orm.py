@@ -11,10 +11,21 @@ class Datum:
 
 
 class Variable(Datum):
-    def __init__(self, contract, name, driver: ContractDriver=driver):
+    def __init__(self, contract, name, driver: ContractDriver=driver, t=None):
+        self._type = None
+
+        if isinstance(t, type) or None:
+            self._type = t
+
         super().__init__(contract, name, driver=driver)
 
     def set(self, value):
+        if self._type is not None:
+            assert isinstance(value, self._type), 'Wrong type passed to variable! Expected {}, got {}.'.format(
+                self._type,
+                type(value)
+            )
+
         self._driver.set(self._key, value)
 
     def get(self):
