@@ -140,9 +140,10 @@ class FSMScheduler:
                                     self.merge_idx -= 1
 
                             except Exception as e:
-                                pass
+                                # pass
                                 # TODO bump this guy down to spam or debugv once we feel confidence
-                                # self.log.info("Got error try to call func {}...\nerr = {}".format(func, e))
+                                self.log.fatal("Got error try to call func {}...\nerr = {}".format(func, e))
+                                self.log.fatal(traceback.format_exc())
 
                 for cache, li in rm_set.items():
                     for tup in li:
