@@ -1,6 +1,6 @@
 import json
 import decimal
-from ..stdlib.bridge.time import Datetime
+from ..stdlib.bridge.time import Datetime, Timedelta
 
 ##
 # ENCODER CLASS
@@ -15,6 +15,11 @@ class Encoder(json.JSONEncoder):
         if isinstance(o, Datetime):
             return {
                 '__time__': [o.year, o.month, o.day, o.hour, o.minute, o.second, o.microsecond]
+            }
+        if isinstance(o, Timedelta):
+            return {
+                '__delta__': [o._timedelta.weeks, o._timedelta.days, o._timedelta.hours,
+                              o._timedelta.minutes, o._timedelta.seconds]
             }
         if isinstance(o, bytes):
             return o.hex()
@@ -31,6 +36,8 @@ def encode(data: str):
 def as_object(d):
     if '__time__' in d:
         return Datetime(*d['__time__'])
+    elif '__delta__' in d:
+        return Timedelta(*d['__delta__'])
     return dict(d)
 
 
