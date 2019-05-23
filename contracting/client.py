@@ -136,6 +136,10 @@ class ContractingClient:
     # Returns abstract contract which has partial methods mapped to each exported function.
     def get_contract(self, name):
         contract = self.raw_driver.get_contract(name)
+
+        if contract is None:
+            return None
+
         tree = ast.parse(contract)
 
         function_defs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
@@ -205,5 +209,5 @@ class ContractingClient:
         contracts = []
         for key in self.raw_driver.keys():
             if key.endswith('.__code__'):
-                contracts.append(key.strip('.__code__'))
+                contracts.append(key.replace('.__code__', ''))
         return contracts

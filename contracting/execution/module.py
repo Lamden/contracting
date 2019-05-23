@@ -30,13 +30,12 @@ def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
     return __import__(name, globals, locals, fromlist, level)
 
 
-__builtins__['__import__'] = restricted_import
+def enable_restricted_imports():
+    __builtins__['__import__'] = restricted_import
 
 
-'''
-    This module will remain untested and unused until we decide how we want to 'forget' importing.
-'''
-
+def disable_restricted_imports():
+    __builtins__['__import__'] = __import__
 
 def uninstall_builtins():
     sys.meta_path.clear()
