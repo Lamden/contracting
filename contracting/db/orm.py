@@ -55,6 +55,9 @@ class Hash(Datum):
         assert len(key) <= config.MAX_KEY_SIZE, 'Key is too long ({}). Max is {}.'.format(len(key), config.MAX_KEY_SIZE)
         return key
 
+    def all(self):
+        return self._driver.iter(prefix='{}{}'.format(self._key, self._delimiter))
+
     def __setitem__(self, key, value):
         # handle multiple hashes differently
         key = self._validate_key(key)
@@ -89,6 +92,9 @@ class ForeignHash(Hash):
 
     def get(self, item):
         return self._driver.get('{}{}{}'.format(self.foreign_key, self.delimiter, item))
+
+    def all(self):
+        return self._driver.iter(prefix='{}{}'.format(self.foreign_key, self.delimiter))
 
     def __setitem__(self, key, value):
         raise ReferenceError

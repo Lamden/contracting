@@ -268,6 +268,31 @@ class TestHash(TestCase):
 
         self.assertEqual(h['hello'], 0)
 
+    def test_get_all_when_none_exist(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        self.assertEqual(h.all(), [])
+
+    def test_get_all_after_setting(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        h['1'] = 123
+        h['2'] = 456
+        h['3'] = 789
+
+        l = [123, 456, 789]
+
+        driver.commit()
+
+        # we care about whats included, not order
+        self.assertSetEqual(set(h.all()), set(l))
+
 class TestForeignVariable(TestCase):
     def setUp(self):
         driver.flush()

@@ -492,6 +492,14 @@ class ContractDriver(CacheDriver):
         v = encode(value)
         super().set(key, v)
 
+    def iter(self, prefix):
+        keys = super().iter(prefix=prefix)
+        values = []
+        for key in keys:
+            value = self.get(key)
+            values.append(value)
+        return values
+
     def make_key(self, key, field):
         return '{}{}{}'.format(key, self.delimiter, field)
 
