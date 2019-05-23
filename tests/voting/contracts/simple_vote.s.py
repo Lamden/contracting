@@ -11,7 +11,7 @@ election_start_time = Variable()
 @construct
 def seed()
     votable.set(100)
-    in_election.set(False)
+    reset_election_variables()
 
 @export
 def get_votable():
@@ -20,31 +20,28 @@ def get_votable():
 @export
 def vote(v):
     # Check to make sure that there is an election
-    if is_currently_election():
+    if in_election.get():
         submit_vote(v)
-        if election_should_end():
-            tally_votes()
+        if now - election_start_time.get() >= voting_period.get():
+            # Tally votes and set the new value
+            result = median(votes.all())
+            votable.set(result)
+
             reset_election_variables()
     else:
         # If there isn't, it might be time for a new one, so start it if so.
         # You can then submit your vote as well.
-        if election_can_start():
-            start_election()
+        if now - last_election_end_time.get() > election_interval.get():
+            # Start the election and set the proper variables
+            election_start_time.set(now)
+            in_election.set(True)
+
             submit_vote(v)
 
-def is_currently_election():
-    if in_election.get():
-        return True
-    return False
-
 def submit_vote(v):
+    v = int(v) # Cast to int. Fails if not an int
     if votes[ctx.sender] is not None:
         votes[ctx.sender] = v
-
-def election_should_end():
-    if now - election_start_time.get() >= voting_period.get():
-        return True
-    return False
 
 def median(vs):
     sorted_votes = sorted(vs)
@@ -55,20 +52,7 @@ def median(vs):
     else:
         return (sorted_votes[index] + sorted_votes[index + 1])/2
 
-def tally_votes():
-    result = median(votes.all())
-    votable.set(result)
-
 def reset_election_variables():
     last_election_end_time.set(now)
     in_election.set(False)
     del votes
-
-def election_can_start():
-    if now - last_election_end_time.get() > election_interval.get():
-        return True
-    return False
-
-def start_election():
-    election_start_time.set(now)
-    in_election.set(True)
