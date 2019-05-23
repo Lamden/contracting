@@ -11,6 +11,9 @@ from ..exceptions import DatabaseDriverNotFound
 from ..db.encoder import encode, decode
 
 from ..logger import get_logger
+from ..execution.runtime import rt
+
+from .. import config
 
 from collections import deque, defaultdict
 import marshal
@@ -30,17 +33,17 @@ class AbstractDatabaseDriver:
 
     @abc.abstractmethod
     def get(self, key):
-        """Get the specified key from the database"""
+        """Get the specified _key from the database"""
         return
 
     @abc.abstractmethod
     def set(self, key, value):
-        """Set the specified key in the database"""
+        """Set the specified _key in the database"""
         return
 
     @abc.abstractmethod
     def delete(self, key):
-        """Delete the specified key from the Database"""
+        """Delete the specified _key from the Database"""
         return
 
     @abc.abstractmethod
@@ -58,7 +61,7 @@ class AbstractDatabaseDriver:
         return
 
     def exists(self, key):
-        """Check whether a given key exists before attempting to query it"""
+        """Check whether a given _key exists before attempting to query it"""
         if self.get(key) is not None:
             return True
         return False
@@ -72,17 +75,17 @@ class LevelDBDriver(AbstractDatabaseDriver):
             self.db_name = 'cache_{}.db'.format(db)
         self.conn = plyvel.DB(self.db_name, create_if_missing=True, error_if_exists=False)
 
-    def get(self, key):
+    def get(self, _key):
         try:
-            key = key.encode()
+            _key = _key.encode()
         except AttributeError:
             pass
 
-        return self.conn.get(key)
+        return self.conn.get(_key)
 
-    def set(self, key, value):
+    def set(self, _key, value):
         try:
-            key = key.encode()
+            _key = _key.encode()
         except AttributeError:
             pass
 
@@ -90,15 +93,15 @@ class LevelDBDriver(AbstractDatabaseDriver):
             value = value.encode()
         except AttributeError:
             pass
-        self.conn.put(key, value)
+        self.conn.put(_key, value)
 
-    def delete(self, key):
+    def delete(self, _key):
         try:
-            key = key.encode()
+            _key = _key.encode()
         except AttributeError:
             pass
 
-        self.conn.delete(key)
+        self.conn.delete(_key)
 
     def iter(self, prefix):
         try:
@@ -115,25 +118,25 @@ class LevelDBDriver(AbstractDatabaseDriver):
         for k in self.keys():
             self.delete(k)
 
-    def incrby(self, key, amount=1):
-        """Increment a numeric key by one"""
+    def incrby(self, _key, amount=1):
+        """Increment a numeric _key by one"""
         try:
-            key = key.encode()
+            _key = _key.encode()
         except:
             pass
 
-        k = self.conn.get(key)
+        k = self.conn.get(_key)
 
         if k is None:
             k = 0
         k = int(k) + amount
 
-        self.conn.put(key, '{}'.format(k).encode())
+        self.conn.put(_key, '{}'.format(k).encode())
 
         return k
 '''
 
-# The theoretically fastest driver. It's a dictionary.
+# The theoretically fastest _driver. It's a dictionary.
 class DictDriver(AbstractDatabaseDriver):
     def __init__(self, **kwargs):
         self.conn = {}
@@ -162,7 +165,7 @@ class DictDriver(AbstractDatabaseDriver):
         self.conn = {}
 
     def incrby(self, key, amount=1):
-        """Increment a numeric key by one"""
+        """Increment a numeric _key by one"""
         k = self.get(key)
 
         if k is None:
@@ -262,13 +265,13 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
     def get(self, key):
         self.conn.send_command('GET', key)
         resp = self.conn.read_response()
-        #print("GET {} RESPONSE: {}".format(key,
+        #print("GET {} RESPONSE: {}".format(_key,
         return resp
 
     def set(self, key, value):
         self.conn.send_command('SET', key, value)
         resp = self.conn.read_response()
-        #print("SET {} RESPONSE: {}".format(key, resp))
+        #print("SET {} RESPONSE: {}".format(_key, resp))
 
     def delete(self, key):
         self.conn.send_command('DEL', key)
@@ -286,7 +289,7 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
         self.conn.read_response()
 
     def incrby(self, key, amount=1):
-        """Increment a numeric key by one"""
+        """Increment a numeric _key by one"""
         k = self.conn.send_command('GET', key)
 
         if k is None:
@@ -317,15 +320,27 @@ class RedisDriver(AbstractDatabaseDriver):
         return state
 
     def __setstate__(self, state):
-        for k,v in state.items():
+        for k, v in state.items():
             setattr(self, k, v)
         self._setup_conn()
 
     def get(self, key):
         val = self.conn.get(key)
+
+        if val is not None and rt.tracer.is_started():
+            cost = len(key) + len(val)
+            cost *= config.READ_COST_PER_BYTE
+            rt.tracer.add_cost(cost)
+
         return val
 
     def set(self, key, value):
+
+        if rt.tracer.is_started():
+            cost = len(key) + len(value)
+            cost *= config.READ_COST_PER_BYTE
+            rt.tracer.add_cost(cost)
+
         self.conn.set(key, value)
 
     def delete(self, key):
@@ -341,7 +356,7 @@ class RedisDriver(AbstractDatabaseDriver):
         self.conn.flushdb()
 
     def incrby(self, key, amount=1):
-        """Increment a numeric key by one"""
+        """Increment a numeric _key by one"""
         k = self.conn.get(key)
 
         if k is None:
@@ -353,7 +368,7 @@ class RedisDriver(AbstractDatabaseDriver):
 
 # Defined at the bottom since needs to be instantiated
 # after the classes have been defined. Allows us to
-# parameterize the type of database driver required
+# parameterize the type of database _driver required
 # from the top level instead of having to manually change
 # a bunch of code to get to it.
 DATABASE_DRIVER_MAPS = {
@@ -385,7 +400,7 @@ class CacheDriver(DatabaseDriver):
 
     def reset_cache(self, modified_keys=None, contract_modifications=None, original_values=None):
         # Modified keys is a dictionary of deques representing the contracts that have modified
-        # that key
+        # that _key
         if modified_keys:
             self.modified_keys = copy.deepcopy(modified_keys)
         else:
@@ -421,7 +436,7 @@ class CacheDriver(DatabaseDriver):
 
     def set(self, key, value):
         self.contract_modifications[-1].update({key: value})
-        # TODO: May have multiple instances of contract_idx if multiple sets on same key
+        # TODO: May have multiple instances of contract_idx if multiple sets on same _key
         self.modified_keys[key].append(len(self.contract_modifications) - 1)
 
     def set_direct(self, key, value):

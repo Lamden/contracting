@@ -16,15 +16,15 @@ class SenecaError(Exception):
 
 class DatabaseDriverNotFound(SenecaError):
     """
-    Could not find the specified database driver when
+    Could not find the specified database _driver when
     looking for it
 
-    :ivar driver: The name of the database driver the
+    :ivar _driver: The name of the database _driver the
                   the user attempted to load
     :ivar known_drivers: The list of known drivers
                          currently supported in Seneca
     """
-    fmt = "Unknown database driver '{driver}', known drivers '{known_drivers}'"
+    fmt = "Unknown database _driver '{_driver}', known drivers '{known_drivers}'"
 
 
 class ContractExists(SenecaError):

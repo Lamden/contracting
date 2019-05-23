@@ -19,7 +19,7 @@ client = ContractingClient()
 
 @app.route("/", methods=["GET",])
 async def submit_transaction(request):
-    return text("I\'m a teapot", status=418)
+    return text('indeed')
 
 
 # Returns {'contracts': JSON List of strings}

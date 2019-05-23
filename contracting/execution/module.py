@@ -7,6 +7,7 @@ from importlib import invalidate_caches, __import__
 from ..db.driver import ContractDriver
 from ..stdlib import env
 from ..execution.runtime import rt
+from ..db.orm import Variable, Hash
 
 from types import ModuleType
 import marshal
@@ -16,7 +17,7 @@ import marshal
 # an 'import' statement. If the globals dictionary contains {'__contract__': True}, then this function will make sure
 # that the module being imported comes from the database and not from builtins or site packages.
 #
-# For all exec statements, we add the {'__contract__': True} key to the globals to protect against unwanted imports.
+# For all exec statements, we add the {'__contract__': True} _key to the globals to protect against unwanted imports.
 #
 # Note: anything installed with pip or in site-packages will also not work, so contract package names *must* be unique.
 #
@@ -69,8 +70,6 @@ class DatabaseFinder(MetaPathFinder):
         return DatabaseLoader()
 
 
-from copy import deepcopy
-
 MODULE_CACHE = {}
 CACHE = {}
 
@@ -83,23 +82,6 @@ class DatabaseLoader(Loader):
         return None
 
     def exec_module(self, module):
-
-        # m = CACHE.get(module.__name__)
-        # if m is None:
-        #     code = self.d.get_contract(module.__name__)
-        #
-        #     if code is None:
-        #         raise ImportError("Module {} not found".format(module.__name__))
-        #
-        #     m = ModuleType(module.__name__)
-        #     exec(code, vars(m))
-        #     CACHE[module.__name__] = m
-        #
-        # mod_copy = dict(deepcopy(vars(m)))
-        #
-        # for k, v in vars(mod_copy).items():
-        #     if not k.startswith('__'):
-        #         vars(module).update({k: v})
 
         # fetch the individual contract
         code = MODULE_CACHE.get(module.__name__)
@@ -131,11 +113,10 @@ class DatabaseLoader(Loader):
         rt.ctx.append(module.__name__)
 
         # execute the module with the std env and update the module to pass forward
-
         exec(code, scope)
-        vars(module).update(scope)
 
-        #vars(module)['__builtins__'].update(illegal_builtins_dict)
+        # Update the module's attributes with the new scope
+        vars(module).update(scope)
         del vars(module)['__builtins__']
 
         rt.loaded_modules.append(rt.ctx.pop())

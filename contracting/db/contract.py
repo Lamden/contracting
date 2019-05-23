@@ -5,10 +5,11 @@ from types import ModuleType
 from ..stdlib import env
 from .. import config
 
+driver = rt.env.get('__Driver') or ContractDriver()
 
 class Contract:
-    def __init__(self, driver: ContractDriver=rt.driver):
-        self.driver = driver
+    def __init__(self, driver: ContractDriver=driver):
+        self._driver = driver
 
     def submit(self, name, code, author):
         #
@@ -16,7 +17,7 @@ class Contract:
         # if not isinstance(spec.loader, DatabaseLoader):
         #     raise ImportError("module {} cannot be named a Python builtin name.".format(name))
         #
-        # assert self.driver.get_contract(name) is None, 'Module {} already exists'.format(name)
+        # assert self._driver.get_contract(name) is None, 'Module {} already exists'.format(name)
 
         c = ContractingCompiler(module_name=name)
 
@@ -37,4 +38,5 @@ class Contract:
         if scope.get(config.INIT_FUNC_NAME) is not None:
             scope[config.INIT_FUNC_NAME]()
 
-        self.driver.set_contract(name=name, code=code_obj, author=author, overwrite=False)
+        self._driver.set_contract(name=name, code=code_obj, author=author, overwrite=False)
+        self._driver.commit()

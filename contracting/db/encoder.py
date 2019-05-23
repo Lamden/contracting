@@ -18,6 +18,8 @@ class Encoder(json.JSONEncoder):
             }
         if isinstance(o, bytes):
             return o.hex()
+        if isinstance(o, decimal.Decimal):
+            return float(o)
         return super().default(o)
 
 

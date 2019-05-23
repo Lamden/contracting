@@ -8,35 +8,36 @@ Below is an example of a simple token smart contract in Python. With it you can 
 
 ```python
 def token_contract():
-    from contracting.libs.datatypes import hmap
+     balances = Hash()
+     owner = Variable()
+     
+     @construct
+     def seed():
+         owner.set(ctx.caller)
 
-    balances = hmap('balances', str, int)
+     @export
+     def balance_of(wallet_id):
+         return balances[wallet_id]
 
-    @export
-    def balance_of(wallet_id):
-        return balances[wallet_id]
+     @export
+     def transfer(to, amount):
+         balances[ctx.caller] -= amount
+         balances[to] += amount
+         sender_balance = balances[ctx.caller]
 
-    @export
-    def transfer(to, amount):
-        balances[rt['sender']] -= amount
-        balances[to] += amount
-        sender_balance = balances[rt['sender']]
+         assert sender_balance >= 0, "Sender balance must be non-negative!!!"
 
-        assert sender_balance >= 0, "Sender balance must be non-negative!!!"
+     @export
+     def mint(to, amount):
+         assert ctx.caller == owner.get(), 'Only the original contract author can mint!'
+         balances[to] += amount
 
-    @export
-    def mint(to, amount):
-        assert rt['sender'] == rt['author'], 'Only the original contract author can mint!'
-        balances[to] += amount
 ```
 
 ### Installing
 
 ```
-git clone https://github.com/Lamden/contracting.git
-cd contracting
-git pull origin dev
-python3 setup.py develop
+pip3 install contracting
 
 brew install redis
 brew services start redis
@@ -47,12 +48,16 @@ brew services start redis
 With Contracting now installed, you can develop smart contracts without an instance of the blockchain. This is to improve the speed of development. Here is how you would go about testing a token contract in a Jupyter notebook / IPython console:
 
 ```python
-In [1]: from contracting.tooling import *
+In [1]: from contracting.client import ContractingClient
 
 In [2]: def token_contract():
-   ...:     from contracting.libs.datatypes import hmap
    ...:
-   ...:     balances = hmap('balances', str, int)
+   ...:     balances = Hash()
+   ...:     owner = Variable()
+   ...:     
+   ...:     @construct
+   ...:     def seed():
+   ...:         owner.set(ctx.caller)
    ...:
    ...:     @export
    ...:     def balance_of(wallet_id):
@@ -60,31 +65,28 @@ In [2]: def token_contract():
    ...:
    ...:     @export
    ...:     def transfer(to, amount):
-   ...:         balances[rt['sender']] -= amount
+   ...:         balances[ctx.caller] -= amount
    ...:         balances[to] += amount
-   ...:         sender_balance = balances[rt['sender']]
+   ...:         sender_balance = balances[ctx.caller]
    ...:
    ...:         assert sender_balance >= 0, "Sender balance must be non-negative!!!"
    ...:
    ...:     @export
    ...:     def mint(to, amount):
-   ...:         assert rt['sender'] == rt['author'], 'Only the original contract author can mint!'
+   ...:         assert ctx.caller == owner.get(), 'Only the original contract author can mint!'
    ...:         balances[to] += amount
    ...:
 
-In [3]: d = default_driver()
-   ...: d.r.flushdb()
-Out[3]: True
+In [3]: client = ContractingClient(signer='stu')
 
-In [4]: d.publish_function(token_contract, contract_name='token', author='stu')
+In [4]: client.submit(token_contract, name='token')
 
-In [5]: token = ContractWrapper('token', default_sender='stu')
+In [5]: token = client.get_contract('token')
 
 In [6]: token.mint(to='stu', amount=100000)
-Out[6]: {'status': 'success', 'output': None, 'remaining_stamps': 0}
 
 In [7]: token.balance_of(wallet_id='stu')
-Out[7]: {'status': 'success', 'output': Decimal('100000'), 'remaining_stamps': 0}
+Out[7]: 100000
 ```
 
 ### Get started with Contracting by Example
