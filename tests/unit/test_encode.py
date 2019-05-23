@@ -1,7 +1,7 @@
 from unittest import TestCase
 from contracting.db.encoder import encode, decode
 from decimal import Decimal as dec
-from contracting.stdlib.bridge.time import Datetime
+from contracting.stdlib.bridge.time import Datetime, Timedelta
 from datetime import datetime
 
 class TestEncode(TestCase):
@@ -59,3 +59,10 @@ class TestEncode(TestCase):
         d = decode(_d)
 
         self.assertEqual(Datetime(2019, 1, 1), d)
+
+    def test_timedelta_encode(self):
+        t = Timedelta(weeks=1, days=1)
+
+        _t = encode(t)
+
+        self.assertEqual('{"__delta__": [8, 0]}', _t)

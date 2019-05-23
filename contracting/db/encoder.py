@@ -18,13 +18,13 @@ class Encoder(json.JSONEncoder):
             }
         if isinstance(o, Timedelta):
             return {
-                '__delta__': [o._timedelta.weeks, o._timedelta.days, o._timedelta.hours,
-                              o._timedelta.minutes, o._timedelta.seconds]
+                '__delta__': [o._timedelta.days, o._timedelta.seconds]
             }
         if isinstance(o, bytes):
             return o.hex()
         if isinstance(o, decimal.Decimal):
             return float(o)
+
         return super().default(o)
 
 

@@ -9,7 +9,7 @@ voting_period = Variable() # Time delta. How long you can vote for
 election_start_time = Variable()
 
 @construct
-def seed()
+def seed():
     votable.set(100)
     reset_election_variables()
 
