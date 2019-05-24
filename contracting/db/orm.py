@@ -73,7 +73,7 @@ class Hash(Datum):
         return self._driver.items(prefix='{}{}'.format(self._key, self._delimiter))
 
     def clear(self):
-        kvs = self.items()
+        kvs = self._items()
         for k, v in kvs:
             self._driver.delete(k)
 

@@ -311,6 +311,29 @@ class TestHash(TestCase):
 
         self.assertListEqual(kvs, got)
 
+    def test_clear_items_deletes_all_key_value_pairs(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        h['1'] = 123
+        h['2'] = 456
+        h['3'] = 789
+
+        driver.commit()
+
+        kvs = sorted([(b'blah.scoob:3', 789), (b'blah.scoob:1', 123), (b'blah.scoob:2', 456)])
+
+        got = sorted(h._items())
+
+        self.assertListEqual(kvs, got)
+
+        h.clear()
+
+        got = sorted(h._items())
+
+        self.assertListEqual([], got)
 
 
 class TestForeignVariable(TestCase):
