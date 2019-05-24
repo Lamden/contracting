@@ -24,7 +24,6 @@ def get_votable():
 @export
 def vote(v):
     # Check to make sure that there is an election
-    print(str(now))
     if in_election.get():
         submit_vote(v)
         if now - election_start_time.get() >= voting_period.get():
@@ -45,10 +44,12 @@ def vote(v):
         else:
             raise Exception('Outside of voting parameters.')
 
+
 def submit_vote(v):
     v = int(v) # Cast to int. Fails if not an int
-    if votes[ctx.caller] is not None:
-        votes[ctx.caller] = v
+    assert votes[ctx.caller] is None, '{} has already voted! Cannot vote twice.'.format(ctx.caller)
+    votes[ctx.caller] = v
+
 
 def median(vs):
     sorted_votes = sorted(vs)
@@ -58,6 +59,7 @@ def median(vs):
         return sorted_votes[index]
     else:
         return (sorted_votes[index] + sorted_votes[index + 1])/2
+
 
 def reset_election_variables():
     last_election_end_time.set(now)
