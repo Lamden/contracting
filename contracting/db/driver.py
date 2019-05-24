@@ -456,6 +456,8 @@ class CacheDriver(DatabaseDriver):
                         break
                 if len(i) == 0:
                     i = None
+                if not i:
+                    self.log.important("*** key: {} idx {} modified_keys {}".format(key, idx, self.modified_keys))
                 self.modified_keys[key] = i
 
             self.contract_modifications = self.contract_modifications[:idx + 1]
