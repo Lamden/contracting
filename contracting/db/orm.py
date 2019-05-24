@@ -11,10 +11,21 @@ class Datum:
 
 
 class Variable(Datum):
-    def __init__(self, contract, name, driver: ContractDriver=driver):
+    def __init__(self, contract, name, driver: ContractDriver=driver, t=None):
+        self._type = None
+
+        if isinstance(t, type) or None:
+            self._type = t
+
         super().__init__(contract, name, driver=driver)
 
     def set(self, value):
+        if self._type is not None:
+            assert isinstance(value, self._type), 'Wrong type passed to variable! Expected {}, got {}.'.format(
+                self._type,
+                type(value)
+            )
+
         self._driver.set(self._key, value)
 
     def get(self):
@@ -54,6 +65,17 @@ class Hash(Datum):
 
         assert len(key) <= config.MAX_KEY_SIZE, 'Key is too long ({}). Max is {}.'.format(len(key), config.MAX_KEY_SIZE)
         return key
+
+    def all(self):
+        return self._driver.values(prefix='{}{}'.format(self._key, self._delimiter))
+
+    def _items(self):
+        return self._driver.items(prefix='{}{}'.format(self._key, self._delimiter))
+
+    def clear(self):
+        kvs = self._items()
+        for k, v in kvs:
+            self._driver.delete(k)
 
     def __setitem__(self, key, value):
         # handle multiple hashes differently

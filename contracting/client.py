@@ -67,7 +67,7 @@ class AbstractContract:
                 return variable
 
             # otherwise, see if contract.items: has more than one entry
-            if len(self.executor.driver.iter(prefix=self.name+'.'+item+':')) > 0:
+            if len(self.executor.driver.values(prefix=self.name + '.' + item + ':')) > 0:
 
                 # if so, it is a hash. return the hash object
                 return Hash(contract=self.name, name=item)
@@ -99,13 +99,15 @@ class ContractingClient:
     def __init__(self, signer='sys',
                  submission_filename=os.path.join(os.path.dirname(__file__), 'contracts/submission.s.py'),
                  executor=Executor(metering=False),
-                 compiler=ContractingCompiler()):
+                 compiler=ContractingCompiler(),
+                 environment={}):
 
         self.executor = executor
         self.raw_driver = self.executor.driver
         self.signer = signer
         self.compiler = compiler
         self.submission_filename = submission_filename
+        self.environment = environment
 
         # Seed the genesis contracts into the instance
         with open(self.submission_filename) as f:
@@ -153,7 +155,7 @@ class ContractingClient:
 
         return AbstractContract(name=name,
                                 signer=self.signer,
-                                environment={},
+                                environment=self.environment,
                                 executor=self.executor,
                                 funcs=funcs)
 

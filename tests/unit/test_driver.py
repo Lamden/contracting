@@ -486,6 +486,8 @@ def stu():
 
             self.d.delete_contract(name)
 
+            self.d.commit()
+
             self.assertIsNone(self.d.get_contract(name))
 
     def test_is_contract_no(self):
