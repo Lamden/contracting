@@ -478,7 +478,6 @@ class CacheDriver(DatabaseDriver):
         keys = set(super().iter(prefix=prefix))
         for k in self.modified_keys.keys():
             if k not in keys and k.startswith(prefix):
-                print('adding {}'.format(k))
                 keys.add(k)
         return list(keys)
 
