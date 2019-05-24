@@ -11,6 +11,10 @@ election_start_time = Variable()
 @construct
 def seed():
     votable.set(100)
+
+    election_interval.set(datetime.WEEKS * 1)
+    voting_period.set(datetime.DAYS * 1)
+
     reset_election_variables()
 
 @export
@@ -20,6 +24,7 @@ def get_votable():
 @export
 def vote(v):
     # Check to make sure that there is an election
+    print(str(now))
     if in_election.get():
         submit_vote(v)
         if now - election_start_time.get() >= voting_period.get():
@@ -37,11 +42,13 @@ def vote(v):
             in_election.set(True)
 
             submit_vote(v)
+        else:
+            raise Exception('Outside of voting parameters.')
 
 def submit_vote(v):
     v = int(v) # Cast to int. Fails if not an int
-    if votes[ctx.sender] is not None:
-        votes[ctx.sender] = v
+    if votes[ctx.caller] is not None:
+        votes[ctx.caller] = v
 
 def median(vs):
     sorted_votes = sorted(vs)
