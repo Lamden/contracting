@@ -142,5 +142,30 @@ class TestSimpleVotingContract(TestCase):
         self.assertEqual(self.c.raw_driver.get('simple_vote.votes:f'), None)
         self.assertEqual(self.c.raw_driver.get('simple_vote.votes:g'), None)
 
-    def test_last_vote_traceback(self):
-        self.simple_vote.vote(v=1, environment={'now': Datetime(2020, 1, 1)}, signer='g')
+    def test_post_election_sets_new_value_to_median(self):
+        values = [360, 6920, 118, 149, 656, 635, 511, 1770, 362, 215,
+                  575, 743, 485, 567, 842, 491, 973, 893, 196, 245]
+
+        self.simple_vote.vote(v=values[0], environment={'now': Datetime(2019, 1, 10)}, signer='a')
+        self.simple_vote.vote(v=values[1], environment={'now': Datetime(2019, 1, 10)}, signer='b')
+        self.simple_vote.vote(v=values[2], environment={'now': Datetime(2019, 1, 10)}, signer='c')
+        self.simple_vote.vote(v=values[3], environment={'now': Datetime(2019, 1, 10)}, signer='d')
+        self.simple_vote.vote(v=values[4], environment={'now': Datetime(2019, 1, 10)}, signer='e')
+        self.simple_vote.vote(v=values[5], environment={'now': Datetime(2019, 1, 10)}, signer='f')
+        self.simple_vote.vote(v=values[6], environment={'now': Datetime(2019, 1, 10)}, signer='g')
+        self.simple_vote.vote(v=values[7], environment={'now': Datetime(2019, 1, 10)}, signer='h')
+        self.simple_vote.vote(v=values[8], environment={'now': Datetime(2019, 1, 10)}, signer='i')
+        self.simple_vote.vote(v=values[9], environment={'now': Datetime(2019, 1, 10)}, signer='j')
+        self.simple_vote.vote(v=values[10], environment={'now': Datetime(2019, 1, 10)}, signer='k')
+        self.simple_vote.vote(v=values[11], environment={'now': Datetime(2019, 1, 10)}, signer='l')
+        self.simple_vote.vote(v=values[12], environment={'now': Datetime(2019, 1, 10)}, signer='m')
+        self.simple_vote.vote(v=values[13], environment={'now': Datetime(2019, 1, 10)}, signer='n')
+        self.simple_vote.vote(v=values[14], environment={'now': Datetime(2019, 1, 10)}, signer='o')
+        self.simple_vote.vote(v=values[15], environment={'now': Datetime(2019, 1, 10)}, signer='p')
+        self.simple_vote.vote(v=values[16], environment={'now': Datetime(2019, 1, 10)}, signer='q')
+        self.simple_vote.vote(v=values[17], environment={'now': Datetime(2019, 1, 10)}, signer='r')
+        self.simple_vote.vote(v=values[18], environment={'now': Datetime(2019, 1, 10)}, signer='s')
+
+        self.simple_vote.vote(v=values[19], environment={'now': Datetime(2020, 1, 10)}, signer='t')
+
+        self.assertEqual(self.simple_vote.votable.get(), 539)
