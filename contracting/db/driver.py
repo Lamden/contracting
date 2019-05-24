@@ -462,7 +462,12 @@ class CacheDriver(DatabaseDriver):
 
     def commit(self):
         for key, idx in self.modified_keys.items():
-            super().set(key, self.contract_modifications[idx[-1]][key])
+            try:
+                super().set(key, self.contract_modifications[idx[-1]][key])
+            except Exception as e:
+                self.log.fatal("Error: modified_keys: {}, contract_modifications: {}, key: {}, idx: {}\nerr = {}".format(self.modified_keys, self.contract_modifications, key, idx, e))
+                self.log.fatal(traceback.format_exc())
+                raise e
 
         self.reset_cache()
 
