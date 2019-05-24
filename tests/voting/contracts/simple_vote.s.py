@@ -30,7 +30,9 @@ def vote(v):
             # Tally votes and set the new value
             result = median(votes.all())
             votable.set(result)
-
+            print('im here')
+            votes.clear()
+            print('now im here')
             reset_election_variables()
     else:
         # If there isn't, it might be time for a new one, so start it if so.
@@ -64,4 +66,3 @@ def median(vs):
 def reset_election_variables():
     last_election_end_time.set(now)
     in_election.set(False)
-    #del votes

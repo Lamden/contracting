@@ -439,6 +439,9 @@ class CacheDriver(DatabaseDriver):
         # TODO: May have multiple instances of contract_idx if multiple sets on same _key
         self.modified_keys[key].append(len(self.contract_modifications) - 1)
 
+    def delete(self, key):
+        self.set(key, None) # Indirection is going on here where None gets encoded into JSONs none
+
     def set_direct(self, key, value):
         super().set(key, value)
 
@@ -462,9 +465,22 @@ class CacheDriver(DatabaseDriver):
 
     def commit(self):
         for key, idx in self.modified_keys.items():
-            super().set(key, self.contract_modifications[idx[-1]][key])
+            value = self.contract_modifications[idx[-1]][key]
+            if value == 'null': # This shit is null because that is the JSON representation and the data is being encoded in the contract driver
+                super().delete(key)
+            else:
+                super().set(key, value)
 
         self.reset_cache()
+    #
+
+    def iter(self, prefix):
+        keys = set(super().iter(prefix=prefix))
+        for k in self.modified_keys.keys():
+            if k not in keys and k.startswith(prefix):
+                print('adding {}'.format(k))
+                keys.add(k)
+        return list(keys)
 
     def new_tx(self):
         self.contract_modifications.append(dict())
@@ -501,7 +517,7 @@ class ContractDriver(CacheDriver):
         return values
 
     def items(self, prefix):
-        keys = super().iter(prefix=prefix)
+        keys = self.iter(prefix=prefix)
         kvs = []
         for key in keys:
             value = self.get(key)

@@ -3,7 +3,7 @@ from contracting.client import ContractingClient
 from contracting.stdlib.bridge.time import Datetime, Timedelta
 
 
-class TestSenecaClientReplacesExecutor(TestCase):
+class TestSimpleVotingContract(TestCase):
     def setUp(self):
         self.c = ContractingClient(signer='stu', environment={'now': Datetime(2019, 1, 1)})
         self.c.raw_driver.flush()
@@ -25,7 +25,8 @@ class TestSenecaClientReplacesExecutor(TestCase):
         self.simple_vote = self.c.get_contract('simple_vote')
 
     def tearDown(self):
-        self.c.raw_driver.flush()
+        #self.c.raw_driver.flush()
+        pass
 
     def test_votable_is_100_after_submission(self):
         self.assertEqual(self.simple_vote.votable.get(), 100)
@@ -111,6 +112,8 @@ class TestSenecaClientReplacesExecutor(TestCase):
 
         self.assertEqual(self.simple_vote.last_election_end_time.get(), Datetime(2020, 1, 1))
 
+        #print(self.simple_vote.votes['g'])
+
     def test_all_votes_deleted_after_vote_is_done(self):
         self.simple_vote.vote(v=7, environment={'now': Datetime(2019, 1, 10)}, signer='a')
         self.simple_vote.vote(v=6, environment={'now': Datetime(2019, 1, 10)}, signer='b')
@@ -128,10 +131,16 @@ class TestSenecaClientReplacesExecutor(TestCase):
 
         self.simple_vote.vote(v=1, environment={'now': Datetime(2020, 1, 1)}, signer='g')
 
-        self.assertEqual(self.simple_vote.votes['a'], None)
-        self.assertEqual(self.simple_vote.votes['b'], None)
-        self.assertEqual(self.simple_vote.votes['c'], None)
-        self.assertEqual(self.simple_vote.votes['d'], None)
-        self.assertEqual(self.simple_vote.votes['e'], None)
-        self.assertEqual(self.simple_vote.votes['f'], None)
-        self.assertEqual(self.simple_vote.votes['g'], None)
+        # because the client still requires at least one entry on the hash to be existance (feature to extract
+        # variable names from compiled contract still doesn't exist) we have to check via the raw driver
+
+        self.assertEqual(self.c.raw_driver.get('simple_vote.votes:a'), None)
+        self.assertEqual(self.c.raw_driver.get('simple_vote.votes:b'), None)
+        self.assertEqual(self.c.raw_driver.get('simple_vote.votes:c'), None)
+        self.assertEqual(self.c.raw_driver.get('simple_vote.votes:d'), None)
+        self.assertEqual(self.c.raw_driver.get('simple_vote.votes:e'), None)
+        self.assertEqual(self.c.raw_driver.get('simple_vote.votes:f'), None)
+        self.assertEqual(self.c.raw_driver.get('simple_vote.votes:g'), None)
+
+    def test_last_vote_traceback(self):
+        self.simple_vote.vote(v=1, environment={'now': Datetime(2020, 1, 1)}, signer='g')

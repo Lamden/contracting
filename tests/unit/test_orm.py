@@ -331,6 +331,8 @@ class TestHash(TestCase):
 
         h.clear()
 
+        driver.commit()
+
         got = sorted(h._items())
 
         self.assertListEqual([], got)
