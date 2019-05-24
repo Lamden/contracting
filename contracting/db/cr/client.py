@@ -117,33 +117,25 @@ class FSMScheduler:
                 for cache, poll_set in self.events.items():
                     for func, succ_state, is_merge in poll_set:
 
-                        if not is_merge:
+                        # try/catch here because calling fn might return an invalid transition
+                        #
+                        try:
                             func()
                             if cache.state == succ_state:
-                                self.log.debug("Polling function call {} resulting in succ state {}. Removing function from poll "
+                                self.log.important("Polling function call {} resulting in succ state {}. Removing function from poll "
                                                "set.".format(func, succ_state))
                                 rm_set[cache].append((func, succ_state, is_merge))
-
-                        else:
-                            # try/catch here because calling fn might return an invalid transition
-                            #
-                            try:
-                                func()
-                                if cache.state == succ_state:
-                                    # TODO bump this guy down to debug or debugv once we feel confidence
-                                    self.log.debug("Polling function call {} resulting in succ state {}. Removing function from poll "
-                                                   "set.".format(func, succ_state))
-                                    rm_set[cache].append((func, succ_state, is_merge))
-
+                                if is_merge:
                                     self.log.info("Merging cache {} to master".format(cache))
 
                                     self.merge_idx -= 1
 
-                            except Exception as e:
-                                # pass
-                                # TODO bump this guy down to spam or debugv once we feel confidence
-                                self.log.fatal("Got error try to call func {}...\nerr = {}".format(func, e))
-                                self.log.fatal(traceback.format_exc())
+                        except Exception as e:
+                            # pass
+                            # TODO bump this guy down to spam or debugv once we feel confidence
+                            self.log.fatal("Got error try to call func {} {} {}\nerr = {}".format(func, succ_state, is_merge, e))
+                            self.log.fatal(traceback.format_exc())
+                            raise e
 
                 for cache, li in rm_set.items():
                     for tup in li:
