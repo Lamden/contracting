@@ -17,6 +17,7 @@ from .. import config
 
 from collections import deque, defaultdict
 import marshal
+import traceback
 
 class AbstractDatabaseDriver:
     __metaclass__ = abc.ABCMeta
