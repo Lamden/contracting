@@ -473,7 +473,8 @@ class CacheDriver(DatabaseDriver):
     def commit(self):
         for key, idx in self.modified_keys.items():
             try:
-                super().set(key, self.contract_modifications[idx[-1]][key])
+                if idx is not None:
+                    super().set(key, self.contract_modifications[idx[-1]][key])
             except Exception as e:
                 self.log.fatal("Error: modified_keys: {}, contract_modifications: {}, key: {}, idx: {}\nerr = {}".format(self.modified_keys, self.contract_modifications, key, idx, e))
                 self.log.fatal(traceback.format_exc())
