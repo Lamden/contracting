@@ -440,6 +440,12 @@ class CacheDriver(DatabaseDriver):
         self.contract_modifications[-1].update({key: value})
         # TODO: May have multiple instances of contract_idx if multiple sets on same _key
         self.modified_keys[key].append(len(self.contract_modifications) - 1)
+        is_print = False
+        for key, idx in self.modified_keys.items():
+            if not idx:
+                is_print = True
+        if is_print:
+            self.log.important("&&&& key: {} value {} leng {} {}".format(key, value, len(self.contract_modifications) - 1, self.modified_keys))
 
     def set_direct(self, key, value):
         super().set(key, value)
