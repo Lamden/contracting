@@ -55,4 +55,4 @@ def median(vs):
 def reset_election_variables():
     last_election_end_time.set(now)
     in_election.set(False)
-    del votes
+    #del votes
