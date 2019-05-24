@@ -293,6 +293,25 @@ class TestHash(TestCase):
         # we care about whats included, not order
         self.assertSetEqual(set(h.all()), set(l))
 
+    def test_items_returns_kv_pairs(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        h['1'] = 123
+        h['2'] = 456
+        h['3'] = 789
+
+        driver.commit()
+
+        kvs = sorted([(b'blah.scoob:3', 789), (b'blah.scoob:1', 123), (b'blah.scoob:2', 456)])
+
+        got = sorted(h._items())
+
+        self.assertListEqual(kvs, got)
+
+
 
 class TestForeignVariable(TestCase):
     def setUp(self):

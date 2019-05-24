@@ -500,6 +500,14 @@ class ContractDriver(CacheDriver):
             values.append(value)
         return values
 
+    def items(self, prefix):
+        keys = super().iter(prefix=prefix)
+        kvs = []
+        for key in keys:
+            value = self.get(key)
+            kvs.append((key, value))
+        return kvs
+
     def make_key(self, key, field):
         return '{}{}{}'.format(key, self.delimiter, field)
 

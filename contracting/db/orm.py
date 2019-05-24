@@ -69,6 +69,14 @@ class Hash(Datum):
     def all(self):
         return self._driver.values(prefix='{}{}'.format(self._key, self._delimiter))
 
+    def _items(self):
+        return self._driver.items(prefix='{}{}'.format(self._key, self._delimiter))
+
+    def clear(self):
+        kvs = self.items()
+        for k, v in kvs:
+            self._driver.delete(k)
+
     def __setitem__(self, key, value):
         # handle multiple hashes differently
         key = self._validate_key(key)
