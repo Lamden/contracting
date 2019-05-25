@@ -169,3 +169,4 @@ class TestSimpleVotingContract(TestCase):
         self.simple_vote.vote(v=values[19], environment={'now': Datetime(2020, 1, 10)}, signer='t')
 
         self.assertEqual(self.simple_vote.votable.get(), 539)
+        self.assertEqual(self.simple_vote.get_votable(), 539)
