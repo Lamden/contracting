@@ -146,12 +146,13 @@ class Sandbox(object):
         uninstall_builtins()
         install_database_loader()
 
-    def execute_bag(self, txbag, auto_commit=False, driver=None):
+    def execute_bag(self, txbag, environment={}, auto_commit=False, driver=None):
         response_obj = {}
+
         for idx, tx in txbag:
             response_obj[idx] = self.execute(tx.payload.sender, tx.contract_name, tx.func_name,
                                              tx.kwargs, auto_commit=auto_commit,
-                                             environment={}, driver=driver)
+                                             environment=environment, driver=driver)
         return response_obj
 
     def execute(self, sender, contract_name, function_name, kwargs, auto_commit=True,
@@ -217,7 +218,7 @@ class MultiProcessingSandbox(Sandbox):
                                contract_modifications=updated_driver.contract_modifications,
                                original_values=updated_driver.original_values)
 
-    def execute_bag(self, txbag, auto_commit=False, driver=None):
+    def execute_bag(self, txbag, environment={}, auto_commit=False, driver=None):
         self._lazy_instantiate()
 
         _, child_pipe = self.pipe
@@ -234,7 +235,7 @@ class MultiProcessingSandbox(Sandbox):
                 'function_name': tx.func_name,
                 'kwargs': tx.kwargs,
                 'auto_commit': auto_commit,
-                'environment': {}
+                'environment': environment
             }
 
         child_pipe.send(msg)
