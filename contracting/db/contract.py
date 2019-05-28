@@ -32,6 +32,7 @@ class Contract:
         scope = env.gather()
         scope.update({'ctx': ctx})
         scope.update({'__contract__': True})
+        scope.update(rt.env)
 
         exec(code_obj, scope)
 
@@ -39,4 +40,3 @@ class Contract:
             scope[config.INIT_FUNC_NAME]()
 
         self._driver.set_contract(name=name, code=code_obj, author=author, overwrite=False)
-        self._driver.commit()

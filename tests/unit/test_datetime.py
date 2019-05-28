@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.stdlib.bridge.time import Datetime
+from contracting.stdlib.bridge.time import Datetime, Timedelta
 from datetime import datetime as dt
 from datetime import timedelta
 
@@ -157,3 +157,9 @@ class TestDatetime(TestCase):
         e = Datetime(then.year, then.month, then.day)
 
         self.assertFalse(e <= d)
+
+    def test_datetime_subtraction_to_proper_timedelta(self):
+        d = Datetime(2019, 1, 1)
+        e = Datetime(2018, 1, 1)
+
+        self.assertEqual((d - e), Timedelta(days=365))

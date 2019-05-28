@@ -17,7 +17,6 @@ from .. import config
 
 from collections import deque, defaultdict
 import marshal
-import traceback
 
 class AbstractDatabaseDriver:
     __metaclass__ = abc.ABCMeta
@@ -441,6 +440,9 @@ class CacheDriver(DatabaseDriver):
         # TODO: May have multiple instances of contract_idx if multiple sets on same _key
         self.modified_keys[key].append(len(self.contract_modifications) - 1)
 
+    def delete(self, key):
+        self.set(key, None) # Indirection is going on here where None gets encoded into JSONs none
+
     def set_direct(self, key, value):
         super().set(key, value)
 
@@ -464,15 +466,21 @@ class CacheDriver(DatabaseDriver):
 
     def commit(self):
         for key, idx in self.modified_keys.items():
-            try:
-                if idx is not None:
-                    super().set(key, self.contract_modifications[idx[-1]][key])
-            except Exception as e:
-                self.log.fatal("Error: modified_keys: {}, contract_modifications: {}, key: {}, idx: {}\nerr = {}".format(self.modified_keys, self.contract_modifications, key, idx, e))
-                self.log.fatal(traceback.format_exc())
-                raise e
+            value = self.contract_modifications[idx[-1]][key]
+            if value == 'null': # This shit is null because that is the JSON representation and the data is being encoded in the contract driver
+                super().delete(key)
+            else:
+                super().set(key, value)
 
         self.reset_cache()
+    #
+
+    def iter(self, prefix):
+        keys = set(super().iter(prefix=prefix))
+        for k in self.modified_keys.keys():
+            if k not in keys and k.startswith(prefix):
+                keys.add(k)
+        return list(keys)
 
     def new_tx(self):
         self.contract_modifications.append(dict())
@@ -499,6 +507,22 @@ class ContractDriver(CacheDriver):
     def set(self, key, value):
         v = encode(value)
         super().set(key, v)
+
+    def values(self, prefix):
+        keys = super().iter(prefix=prefix)
+        values = []
+        for key in keys:
+            value = self.get(key)
+            values.append(value)
+        return values
+
+    def items(self, prefix):
+        keys = self.iter(prefix=prefix)
+        kvs = []
+        for key in keys:
+            value = self.get(key)
+            kvs.append((key, value))
+        return kvs
 
     def make_key(self, key, field):
         return '{}{}{}'.format(key, self.delimiter, field)

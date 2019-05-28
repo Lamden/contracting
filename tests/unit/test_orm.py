@@ -268,6 +268,76 @@ class TestHash(TestCase):
 
         self.assertEqual(h['hello'], 0)
 
+    def test_get_all_when_none_exist(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        self.assertEqual(h.all(), [])
+
+    def test_get_all_after_setting(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        h['1'] = 123
+        h['2'] = 456
+        h['3'] = 789
+
+        l = [123, 456, 789]
+
+        driver.commit()
+
+        # we care about whats included, not order
+        self.assertSetEqual(set(h.all()), set(l))
+
+    def test_items_returns_kv_pairs(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        h['1'] = 123
+        h['2'] = 456
+        h['3'] = 789
+
+        driver.commit()
+
+        kvs = sorted([(b'blah.scoob:3', 789), (b'blah.scoob:1', 123), (b'blah.scoob:2', 456)])
+
+        got = sorted(h._items())
+
+        self.assertListEqual(kvs, got)
+
+    def test_clear_items_deletes_all_key_value_pairs(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        h['1'] = 123
+        h['2'] = 456
+        h['3'] = 789
+
+        driver.commit()
+
+        kvs = sorted([(b'blah.scoob:3', 789), (b'blah.scoob:1', 123), (b'blah.scoob:2', 456)])
+
+        got = sorted(h._items())
+
+        self.assertListEqual(kvs, got)
+
+        h.clear()
+
+        driver.commit()
+
+        got = sorted(h._items())
+
+        self.assertListEqual([], got)
+
+
 class TestForeignVariable(TestCase):
     def setUp(self):
         driver.flush()

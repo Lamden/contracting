@@ -38,6 +38,17 @@ class Datetime:
     def __ne__(self, other):
         return self._datetime != other._datetime
 
+    def __sub__(self, other):
+        if isinstance(other, Datetime):
+            delta = self._datetime - other._datetime
+            return Timedelta(days=delta.days, seconds=delta.seconds)
+        return NotImplemented
+
+    def __str__(self):
+        return str(self._datetime)
+
+    def __repr__(self):
+        return self.__str__()
 
 class Timedelta:
     def __init__(self, weeks=0,
@@ -87,6 +98,12 @@ class Timedelta:
             return Timedelta(days=self._timedelta.days * other,
                              seconds=self._timedelta.seconds * other)
         return NotImplemented
+
+    def __str__(self):
+        return str(self._timedelta)
+
+    def __repr__(self):
+        return self.__str__()
 
 
 WEEKS = Timedelta(weeks=1)
