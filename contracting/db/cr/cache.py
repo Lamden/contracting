@@ -186,7 +186,7 @@ class CRCache:
         self.log.spam("{} is executing transactions!".format(self))
         # Execute first round using Master DB Driver since we will not have any keys in common
         # Do not commit, leveraging cache only
-        self.results = self.executor.execute_bag(self.bag, driver=self.master_db)
+        self.results = self.executor.execute_bag(self.bag, environment=self.bag.environment, driver=self.master_db)
 
         # Copy the cache from Master DB Driver to the contained Driver for common
         self.db.reset_cache(modified_keys=self.master_db.modified_keys,
