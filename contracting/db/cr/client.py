@@ -122,7 +122,7 @@ class FSMScheduler:
                         try:
                             func()
                             if cache.state == succ_state:
-                                self.log.important("Polling function call {} resulting in succ state {}. Removing function from poll "
+                                self.log.debug("Polling function call {} resulting in succ state {}. Removing function from poll "
                                                "set.".format(func, succ_state))
                                 rm_set[cache].append((func, succ_state, is_merge))
                                 if is_merge:

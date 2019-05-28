@@ -12,7 +12,6 @@ from contracting.db.cr.transaction_bag import TransactionBag
 from contracting import config
 from contracting.db.cr.callback_data import ExecutionData, SBData
 from typing import List
-import time
 
 
 # TODO include _key exclusions for stamps, etc
@@ -260,7 +259,6 @@ class CRCache:
             for key in merge_keys:
                 self.master_db.set(key, self.db.get(key))
             self.master_db.commit()
-            time.sleep(1)
 
     def reset_dbs(self):
         # If we are on SBB 0, we need to flush the common layer of this cache

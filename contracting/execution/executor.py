@@ -236,11 +236,9 @@ class MultiProcessingSandbox(Sandbox):
                 'environment': {}
             }
 
-        print("raghu txns: {}".format(msg))
         child_pipe.send(msg)
 
         response_obj = child_pipe.recv()
-        print("raghu response: {}".format(response_obj))
         self._update_driver_cache(driver, response_obj['_driver'])
 
         return response_obj['results']
