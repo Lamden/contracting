@@ -107,11 +107,11 @@ class Executor:
             driver.set(balances_key, balance)
             driver.commit()
 
-        stamps -= runtime.rt.tracer.get_stamp_used()
+        stamps_used = runtime.rt.tracer.get_stamp_used()
         runtime.rt.clean_up()
         runtime.rt.env.update({'__Driver': self.driver})
 
-        return status_code, result, stamps
+        return status_code, result, stamps_used
 
 
 """

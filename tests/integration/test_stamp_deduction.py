@@ -54,8 +54,7 @@ class TestMetering(TestCase):
     def test_simple_execution_deducts_stamps(self):
         prior_balance = self.d.get('currency.balances:stu')
 
-        status, result, stamps = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'})
-        stamps_used = 1000000 - stamps
+        status, result, stamps_used = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'})
 
         new_balance = self.d.get('currency.balances:stu')
 
@@ -101,4 +100,4 @@ class TestMetering(TestCase):
 
         new_balance = self.d.get('currency.balances:stu')
 
-        self.assertEqual(prior_balance - new_balance, 1000000 - stamps)
+        self.assertEqual(prior_balance - new_balance, stamps)
