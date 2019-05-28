@@ -393,6 +393,7 @@ DatabaseDriver = RedisDriver
 class CacheDriver(DatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=0,):
         super().__init__(host=host, port=port, db=db)
+        self.log = get_logger("CacheDriver")
         self.modified_keys = None
         self.contract_modifications = None
         self.original_values = None
