@@ -11,7 +11,7 @@ from .. import config
 
 
 class Executor:
-    def __init__(self, production=True, driver=None, metering=True,
+    def __init__(self, production=False, driver=None, metering=True,
                  currency_contract='currency', balances_hash='balances'):
 
         self.metering = metering
