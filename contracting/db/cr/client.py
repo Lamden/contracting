@@ -75,6 +75,9 @@ class FSMScheduler:
         assert current_cache.state == 'CLEAN', "Pulled cache from available db with state {}, but expected CLEAN state"\
                                                .format(current_cache.state)
 
+        # Set the environment of the bag, which is going to be standard (time, blocknum, blockhash).
+        bag.environment = environment
+
         current_cache.set_bag(bag)
         current_cache.execute()
         self.log.info("FSM executing input hash {} using cache {}".format(bag.input_hash, current_cache))  # TODO remove
@@ -206,7 +209,7 @@ class SubBlockClient:
         self.log.info("Execute SB call for input hash {}".format(input_hash))
 
         bag = TransactionBag(contracts, input_hash, completion_handler)
-        return self.scheduler.execute_bag(bag)
+        return self.scheduler.execute_bag(bag, environment=environment)
 
     def update_master_db(self):
         self.scheduler.update_master_db()
