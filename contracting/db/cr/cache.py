@@ -237,7 +237,7 @@ class CRCache:
     def rerun_transactions(self):
         self.db.revert(idx=self.rerun_idx)
         self.bag.yield_from(idx=self.rerun_idx)
-        self.results.update(self.executor.execute_bag(self.bag, driver=self.db))
+        self.results.update(self.executor.execute_bag(self.bag, environment=self.bag.environment, driver=self.db))
 
     def resolve_conflicts(self):
         self.prepare_reruns()
