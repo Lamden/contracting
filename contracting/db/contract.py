@@ -32,6 +32,7 @@ class Contract:
         scope = env.gather()
         scope.update({'ctx': ctx})
         scope.update({'__contract__': True})
+        print('environment: {}'.format(rt.env))
         scope.update(rt.env)
 
         exec(code_obj, scope)
