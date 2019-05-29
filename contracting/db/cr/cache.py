@@ -298,7 +298,7 @@ class CRCache:
         # This is the most evil code written by man
         for tx_idx in sorted(self.results.keys()):
 
-            status_code, result = self.results[tx_idx]
+            status_code, result, stamps = self.results[tx_idx]
             state_str = ""
 
             if status_code == 0:
