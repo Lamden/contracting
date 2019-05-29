@@ -34,7 +34,7 @@ class Executor:
 
         runtime.rt.env.update({'__Driver': self.driver})
 
-    def execute_bag(self, bag: TransactionBag, auto_commit=False, driver=None) -> Dict[int, tuple]:
+    def execute_bag(self, bag: TransactionBag, environment={}, auto_commit=False, driver=None) -> Dict[int, tuple]:
         """
         The execute bag method sends a list of transactions to the sandbox to be executed
         In the case of bag execution the
@@ -48,7 +48,7 @@ class Executor:
                     2: (1, ImportError)
                  }
         """
-        results = self.sandbox.execute_bag(bag, auto_commit=auto_commit, driver=driver)
+        results = self.sandbox.execute_bag(bag, environment=environment, auto_commit=auto_commit, driver=driver)
         return results
 
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,

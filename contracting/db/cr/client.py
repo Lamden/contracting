@@ -66,7 +66,7 @@ class FSMScheduler:
                 self.log.spam("\tfn: {}, succ_state: {}, is_merge: {}".format(fn, succ_state, is_merge))
         self.log.spam("----------------------------------")
 
-    def execute_bag(self, bag: TransactionBag):
+    def execute_bag(self, bag: TransactionBag, environment={}):
         if len(self.available_caches) == 0:
             self.log.warning("No available caches in FSM scheduler. Returning False from execute_bag")
             return False
@@ -202,7 +202,7 @@ class SubBlockClient:
     def flush_all(self):
         self.scheduler.flush_all()
 
-    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[SBData], None]):
+    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[SBData], None], environment={}):
         self.log.info("Execute SB call for input hash {}".format(input_hash))
 
         bag = TransactionBag(contracts, input_hash, completion_handler)
