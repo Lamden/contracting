@@ -66,7 +66,7 @@ class FSMScheduler:
                 self.log.spam("\tfn: {}, succ_state: {}, is_merge: {}".format(fn, succ_state, is_merge))
         self.log.spam("----------------------------------")
 
-    def execute_bag(self, bag: TransactionBag):
+    def execute_bag(self, bag: TransactionBag, environment={}):
         if len(self.available_caches) == 0:
             self.log.warning("No available caches in FSM scheduler. Returning False from execute_bag")
             return False
@@ -74,6 +74,9 @@ class FSMScheduler:
         current_cache = self.available_caches.popleft()
         assert current_cache.state == 'CLEAN', "Pulled cache from available db with state {}, but expected CLEAN state"\
                                                .format(current_cache.state)
+
+        # Set the environment of the bag, which is going to be standard (time, blocknum, blockhash).
+        bag.environment = environment
 
         current_cache.set_bag(bag)
         current_cache.execute()
@@ -195,11 +198,11 @@ class SubBlockClient:
     def flush_all(self):
         self.scheduler.flush_all()
 
-    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[SBData], None]):
+    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[SBData], None], environment={}):
         self.log.info("Execute SB call for input hash {}".format(input_hash))
 
         bag = TransactionBag(contracts, input_hash, completion_handler)
-        return self.scheduler.execute_bag(bag)
+        return self.scheduler.execute_bag(bag, environment=environment)
 
     def update_master_db(self):
         self.scheduler.update_master_db()

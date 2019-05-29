@@ -34,7 +34,7 @@ class Executor:
 
         runtime.rt.env.update({'__Driver': self.driver})
 
-    def execute_bag(self, bag: TransactionBag, auto_commit=False, driver=None) -> Dict[int, tuple]:
+    def execute_bag(self, bag: TransactionBag, environment={}, auto_commit=False, driver=None) -> Dict[int, tuple]:
         """
         The execute bag method sends a list of transactions to the sandbox to be executed
         In the case of bag execution the
@@ -48,7 +48,7 @@ class Executor:
                     2: (1, ImportError)
                  }
         """
-        results = self.sandbox.execute_bag(bag, auto_commit=auto_commit, driver=driver)
+        results = self.sandbox.execute_bag(bag, environment=environment, auto_commit=auto_commit, driver=driver)
         return results
 
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
@@ -146,12 +146,13 @@ class Sandbox(object):
         uninstall_builtins()
         install_database_loader()
 
-    def execute_bag(self, txbag, auto_commit=False, driver=None):
+    def execute_bag(self, txbag, environment={}, auto_commit=False, driver=None):
         response_obj = {}
+
         for idx, tx in txbag:
             response_obj[idx] = self.execute(tx.payload.sender, tx.contract_name, tx.func_name,
                                              tx.kwargs, auto_commit=auto_commit,
-                                             environment={}, driver=driver)
+                                             environment=environment, driver=driver)
         return response_obj
 
     def execute(self, sender, contract_name, function_name, kwargs, auto_commit=True,
@@ -217,7 +218,7 @@ class MultiProcessingSandbox(Sandbox):
                                contract_modifications=updated_driver.contract_modifications,
                                original_values=updated_driver.original_values)
 
-    def execute_bag(self, txbag, auto_commit=False, driver=None):
+    def execute_bag(self, txbag, environment={}, auto_commit=False, driver=None):
         self._lazy_instantiate()
 
         _, child_pipe = self.pipe
@@ -234,7 +235,7 @@ class MultiProcessingSandbox(Sandbox):
                 'function_name': tx.func_name,
                 'kwargs': tx.kwargs,
                 'auto_commit': auto_commit,
-                'environment': {}
+                'environment': environment
             }
 
         child_pipe.send(msg)
