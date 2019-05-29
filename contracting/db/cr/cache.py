@@ -285,7 +285,6 @@ class CRCache:
         self.scheduler.mark_clean(self)
 
     def _get_sb_data(self) -> SBData:
-        print('this shit is happening')
         if len(self.results) != len(self.bag.transactions):
             self.log.critical("Mismatch of state: length of results is {} but bag has {} txs. Discarding." \
                               .format(len(self.results), len(self.bag.transactions)))
@@ -306,9 +305,6 @@ class CRCache:
                 mods = self.db.contract_modifications[i]
                 i += 1
                 state_str = json.dumps(mods)
-                # for k, v in mods.items():
-                #     print('VALUE :'.format(v))
-                #     state_str += '{} {};'.format(k, v)
 
             tx_datas.append(ExecutionData(contract=self.bag.transactions[tx_idx], status=status_code,
                                           response=result, state=state_str))
