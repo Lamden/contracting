@@ -307,7 +307,7 @@ class CRCache:
                 state_str = json.dumps(mods)
 
             tx_datas.append(ExecutionData(contract=self.bag.transactions[tx_idx], status=status_code,
-                                          response=result, state=state_str))
+                                          response=result, state=state_str, stamps=stamps))
 
         return SBData(self.bag.input_hash, tx_data=tx_datas)
 
