@@ -52,7 +52,7 @@ class Executor:
 
         for idx, tx in bag:
             response_obj[idx] = self.execute(tx.payload.sender, tx.contract_name, tx.func_name,
-                                             tx.kwargs, auto_commit=auto_commit,
+                                             tx.kwargs, stamps=tx.payload.stampsSupplied, auto_commit=auto_commit,
                                              environment=environment, driver=driver)
         return response_obj
         # results = self.sandbox.execute_bag(bag, environment=environment, auto_commit=auto_commit, driver=driver)
