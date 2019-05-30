@@ -2,6 +2,7 @@ import importlib
 import multiprocessing
 
 from typing import Dict
+import decimal
 
 from . import runtime
 from ..db.cr.transaction_bag import TransactionBag
@@ -110,6 +111,9 @@ class Executor:
 
             to_deduct = runtime.rt.tracer.get_stamp_used()
             to_deduct /= STAMP_TO_TAU
+
+            to_deduct = decimal.Decimal(to_deduct)
+
             balance = driver.get(balances_key) or 0
             balance -= to_deduct
 
