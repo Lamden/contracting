@@ -95,7 +95,7 @@ class Executor:
 
             balance = driver.get(balances_key) or 0
 
-            assert balance >= stamps, 'Sender does not have enough stamps for the transaction. \
+            assert balance * STAMP_TO_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
                                        Balance at key {} is {}'.format(balances_key, balance)
 
         # Execute the function
@@ -109,6 +109,7 @@ class Executor:
             assert balances_key is not None, 'Balance key was not set properly. Cannot deduct stamps.'
 
             to_deduct = runtime.rt.tracer.get_stamp_used()
+            to_deduct /= STAMP_TO_TAU
             balance = driver.get(balances_key) or 0
             balance -= to_deduct
 
