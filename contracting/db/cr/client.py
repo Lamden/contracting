@@ -66,7 +66,7 @@ class FSMScheduler:
                 self.log.spam("\tfn: {}, succ_state: {}, is_merge: {}".format(fn, succ_state, is_merge))
         self.log.spam("----------------------------------")
 
-    def execute_bag(self, bag: TransactionBag):
+    def execute_bag(self, bag: TransactionBag, environment={}):
         if len(self.available_caches) == 0:
             self.log.warning("No available caches in FSM scheduler. Returning False from execute_bag")
             return False
@@ -74,6 +74,9 @@ class FSMScheduler:
         current_cache = self.available_caches.popleft()
         assert current_cache.state == 'CLEAN', "Pulled cache from available db with state {}, but expected CLEAN state"\
                                                .format(current_cache.state)
+
+        # Set the environment of the bag, which is going to be standard (time, blocknum, blockhash).
+        bag.environment = environment
 
         current_cache.set_bag(bag)
         current_cache.execute()
@@ -117,32 +120,25 @@ class FSMScheduler:
                 for cache, poll_set in self.events.items():
                     for func, succ_state, is_merge in poll_set:
 
-                        if not is_merge:
+                        # try/catch here because calling fn might return an invalid transition
+                        #
+                        try:
                             func()
                             if cache.state == succ_state:
                                 self.log.debug("Polling function call {} resulting in succ state {}. Removing function from poll "
                                                "set.".format(func, succ_state))
                                 rm_set[cache].append((func, succ_state, is_merge))
-
-                        else:
-                            # try/catch here because calling fn might return an invalid transition
-                            #
-                            try:
-                                func()
-                                if cache.state == succ_state:
-                                    # TODO bump this guy down to debug or debugv once we feel confidence
-                                    self.log.debug("Polling function call {} resulting in succ state {}. Removing function from poll "
-                                                   "set.".format(func, succ_state))
-                                    rm_set[cache].append((func, succ_state, is_merge))
-
+                                if is_merge:
                                     self.log.info("Merging cache {} to master".format(cache))
 
                                     self.merge_idx -= 1
 
-                            except Exception as e:
-                                pass
-                                # TODO bump this guy down to spam or debugv once we feel confidence
-                                # self.log.info("Got error try to call func {}...\nerr = {}".format(func, e))
+                        except Exception as e:
+                            # pass
+                            # TODO bump this guy down to spam or debugv once we feel confidence
+                            self.log.fatal("Got error try to call func {} {} {}\nerr = {}".format(func, succ_state, is_merge, e))
+                            self.log.fatal(traceback.format_exc())
+                            raise e
 
                 for cache, li in rm_set.items():
                     for tup in li:
@@ -202,11 +198,11 @@ class SubBlockClient:
     def flush_all(self):
         self.scheduler.flush_all()
 
-    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[SBData], None]):
+    def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[SBData], None], environment={}):
         self.log.info("Execute SB call for input hash {}".format(input_hash))
 
         bag = TransactionBag(contracts, input_hash, completion_handler)
-        return self.scheduler.execute_bag(bag)
+        return self.scheduler.execute_bag(bag, environment=environment)
 
     def update_master_db(self):
         self.scheduler.update_master_db()

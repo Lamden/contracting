@@ -223,6 +223,3 @@ class TestPixelGame(TestCase):
 
     def tearDown(self):
         self.c.flush()
-
-    def test_ya(self):
-        print('mm')

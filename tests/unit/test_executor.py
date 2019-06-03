@@ -16,14 +16,6 @@ class TestExecutor(unittest.TestCase):
     def tearDown(self):
         del self.e
 
-    def test_init(self):
-        self.assertEqual(self.e.metering, True, 'Metering not set to true by default.')
-
-    def test_dynamic_init(self):
-        e = Executor(metering=False)
-
-        self.assertEqual(e.metering, False, 'Metering is not set to false after dynamic set')
-
     def test_driver_resolution(self):
         # The CRDriver class is not able to be isolated so this test is turned off for now
         # Colin TODO: Discuss with Davis how we update CRDriver (or isolate the concept)
@@ -45,8 +37,8 @@ class DBTests(unittest.TestCase):
         self.sb = Sandbox()
         self.mpsb = MultiProcessingSandbox()
 
-        self.e = Executor()
-        self.e_prod = Executor(production=True)
+        self.e = Executor(metering=False)
+        self.e_prod = Executor(production=True, metering=False)
 
         compiler = ContractingCompiler()
 

@@ -15,10 +15,15 @@ class TestTokenHacks(TestCase):
 
         self.c.raw_driver.commit()
 
+        self.c.executor.currency_contract = 'erc20'
+        self.c.signer = 'stu'
+
         # submit erc20 clone
         with open('./contracts/erc20.s.py') as f:
             code = f.read()
-            self.c.submit(code, name='erc20')
+            self.c.submit(code, name='erc20', metering=False)
+
+        self.c.executor.metering = True
 
     def tearDown(self):
         #self.c.raw_driver.flush()
@@ -37,8 +42,8 @@ class TestTokenHacks(TestCase):
 
         post_hack_balance = token.balances['stu']
 
-        # The balance *should not* change between these tests!
-        self.assertEqual(pre_hack_balance, post_hack_balance)
+        # Assert greater because some of the balance is lost to stamps
+        self.assertGreater(pre_hack_balance, post_hack_balance)
 
     def test_orm_setattr_hack(self):
         # This hack uses setattr instead of direct property access to do the same thing as above
@@ -67,7 +72,7 @@ class TestTokenHacks(TestCase):
 
         with open('./contracts/double_spend_gas_attack.s.py') as f:
             code = f.read()
-            self.c.submit(code, name='hack')
+            self.c.submit(code, name='hack', metering=False)
 
         hack = self.c.get_contract('hack')
         try:
@@ -78,7 +83,10 @@ class TestTokenHacks(TestCase):
         post_hack_balance_stu = token.balances['stu']
         post_hack_balance_colin = token.balances['colin']
 
-        self.assertEqual(pre_hack_balance_stu, post_hack_balance_stu)
+        # Assert greater because some of the balance is lost to stamps
+        self.assertGreater(pre_hack_balance_stu, post_hack_balance_stu)
+
+        # Colin balance is not affected because it was the recipient of tokens
         self.assertEqual(pre_hack_balance_colin, post_hack_balance_colin)
 
     def test_stamp_fails_when_calling_infinate_loop_from_another_contract(self):
@@ -88,7 +96,7 @@ class TestTokenHacks(TestCase):
 
         with open('./contracts/call_infinate_loop.s.py') as f:
             code = f.read()
-            self.c.submit(code, name='call_infinate_loop')
+            self.c.submit(code, name='call_infinate_loop', metering=False)
 
         loop = self.c.get_contract('call_infinate_loop')
 
@@ -115,7 +123,7 @@ class TestTokenHacks(TestCase):
         try:
             with open('./contracts/import_hash_from_contract.s.py') as f:
                 code = f.read()
-                self.c.submit(code, name='import_hash_from_contract')
+                self.c.submit(code, name='import_hash_from_contract', metering=False)
         except:
             pass
 

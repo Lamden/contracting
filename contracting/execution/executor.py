@@ -1,29 +1,26 @@
 import importlib
 import multiprocessing
-import contracting, os
 
 from typing import Dict
+import decimal
 
 from . import runtime
 from ..db.cr.transaction_bag import TransactionBag
 from ..db.driver import ContractDriver, CacheDriver
 from ..execution.module import install_database_loader, uninstall_builtins
-from ..execution.metering.tracer import Tracer
+from .. import config
+
+STAMP_TO_TAU = 5000 # Manually set until voting added
 
 class Executor:
+    def __init__(self, production=False, driver=None, metering=True,
+                 currency_contract='currency', balances_hash='balances'):
 
-    def __init__(self, metering=True, production=False):
         self.metering = metering
 
-        # Colin -  Setup the tracer
-        # Colin TODO: Find out why Tracer is not instantiating properly. Raghu also said he wants to pull this out.
-        #cu_cost_fname = join(contracting.__path__[0], 'constants', 'cu_costs.const')
-        #self.tracer = Tracer(cu_cost_fname)
-
-        if self.metering is True:
-            self.setup_tracer()
-
-        self.driver = ContractDriver()
+        self.driver = driver
+        if not self.driver:
+            self.driver = ContractDriver()
         self.production = production
 
         if self.production:
@@ -31,14 +28,15 @@ class Executor:
         else:
             self.sandbox = Sandbox()
 
-    def setup_tracer(self):
-        cu_path = contracting.__path__[0]
-        cu_path = os.path.join(cu_path, 'execution', 'metering', 'cu_costs.const')
+        #self.metering = metering
 
-        os.environ['CU_COST_FNAME'] = cu_path
-        self.tracer = Tracer()
+        # Variables to tell Executor where to look for a balance to deduct for stamps if metering is enabled
+        self.currency_contract = currency_contract
+        self.balances_hash = balances_hash
 
-    def execute_bag(self, bag: TransactionBag, auto_commit=False, driver=None) -> Dict[int, tuple]:
+        runtime.rt.env.update({'__Driver': self.driver})
+
+    def execute_bag(self, bag: TransactionBag, environment={}, auto_commit=False, driver=None) -> Dict[int, tuple]:
         """
         The execute bag method sends a list of transactions to the sandbox to be executed
         In the case of bag execution the
@@ -52,13 +50,27 @@ class Executor:
                     2: (1, ImportError)
                  }
         """
-        results = self.sandbox.execute_bag(bag, auto_commit=auto_commit, driver=driver)
-        return results
+        response_obj = {}
 
-    #TODO stamps need to be update from 1 mil to given stamps
+        for idx, tx in bag:
+            response_obj[idx] = self.execute(tx.payload.sender, tx.contract_name, tx.func_name,
+                                             tx.kwargs, stamps=tx.payload.stampsSupplied, auto_commit=auto_commit,
+                                             environment=environment, driver=driver)
+        return response_obj
+        # results = self.sandbox.execute_bag(bag, environment=environment, auto_commit=auto_commit, driver=driver)
+        # return results
 
     def execute(self, sender, contract_name, function_name, kwargs, environment={}, auto_commit=True, driver=None,
-                stamps=1000000) -> tuple:
+                stamps=1000000, metering=None) -> tuple:
+
+        # Default to the self.metering property unless provided
+        if metering is None:
+            metering = self.metering
+
+        runtime.rt.env.update({'__Driver': self.driver})
+
+        if driver is None:
+            driver = runtime.rt.env.get('__Driver')
 
         """
         Method that does a naive execute
@@ -73,16 +85,46 @@ class Executor:
         # Therefor we need to have a try catch to communicate success/fail back to the
         # client. Necessary in the case of batch run through bags where we still want to
         # continue execution in the case of failure of one of the transactions.
+        balances_key = None
+        if metering:
 
-        self.tracer.set_stamp(stamps)
-        self.tracer.start()
+            balances_key = '{}{}{}{}{}'.format(self.currency_contract,
+                                               config.INDEX_SEPARATOR,
+                                               self.balances_hash,
+                                               config.DELIMITER,
+                                               sender)
+
+            balance = driver.get(balances_key) or 0
+
+            assert balance * STAMP_TO_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
+                                       Balance at key {} is {}'.format(balances_key, balance)
+
+        # Execute the function
+        runtime.rt.set_up(stmps=stamps, meter=metering)
         status_code, result = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                    auto_commit, environment, driver)
+        runtime.rt.tracer.stop()
 
-        self.tracer.stop()
-        stamps -= self.tracer.get_stamp_used()
+        # Deduct the stamps if that is enabled
+        if metering:
+            assert balances_key is not None, 'Balance key was not set properly. Cannot deduct stamps.'
 
-        return status_code, result, stamps
+            to_deduct = runtime.rt.tracer.get_stamp_used()
+            to_deduct /= STAMP_TO_TAU
+
+            to_deduct = decimal.Decimal(to_deduct)
+
+            balance = driver.get(balances_key) or 0
+            balance -= to_deduct
+
+            driver.set(balances_key, balance)
+            driver.commit()
+
+        stamps_used = runtime.rt.tracer.get_stamp_used()
+        runtime.rt.clean_up()
+        runtime.rt.env.update({'__Driver': self.driver})
+
+        return status_code, result, stamps_used
 
 
 """
@@ -113,24 +155,17 @@ class Sandbox(object):
     def __init__(self):
         install_database_loader()
 
-    def clean(self):
-        """
-        Convenience method to cleanup the sandbox's imports
-
-        :return:
-        """
-        runtime.rt.clean_up()
-
     def wipe_modules(self):
         uninstall_builtins()
         install_database_loader()
 
-    def execute_bag(self, txbag, auto_commit=False, driver=None):
+    def execute_bag(self, txbag, environment={}, auto_commit=False, driver=None):
         response_obj = {}
+
         for idx, tx in txbag:
             response_obj[idx] = self.execute(tx.payload.sender, tx.contract_name, tx.func_name,
                                              tx.kwargs, auto_commit=auto_commit,
-                                             environment={}, driver=driver)
+                                             environment=environment, driver=driver)
         return response_obj
 
     def execute(self, sender, contract_name, function_name, kwargs, auto_commit=True,
@@ -138,13 +173,15 @@ class Sandbox(object):
         # Use _driver if one is provided, otherwise use the default _driver, ensuring to set it
         # back to default only if it was set previously to something else
         if driver:
-            runtime.rt.driver = driver
+            runtime.rt.env.update({'__Driver': driver})
+        else:
+            driver = runtime.rt.env.get('__Driver')
 
         # __main__ is replaced by the sender of the message in this case
 
         runtime.rt.ctx.clear()
         runtime.rt.ctx.append(sender)
-        runtime.rt.env = environment
+        runtime.rt.env.update(environment)
         status_code = 0
         try:
             module = importlib.import_module(contract_name)
@@ -155,17 +192,16 @@ class Sandbox(object):
             result = func(**kwargs)
 
             if auto_commit:
-                runtime.rt.driver.commit()
+                driver.commit()
         except Exception as e:
             print(str(e))
             result = e
             status_code = 1
             if auto_commit:
-                runtime.rt.driver.revert()
+                driver.revert()
         finally:
             if isinstance(driver, CacheDriver):
                 driver.new_tx()
-            self.clean()
 
         return status_code, result
 
@@ -195,9 +231,7 @@ class MultiProcessingSandbox(Sandbox):
                                contract_modifications=updated_driver.contract_modifications,
                                original_values=updated_driver.original_values)
 
-
-
-    def execute_bag(self, txbag, auto_commit=False, driver=None):
+    def execute_bag(self, txbag, environment={}, auto_commit=False, driver=None):
         self._lazy_instantiate()
 
         _, child_pipe = self.pipe
@@ -214,7 +248,7 @@ class MultiProcessingSandbox(Sandbox):
                 'function_name': tx.func_name,
                 'kwargs': tx.kwargs,
                 'auto_commit': auto_commit,
-                'environment': {}
+                'environment': environment
             }
 
         child_pipe.send(msg)

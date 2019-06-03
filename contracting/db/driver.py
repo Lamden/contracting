@@ -11,6 +11,9 @@ from ..exceptions import DatabaseDriverNotFound
 from ..db.encoder import encode, decode
 
 from ..logger import get_logger
+from ..execution.runtime import rt
+
+from .. import config
 
 from collections import deque, defaultdict
 import marshal
@@ -317,15 +320,27 @@ class RedisDriver(AbstractDatabaseDriver):
         return state
 
     def __setstate__(self, state):
-        for k,v in state.items():
+        for k, v in state.items():
             setattr(self, k, v)
         self._setup_conn()
 
     def get(self, key):
         val = self.conn.get(key)
+
+        if val is not None and rt.tracer.is_started():
+            cost = len(key) + len(val)
+            cost *= config.READ_COST_PER_BYTE
+            rt.tracer.add_cost(cost)
+
         return val
 
     def set(self, key, value):
+
+        if rt.tracer.is_started():
+            cost = len(key) + len(value)
+            cost *= config.READ_COST_PER_BYTE
+            rt.tracer.add_cost(cost)
+
         self.conn.set(key, value)
 
     def delete(self, key):
@@ -378,6 +393,7 @@ DatabaseDriver = RedisDriver
 class CacheDriver(DatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=0,):
         super().__init__(host=host, port=port, db=db)
+        self.log = get_logger("CacheDriver")
         self.modified_keys = None
         self.contract_modifications = None
         self.original_values = None
@@ -424,6 +440,9 @@ class CacheDriver(DatabaseDriver):
         # TODO: May have multiple instances of contract_idx if multiple sets on same _key
         self.modified_keys[key].append(len(self.contract_modifications) - 1)
 
+    def delete(self, key):
+        self.set(key, None) # Indirection is going on here where None gets encoded into JSONs none
+
     def set_direct(self, key, value):
         super().set(key, value)
 
@@ -447,9 +466,21 @@ class CacheDriver(DatabaseDriver):
 
     def commit(self):
         for key, idx in self.modified_keys.items():
-            super().set(key, self.contract_modifications[idx[-1]][key])
+            value = self.contract_modifications[idx[-1]][key]
+            if value == 'null': # This shit is null because that is the JSON representation and the data is being encoded in the contract driver
+                super().delete(key)
+            else:
+                super().set(key, value)
 
         self.reset_cache()
+    #
+
+    def iter(self, prefix):
+        keys = set(super().iter(prefix=prefix))
+        for k in self.modified_keys.keys():
+            if k not in keys and k.startswith(prefix):
+                keys.add(k)
+        return list(keys)
 
     def new_tx(self):
         self.contract_modifications.append(dict())
@@ -476,6 +507,22 @@ class ContractDriver(CacheDriver):
     def set(self, key, value):
         v = encode(value)
         super().set(key, v)
+
+    def values(self, prefix):
+        keys = super().iter(prefix=prefix)
+        values = []
+        for key in keys:
+            value = self.get(key)
+            values.append(value)
+        return values
+
+    def items(self, prefix):
+        keys = self.iter(prefix=prefix)
+        kvs = []
+        for key in keys:
+            value = self.get(key)
+            kvs.append((key, value))
+        return kvs
 
     def make_key(self, key, field):
         return '{}{}{}'.format(key, self.delimiter, field)

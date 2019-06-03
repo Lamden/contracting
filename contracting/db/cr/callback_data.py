@@ -10,8 +10,8 @@ class ExecutionData:
     state: The resulting SETs from executing this transaction. It is a string of the form 'key1 value1; key2 value2;'
     so on so forth, where the new KEYs and VALUEs are separated by semicolons.
     """
-    def __init__(self, contract: object, status: int, response: Any, state: str):
-        self.contract, self.status, self.response, self.state = contract, status, response, state
+    def __init__(self, contract: object, status: int, response: Any, state: str, stamps: int):
+        self.contract, self.status, self.response, self.state, self.stamps = contract, status, response, state, stamps
 
 
 class SBData:

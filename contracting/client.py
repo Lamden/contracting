@@ -67,7 +67,7 @@ class AbstractContract:
                 return variable
 
             # otherwise, see if contract.items: has more than one entry
-            if len(self.executor.driver.iter(prefix=self.name+'.'+item+':')) > 0:
+            if len(self.executor.driver.values(prefix=self.name + '.' + item + ':')) > 0:
 
                 # if so, it is a hash. return the hash object
                 return Hash(contract=self.name, name=item)
@@ -75,7 +75,7 @@ class AbstractContract:
             # otherwise, the attribut does not exist, so throw the error.
             raise e
 
-    def _abstract_function_call(self, signer, executor, contract, environment, func, **kwargs):
+    def _abstract_function_call(self, signer, executor, contract, environment, func, metering=None, **kwargs):
         for k, v in kwargs.items():
             assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
 
@@ -83,7 +83,8 @@ class AbstractContract:
                                                   contract_name=contract,
                                                   function_name=func,
                                                   kwargs=kwargs,
-                                                  environment=environment)
+                                                  environment=environment,
+                                                  metering=metering)
 
         if executor.production:
             executor.sandbox.terminate()
@@ -97,14 +98,16 @@ class AbstractContract:
 class ContractingClient:
     def __init__(self, signer='sys',
                  submission_filename=os.path.join(os.path.dirname(__file__), 'contracts/submission.s.py'),
-                 executor=Executor(),
-                 compiler=ContractingCompiler()):
+                 executor=Executor(metering=False),
+                 compiler=ContractingCompiler(),
+                 environment={}):
 
         self.executor = executor
         self.raw_driver = self.executor.driver
         self.signer = signer
         self.compiler = compiler
         self.submission_filename = submission_filename
+        self.environment = environment
 
         # Seed the genesis contracts into the instance
         with open(self.submission_filename) as f:
@@ -135,6 +138,10 @@ class ContractingClient:
     # Returns abstract contract which has partial methods mapped to each exported function.
     def get_contract(self, name):
         contract = self.raw_driver.get_contract(name)
+
+        if contract is None:
+            return None
+
         tree = ast.parse(contract)
 
         function_defs = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
@@ -148,7 +155,7 @@ class ContractingClient:
 
         return AbstractContract(name=name,
                                 signer=self.signer,
-                                environment={},
+                                environment=self.environment,
                                 executor=self.executor,
                                 funcs=funcs)
 
@@ -192,17 +199,17 @@ class ContractingClient:
         code = self.compiler.parse_to_code(f)
         return code
 
-    def submit(self, f, name=None):
+    def submit(self, f, name=None, metering=None):
         if isinstance(f, FunctionType):
             f, name = self.closure_to_code_string(f)
 
         assert name is not None, 'No name provided.'
 
-        self.submission_contract.submit_contract(name=name, code=f)
+        self.submission_contract.submit_contract(name=name, code=f, metering=metering)
 
     def get_contracts(self):
         contracts = []
         for key in self.raw_driver.keys():
             if key.endswith('.__code__'):
-                contracts.append(key.strip('.__code__'))
+                contracts.append(key.replace('.__code__', ''))
         return contracts

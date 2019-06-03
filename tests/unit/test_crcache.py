@@ -44,28 +44,30 @@ class SchedulerStub():
 
 
 
-driver = ContractDriver(db=0)
+
 #unittest.TestLoader.sortTestMethodsUsing = None
 
 
 class TestSingleCRCache(unittest.TestCase):
     @classmethod
     def setUpClass(self):
+        self.driver = ContractDriver(db=0)
         num_sbb = 1
-        self.master_db = driver
-        executor = Executor(production=True)
+        self.master_db = self.driver
+        executor = Executor(production=True, metering=False)
         self.author = 'unittest'
         sys.meta_path.append(DatabaseFinder)
-        driver.flush()
+        self.driver.flush()
 
         # Add submission contract
         with open('../../contracting/contracts/submission.s.py') as f:
             contract = f.read()
 
-        driver.set_contract(name='submission',
+        self.driver.set_contract(name='submission',
                             code=contract,
                             author='sys')
-        driver.commit()
+
+        self.driver.commit()
 
         with open('./test_sys_contracts/module_func.py') as f:
             code = f.read()
@@ -75,10 +77,11 @@ class TestSingleCRCache(unittest.TestCase):
         # Setup tx
         tx1 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'Working'})
         tx2 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'AlsoWorking'})
+        tx3 = TransactionStub(self.author, 'module_func', 'test_keymod', {'deduct': 10})
         input_hash = 'A'*64
         sbb_idx = 0
         self.scheduler = SchedulerStub()
-        self.bag = TransactionBag([tx1, tx2], input_hash, lambda y: y)
+        self.bag = TransactionBag([tx1, tx2, tx3], input_hash, lambda y: y)
         self.cache = CRCache(idx=1, master_db=self.master_db, sbb_idx=sbb_idx,
                              num_sbb=num_sbb, executor=executor, scheduler=self.scheduler)
 
@@ -89,7 +92,7 @@ class TestSingleCRCache(unittest.TestCase):
         self.cache.executor.sandbox.terminate()
         #del self.cache
         #sys.meta_path.remove(DatabaseFinder)
-        driver.flush()
+        self.driver.flush()
 
     def test_0_set_bag(self):
         self.cache.set_bag(self.bag)
@@ -106,9 +109,11 @@ class TestSingleCRCache(unittest.TestCase):
         self.assertEqual(results[0][1], 'Working')
         self.assertEqual(results[1][0], 0)
         self.assertEqual(results[1][1], 'AlsoWorking')
+        self.assertEqual(results[2][0], 0)
+        self.assertEqual(results[2][1], 90)
 
         self.assertEqual(0, self.cache._check_macro_key(Macros.CONFLICT_RESOLUTION))
-        self.assertEqual(0, self.cache._check_macro_key(Macros.RESET))
+        self.assertEqual(1, self.cache._check_macro_key(Macros.RESET))
         self.assertEqual(1, self.cache._check_macro_key(Macros.EXECUTION))
 
     def test_2_cr(self):
@@ -121,6 +126,13 @@ class TestSingleCRCache(unittest.TestCase):
         self.assertEqual(self.cache.state, 'COMMITTED')
         self.assertEqual(res, True)
 
+        # Test if the cache db has the updated value and master is still holding the correct old value
+        self.assertEqual(int(self.cache.db.get_direct('module_func.balances:test')), 90)
+        self.assertEqual(int(self.cache.master_db.get_direct('module_func.balances:test')), 100)
+        # Run the same test without bypassing the cache
+        self.assertEqual(int(self.cache.db.get('module_func.balances:test')), 90)
+        self.assertEqual(int(self.cache.master_db.get('module_func.balances:test')), 100)
+
     def test_3_merge_ready(self):
         res = self.scheduler.execute_poll(self.cache, self.cache.sync_merge_ready)
         self.assertEqual(self.cache.state, 'READY_TO_MERGE')
@@ -129,6 +141,9 @@ class TestSingleCRCache(unittest.TestCase):
     def test_4_merged(self):
         self.cache.merge()
         self.assertEqual(self.cache.state, 'RESET')
+
+        self.assertEqual(int(self.cache.master_db.get_direct('module_func.balances:test')), 90)
+        self.assertEqual(int(self.cache.master_db.get('module_func.balances:test')), 90)
 
     def test_5_clean(self):
         res = self.scheduler.execute_poll(self.cache, self.cache.sync_reset)

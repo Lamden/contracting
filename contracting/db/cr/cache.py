@@ -13,6 +13,7 @@ from contracting import config
 from contracting.db.cr.callback_data import ExecutionData, SBData
 from typing import List
 
+import json
 
 # TODO include _key exclusions for stamps, etc
 class Macros:
@@ -46,7 +47,6 @@ class CRCache:
         {'name': 'BAG_SET'},
         {'name': 'EXECUTED'},
         {'name': 'CR_STARTED'},
-        {'name': 'REQUIRES_RERUN'},
         {'name': 'READY_TO_COMMIT'},
         {'name': 'COMMITTED'},
         {'name': 'READY_TO_MERGE'},
@@ -99,22 +99,7 @@ class CRCache:
                 'trigger': 'start_cr',
                 'source': 'CR_STARTED',
                 'dest': 'READY_TO_COMMIT',
-                'prepare': 'prepare_reruns',
-                'unless': 'requires_reruns',
-                'after': 'commit'
-            },
-            {
-                'trigger': 'start_cr',
-                'source': 'CR_STARTED',
-                'dest': 'REQUIRES_RERUN',
-                'conditions': 'requires_reruns',
-                'after': 'rerun'
-            },
-            {
-                'trigger': 'rerun',
-                'source': 'REQUIRES_RERUN',
-                'dest': 'READY_TO_COMMIT',
-                'before': 'rerun_transactions',
+                'before': 'resolve_conflicts',
                 'after': 'commit'
             },
             {
@@ -182,7 +167,7 @@ class CRCache:
     def _check_macro_key(self, macro):
         val = self.db.get_direct(macro)
         # self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
-        return int(val) if val is not None else 0
+        return int(val) if val is not None else -1
 
     def _reset_macro_keys(self):
         self.log.spam("{} is resetting macro keys".format(self))
@@ -195,12 +180,14 @@ class CRCache:
     def set_transaction_bag(self, bag):
         self.log.spam("{} is setting transactions!".format(self))
         self.bag = bag
+        if self.sbb_idx == 0:
+            self._incr_macro_key(Macros.RESET)
 
     def execute_transactions(self):
         self.log.spam("{} is executing transactions!".format(self))
         # Execute first round using Master DB Driver since we will not have any keys in common
         # Do not commit, leveraging cache only
-        self.results = self.executor.execute_bag(self.bag, driver=self.master_db)
+        self.results = self.executor.execute_bag(self.bag, environment=self.bag.environment, driver=self.master_db)
 
         # Copy the cache from Master DB Driver to the contained Driver for common
         self.db.reset_cache(modified_keys=self.master_db.modified_keys,
@@ -240,7 +227,7 @@ class CRCache:
         if len(cr_key_hits) > 0:
             cr_key_modifications = {k: v for k, v in self.db.modified_keys.items() if k in cr_key_hits}
             self.rerun_idx = 999999
-            for key, value in cr_key_modifications:
+            for key, value in cr_key_modifications.items():
                 if value[0] < self.rerun_idx:
                     self.rerun_idx = value[0]
 
@@ -250,7 +237,12 @@ class CRCache:
     def rerun_transactions(self):
         self.db.revert(idx=self.rerun_idx)
         self.bag.yield_from(idx=self.rerun_idx)
-        self.results.update(self.executor.execute_bag(self.bag))
+        self.results.update(self.executor.execute_bag(self.bag, environment=self.bag.environment, driver=self.db))
+
+    def resolve_conflicts(self):
+        self.prepare_reruns()
+        if self.requires_reruns():
+            self.rerun_transactions()
 
     def merge_to_common(self):
         # call completion handler on bag so Cilantro can build a SubBlockContender
@@ -264,6 +256,9 @@ class CRCache:
 
     def merge_to_master(self):
         if self.sbb_idx == 0:
+            merge_keys = [ x for x in self.db.keys() if x not in Macros.ALL_MACROS ]
+            for key in merge_keys:
+                self.master_db.set(key, self.db.get(key))
             self.master_db.commit()
 
     def reset_dbs(self):
@@ -272,22 +267,20 @@ class CRCache:
         self.db.reset_cache()
         self.master_db.reset_cache()
         self.rerun_idx = None
-        self._incr_macro_key(Macros.RESET)
         self.bag = None
-
-    def all_reset(self):
-        return (self._check_macro_key(Macros.RESET) == self.num_sbb) or \
-               (self._check_macro_key(Macros.RESET) == 0)
-
-    def _mark_clean(self):
 
         # If we are on SBB 0, we need to flush the common layer of this cache
         # since the DB is shared, we only need to call this from one of the SBBs
+        # TODO - this should be a macro so we can switch to other sbbers if needed
         if self.sbb_idx == 0:
             self.log.debugv("cache idx 0 FLUSHING DB!!!!")
             self.db.flush()
             self._reset_macro_keys()
 
+    def all_reset(self):
+        return (self._check_macro_key(Macros.RESET) == 0)
+
+    def _mark_clean(self):
         # Mark myself as clean for the FSMScheduler to be able to reuse me
         self.scheduler.mark_clean(self)
 
@@ -302,18 +295,19 @@ class CRCache:
         i = 0
 
         # Iterate over results to take into account transactions that have been reverted and removed from contract_mods
+        # This is the most evil code written by man
         for tx_idx in sorted(self.results.keys()):
-            status_code, result = self.results[tx_idx]
+
+            status_code, result, stamps = self.results[tx_idx]
             state_str = ""
 
             if status_code == 0:
                 mods = self.db.contract_modifications[i]
                 i += 1
-                for k, v in mods.items():
-                    state_str += '{} {};'.format(k, v)
+                state_str = json.dumps(mods)
 
             tx_datas.append(ExecutionData(contract=self.bag.transactions[tx_idx], status=status_code,
-                                          response=result, state=state_str))
+                                          response=result, state=state_str, stamps=stamps))
 
         return SBData(self.bag.input_hash, tx_data=tx_datas)
 

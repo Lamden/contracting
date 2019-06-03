@@ -30,13 +30,12 @@ def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
     return __import__(name, globals, locals, fromlist, level)
 
 
-__builtins__['__import__'] = restricted_import
+def enable_restricted_imports():
+    __builtins__['__import__'] = restricted_import
 
 
-'''
-    This module will remain untested and unused until we decide how we want to 'forget' importing.
-'''
-
+def disable_restricted_imports():
+    __builtins__['__import__'] = __import__
 
 def uninstall_builtins():
     sys.meta_path.clear()
@@ -71,8 +70,6 @@ class DatabaseFinder(MetaPathFinder):
         return DatabaseLoader()
 
 
-from copy import deepcopy
-
 MODULE_CACHE = {}
 CACHE = {}
 
@@ -85,23 +82,6 @@ class DatabaseLoader(Loader):
         return None
 
     def exec_module(self, module):
-
-        # m = CACHE.get(module.__name__)
-        # if m is None:
-        #     code = self.d.get_contract(module.__name__)
-        #
-        #     if code is None:
-        #         raise ImportError("Module {} not found".format(module.__name__))
-        #
-        #     m = ModuleType(module.__name__)
-        #     exec(code, vars(m))
-        #     CACHE[module.__name__] = m
-        #
-        # mod_copy = dict(deepcopy(vars(m)))
-        #
-        # for k, v in vars(mod_copy).items():
-        #     if not k.startswith('__'):
-        #         vars(module).update({k: v})
 
         # fetch the individual contract
         code = MODULE_CACHE.get(module.__name__)
@@ -134,15 +114,6 @@ class DatabaseLoader(Loader):
 
         # execute the module with the std env and update the module to pass forward
         exec(code, scope)
-
-        # Delete references to Variables and Hashes to prevent direct modification
-        # keys_to_delete = []
-        # for obj, typ in scope.items():
-        #     if isinstance(typ, Variable) or isinstance(typ, Hash):
-        #         keys_to_delete.append(obj)
-        #
-        # for key in keys_to_delete:
-        #     del scope[key]
 
         # Update the module's attributes with the new scope
         vars(module).update(scope)
