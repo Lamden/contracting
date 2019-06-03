@@ -9,8 +9,9 @@ from contracting.db.driver import ContractDriver
 from contracting.db.cr.transaction_bag import TransactionBag
 
 class PayloadStub():
-    def __init__(self, sender):
+    def __init__(self, sender, stampsSupplied=1000000):
         self.sender = sender
+        self.stampsSupplied = stampsSupplied
 
 class TransactionStub():
     def __init__(self, sender, contract_name, func_name, kwargs):
