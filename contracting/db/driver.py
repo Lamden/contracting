@@ -265,13 +265,11 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
     def get(self, key):
         self.conn.send_command('GET', key)
         resp = self.conn.read_response()
-        #print("GET {} RESPONSE: {}".format(_key,
         return resp
 
     def set(self, key, value):
         self.conn.send_command('SET', key, value)
         resp = self.conn.read_response()
-        #print("SET {} RESPONSE: {}".format(_key, resp))
 
     def delete(self, key):
         self.conn.send_command('DEL', key)

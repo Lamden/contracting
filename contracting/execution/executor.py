@@ -10,8 +10,6 @@ from ..db.driver import ContractDriver, CacheDriver
 from ..execution.module import install_database_loader, uninstall_builtins
 from .. import config
 
-STAMP_TO_TAU = 5000 # Manually set until voting added
-
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
                  currency_contract='currency', balances_hash='balances'):
@@ -96,7 +94,7 @@ class Executor:
 
             balance = driver.get(balances_key) or 0
 
-            assert balance * STAMP_TO_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
+            assert balance * config.STAMPS_PER_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
                                        Balance at key {} is {}'.format(balances_key, balance)
 
         # Execute the function
@@ -110,7 +108,7 @@ class Executor:
             assert balances_key is not None, 'Balance key was not set properly. Cannot deduct stamps.'
 
             to_deduct = runtime.rt.tracer.get_stamp_used()
-            to_deduct /= STAMP_TO_TAU
+            to_deduct /= config.STAMPS_PER_TAU
 
             to_deduct = decimal.Decimal(to_deduct)
 
@@ -194,7 +192,6 @@ class Sandbox(object):
             if auto_commit:
                 driver.commit()
         except Exception as e:
-            print(str(e))
             result = e
             status_code = 1
             if auto_commit:
