@@ -1,7 +1,7 @@
 from unittest import TestCase
 from contracting.db.driver import ContractDriver
 from contracting.execution.executor import Executor
-
+from contracting.config import STAMPS_PER_TAU
 
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
@@ -58,24 +58,23 @@ class TestMetering(TestCase):
 
         new_balance = self.d.get('currency.balances:stu')
 
-        self.assertEqual(prior_balance - new_balance - 100, stamps_used)
+        self.assertEqual(float(prior_balance - new_balance - 100), stamps_used / STAMPS_PER_TAU)
 
     def test_too_few_stamps_fails_and_deducts_properly(self):
         prior_balance = self.d.get('currency.balances:stu')
 
-        small_amount_of_stamps = 500
+        small_amount_of_stamps = 1 * STAMPS_PER_TAU
 
         status, result, stamps = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
                                                 stamps=small_amount_of_stamps)
 
         new_balance = self.d.get('currency.balances:stu')
 
-        self.assertEqual(prior_balance - new_balance, small_amount_of_stamps)
+        self.assertEqual(float(prior_balance - new_balance), stamps / STAMPS_PER_TAU)
 
     def test_adding_too_many_stamps_throws_error(self):
         prior_balance = self.d.get('currency.balances:stu')
-
-        too_many_stamps = prior_balance + 1000
+        too_many_stamps = (prior_balance + 1000) * STAMPS_PER_TAU
 
         with self.assertRaises(AssertionError):
             status, result, stamps = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
@@ -83,6 +82,8 @@ class TestMetering(TestCase):
 
     def test_adding_all_stamps_with_infinate_loop_eats_all_balance(self):
         prior_balance = self.d.get('currency.balances:stu')
+
+        prior_balance *= STAMPS_PER_TAU
 
         self.e.execute(**TEST_SUBMISSION_KWARGS,
                         kwargs=submission_kwargs_for_file('./test_contracts/inf_loop.s.py'), stamps=prior_balance)
