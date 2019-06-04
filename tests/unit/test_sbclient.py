@@ -7,9 +7,10 @@ import asyncio, glob
 from typing import List
 
 
-class PayloadStub:
-    def __init__(self, sender):
+class PayloadStub():
+    def __init__(self, sender, stampsSupplied=1000000):
         self.sender = sender
+        self.stampsSupplied = stampsSupplied
 
 
 class TransactionStub:
@@ -43,6 +44,7 @@ class TestSBClient(TestCase):
         driver.set_contract(name='submission',
                             code=contract,
                             author='sys')
+        driver.set('currency.balances:unittest', 1000000)
         driver.commit()
 
         # Use executor submit

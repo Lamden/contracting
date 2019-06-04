@@ -10,7 +10,7 @@ from .. import config
 from ..exceptions import DatabaseDriverNotFound
 from ..db.encoder import encode, decode
 
-from ..logger import get_logger
+#from ..logger import get_logger
 from ..execution.runtime import rt
 
 from .. import config
@@ -265,13 +265,11 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
     def get(self, key):
         self.conn.send_command('GET', key)
         resp = self.conn.read_response()
-        #print("GET {} RESPONSE: {}".format(_key,
         return resp
 
     def set(self, key, value):
         self.conn.send_command('SET', key, value)
         resp = self.conn.read_response()
-        #print("SET {} RESPONSE: {}".format(_key, resp))
 
     def delete(self, key):
         self.conn.send_command('DEL', key)
@@ -393,7 +391,7 @@ DatabaseDriver = RedisDriver
 class CacheDriver(DatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=0,):
         super().__init__(host=host, port=port, db=db)
-        self.log = get_logger("CacheDriver")
+        #self.log = get_logger("CacheDriver")
         self.modified_keys = None
         self.contract_modifications = None
         self.original_values = None
