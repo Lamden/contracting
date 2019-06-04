@@ -36,9 +36,9 @@ typedef struct {
     PyObject_HEAD
 
     /* Variables to keep track of metering */
-    int cu_costs[144];
-    unsigned int cost;
-    unsigned int stamp_supplied;
+    int cu_costs[158];
+    unsigned long long cost;
+    unsigned long long stamp_supplied;
     int started;
     char *cu_cost_fname;
 
@@ -171,7 +171,7 @@ Tracer_stop(Tracer *self, PyObject *args)
 static PyObject *
 Tracer_set_stamp(Tracer *self, PyObject *args, PyObject *kwds)
 {
-        PyArg_ParseTuple(args, "i", &self->stamp_supplied);
+        PyArg_ParseTuple(args, "L", &self->stamp_supplied);
     return Py_BuildValue("");
 }
 
@@ -189,8 +189,8 @@ Tracer_add_cost(Tracer *self, PyObject *args, PyObject *kwds)
 {
     // This allows you to arbitrarily add to the cost variable from Python
     // Implemented for adding costs to database read / write operations
-    int new_cost;
-    PyArg_ParseTuple(args, "i", &new_cost);
+    unsigned long long new_cost;
+    PyArg_ParseTuple(args, "L", &new_cost);
     self->cost += new_cost;
 
     if (self->cost > self->stamp_supplied) {
@@ -206,7 +206,7 @@ Tracer_add_cost(Tracer *self, PyObject *args, PyObject *kwds)
 static PyObject *
 Tracer_get_stamp_used(Tracer *self, PyObject *args, PyObject *kwds)
 {
-    return Py_BuildValue("i", self->cost);
+    return Py_BuildValue("L", self->cost);
 }
 
 static PyObject *

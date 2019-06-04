@@ -42,7 +42,7 @@ def vote(v):
 
             submit_vote(v)
         else:
-            raise Exception('Outside of voting parameters.')
+            raise Exception('Outside of governance parameters.')
 
 
 def submit_vote(v):
