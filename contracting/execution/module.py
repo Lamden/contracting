@@ -21,6 +21,7 @@ import marshal
 #
 # Note: anything installed with pip or in site-packages will also not work, so contract package names *must* be unique.
 #
+
 def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
     if globals is not None and globals.get('__contract__') is True:
         spec = importlib.util.find_spec(name)
