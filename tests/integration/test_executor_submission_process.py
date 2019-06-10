@@ -76,12 +76,12 @@ def d():
 '''
 
         kwargs = {
-            'name': 'stubucks',
+            'name': 'stubuckz',
             'code': code
         }
 
         e.execute(**TEST_SUBMISSION_KWARGS, kwargs=kwargs)
-        status_code, result, _ = e.execute(sender='stu', contract_name='stubucks', function_name='d', kwargs={})
+        status_code, result, _ = e.execute(sender='stu', contract_name='stubuckz', function_name='d', kwargs={})
 
         self.assertEqual(result, 1)
         self.assertEqual(status_code, 0)

@@ -39,6 +39,9 @@ class TestDynamicImports(TestCase):
         self.bastardcoin = self.c.get_contract('bastardcoin')
         self.dynamic_importing = self.c.get_contract('dynamic_importing')
 
+    def tearDown(self):
+        self.c.raw_driver.flush()
+
     def test_successful_submission(self):
         self.assertEqual(self.stubucks.balance_of(account='stu'), 123)
         self.assertEqual(self.stubucks.balance_of(account='colin'), 321)
