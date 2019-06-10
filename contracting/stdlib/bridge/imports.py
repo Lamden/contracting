@@ -55,12 +55,12 @@ def enforce_interface(m: ModuleType, interface: list):
     return True
 
 
-import_module = ModuleType('importlib')
-import_module.import_module = import_module
-import_module.enforce_interface = enforce_interface
-import_module.Func = Func
-import_module.Var = Var
+imports_module = ModuleType('importlib')
+imports_module.import_module = import_module
+imports_module.enforce_interface = enforce_interface
+imports_module.Func = Func
+imports_module.Var = Var
 
 exports = {
-    'importlib': import_module,
+    'importlib': imports_module,
 }

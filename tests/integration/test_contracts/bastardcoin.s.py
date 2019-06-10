@@ -2,9 +2,8 @@ balances = Hash(default_value=0)
 
 @construct
 def seed():
-    balances['stu'] = 1000000
-    balances['colin'] = 100
-    supply.set(balances['stu'] + balances['colin'])
+    balances['stu'] = 999
+    balances['colin'] = 555
 
 @export
 def transfer(amount, to):
@@ -13,3 +12,7 @@ def transfer(amount, to):
 
     balances[sender] -= amount
     balances[to] += amount
+
+@export
+def balance_of(account):
+    return balances[account]
