@@ -48,3 +48,6 @@ def transfer_from(amount, to, main_account):
     __balances[main_account, sender] -= amount
     __balances[main_account] -= amount
     __balances[to] += amount
+
+def __private_func():
+    return 5

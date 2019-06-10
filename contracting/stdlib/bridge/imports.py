@@ -23,6 +23,7 @@ class Func:
 class Var:
     def __init__(self, name, t):
         self.name = PRIVATE_METHOD_PREFIX + name
+        assert issubclass(t, Datum), 'Cannot enforce a variable that is not a Variable, Hash, or Foreign type!'
         self.type = t
 
     def is_of(self, v):

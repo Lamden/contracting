@@ -3,6 +3,7 @@ from contracting.stdlib.bridge import imports
 from types import ModuleType
 from contracting.db.orm import Hash, Variable
 
+
 class TestImports(TestCase):
     def setUp(self):
         scope = {}
@@ -83,6 +84,10 @@ class TestImports(TestCase):
 
         self.assertFalse(s.is_of(__sup))
 
+    def test_var_fails_if_type_not_of_datum(self):
+        with self.assertRaises(AssertionError):
+            imports.Var('blah', str)
+
     def test_enforce_interface_works_all_public_funcs(self):
         interface = [
             imports.Func('transfer', args=('amount', 'to')),
@@ -121,6 +126,42 @@ class TestImports(TestCase):
         interface = [
             imports.Var('supply', Variable),
             imports.Var('balances', Hash),
+        ]
+
+        self.assertTrue(imports.enforce_interface(self.module, interface))
+
+    def test_complete_enforcement(self):
+        interface = [
+            imports.Func('transfer', args=('amount', 'to')),
+            imports.Func('balance_of', args=('account',)),
+            imports.Func('total_supply'),
+            imports.Func('allowance', args=('owner', 'spender')),
+            imports.Func('approve', args=('amount', 'to')),
+            imports.Func('transfer_from', args=('amount', 'to', 'main_account')),
+            imports.Var('supply', Variable),
+            imports.Var('balances', Hash)
+        ]
+
+        self.assertTrue(imports.enforce_interface(self.module, interface))
+
+    def test_private_function_enforcement(self):
+        interface = [
+            imports.Func('private_func', private=True),
+        ]
+
+        self.assertTrue(imports.enforce_interface(self.module, interface))
+
+    def test_complete_enforcement_with_private_func(self):
+        interface = [
+            imports.Func('transfer', args=('amount', 'to')),
+            imports.Func('balance_of', args=('account',)),
+            imports.Func('total_supply'),
+            imports.Func('allowance', args=('owner', 'spender')),
+            imports.Func('approve', args=('amount', 'to')),
+            imports.Func('private_func', private=True),
+            imports.Func('transfer_from', args=('amount', 'to', 'main_account')),
+            imports.Var('supply', Variable),
+            imports.Var('balances', Hash)
         ]
 
         self.assertTrue(imports.enforce_interface(self.module, interface))
