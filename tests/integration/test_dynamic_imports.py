@@ -56,3 +56,39 @@ class TestDynamicImports(TestCase):
         self.assertEqual(stu, 123)
         self.assertEqual(colin, 321)
 
+    def test_get_tejastokens_balances(self):
+        stu = self.dynamic_importing.balance_for_token(tok='tejastokens', account='stu')
+        colin = self.dynamic_importing.balance_for_token(tok='tejastokens', account='colin')
+
+        self.assertEqual(stu, 321)
+        self.assertEqual(colin, 123)
+
+    def test_get_bastardcoin_balances(self):
+        stu = self.dynamic_importing.balance_for_token(tok='bastardcoin', account='stu')
+        colin = self.dynamic_importing.balance_for_token(tok='bastardcoin', account='colin')
+
+        self.assertEqual(stu, 999)
+        self.assertEqual(colin, 555)
+
+    def test_is_erc20(self):
+        self.assertTrue(self.dynamic_importing.is_erc20_compatible(tok='stubucks'))
+        self.assertTrue(self.dynamic_importing.is_erc20_compatible(tok='tejastokens'))
+        self.assertFalse(self.dynamic_importing.is_erc20_compatible(tok='bastardcoin'))
+
+    def test_get_balances_erc20_enforced_stubucks(self):
+        stu = self.dynamic_importing.only_erc20(tok='stubucks', account='stu')
+        colin = self.dynamic_importing.only_erc20(tok='stubucks', account='colin')
+
+        self.assertEqual(stu, 123)
+        self.assertEqual(colin, 321)
+
+    def test_get_balances_erc20_enforced_tejastokens(self):
+        stu = self.dynamic_importing.only_erc20(tok='tejastokens', account='stu')
+        colin = self.dynamic_importing.only_erc20(tok='tejastokens', account='colin')
+
+        self.assertEqual(stu, 321)
+        self.assertEqual(colin, 123)
+
+    def test_erc20_enforced_fails_for_bastardcoin(self):
+        with self.assertRaises(AssertionError):
+            stu = self.dynamic_importing.only_erc20(tok='bastardcoin', account='stu')
