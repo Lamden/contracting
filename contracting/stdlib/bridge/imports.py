@@ -53,3 +53,14 @@ def enforce_interface(m: ModuleType, interface: list):
             if not i.is_of(attribute):
                 return False
     return True
+
+
+import_module = ModuleType('importlib')
+import_module.import_module = import_module
+import_module.enforce_interface = enforce_interface
+import_module.Func = Func
+import_module.Var = Var
+
+exports = {
+    'importlib': import_module,
+}
