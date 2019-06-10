@@ -8,7 +8,7 @@ class TestImports(TestCase):
     def setUp(self):
         scope = {}
 
-        with open('./test_sys_contracts/compiled_token.py') as f:
+        with open('./precompiled/compiled_token.py') as f:
             code = f.read()
 
         exec(code, scope)

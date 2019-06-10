@@ -19,6 +19,6 @@ def gather():
     env.update(hash_exports)
     env.update(time_exports)
     env.update(random_exports)
-    #env.update(imports_exports)
+    env.update(imports_exports)
 
     return env
