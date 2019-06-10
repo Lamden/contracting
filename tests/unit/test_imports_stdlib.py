@@ -1,8 +1,24 @@
 from unittest import TestCase
 from contracting.stdlib.bridge import imports
-
+from types import ModuleType
+from contracting.db.orm import Hash, Variable
 
 class TestImports(TestCase):
+    def setUp(self):
+        scope = {}
+
+        with open('./test_sys_contracts/compiled_token.py') as f:
+            code = f.read()
+
+        exec(code, scope)
+
+        m = ModuleType('testing')
+
+        vars(m).update(scope)
+        del vars(m)['__builtins__']
+
+        self.module = m
+
     def test_func_correct_type(self):
         def sup(x, y):
             return x + y
@@ -66,3 +82,45 @@ class TestImports(TestCase):
         s = imports.Func(name='sup', args=('x', 'y'), private=True)
 
         self.assertFalse(s.is_of(__sup))
+
+    def test_enforce_interface_works_all_public_funcs(self):
+        interface = [
+            imports.Func('transfer', args=('amount', 'to')),
+            imports.Func('balance_of', args=('account',)),
+            imports.Func('total_supply'),
+            imports.Func('allowance', args=('owner', 'spender')),
+            imports.Func('approve', args=('amount', 'to')),
+            imports.Func('transfer_from', args=('amount', 'to', 'main_account'))
+        ]
+
+        self.assertTrue(imports.enforce_interface(self.module, interface))
+
+    def test_enforce_interface_works_on_subset_funcs(self):
+        interface = [
+            imports.Func('transfer', args=('amount', 'to')),
+            imports.Func('balance_of', args=('account',)),
+            imports.Func('total_supply'),
+            imports.Func('allowance', args=('owner', 'spender')),
+            imports.Func('transfer_from', args=('amount', 'to', 'main_account'))
+        ]
+
+        self.assertTrue(imports.enforce_interface(self.module, interface))
+
+    def test_enforce_interface_fails_on_wrong_funcs(self):
+        interface = [
+            imports.Func('transfer', args=('amount', 'to')),
+            imports.Func('balance_of', args=('account',)),
+            imports.Func('spooky'),
+            imports.Func('allowance', args=('owner', 'spender')),
+            imports.Func('transfer_from', args=('amount', 'to', 'main_account'))
+        ]
+
+        self.assertFalse(imports.enforce_interface(self.module, interface))
+
+    def test_enforce_interface_on_resources(self):
+        interface = [
+            imports.Var('supply', Variable),
+            imports.Var('balances', Hash),
+        ]
+
+        self.assertTrue(imports.enforce_interface(self.module, interface))
