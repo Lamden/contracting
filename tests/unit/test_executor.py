@@ -65,7 +65,7 @@ class DBTests(unittest.TestCase):
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
 
-        status_code, result = self.sb.execute(self.author, contract_name,
+        status_code, result, _ = self.sb.execute(self.author, contract_name,
                                               function_name, kwargs)
         self.assertEqual(result, 'Working')
 
@@ -73,7 +73,7 @@ class DBTests(unittest.TestCase):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result =  self.sb.execute(self.author, contract_name, function_name, kwargs)
+        status_code, result, _ = self.sb.execute(self.author, contract_name, function_name, kwargs)
 
         self.assertEqual(status_code, 1)
         self.assertIsInstance(result, ImportError)
@@ -97,7 +97,7 @@ class DBTests(unittest.TestCase):
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
 
-        status_code, result = self.mpsb.execute(self.author, contract_name,
+        status_code, result, _ = self.mpsb.execute(self.author, contract_name,
                                                 function_name, kwargs)
         self.assertEqual(result, 'Working')
         self.assertEqual(status_code, 0)
@@ -106,7 +106,7 @@ class DBTests(unittest.TestCase):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result = self.mpsb.execute(self.author, contract_name, function_name, kwargs)
+        status_code, result, _ = self.mpsb.execute(self.author, contract_name, function_name, kwargs)
 
         self.assertEqual(status_code, 1)
         self.assertIsInstance(result, ImportError)

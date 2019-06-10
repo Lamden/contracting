@@ -221,7 +221,8 @@ class MultiProcessingSandbox(Sandbox):
                                contract_modifications=updated_driver.contract_modifications,
                                original_values=updated_driver.original_values)
 
-    def execute_bag(self, txbag, environment={}, auto_commit=False, driver=None):
+    def execute_bag(self, txbag, environment={}, auto_commit=False, driver=None, metering=None):
+
         self._lazy_instantiate()
 
         _, child_pipe = self.pipe
@@ -238,7 +239,8 @@ class MultiProcessingSandbox(Sandbox):
                 'function_name': tx.func_name,
                 'kwargs': tx.kwargs,
                 'auto_commit': auto_commit,
-                'environment': environment
+                'environment': environment,
+                'metering': metering
             }
 
         child_pipe.send(msg)
@@ -248,8 +250,15 @@ class MultiProcessingSandbox(Sandbox):
 
         return response_obj['results']
 
-    def execute(self, sender, contract_name, function_name, kwargs, auto_commit=True,
-                environment={}, driver=None):
+    def execute(self, sender, contract_name, function_name, kwargs,
+                auto_commit=True,
+                environment={},
+                driver=None,
+                metering=None,
+                stamps=1000000,
+                currency_contract=None,
+                balances_hash=None):
+
         self._lazy_instantiate()
 
         _, child_pipe = self.pipe
@@ -268,7 +277,11 @@ class MultiProcessingSandbox(Sandbox):
                     'function_name': function_name,
                     'kwargs': kwargs,
                     'auto_commit': auto_commit,
-                    'environment': environment
+                    'environment': environment,
+                    'metering': metering,
+                    'stamps': stamps,
+                    'currency_contract': currency_contract,
+                    'balances_hash': balances_hash
                 }
             }
         }
@@ -282,10 +295,10 @@ class MultiProcessingSandbox(Sandbox):
         self._update_driver_cache(driver, response_obj['_driver'])
         # In the case mp.execute() is called, we know we only have one
         # entry into the response object
-        status_code, result = response_obj['results'][0]
+        status_code, result, stamps_used = response_obj['results'][0]
 
         # Check the status code for failure, if failure raise the result
-        return status_code, result
+        return status_code, result, stamps_used
 
     def process_loop(self, execute_fn):
         parent_pipe, _ = self.pipe
