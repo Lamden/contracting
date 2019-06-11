@@ -24,6 +24,7 @@ import marshal
 
 def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
     if globals is not None and globals.get('__contract__') is True:
+        print('__contract__ is true. finding spec for {}'.format(name))
         spec = importlib.util.find_spec(name)
         if not isinstance(spec.loader, DatabaseLoader):
             raise ImportError("module {} cannot be imported in a smart contract.".format(name))
@@ -47,6 +48,7 @@ def uninstall_builtins():
 
 
 def install_database_loader():
+    print('ive been installed!!')
     sys.meta_path.append(DatabaseFinder)
 
 
