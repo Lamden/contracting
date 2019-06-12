@@ -20,11 +20,11 @@ class TestSenecaClientReplacesExecutor(TestCase):
         # submit erc20 clone
         with open('./test_contracts/erc20_clone.s.py') as f:
             code = f.read()
-            submission.submit_contract(name='erc20_clone', code=code)
+            self.c.submit(code, name='erc20_clone')
 
         with open('./test_contracts/atomic_swaps.s.py') as f:
             code = f.read()
-            submission.submit_contract(name='atomic_swaps', code=code)
+            self.c.submit(code, name='atomic_swaps')
 
         self.erc20_clone = self.c.get_contract('erc20_clone')
         self.atomic_swaps = self.c.get_contract('atomic_swaps')

@@ -15,24 +15,22 @@ class TestDynamicImports(TestCase):
 
         self.c.raw_driver.commit()
 
-        submission = self.c.get_contract('submission')
-
         # submit erc20 clone
         with open('./test_contracts/stubucks.s.py') as f:
             code = f.read()
-            submission.submit_contract(name='stubucks', code=code)
+            self.c.submit(code, name='stubucks')
 
         with open('./test_contracts/tejastokens.s.py') as f:
             code = f.read()
-            submission.submit_contract(name='tejastokens', code=code)
+            self.c.submit(code, name='tejastokens')
 
         with open('./test_contracts/bastardcoin.s.py') as f:
             code = f.read()
-            submission.submit_contract(name='bastardcoin', code=code)
+            self.c.submit(code, name='bastardcoin')
 
         with open('./test_contracts/dynamic_importing.s.py') as f:
             code = f.read()
-            submission.submit_contract(name='dynamic_importing', code=code)
+            self.c.submit(code, name='dynamic_importing')
 
         self.stubucks = self.c.get_contract('stubucks')
         self.tejastokens = self.c.get_contract('tejastokens')
