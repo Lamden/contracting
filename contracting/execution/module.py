@@ -91,16 +91,14 @@ class DatabaseLoader(Loader):
         if MODULE_CACHE.get(module.__name__) is None:
             code = self.d.get_compiled(module.__name__)
             if code is None:
-                return None
-                #raise ImportError("Module {} not found".format(module.__name__))
+                raise ImportError("Module {} not found".format(module.__name__))
 
             code = bytes.fromhex(code)
             code = marshal.loads(code)
             MODULE_CACHE[module.__name__] = code
 
         if code is None:
-            return None
-            #raise ImportError("Module {} not found".format(module.__name__))
+            raise ImportError("Module {} not found".format(module.__name__))
 
         scope = env.gather()
         scope.update(rt.env)
