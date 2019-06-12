@@ -83,8 +83,6 @@ class DatabaseLoader(Loader):
         return None
 
     def exec_module(self, module):
-        print(sys.meta_path)
-
         # fetch the individual contract
         code = MODULE_CACHE.get(module.__name__)
 
