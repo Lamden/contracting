@@ -98,7 +98,8 @@ class TestMetering(TestCase):
 
         new_balance = self.d.get('currency.balances:stu')
 
-        self.assertEqual(new_balance, 0)
+        # Not all stamps will be deducted because it will blow up in the middle of execution
+        self.assertTrue(new_balance < 0.01)
 
     def test_submitting_contract_succeeds_with_enough_stamps(self):
         prior_balance = self.d.get('currency.balances:stu')
