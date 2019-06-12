@@ -98,7 +98,7 @@ I/O pattern:
 
 class Sandbox(object):
     def __init__(self):
-        install_database_loader()
+        #install_database_loader()
         pass
 
     def wipe_modules(self):

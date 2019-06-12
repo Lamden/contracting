@@ -48,7 +48,6 @@ def uninstall_builtins():
 
 
 def install_database_loader():
-    print('ive been installed!!')
     sys.meta_path.append(DatabaseFinder)
 
 
