@@ -36,6 +36,50 @@ def token_contract():
 
 ### Installing
 
+Ubuntu 18.04 LTS
+
+Clone Contracting Repo
+```
+git clone https://github.com/Lamden/contracting.git
+cd contracting
+```
+
+Install pip3
+```
+apt install python3-pip
+```
+
+install redis
+```
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get install redis-server
+sudo systemctl enable redis-server.service
+```
+Validate redis is running
+```
+sudo systemctl status redis-server.service
+
+```
+
+install contracting
+```
+python3 ./setup.py develop
+```
+
+install webserver.py depenancies
+```
+pip3 install sanic sanic_cors Cython
+
+```
+
+START CONTRACTING API SERVER
+```
+python3 contracting/webserver.py
+```
+
+OSX
+
 ```
 pip3 install contracting
 
