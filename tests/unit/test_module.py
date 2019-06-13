@@ -77,13 +77,6 @@ class TestDatabaseLoader(TestCase):
         self.assertEqual(self.dl.module_repr(module), "<module 'howdy' (smart contract)>")
 
 
-class TestDatabaseFinder(TestCase):
-    def test_find_module(self):
-        d = DatabaseFinder()
-        self.assertTrue(isinstance(d.find_module(None, None), DatabaseLoader), 'Database Finder does not return \
-            a Database Loader')
-
-
 class TestInstallLoader(TestCase):
     def test_install_loader(self):
         uninstall_database_loader()
