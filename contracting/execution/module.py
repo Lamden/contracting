@@ -1,9 +1,9 @@
 import sys
 
 import importlib.util
-from importlib.abc import Loader, MetaPathFinder
+from importlib.abc import Loader, MetaPathFinder, PathEntryFinder
 from importlib import invalidate_caches, __import__
-
+from importlib.machinery import ModuleSpec
 from ..db.driver import ContractDriver
 from ..stdlib import env
 from ..execution.runtime import rt
@@ -66,10 +66,12 @@ def install_system_contracts(directory=''):
 '''
 
 
-class DatabaseFinder(MetaPathFinder):
-    def find_module(self, fullname, path=None):
-        return DatabaseLoader()
-
+class DatabaseFinder:
+    def find_spec(self, fullname, path=None, target=None):
+        if MODULE_CACHE.get(self) is None:
+            if ContractDriver().get_contract(self) is None:
+                return None
+        return ModuleSpec(self, DatabaseLoader())
 
 MODULE_CACHE = {}
 CACHE = {}
