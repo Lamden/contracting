@@ -14,8 +14,10 @@ NUM_WORKERS = 2
 app = Sanic(__name__)
 
 ssl_enabled = False
-ssl_cert = '~/.ssh/server.csr'
-ssl_key = '~/.ssh/server.key'
+#path to certificate file 
+ssl_cert = ''
+#path to private key
+ssl_key = ''
 
 CORS(app, automatic_options=True)
 client = ContractingClient()
@@ -38,7 +40,7 @@ async def get_contract(request, contract):
     contract_code = client.raw_driver.get_contract(contract)
 
     if contract_code is None:
-        return json({'error': '{} does not exist'.format(contract)}, status=404)
+        return json({'error': '{} does not exist'.format(contract)}, status=200)
     return json({'name': contract, 'code': contract_code}, status=200)
 
 
@@ -47,7 +49,7 @@ async def get_methods(request, contract):
     contract_code = client.raw_driver.get_contract(contract)
 
     if contract_code is None:
-        return json({'error': '{} does not exist'.format(contract)}, status=404)
+        return json({'error': '{} does not exist'.format(contract)}, status=200)
 
     tree = ast.parse(contract_code)
 
@@ -68,7 +70,7 @@ async def get_variable(request, contract, variable):
     contract_code = client.raw_driver.get_contract(contract)
 
     if contract_code is None:
-        return json({'error': '{} does not exist'.format(contract)}, status=404)
+        return json({'error': '{} does not exist'.format(contract)}, status=200)
 
     key = request.args.get('key')
 
@@ -78,7 +80,7 @@ async def get_variable(request, contract, variable):
         response = client.raw_driver.get('{}.{}:{}'.format(contract, variable, key))
 
     if response is None:
-        return json({'value': None}, status=404)
+        return json({'value': None}, status=200)
     else:
         return json({'value': response}, status=200)
 
@@ -95,7 +97,7 @@ async def lint_contract(request):
     code = request.json.get('code')
 
     if code is None:
-        return json({'error': 'no code provided'}, status=500)
+        return json({'error': 'no code provided'}, status=200)
 
     violations = client.lint(request.json.get('code'))
     return json({'violations': violations}, status=200)
@@ -106,7 +108,7 @@ async def compile_contract(request):
     code = request.json.get('code')
 
     if code is None:
-        return json({'error': 'no code provided'}, status=500)
+        return json({'error': 'no code provided'}, status=200)
 
     violations = client.lint(request.json.get('code'))
 
@@ -114,7 +116,7 @@ async def compile_contract(request):
         compiled_code = client.compiler.parse_to_code(code)
         return json({'code': compiled_code}, status=200)
 
-    return json({'violations': violations}, status=500)
+    return json({'violations': violations}, status=200)
 
 
 @app.route('/submit', methods=['POST'])
@@ -123,7 +125,7 @@ async def submit_contract(request):
     name = request.json.get('name')
 
     if code is None or name is None:
-        return json({'error': 'malformed payload'}, status=500)
+        return json({'error': 'malformed payload'}, status=200)
 
     violations = client.lint(code)
 
@@ -131,7 +133,7 @@ async def submit_contract(request):
         client.submit(code, name=name)
 
     else:
-        return json({'violations': violations}, status=500)
+        return json({'violations': violations}, status=200)
 
     return json({'success': True}, status=200)
 
@@ -141,7 +143,7 @@ async def contract_exists(request):
     contract_code = client.get_contract(request.json.get('name'))
 
     if contract_code is None:
-        return json({'exists': False}, status=404)
+        return json({'exists': False}, status=200)
     else:
         return json({'exists': True}, status=200)
 

@@ -34,9 +34,9 @@ def token_contract():
 
 ```
 
-### Installing
+## Installing
 
-Ubuntu 18.04 LTS
+### Ubuntu 18.04 LTS
 
 Clone Contracting Repo
 ```
@@ -78,7 +78,7 @@ START CONTRACTING API SERVER
 python3 contracting/webserver.py
 ```
 
-OSX
+### OSX
 
 ```
 pip3 install contracting
@@ -132,6 +132,20 @@ In [6]: token.mint(to='stu', amount=100000)
 In [7]: token.balance_of(wallet_id='stu')
 Out[7]: 100000
 ```
+
+### Enable HTTPS for webserver
+Edit ./contracting/webserver.py, change ssl_enabled to True and add the paths for your certificate and private key files
+```
+ssl_enabled = False
+ssl_cert = 'path to certificate file'
+ssl_key = 'path to private key'
+```
+
+Save file and start the webserver 
+```
+python3 ./contracting/webserver.py
+```
+
 
 ### Get started with Contracting by Example
 
