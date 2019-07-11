@@ -169,6 +169,7 @@ class FSMScheduler:
     def flush_all(self):
         self.log.info("Flushing all caches...")
         for cache in self.pending_caches:
+            self.clear_polls_for_cache(cache)
             cache.discard()
 
         self._log_caches()
