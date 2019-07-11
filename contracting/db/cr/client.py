@@ -36,8 +36,6 @@ class FSMScheduler:
         self.available_caches = deque() # LIFO
         self.pending_caches = deque() # FIFO
 
-        self.merge_idx = 0
-
         self._log_caches()
 
     async def _check_on_caches(self):
@@ -131,7 +129,6 @@ class FSMScheduler:
                                 if is_merge:
                                     self.log.info("Merging cache {} to master".format(cache))
 
-                                    self.merge_idx -= 1
 
                         except Exception as e:
                             # pass
@@ -156,12 +153,9 @@ class FSMScheduler:
 
     def update_master_db(self):
         assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
-        assert self.merge_idx < len(self.pending_caches), "Merge idx {} out of range of pending caches of len {}"\
-                                                          .format(self.merge_idx, len(self.pending_caches))
 
-        cache = self.pending_caches[self.merge_idx]
+        cache = self.pending_caches[0]
         self.log.info("update_master_db called for cache {}".format(cache))
-        self.merge_idx += 1
         self.add_poll(cache, cache.merge, 'RESET', True)
 
         self._log_caches()
@@ -169,6 +163,7 @@ class FSMScheduler:
     def flush_all(self):
         self.log.info("Flushing all caches...")
         for cache in self.pending_caches:
+            self.log.info("clear polls and discord ...")
             self.clear_polls_for_cache(cache)
             cache.discard()
 
