@@ -79,21 +79,25 @@ class FSMScheduler:
 
         current_cache.set_bag(bag)
         current_cache.execute()
-        self.log.info("FSM executing input hash {} using cache {}".format(bag.input_hash, current_cache))  # TODO remove
+        # self.log.info("FSM executing input hash {} using cache {}".format(bag.input_hash, current_cache))  # TODO remove
+        self.log.info("raghu executing using cache {}".format(current_cache))  # TODO remove
         self.pending_caches.append(current_cache)
 
         self._log_caches()
         return True
 
     def add_poll(self, cache: CRCache, func: callable, succ_state: str, is_merge=False):
+        self.log.info("raghu adding poll for cache {} {} {}".format(cache, succ_state, is_merge))  # TODO remove
         self.temp_events[cache].add((func, succ_state, is_merge))
 
     def mark_clean(self, cache: CRCache):
         if cache in self.pending_caches:
-            self.log.debug("[mark_clean] Removing cache {} from pending_caches")
+            # self.log.debug("[mark_clean] Removing cache {} from pending_caches")
+            self.log.info("raghu remove cache {}".format(cache))
             self.pending_caches.remove(cache)
 
-        self.log.info("[mark_clean] Adding cache {} to available_caches".format(cache))
+        # self.log.info("[mark_clean] Adding cache {} to available_caches".format(cache))
+        self.log.info("raghu append cache {}".format(cache))
         self.available_caches.append(cache)
 
         self._log_caches()
@@ -105,6 +109,7 @@ class FSMScheduler:
         return self.pending_caches[0] == cache
 
     def clear_polls_for_cache(self, cache: CRCache):
+        self.log.info("raghu clear polls for cache {}".format(cache))
         if cache not in self.events:
             self.log.debug("Attempting to clear poll for cache {}, but no polls were registered".format(cache))
             return
@@ -124,7 +129,7 @@ class FSMScheduler:
                         try:
                             func()
                             if cache.state == succ_state:
-                                self.log.debug("Polling function call {} resulting in succ state {}. Removing function from poll "
+                                self.log.debug("raghu Polling function call {} resulting in succ state {}. Removing function from poll "
                                                "set.".format(func, succ_state))
                                 rm_set[cache].append((func, succ_state, is_merge))
                                 if is_merge:
@@ -140,6 +145,7 @@ class FSMScheduler:
 
                 for cache, li in rm_set.items():
                     for tup in li:
+                        self.log.info("raghu removing poll {} for cache {}".format(tup, cache))
                         self.events[cache].remove(tup)
 
                 self.events.update(self.temp_events)
@@ -156,7 +162,7 @@ class FSMScheduler:
         assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
 
         cache = self.pending_caches[0]
-        self.log.info("update_master_db called for cache {}".format(cache))
+        self.log.info("raghu update_master_db called for cache {}".format(cache))
         self.add_poll(cache, cache.merge, 'RESET', True)
 
         self._log_caches()
@@ -165,7 +171,7 @@ class FSMScheduler:
         self.log.info("Flushing all caches...")
         self._log_caches()
         for cache in self.pending_caches:
-            self.log.info("clear polls and discord ...")
+            self.log.info("raghu clear polls and discord for cache {}".format(cache))
             self.clear_polls_for_cache(cache)
             cache.discard()
 
