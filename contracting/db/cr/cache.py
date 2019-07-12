@@ -316,7 +316,7 @@ class CRCache:
     def _get_macro_values(self):
         mv_str = ''
         for key in Macros.ALL_MACROS:
-            my_str + = str(self._check_macro_key(key)) + ' '
+            my_str += str(self._check_macro_key(key)) + ' '
         return mv_str
 
     def __repr__(self):
