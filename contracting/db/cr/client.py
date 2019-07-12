@@ -49,10 +49,10 @@ class FSMScheduler:
             self.log.spam("idx {} --- {}".format(i, c))
         self.log.spam("----------------------------------")
 
-        self.log.spam("--------- AVAILABLE CACHES ---------")
-        for i, c in enumerate(self.available_caches):
-            self.log.spam("idx {} --- {}".format(i, c))
-        self.log.spam("----------------------------------")
+        # self.log.spam("--------- AVAILABLE CACHES ---------")
+        # for i, c in enumerate(self.available_caches):
+            # self.log.spam("idx {} --- {}".format(i, c))
+        # self.log.spam("----------------------------------")
 
         self.log.spam("--------- POLL EVENTS ---------")
         for cache in self.events:
@@ -70,6 +70,7 @@ class FSMScheduler:
             return False
 
         current_cache = self.available_caches.popleft()
+        self.log.spam("Using cache --- {}".format(current_cache))
         assert current_cache.state == 'CLEAN', "Pulled cache from available db with state {}, but expected CLEAN state"\
                                                .format(current_cache.state)
 

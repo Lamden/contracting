@@ -312,10 +312,16 @@ class CRCache:
 
         return SBData(self.bag.input_hash, tx_data=tx_datas)
 
+    def _get_macro_values(self):
+        mv_str = ''
+        for key in Macros.ALL_MACROS:
+            my_str + = str(self._check_macro_key(key)) + ' '
+        return mv_str
+
     def __repr__(self):
         input_hash = 'NOT_SET' if self.bag is None else self.bag.input_hash
-        return "<CRCache input_hash={}, state={}, idx={}, sbb_idx={}, top_of_stk={}>"\
-               .format(input_hash, self.state, self.idx, self.sbb_idx, self.is_top_of_stack())
+        return "<CRCache input_hash={}, state={}, idx={}, sbb_idx={}, macros={}, top_of_stk={}>"\
+               .format(input_hash, self.state, self.idx, self.sbb_idx, self._get_macro_values(), self.is_top_of_stack())
 
 
 if __name__ == "__main__":
