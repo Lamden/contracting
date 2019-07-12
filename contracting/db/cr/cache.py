@@ -158,6 +158,7 @@ class CRCache:
         self.scheduler.add_poll(self, self.sync_merge_ready, 'READY_TO_MERGE')
 
     def _schedule_reset(self):
+        self.log.info("raghu scheduling reset!!")
         self.scheduler.add_poll(self, self.sync_reset, 'CLEAN')
 
     def _incr_macro_key(self, macro):

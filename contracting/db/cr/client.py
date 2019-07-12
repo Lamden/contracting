@@ -167,13 +167,18 @@ class FSMScheduler:
 
         self._log_caches()
 
+    # shouldn't be flush all - only top of the stack that is not in reset state
     def flush_all(self):
         self.log.info("Flushing all caches...")
         self._log_caches()
         for cache in self.pending_caches:
-            self.log.info("raghu clear polls and discord for cache {}".format(cache))
-            self.clear_polls_for_cache(cache)
-            cache.discard()
+            if cache.state != 'RESET':
+                self.log.info("raghu clear polls and discord for cache {}".format(cache))
+                self.clear_polls_for_cache(cache)
+                cache.discard()
+                break
+            else:
+                self.log.info("raghu not clearing polls for cache {}".format(cache))
 
         self.log.info("Flushed all caches...")
         self._log_caches()
