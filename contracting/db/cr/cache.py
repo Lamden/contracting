@@ -283,6 +283,7 @@ class CRCache:
 
     def _mark_clean(self):
         # Mark myself as clean for the FSMScheduler to be able to reuse me
+        self.log.info("raghu mark clean this cache!!!!")
         self.scheduler.mark_clean(self)
 
     def _get_sb_data(self) -> SBData:
