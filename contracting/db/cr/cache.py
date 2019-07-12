@@ -255,6 +255,7 @@ class CRCache:
         return self._check_macro_key(Macros.CONFLICT_RESOLUTION) == self.num_sbb
 
     def merge_to_master(self):
+        self.log.debugv("merging to master !!")
         if self.sbb_idx == 0:
             merge_keys = [ x for x in self.db.keys() if x not in Macros.ALL_MACROS ]
             for key in merge_keys:
