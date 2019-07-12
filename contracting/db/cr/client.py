@@ -172,8 +172,8 @@ class FSMScheduler:
         self.log.info("Flushing all caches...")
         self._log_caches()
         for cache in self.pending_caches:
-            if cache.state != 'RESET':
-                self.log.info("raghu clear polls and discord for cache {}".format(cache))
+            if cache.state != RESET:
+                self.log.info("raghu clear polls & discord for cache {} w/ state {}".format(cache, cache.state))
                 self.clear_polls_for_cache(cache)
                 cache.discard()
                 break
