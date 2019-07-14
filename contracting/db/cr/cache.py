@@ -107,13 +107,13 @@ class CRCache:
                 'source': 'READY_TO_COMMIT',
                 'dest': 'COMMITTED',
                 'before': 'merge_to_common',
-                'after': '_schedule_merge_ready'
             },
             { # ASYNC CALL FROM OUTSIDE, TIMEOUT HERE TO ERROR
                 'trigger': 'sync_merge_ready',
                 'source': 'COMMITTED',
                 'dest': 'READY_TO_MERGE',
                 'conditions': 'all_committed',
+                'after': 'merge'
             },
             { # WILL WAIT HERE FOR MERGE TO BE CALLED
                 'trigger': 'merge',

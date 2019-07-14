@@ -163,7 +163,8 @@ class FSMScheduler:
 
         cache = self.pending_caches[0]
         self.log.info("raghu update_master_db called for cache {}".format(cache))
-        self.add_poll(cache, cache.merge, 'RESET', True)
+        cache._schedule_merge_ready()
+        # self.add_poll(cache, cache.merge, 'RESET', True)
 
         self._log_caches()
 
