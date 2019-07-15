@@ -160,13 +160,14 @@ class FSMScheduler:
 
     def update_master_db(self):
         assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
+        self._log_caches()
 
+        # for cache in self.pending_caches:
         cache = self.pending_caches[0]
         self.log.info("raghu update_master_db called for cache {}".format(cache))
         cache._schedule_merge_ready()
         # self.add_poll(cache, cache.merge, 'RESET', True)
 
-        self._log_caches()
 
     # shouldn't be flush all - only top of the stack that is not in reset state
     def flush_all(self):
