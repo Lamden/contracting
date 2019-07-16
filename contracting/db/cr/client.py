@@ -35,7 +35,6 @@ class FSMScheduler:
 
         self.available_caches = deque() # LIFO
         self.pending_caches = deque() # FIFO
-        self.to_clean_caches = deque() # FIFO
 
         self._log_caches()
 
@@ -61,8 +60,8 @@ class FSMScheduler:
             if len(self.events[cache]) == 0:
                 continue
             for event_tup in self.events[cache]:
-                fn, succ_state, is_merge = event_tup
-                self.log.spam("\tfn: {}, succ_state: {}, is_merge: {}".format(fn, succ_state, is_merge))
+                fn, cur_state, is_merge = event_tup
+                self.log.spam("\tfn: {}, cur_state: {}, is_merge: {}".format(fn, cur_state, is_merge))
         self.log.spam("----------------------------------")
 
     def execute_bag(self, bag: TransactionBag, environment={}):
@@ -87,9 +86,9 @@ class FSMScheduler:
         self._log_caches()
         return True
 
-    def add_poll(self, cache: CRCache, func: callable, succ_state: str, is_merge=False):
-        self.log.info("raghu adding poll for cache {} {} {}".format(cache, succ_state, is_merge))  # TODO remove
-        self.temp_events[cache].add((func, succ_state, is_merge))
+    def add_poll(self, cache: CRCache, func: callable, cur_state: str, is_merge=False):
+        self.log.info("raghu adding poll for cache {} {} {}".format(cache, cur_state, is_merge))  # TODO remove
+        self.temp_events[cache].add((func, cur_state, is_merge))
 
     def mark_clean(self, cache: CRCache):
         if cache in self.pending_caches:
@@ -123,17 +122,17 @@ class FSMScheduler:
                 rm_set = defaultdict(list)  # set of function pointer to remove if the poll call was successful
 
                 for cache, poll_set in self.events.items():
-                    for func, succ_state, is_merge in poll_set:
+                    for func, cur_state, is_merge in poll_set:
 
                         # try/catch here because calling fn might return an invalid transition
                         #
                         try:
-                            if cache.state == succ_state:
+                            if cache.state == cur_state:
                                 func()
                             else:
-                                self.log.debug("raghu Polling function call {} resulting in succ state {}. Removing function from poll "
-                                               "set.".format(func, succ_state))
-                                rm_set[cache].append((func, succ_state, is_merge))
+                                self.log.debug("raghu Polling function call {} for cur state {}. Removing function from poll "
+                                               "set.".format(func, cur_state))
+                                rm_set[cache].append((func, cur_state, is_merge))
                                 if is_merge:
                                     self.log.info("Merging cache {} to master".format(cache))
 
@@ -141,7 +140,7 @@ class FSMScheduler:
                         except Exception as e:
                             # pass
                             # TODO bump this guy down to spam or debugv once we feel confidence
-                            self.log.fatal("Got error try to call func {} {} {}\nerr = {}".format(func, succ_state, is_merge, e))
+                            self.log.fatal("Got error try to call func {} {} {}\nerr = {}".format(func, cur_state, is_merge, e))
                             self.log.fatal(traceback.format_exc())
                             raise e
 
