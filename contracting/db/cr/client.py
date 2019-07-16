@@ -35,6 +35,7 @@ class FSMScheduler:
 
         self.available_caches = deque() # LIFO
         self.pending_caches = deque() # FIFO
+        self.to_clean_caches = deque() # FIFO
 
         self._log_caches()
 
@@ -127,8 +128,9 @@ class FSMScheduler:
                         # try/catch here because calling fn might return an invalid transition
                         #
                         try:
-                            func()
                             if cache.state == succ_state:
+                                func()
+                            else:
                                 self.log.debug("raghu Polling function call {} resulting in succ state {}. Removing function from poll "
                                                "set.".format(func, succ_state))
                                 rm_set[cache].append((func, succ_state, is_merge))

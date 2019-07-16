@@ -151,15 +151,15 @@ class CRCache:
 
     def _schedule_cr(self):
         # Add sync_execution to the scheduler to wait for the CR step
-        self.scheduler.add_poll(self, self.sync_execution, 'COMMITTED')
+        self.scheduler.add_poll(self, self.sync_execution, 'EXECUTED')
 
     def _schedule_merge_ready(self):
         self.log.important2("scheding merge rdy {}".format(self))
-        self.scheduler.add_poll(self, self.sync_merge_ready, 'READY_TO_MERGE')
+        self.scheduler.add_poll(self, self.sync_merge_ready, 'COMMITTED')
 
     def _schedule_reset(self):
         self.log.info("raghu scheduling reset!!")
-        self.scheduler.add_poll(self, self.sync_reset, 'CLEAN')
+        self.scheduler.add_poll(self, self.sync_reset, 'RESET')
 
     def _incr_macro_key(self, macro):
         self.log.debug("INCREMENTING MACRO {}".format(macro))
