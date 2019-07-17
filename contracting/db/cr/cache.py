@@ -181,8 +181,6 @@ class CRCache:
     def set_transaction_bag(self, bag):
         self.log.spam("{} is setting transactions!".format(self))
         self.bag = bag
-        if self.sbb_idx == 0:
-            self._incr_macro_key(Macros.RESET)
 
     def execute_transactions(self):
         self.log.spam("{} is executing transactions!".format(self))
@@ -270,19 +268,22 @@ class CRCache:
         self.master_db.reset_cache()
         self.rerun_idx = None
         self.bag = None
+        self._incr_macro_key(Macros.RESET)
 
         # If we are on SBB 0, we need to flush the common layer of this cache
         # since the DB is shared, we only need to call this from one of the SBBs
         # TODO - this should be a macro so we can switch to other sbbers if needed
+
+    def all_reset(self):
+        return (self._check_macro_key(Macros.RESET) == 0) if self.sbb_idx != 0 \
+               else (self._check_macro_key(Macros.RESET) == self.num_sbb)
+
+
+    def _mark_clean(self):
         if self.sbb_idx == 0:
             self.log.debugv("cache idx 0 FLUSHING DB!!!!")
             self.db.flush()
             self._reset_macro_keys()
-
-    def all_reset(self):
-        return (self._check_macro_key(Macros.RESET) == 0)
-
-    def _mark_clean(self):
         # Mark myself as clean for the FSMScheduler to be able to reuse me
         self.log.info("raghu mark clean this cache!!!!")
         self.scheduler.mark_clean(self)
