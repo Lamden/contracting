@@ -288,14 +288,7 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
 
     def incrby(self, key, amount=1):
         """Increment a numeric _key by one"""
-        k = self.conn.send_command('GET', key)
-
-        if k is None:
-            k = 0
-        k = int(k) + amount
-        self.conn.send_command('SET', key, k)
-
-        return k
+        return self.conn.send_command('INCRBY', key, amount)
 
 
 class RedisDriver(AbstractDatabaseDriver):
@@ -355,14 +348,7 @@ class RedisDriver(AbstractDatabaseDriver):
 
     def incrby(self, key, amount=1):
         """Increment a numeric _key by one"""
-        k = self.conn.get(key)
-
-        if k is None:
-            k = 0
-        k = int(k) + amount
-        self.conn.set(key, k)
-
-        return k
+        return self.conn.incrby(key, amount)
 
 # Defined at the bottom since needs to be instantiated
 # after the classes have been defined. Allows us to
