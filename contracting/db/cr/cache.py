@@ -107,13 +107,13 @@ class CRCache:
                 'source': 'READY_TO_COMMIT',
                 'dest': 'COMMITTED',
                 'before': 'merge_to_common',
-                'after': '_schedule_merge_ready'
             },
             { # ASYNC CALL FROM OUTSIDE, TIMEOUT HERE TO ERROR
                 'trigger': 'sync_merge_ready',
                 'source': 'COMMITTED',
                 'dest': 'READY_TO_MERGE',
                 'conditions': 'all_committed',
+                'after': 'merge'
             },
             { # WILL WAIT HERE FOR MERGE TO BE CALLED
                 'trigger': 'merge',
@@ -138,7 +138,7 @@ class CRCache:
             },
             {
                 'trigger': 'discard',
-                'source': ['BAG_SET', 'EXECUTED', 'CR_STARTED', 'REQUIRES_RERUN', 'READY_TO_COMMIT', 'COMMITTED', 'READY_TO_MERGE'],
+                'source': ['BAG_SET', 'EXECUTED', 'CR_STARTED', 'READY_TO_COMMIT', 'COMMITTED', 'READY_TO_MERGE'],
                 'dest': 'DISCARDED',
                 'after': 'reset'
             }
@@ -151,14 +151,14 @@ class CRCache:
 
     def _schedule_cr(self):
         # Add sync_execution to the scheduler to wait for the CR step
-        self.scheduler.add_poll(self, self.sync_execution, 'COMMITTED')
+        self.scheduler.add_poll(self, self.sync_execution, 'EXECUTED')
 
     def _schedule_merge_ready(self):
         self.log.important2("scheding merge rdy {}".format(self))
-        self.scheduler.add_poll(self, self.sync_merge_ready, 'READY_TO_MERGE')
+        self.scheduler.add_poll(self, self.sync_merge_ready, 'COMMITTED')
 
     def _schedule_reset(self):
-        self.scheduler.add_poll(self, self.sync_reset, 'CLEAN')
+        self.scheduler.add_poll(self, self.sync_reset, 'RESET')
 
     def _incr_macro_key(self, macro):
         self.log.debug("INCREMENTING MACRO {}".format(macro))
@@ -180,8 +180,6 @@ class CRCache:
     def set_transaction_bag(self, bag):
         self.log.spam("{} is setting transactions!".format(self))
         self.bag = bag
-        if self.sbb_idx == 0:
-            self._incr_macro_key(Macros.RESET)
 
     def execute_transactions(self):
         self.log.spam("{} is executing transactions!".format(self))
@@ -262,13 +260,18 @@ class CRCache:
             self.master_db.commit()
 
     def reset_dbs(self):
-        # If we are on SBB 0, we need to flush the common layer of this cache
-        # since the DB is shared, we only need to call this from one of the SBBs
         self.db.reset_cache()
         self.master_db.reset_cache()
         self.rerun_idx = None
         self.bag = None
+        self._incr_macro_key(Macros.RESET)
 
+    def all_reset(self):
+        return (self._check_macro_key(Macros.RESET) == 0) if self.sbb_idx != 0 \
+               else (self._check_macro_key(Macros.RESET) == self.num_sbb)
+
+
+    def _mark_clean(self):
         # If we are on SBB 0, we need to flush the common layer of this cache
         # since the DB is shared, we only need to call this from one of the SBBs
         # TODO - this should be a macro so we can switch to other sbbers if needed
@@ -276,11 +279,6 @@ class CRCache:
             self.log.debugv("cache idx 0 FLUSHING DB!!!!")
             self.db.flush()
             self._reset_macro_keys()
-
-    def all_reset(self):
-        return (self._check_macro_key(Macros.RESET) == 0)
-
-    def _mark_clean(self):
         # Mark myself as clean for the FSMScheduler to be able to reuse me
         self.scheduler.mark_clean(self)
 
@@ -311,10 +309,16 @@ class CRCache:
 
         return SBData(self.bag.input_hash, tx_data=tx_datas)
 
+    def _get_macro_values(self):
+        mv_str = ''
+        for key in Macros.ALL_MACROS:
+            mv_str += str(self._check_macro_key(key)) + ' '
+        return mv_str
+
     def __repr__(self):
         input_hash = 'NOT_SET' if self.bag is None else self.bag.input_hash
-        return "<CRCache input_hash={}, state={}, idx={}, sbb_idx={}, top_of_stk={}>"\
-               .format(input_hash, self.state, self.idx, self.sbb_idx, self.is_top_of_stack())
+        return "<CRCache input_hash={}, state={}, idx={}, sbb_idx={}, macros={}, top_of_stk={}>"\
+               .format(input_hash, self.state, self.idx, self.sbb_idx, self._get_macro_values(), self.is_top_of_stack())
 
 
 if __name__ == "__main__":
