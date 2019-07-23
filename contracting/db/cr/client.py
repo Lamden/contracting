@@ -137,7 +137,7 @@ class CacheManager:
         if len(self.recycling_caches) == 0:
             return
         if self.recycling_caches[0].is_reset():
-            cache = self.recycling_caches[0].popleft()
+            cache = self.recycling_caches.popleft()
             cache.mark_clean()
             self.free_caches.append(cache)
 
