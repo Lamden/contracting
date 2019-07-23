@@ -50,6 +50,7 @@ class CacheManager:
 
     def __init__(self, loop, sbb_idx, num_sbb):
         self.loop = loop
+        self.log = get_logger("Cache Manager")
 
         self.executor = Executor()
         self.master_db = ContractDriver()
