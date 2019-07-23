@@ -136,8 +136,8 @@ class CacheManager:
     async def _recycling_cache_event(self):
         if len(self.recycling_caches) == 0:
             return
-        if self.working_caches[0].is_reset():
-            cache = self.working_caches[0].popleft()
+        if self.recycling_caches[0].is_reset():
+            cache = self.recycling_caches[0].popleft()
             cache.mark_clean()
             self.free_caches.append(cache)
 
