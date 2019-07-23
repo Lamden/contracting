@@ -193,8 +193,8 @@ class CRCache:
 
     def __repr__(self):
         input_hash = 'NOT_SET' if self.bag is None else self.bag.input_hash
-        return "<CRCache input_hash={}, idx={}, sbb_idx={}, macros={}, top_of_stk={}>"\
-               .format(input_hash, self.idx, self.sbb_idx, self._get_macro_values(), self.is_top_of_stack())
+        return "<CRCache input_hash={}, idx={}, sbb_idx={}, macros={}>"\
+               .format(input_hash, self.idx, self.sbb_idx, self._get_macro_values())
 
 
 if __name__ == "__main__":
