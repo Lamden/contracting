@@ -140,7 +140,7 @@ class CacheManager:
             cache.mark_clean()
             self.free_caches.append(cache)
 
-    async def _poll_events(self):
+    async def _poll_cache_events(self):
         while True:
             await asyncio.sleep(POLL_INTERVAL)
 
