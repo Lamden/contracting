@@ -21,19 +21,6 @@ class Macros:
 
 class CRCache:
 
-    states = [
-        {'name': 'CLEAN'},
-        {'name': 'BAG_SET'},
-        {'name': 'EXECUTED'},
-        {'name': 'CR_STARTED'},
-        {'name': 'READY_TO_COMMIT'},
-        {'name': 'COMMITTED'},
-        {'name': 'READY_TO_MERGE'},
-        {'name': 'MERGED'},
-        {'name': 'DISCARDED'},
-        {'name': 'RESET'}
-    ]
-
     def __init__(self, idx, master_db, sbb_idx, num_sbb, executor):
         self.idx = idx
         self.sbb_idx = sbb_idx
@@ -206,8 +193,8 @@ class CRCache:
 
     def __repr__(self):
         input_hash = 'NOT_SET' if self.bag is None else self.bag.input_hash
-        return "<CRCache input_hash={}, state={}, idx={}, sbb_idx={}, macros={}, top_of_stk={}>"\
-               .format(input_hash, self.state, self.idx, self.sbb_idx, self._get_macro_values(), self.is_top_of_stack())
+        return "<CRCache input_hash={}, idx={}, sbb_idx={}, macros={}, top_of_stk={}>"\
+               .format(input_hash, self.idx, self.sbb_idx, self._get_macro_values(), self.is_top_of_stack())
 
 
 if __name__ == "__main__":
