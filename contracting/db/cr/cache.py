@@ -42,7 +42,7 @@ class CRCache:
         self._reset_macro_keys()
 
     def _incr_macro_key(self, macro):
-        self.log.debug("INCREMENTING MACRO {}".format(macro))
+        self.log.spam("INCREMENTING MACRO {}".format(macro))
         self.db.incrby(macro)
 
     def _get_macro_value(self, macro_key):
@@ -58,7 +58,7 @@ class CRCache:
         return self.results
 
     def execute_bag(self, bag):
-        self.log.debug("{} is executing transactions!".format(self))
+        self.log.debugv("{} is executing transactions!".format(self))
 
         self.bag = bag
         # Execute first round using Master DB Driver since we will not have any keys in common
@@ -111,6 +111,7 @@ class CRCache:
         self.results.update(self.executor.execute_bag(self.bag, environment=self.bag.environment, driver=self.db))
 
     def resolve_conflicts_and_merge(self):
+        self.log.debugv("{} is resolving conflicts!".format(self))
         self.prepare_reruns()
         if self.requires_reruns():
             self.rerun_transactions()
@@ -153,7 +154,7 @@ class CRCache:
         # since the DB is shared, we only need to call this from one of the SBBs
         # TODO - this should be a macro so we can switch to other sbbers if needed
         if self.sbb_idx == 0:
-            self.log.debugv("cache idx 0 FLUSHING DB!!!!")
+            self.log.debugv("{} is flushing db!".format(self))
             self.db.flush()
             self._reset_macro_keys()
 

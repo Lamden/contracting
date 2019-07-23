@@ -22,10 +22,10 @@ class SubBlockClient:
 
     def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[SBData], None], environment={}):
         if not self.cache_manager.is_cache_available():
-            self.log.debugv("No free cache available to execute input bag {}".format(input_hash))
+            self.log.spam("No free cache available to execute input bag {}".format(input_hash))
             return False
 
-        self.log.debugv("Execute SB call for input hash {}".format(input_hash))
+        self.log.spam("Execute SB call for input hash {}".format(input_hash))
         bag = TransactionBag(contracts, input_hash, completion_handler)
 
         # Set the environment of the bag, which is going to be standard (time, blocknum, blockhash).
@@ -70,8 +70,6 @@ class CacheManager:
         # (SubBlockBuilder) kicks off his event loop
         self.fut = asyncio.ensure_future(self._poll_cache_events())
 
-        self._log_caches()
-
     def is_cache_available(self):
         return len(self.free_caches) > 0
 
@@ -99,12 +97,10 @@ class CacheManager:
 
     def execute_bag(self, bag: TransactionBag):
         current_cache = self.free_caches.popleft()
-        self.log.debugv("Using cache --- {}".format(current_cache))
-
         current_cache.execute_bag(bag)
 
         self.working_caches.append(current_cache)
-        self._log_caches()
+        # self._log_caches()
 
     def reset_current_db(self):
         cache = self.working_caches.popleft()
@@ -113,7 +109,7 @@ class CacheManager:
 
     def update_master_db(self):
         assert len(self.working_caches) > 0, "attempted to update master db but no working caches"
-        self._log_caches()
+        # self._log_caches()
 
         self.working_caches[0].merge_to_master()
         self.reset_current_db()
@@ -121,11 +117,11 @@ class CacheManager:
 
     # shouldn't be flush all - only top of the stack that is not in reset state
     def flush_all(self):
-        self.log.info("Flushing all caches...")
+        self.log.spam("Flushing all caches...")
         while len(self.working_caches) > 0:
             self.reset_current_db()
 
-        self._log_caches()
+        # self._log_caches()
 
 
     async def _working_cache_event(self):
