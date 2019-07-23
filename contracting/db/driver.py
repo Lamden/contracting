@@ -369,7 +369,7 @@ def get_database_driver():
     return cls
 
 
-DatabaseDriver = get_database_driver()
+#DatabaseDriver = get_database_driver()
 #DatabaseDriver = LevelDBDriver
 DatabaseDriver = RedisDriver
 

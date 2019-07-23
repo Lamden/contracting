@@ -1,10 +1,5 @@
 # Builtin imports
 
-
-# Third party imports
-from transitions import Machine
-from transitions.extensions.states import add_state_features, Timeout
-
 # Local imports
 from contracting.logger import get_logger
 from contracting.db.driver import ContractDriver, CacheDriver
@@ -18,27 +13,11 @@ import json
 # TODO include _key exclusions for stamps, etc
 class Macros:
     # TODO we need to make sure these keys dont conflict with user stuff in the common layer. I.e. users cannot be
-    # creating keys named '_execution' or '_conflict_resolution'
-    EXECUTION = '_execution_phase'
+    # creating keys with the same names
     CONFLICT_RESOLUTION = '_conflict_resolution_phase'
     RESET = "_reset_phase"
 
-    ALL_MACROS = [EXECUTION, CONFLICT_RESOLUTION, RESET]
-
-@add_state_features(Timeout)
-class CustomStateMachine(Machine):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-# Uncomment this if you want to generate a new visual representation of the state machine
-#from transitions.extensions import GraphMachine
-#@add_state_features(Timeout)
-#class CustomStateMachine(GraphMachine):
-#    def __init__(self, *args, **kwargs):
-#        kwargs['show_conditions'] = True
-#        kwargs['title'] = 'CRCache State Machine'
-#        super().__init__(*args, **kwargs)
-
+    ALL_MACROS = [CONFLICT_RESOLUTION, RESET]
 
 class CRCache:
 
@@ -55,12 +34,11 @@ class CRCache:
         {'name': 'RESET'}
     ]
 
-    def __init__(self, idx, master_db, sbb_idx, num_sbb, executor, scheduler):
+    def __init__(self, idx, master_db, sbb_idx, num_sbb, executor):
         self.idx = idx
         self.sbb_idx = sbb_idx
         self.num_sbb = num_sbb
         self.executor = executor
-        self.scheduler = scheduler
 
         self.bag = None            # Bag will be set by the execute call
         self.rerun_idx = None      # The index to being reruns at
@@ -74,99 +52,14 @@ class CRCache:
         self.db = ContractDriver(db=self.idx)
         self.master_db = master_db
 
-        transitions = [
-            {
-                'trigger': 'set_bag',
-                'source': 'CLEAN',
-                'dest': 'BAG_SET',
-                'before': 'set_transaction_bag',
-            },
-            {
-                'trigger': 'execute',
-                'source': 'BAG_SET',
-                'dest': 'EXECUTED',
-                'before': 'execute_transactions',
-                'after': '_schedule_cr'
-            },
-            { # ASYNC CALL TO MOVE OUT FROM EXECUTED sync_execution
-                'trigger': 'sync_execution',
-                'source': 'EXECUTED',
-                'dest': 'CR_STARTED',
-                'conditions': ['my_turn_for_cr', 'is_top_of_stack'],
-                'after': 'start_cr'
-            },
-            {
-                'trigger': 'start_cr',
-                'source': 'CR_STARTED',
-                'dest': 'READY_TO_COMMIT',
-                'before': 'resolve_conflicts',
-                'after': 'commit'
-            },
-            {
-                'trigger': 'commit',
-                'source': 'READY_TO_COMMIT',
-                'dest': 'COMMITTED',
-                'before': 'merge_to_common',
-            },
-            { # ASYNC CALL FROM OUTSIDE, TIMEOUT HERE TO ERROR
-                'trigger': 'sync_merge_ready',
-                'source': 'COMMITTED',
-                'dest': 'READY_TO_MERGE',
-                'conditions': 'all_committed',
-                'after': 'merge'
-            },
-            { # WILL WAIT HERE FOR MERGE TO BE CALLED
-                'trigger': 'merge',
-                'source': 'READY_TO_MERGE',
-                'dest': 'MERGED',
-                'before': 'merge_to_master',
-                'after': 'reset'
-            },
-            {
-                'trigger': 'reset',
-                'source': ['MERGED', 'DISCARDED'],
-                'dest': 'RESET',
-                'before': 'reset_dbs',
-                'after': '_schedule_reset'
-            },
-            {
-                'trigger': 'sync_reset',
-                'source': 'RESET',
-                'dest': 'CLEAN',
-                'conditions': 'all_reset',
-                'after': '_mark_clean'
-            },
-            {
-                'trigger': 'discard',
-                'source': ['BAG_SET', 'EXECUTED', 'CR_STARTED', 'READY_TO_COMMIT', 'COMMITTED', 'READY_TO_MERGE'],
-                'dest': 'DISCARDED',
-                'after': 'reset'
-            }
-        ]
-        self.machine = CustomStateMachine(model=self, states=CRCache.states,
-                                          transitions=transitions, initial='CLEAN')
-
-        self.scheduler.mark_clean(self)
         self._reset_macro_keys()
-
-    def _schedule_cr(self):
-        # Add sync_execution to the scheduler to wait for the CR step
-        self.scheduler.add_poll(self, self.sync_execution, 'EXECUTED')
-
-    def _schedule_merge_ready(self):
-        self.log.important2("scheding merge rdy {}".format(self))
-        self.scheduler.add_poll(self, self.sync_merge_ready, 'COMMITTED')
-
-    def _schedule_reset(self):
-        self.scheduler.add_poll(self, self.sync_reset, 'RESET')
 
     def _incr_macro_key(self, macro):
         self.log.debug("INCREMENTING MACRO {}".format(macro))
         self.db.incrby(macro)
 
-    def _check_macro_key(self, macro):
-        val = self.db.get_direct(macro)
-        # self.log.debug("MACRO: {} VAL: {} VALTYPE: {}".format(macro, val, type(val)))
+    def _get_macro_value(self, macro_key):
+        val = self.db.get_direct(macro_key)
         return int(val) if val is not None else -1
 
     def _reset_macro_keys(self):
@@ -177,12 +70,10 @@ class CRCache:
     def get_results(self):
         return self.results
 
-    def set_transaction_bag(self, bag):
-        self.log.spam("{} is setting transactions!".format(self))
-        self.bag = bag
+    def execute_bag(self, bag):
+        self.log.debug("{} is executing transactions!".format(self))
 
-    def execute_transactions(self):
-        self.log.spam("{} is executing transactions!".format(self))
+        self.bag = bag
         # Execute first round using Master DB Driver since we will not have any keys in common
         # Do not commit, leveraging cache only
         self.results = self.executor.execute_bag(self.bag, environment=self.bag.environment, driver=self.master_db)
@@ -194,14 +85,9 @@ class CRCache:
         # Reset the master_db cache back to empty
         self.master_db.reset_cache()
 
-        # Increment the execution macro
-        self._incr_macro_key(Macros.EXECUTION)
 
     def my_turn_for_cr(self):
-        return self._check_macro_key(Macros.CONFLICT_RESOLUTION) == self.sbb_idx
-
-    def is_top_of_stack(self):
-        return self.scheduler.check_top_of_stack(self)
+        return self._get_macro_value(Macros.CONFLICT_RESOLUTION) == self.sbb_idx
 
     def prepare_reruns(self):
         # Find all instances where our originally grabbed value from the cache does not
@@ -237,22 +123,26 @@ class CRCache:
         self.bag.yield_from(idx=self.rerun_idx)
         self.results.update(self.executor.execute_bag(self.bag, environment=self.bag.environment, driver=self.db))
 
-    def resolve_conflicts(self):
+    def resolve_conflicts_and_merge(self):
         self.prepare_reruns()
         if self.requires_reruns():
             self.rerun_transactions()
 
-    def merge_to_common(self):
         # call completion handler on bag so Cilantro can build a SubBlockContender
         self.bag.completion_handler(self._get_sb_data())
-
-        self.db.commit()  # this will wipe the cache
         self._incr_macro_key(Macros.CONFLICT_RESOLUTION)
 
+        self.db.commit()  # this will wipe the cache   ?? is this right, raghu todo
+
+    def cr_event(self):
+        if self.my_turn_for_cr():
+            self.resolve_conflicts_and_merge()
+
     def all_committed(self):
-        return self._check_macro_key(Macros.CONFLICT_RESOLUTION) == self.num_sbb
+        return self._get_macro_value(Macros.CONFLICT_RESOLUTION) == self.num_sbb
 
     def merge_to_master(self):
+        assert self.all_committed(), "Calling premature merge to master!"
         if self.sbb_idx == 0:
             merge_keys = [ x for x in self.db.keys() if x not in Macros.ALL_MACROS ]
             for key in merge_keys:
@@ -260,18 +150,18 @@ class CRCache:
             self.master_db.commit()
 
     def reset_dbs(self):
+        # now reset dbs
         self.db.reset_cache()
         self.master_db.reset_cache()
         self.rerun_idx = None
         self.bag = None
         self._incr_macro_key(Macros.RESET)
 
-    def all_reset(self):
-        return (self._check_macro_key(Macros.RESET) == 0) if self.sbb_idx != 0 \
-               else (self._check_macro_key(Macros.RESET) == self.num_sbb)
+    def is_reset(self):
+        return (self._get_macro_value(Macros.RESET) == 0) if self.sbb_idx != 0 \
+               else (self._get_macro_value(Macros.RESET) == self.num_sbb)
 
-
-    def _mark_clean(self):
+    def mark_clean(self):
         # If we are on SBB 0, we need to flush the common layer of this cache
         # since the DB is shared, we only need to call this from one of the SBBs
         # TODO - this should be a macro so we can switch to other sbbers if needed
@@ -279,8 +169,7 @@ class CRCache:
             self.log.debugv("cache idx 0 FLUSHING DB!!!!")
             self.db.flush()
             self._reset_macro_keys()
-        # Mark myself as clean for the FSMScheduler to be able to reuse me
-        self.scheduler.mark_clean(self)
+
 
     def _get_sb_data(self) -> SBData:
         if len(self.results) != len(self.bag.transactions):
@@ -312,7 +201,7 @@ class CRCache:
     def _get_macro_values(self):
         mv_str = ''
         for key in Macros.ALL_MACROS:
-            mv_str += str(self._check_macro_key(key)) + ' '
+            mv_str += str(self._get_macro_value(key)) + ' '
         return mv_str
 
     def __repr__(self):
@@ -323,4 +212,3 @@ class CRCache:
 
 if __name__ == "__main__":
     c = CRCache(1,1,1,1,1)
-    c.machine.get_graph().draw('CRCache_StateMachine.png', prog='dot')
