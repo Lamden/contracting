@@ -20,31 +20,6 @@ class TransactionStub():
         self.func_name = func_name
         self.kwargs = kwargs
 
-class SchedulerStub():
-    def __init__(self):
-        self.polls = {}
-        self.top_of_stack = False
-
-    def add_poll(self, cache, fn, endstate):
-        if cache not in self.polls.keys():
-            self.polls[cache] = {}
-        self.polls[cache][fn] = endstate
-
-    def execute_poll(self, cache, fn):
-        fn()
-        return cache.state == self.polls[cache][fn]
-
-    def mark_top_of_stack(self):
-        self.top_of_stack = True
-
-    def check_top_of_stack(self, cache):
-        return self.top_of_stack
-
-    def mark_clean(self, cache):
-        pass
-
-
-
 
 #unittest.TestLoader.sortTestMethodsUsing = None
 
@@ -81,10 +56,10 @@ class TestSingleCRCache(unittest.TestCase):
         tx3 = TransactionStub(self.author, 'module_func', 'test_keymod', {'deduct': 10})
         input_hash = 'A'*64
         sbb_idx = 0
-        self.scheduler = SchedulerStub()
+        # self.cache_mgr = SchedulerStub()
         self.bag = TransactionBag([tx1, tx2, tx3], input_hash, lambda y: y)
         self.cache = CRCache(idx=1, master_db=self.master_db, sbb_idx=sbb_idx,
-                             num_sbb=num_sbb, executor=executor, scheduler=self.scheduler)
+                             num_sbb=num_sbb, executor=executor)
 
     @classmethod
     def tearDownClass(self):
@@ -95,14 +70,8 @@ class TestSingleCRCache(unittest.TestCase):
         #sys.meta_path.remove(DatabaseFinder)
         self.driver.flush()
 
-    def test_0_set_bag(self):
-        self.cache.set_bag(self.bag)
-
-        self.assertEqual(self.cache.state, 'BAG_SET')
-
     def test_1_execute(self):
-        self.cache.execute()
-        self.assertEqual(self.cache.state, 'EXECUTED')
+        self.cache.execute_bag(self.bag)
 
         results = self.cache.get_results()
         print(results)
@@ -113,19 +82,12 @@ class TestSingleCRCache(unittest.TestCase):
         self.assertEqual(results[2][0], 0)
         self.assertEqual(results[2][1], 90)
 
-        self.assertEqual(0, self.cache._check_macro_key(Macros.CONFLICT_RESOLUTION))
-        self.assertEqual(1, self.cache._check_macro_key(Macros.RESET))
-        self.assertEqual(1, self.cache._check_macro_key(Macros.EXECUTION))
+        self.assertEqual(0, self.cache._get_macro_value(Macros.CONFLICT_RESOLUTION))
+        self.assertEqual(0, self.cache._get_macro_value(Macros.RESET))
 
     def test_2_cr(self):
-        res = self.scheduler.execute_poll(self.cache, self.cache.sync_execution)
-        self.assertEqual(self.cache.state, 'EXECUTED')
-        self.assertEqual(res, False)
-
-        self.scheduler.mark_top_of_stack()
-        res = self.scheduler.execute_poll(self.cache, self.cache.sync_execution)
-        self.assertEqual(self.cache.state, 'COMMITTED')
-        self.assertEqual(res, True)
+        self.cache.cr_event()
+        self.assertEqual(1, self.cache._get_macro_value(Macros.CONFLICT_RESOLUTION))
 
         # Test if the cache db has the updated value and master is still holding the correct old value
         self.assertEqual(int(self.cache.db.get_direct('module_func.balances:test')), 90)
@@ -134,22 +96,16 @@ class TestSingleCRCache(unittest.TestCase):
         self.assertEqual(int(self.cache.db.get('module_func.balances:test')), 90)
         self.assertEqual(int(self.cache.master_db.get('module_func.balances:test')), 100)
 
-    def test_3_merge_ready(self):
-        res = self.scheduler.execute_poll(self.cache, self.cache.sync_merge_ready)
-        self.assertEqual(self.cache.state, 'READY_TO_MERGE')
-        self.assertEqual(res, True)
-
-    def test_4_merged(self):
-        self.cache.merge()
-        self.assertEqual(self.cache.state, 'RESET')
+    def test_3_merged(self):
+        self.cache.merge_to_master()
 
         self.assertEqual(int(self.cache.master_db.get_direct('module_func.balances:test')), 90)
         self.assertEqual(int(self.cache.master_db.get('module_func.balances:test')), 90)
 
-    def test_5_clean(self):
-        res = self.scheduler.execute_poll(self.cache, self.cache.sync_reset)
-        self.assertEqual(self.cache.state, 'CLEAN')
-        self.assertEqual(res, True)
+    def test_4_clean(self):
+        self.cache.reset_dbs()
+        self.cache.mark_clean()
+        self.assertEqual(self.cache.is_reset(), False)
 
 
 

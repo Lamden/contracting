@@ -48,12 +48,13 @@ POLL_INTERVAL = 0.1
 
 class CacheManager:
 
-    def __init__(self, loop, sbb_idx, num_sbb):
+    def __init__(self, loop, sbb_idx, num_sbb, executor=Executor(),
+                 driver=ContractDriver(), num_caches=config.NUM_CACHES):
         self.loop = loop
         self.log = get_logger("Cache Manager")
 
-        self.executor = Executor()
-        self.master_db = ContractDriver()
+        self.executor = executor
+        self.master_db = driver
 
         # FIFO queues of caches
         self.free_caches = deque()
@@ -61,7 +62,7 @@ class CacheManager:
         self.recycling_caches = deque()
 
         # set up caches
-        for i in range(config.NUM_CACHES):
+        for i in range(num_caches):
             cache = CRCache(config.DB_OFFSET + i, self.master_db,
                             sbb_idx, num_sbb, self.executor)
             self.free_caches.append(cache)

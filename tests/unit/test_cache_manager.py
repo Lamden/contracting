@@ -8,7 +8,7 @@ from contracting.db.cr.cache import CRCache, Macros
 from contracting.execution.executor import Executor
 from contracting.db.driver import ContractDriver
 from contracting.db.cr.transaction_bag import TransactionBag
-from contracting.db.cr.client import FSMScheduler
+from contracting.db.cr.client import CacheManager
 
 driver = ContractDriver(db=0)
 
@@ -69,11 +69,11 @@ class TestMultiCRCache(unittest.TestCase):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.num_caches = 2
+        self.cache_mgr = CacheManager(self.loop, sbb_idx=0, num_sbb=num_sbb, executor=executor, \
+                                      driver=driver, num_caches=self.num_caches)
         self.caches = []
-        self.scheduler = FSMScheduler(self.loop, sbb_idx=0, num_sbb=num_sbb)
-        for cache_idx in range(self.num_caches):
-            self.caches.append(CRCache(idx=cache_idx+1, master_db=self.master_db, sbb_idx=0, num_sbb=num_sbb,
-                               executor=executor, scheduler=self.scheduler))
+        for cache in self.cache_mgr.free_caches:
+            self.caches.append(cache)
 
     @classmethod
     def tearDownClass(self):
@@ -91,25 +91,19 @@ class TestMultiCRCache(unittest.TestCase):
         self.loop.run_until_complete(run())
 
     def test_0_init(self):
-        for i in range(self.num_caches):
-            self.assertTrue(self.caches[i] in self.scheduler.available_caches)
-        self.assertTrue(len(self.scheduler.pending_caches) == 0)
+        self.assertTrue(len(self.cache_mgr.free_caches) == self.num_caches)
+        self.assertTrue(len(self.cache_mgr.working_caches) == 0)
+        self.assertTrue(len(self.cache_mgr.recycling_caches) == 0)
 
     def test_1_execute_bag(self):
         for i in range(self.num_caches):
-            self.scheduler.execute_bag(self.bags[i])
+            self.cache_mgr.execute_bag(self.bags[i])
             self.run_loop()
-            if i == 0:
-                self.assertEqual(self.caches[i].state, 'READY_TO_MERGE')
-            else:
-                self.assertEqual(self.caches[i].state, 'EXECUTED')
+            self.assertTrue(len(self.cache_mgr.working_caches) == (i+1))
 
     def test_2_execution_order(self):
         for i in range(self.num_caches):
-            self.scheduler.update_master_db()
+            self.cache_mgr.update_master_db()
             self.run_loop(2)
-            self.assertEqual(self.caches[i].state, 'CLEAN')
-            self.assertTrue(self.caches[i] in self.scheduler.available_caches)
-            self.assertTrue(self.caches[i] not in self.scheduler.pending_caches)
-            if i < self.num_caches-1:
-                self.assertEqual(self.caches[i+1].state, 'READY_TO_MERGE')
+            self.assertTrue(len(self.cache_mgr.working_caches) == (self.num_caches-i-1))
+            self.assertTrue(len(self.cache_mgr.free_caches) == (i+1))
