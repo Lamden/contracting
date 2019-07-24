@@ -2,6 +2,7 @@ from unittest import TestCase
 from contracting.execution.executor import Executor
 from contracting.db.cr.client import SubBlockClient
 from contracting.db.driver import ContractDriver
+from contracting.db.cr.callback_data import ExecutionData, SBData
 from contracting.logger import get_logger
 import asyncio, glob
 from typing import List
@@ -80,9 +81,16 @@ class TestSBClient(TestCase):
         self.loop.run_until_complete(run())
 
     def test_some_conflicts(self):
-        def _assert_handler1(outputs: List[tuple]):
-            contract1, status1, result1, state1 = outputs[0]
-            contract2, status2, result2, state2 = outputs[1]
+        def _assert_handler1(sb_data: SBData):
+            contract1 = sb_data.tx_data[0].contract 
+            status1 = sb_data.tx_data[0].status 
+            result1 = sb_data.tx_data[0].response 
+            state1 = sb_data.tx_data[0].state 
+
+            contract2 = sb_data.tx_data[1].contract 
+            status2 = sb_data.tx_data[1].status 
+            result2 = sb_data.tx_data[1].response 
+            state2 = sb_data.tx_data[1].state 
 
             self.assertEqual(contract1, tx1)
             self.assertEqual(contract2, tx2)
@@ -90,12 +98,19 @@ class TestSBClient(TestCase):
             self.assertEqual(status2, 0)
             self.assertEqual(result1, 'tx1_succ')
             self.assertEqual(result2, 'tx2_succ')
-            self.assertEqual(state1, '')
-            self.assertEqual(state2, '')
+            self.assertEqual(state1, '{}')
+            self.assertEqual(state2, '{}')
 
-        def _assert_handler2(outputs: List[tuple]):
-            contract1, status1, result1, state1 = outputs[0]
-            contract2, status2, result2, state2 = outputs[1]
+        def _assert_handler2(sb_data: SBData):
+            contract1 = sb_data.tx_data[0].contract 
+            status1 = sb_data.tx_data[0].status 
+            result1 = sb_data.tx_data[0].response 
+            state1 = sb_data.tx_data[0].state 
+
+            contract2 = sb_data.tx_data[1].contract 
+            status2 = sb_data.tx_data[1].status 
+            result2 = sb_data.tx_data[1].response 
+            state2 = sb_data.tx_data[1].state 
 
             self.assertEqual(contract1, tx3)
             self.assertEqual(contract2, tx4)
@@ -103,7 +118,7 @@ class TestSBClient(TestCase):
             self.assertEqual(status2, 1)
             self.assertEqual(result1, 'tx3_succ')
             self.assertIsInstance(result2, ImportError)
-            self.assertEqual(state1, '')
+            self.assertEqual(state1, '{}')
             self.assertEqual(state2, '')
 
         tx1 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'tx1_succ'})

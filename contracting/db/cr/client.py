@@ -1,5 +1,4 @@
 import asyncio
-import time
 from contracting.logger import get_logger
 from contracting.execution.executor import Executor
 from contracting.db.cr.cache import CRCache
@@ -7,195 +6,147 @@ from contracting import config
 from contracting.db.cr.transaction_bag import TransactionBag
 from contracting.db.cr.callback_data import ExecutionData, SBData
 from contracting.db.driver import ContractDriver
-from collections import deque, defaultdict
-from typing import Callable, List, Any
+from collections import deque
+from typing import Callable
 import traceback
-
-
-class FSMScheduler:
-
-    def __init__(self, loop, sbb_idx, num_sbb):
-        self.log = get_logger("FSM Scheduler")
-        self.events = defaultdict(set)
-        self.temp_events = defaultdict(set)
-        self.loop = loop
-
-        self.num_sbb = num_sbb
-        self.sbb_idx = sbb_idx
-
-        self.log.debug("Starting scheduler")
-
-        # Cilantro is in charge of starting the event loop. This coro will start as soon as cilantro
-        # (SubBlockBuilder) kicks off his event loop
-        self.fut = asyncio.ensure_future(self._poll_events())
-
-        # DEBUG -- TODO DELETE
-        # self.fut2 = asyncio.ensure_future(self._check_on_caches())
-        # END DEBUG
-
-        self.available_caches = deque() # LIFO
-        self.pending_caches = deque() # FIFO
-
-        self._log_caches()
-
-    async def _check_on_caches(self):
-        while True:
-            self._log_caches()
-            await asyncio.sleep(3)
-
-    def _log_caches(self):
-        self.log.spam("--------- PENDING CACHES ---------")
-        for i, c in enumerate(self.pending_caches):
-            self.log.spam("idx {} --- {}".format(i, c))
-        self.log.spam("----------------------------------")
-
-        self.log.spam("--------- AVAILABLE CACHES ---------")
-        for i, c in enumerate(self.available_caches):
-            self.log.spam("idx {} --- {}".format(i, c))
-        self.log.spam("----------------------------------")
-
-        self.log.spam("--------- POLL EVENTS ---------")
-        for cache in self.events:
-            self.log.spam("Cache {}".format(cache))
-            if len(self.events[cache]) == 0:
-                continue
-            for event_tup in self.events[cache]:
-                fn, cur_state, is_merge = event_tup
-                self.log.spam("\tfn: {}, cur_state: {}, is_merge: {}".format(fn, cur_state, is_merge))
-        self.log.spam("----------------------------------")
-
-    def execute_bag(self, bag: TransactionBag, environment={}):
-        if len(self.available_caches) == 0:
-            self.log.warning("No available caches in FSM scheduler. Returning False from execute_bag")
-            return False
-
-        current_cache = self.available_caches.popleft()
-        assert current_cache.state == 'CLEAN', "Pulled cache from available db with state {}, but expected CLEAN state"\
-                                               .format(current_cache.state)
-
-        # Set the environment of the bag, which is going to be standard (time, blocknum, blockhash).
-        bag.environment = environment
-
-        current_cache.set_bag(bag)
-        current_cache.execute()
-        self.log.info("FSM executing input hash {} using cache {}".format(bag.input_hash, current_cache))  # TODO remove
-        self.pending_caches.append(current_cache)
-
-        self._log_caches()
-        return True
-
-    def add_poll(self, cache: CRCache, func: callable, cur_state: str, is_merge=False):
-        self.temp_events[cache].add((func, cur_state, is_merge))
-
-    def mark_clean(self, cache: CRCache):
-        if cache in self.pending_caches:
-            self.log.debug("[mark_clean] Removing cache {} from pending_caches")
-            self.pending_caches.remove(cache)
-
-        self.log.info("[mark_clean] Adding cache {} to available_caches".format(cache))
-        self.available_caches.append(cache)
-
-        self._log_caches()
-
-    def check_top_of_stack(self, cache: CRCache):
-        if not self.pending_caches:
-            return False
-
-        return self.pending_caches[0] == cache
-
-    def clear_polls_for_cache(self, cache: CRCache):
-        if cache not in self.events:
-            self.log.debug("Attempting to clear poll for cache {}, but no polls were registered".format(cache))
-            return
-
-        del self.events[cache]
-
-    async def _poll_events(self):
-        try:
-            while True:
-                rm_set = defaultdict(list)  # set of function pointer to remove if the poll call was successful
-
-                for cache, poll_set in self.events.items():
-                    for func, cur_state, is_merge in poll_set:
-
-                        # try/catch here because calling fn might return an invalid transition
-                        #
-                        try:
-                            if cache.state == cur_state:
-                                func()
-                            else:
-                                rm_set[cache].append((func, cur_state, is_merge))
-
-                        except Exception as e:
-                            # pass
-                            # TODO bump this guy down to spam or debugv once we feel confidence
-                            self.log.fatal("Got error try to call func {} {} {}\nerr = {}".format(func, cur_state, is_merge, e))
-                            self.log.fatal(traceback.format_exc())
-                            raise e
-
-                for cache, li in rm_set.items():
-                    for tup in li:
-                        self.events[cache].remove(tup)
-
-                self.events.update(self.temp_events)
-                self.temp_events.clear()
-
-                await asyncio.sleep(config.POLL_INTERVAL)
-
-        except Exception as e:
-            self.log.fatal("damn son, big yikes in the _poll_events: {}...\nerror:".format(e))
-            self.log.fatal(traceback.format_exc())
-            raise e
-
-    def update_master_db(self):
-        assert len(self.pending_caches) > 0, "attempted to update master db but no pending caches"
-        self._log_caches()
-
-        cache = self.pending_caches[0]
-        cache._schedule_merge_ready()
-
-
-    # shouldn't be flush all - only top of the stack that is not in reset state
-    def flush_all(self):
-        self.log.info("Flushing all caches...")
-        for cache in self.pending_caches:
-            if cache.state != 'RESET':
-                self.clear_polls_for_cache(cache)
-                cache.discard()
-                break
-
-        self._log_caches()
-
 
 class SubBlockClient:
     def __init__(self, sbb_idx, num_sbb, loop=None):
         name = self.__class__.__name__ + "[sbb-{}]".format(sbb_idx)
         self.log = get_logger(name)
 
-        self.num_sbb = num_sbb
-        self.sbb_idx = sbb_idx
-
         self.loop = loop or asyncio.get_event_loop()
         asyncio.set_event_loop(self.loop)
 
-        self.executor = Executor()
-        self.master_db = ContractDriver()
-
-        caches = []
-        self.scheduler = FSMScheduler(self.loop, sbb_idx, num_sbb)
-        for i in range(config.NUM_CACHES):
-            caches.append(CRCache(config.DB_OFFSET + i, self.master_db,
-                                  self.sbb_idx, self.num_sbb,
-                                  self.executor, self.scheduler))
-
-    def flush_all(self):
-        self.scheduler.flush_all()
+        self.cache_manager = CacheManager(self.loop, sbb_idx, num_sbb)
 
     def execute_sb(self, input_hash: str, contracts: list, completion_handler: Callable[[SBData], None], environment={}):
-        self.log.info("Execute SB call for input hash {}".format(input_hash))
+        if not self.cache_manager.is_cache_available():
+            self.log.spam("No free cache available to execute input bag {}".format(input_hash))
+            return False
 
+        self.log.spam("Execute SB call for input hash {}".format(input_hash))
         bag = TransactionBag(contracts, input_hash, completion_handler)
-        return self.scheduler.execute_bag(bag, environment=environment)
+
+        # Set the environment of the bag, which is going to be standard (time, blocknum, blockhash).
+        bag.environment = environment
+
+        self.cache_manager.execute_bag(bag)
+        return True
 
     def update_master_db(self):
-        self.scheduler.update_master_db()
+        self.cache_manager.update_master_db()
+
+    def discord_current_sb(self):
+        self.cache_manager.reset_current_db()
+
+    def flush_all(self):
+        self.cache_manager.flush_all()
+
+
+POLL_INTERVAL = 0.1
+
+class CacheManager:
+
+    def __init__(self, loop, sbb_idx, num_sbb, executor=Executor(),
+                 driver=ContractDriver(), num_caches=config.NUM_CACHES):
+        self.loop = loop
+        self.log = get_logger("Cache Manager")
+
+        self.executor = executor
+        self.master_db = driver
+
+        # FIFO queues of caches
+        self.free_caches = deque()
+        self.working_caches = deque()
+        self.recycling_caches = deque()
+
+        # set up caches
+        for i in range(num_caches):
+            cache = CRCache(config.DB_OFFSET + i, self.master_db,
+                            sbb_idx, num_sbb, self.executor)
+            self.free_caches.append(cache)
+
+        # Cilantro is in charge of starting the event loop. This coro will start as soon as cilantro
+        # (SubBlockBuilder) kicks off his event loop
+        self.fut = asyncio.ensure_future(self._poll_cache_events())
+
+    def is_cache_available(self):
+        return len(self.free_caches) > 0
+
+    def _log_caches(self):
+        self.log.spam("--------- WORKING CACHES ---------")
+        for i, c in enumerate(self.working_caches):
+            self.log.spam("idx {} --- {}".format(i, c))
+        self.log.spam("----------------------------------")
+
+        self.log.spam("--------- RECYCLING CACHES ---------")
+        for i, c in enumerate(self.recycling_caches):
+            self.log.spam("idx {} --- {}".format(i, c))
+        self.log.spam("----------------------------------")
+
+        self.log.spam("--------- FREE CACHES ---------")
+        for i, c in enumerate(self.free_caches):
+            self.log.spam("idx {} --- {}".format(i, c))
+        self.log.spam("----------------------------------")
+
+
+    def top_of_working_stack(self, cache: CRCache):
+        if not self.working_caches:
+            return False
+        return self.working_caches[0] == cache
+
+    def execute_bag(self, bag: TransactionBag):
+        current_cache = self.free_caches.popleft()
+        current_cache.execute_bag(bag)
+
+        self.working_caches.append(current_cache)
+        # self._log_caches()
+
+    def reset_current_db(self):
+        cache = self.working_caches.popleft()
+        cache.reset_dbs()
+        self.recycling_caches.append(cache)
+
+    def update_master_db(self):
+        assert len(self.working_caches) > 0, "attempted to update master db but no working caches"
+        # self._log_caches()
+
+        self.working_caches[0].merge_to_master()
+        self.reset_current_db()
+
+
+    # shouldn't be flush all - only top of the stack that is not in reset state
+    def flush_all(self):
+        self.log.spam("Flushing all caches...")
+        while len(self.working_caches) > 0:
+            self.reset_current_db()
+
+        # self._log_caches()
+
+
+    async def _working_cache_event(self):
+        if len(self.working_caches) == 0:
+            return
+        self.working_caches[0].cr_event()
+
+    async def _recycling_cache_event(self):
+        if len(self.recycling_caches) == 0:
+            return
+        if self.recycling_caches[0].is_reset():
+            cache = self.recycling_caches.popleft()
+            cache.mark_clean()
+            self.free_caches.append(cache)
+
+    async def _poll_cache_events(self):
+        while True:
+            await asyncio.sleep(POLL_INTERVAL)
+
+            try:
+                await self._working_cache_event()
+                await self._recycling_cache_event()
+
+            except Exception as e:
+                self.log.fatal("Exception in the event manager: {}...\n".format(e))
+                self.log.fatal(traceback.format_exc())
+
