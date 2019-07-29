@@ -38,20 +38,36 @@ format = '%(asctime)s.%(msecs)03d %(name)s[%(process)d][%(processName)s] <{}> %(
 """
 Custom Log Levels
 """
+#   Default levels
+# 'CRITICAL': 50,
+# 'ERROR': 40,
+# 'WARNING': 30,
+# 'INFO': 20,
+# 'DEBUG' : 10
 
-CUSTOM_LEVELS = {
+
+CUSTOM_LVL = {
+    'TEST': 14,
+    'DEBUG3': 15,
+    'DEBUG2': 16,
+    'DEBUG1': 17,
+    'DEBUGV': 21,
+    'NOTICE': 22,
+    'FATAL': 99
+    }
+
+DEPRECATED_LEVELS = {
     'SPAM': 1,
-    'DEBUGV': 5,
     'SOCKET': 23,
-    'NOTICE': 24,
     'SUCCESS': 26,
     'SUCCESS2': 27,
     'IMPORTANT': 56,
     'IMPORTANT2': 57,
     'IMPORTANT3': 58,
-    'FATAL': 9001,
-    'TEST': 9002,
-    }
+
+}
+
+CUSTOM_LEVELS = {**CUSTOM_LVL, **DEPRECATED_LEVELS}
 
 for log_name, log_level in CUSTOM_LEVELS.items():
     logging.addLevelName(log_level, log_name)
@@ -70,23 +86,28 @@ Custom Styling
 """
 
 coloredlogs.DEFAULT_LEVEL_STYLES = {
-    'critical': {'color': 'white', 'bold': True, 'background': 'red'},
     'fatal': {'color': 'white', 'bold': True, 'background': 'red', 'underline': True},
-    'debug': {'color': 'green'},
+    'critical': {'color': 'white', 'bold': True, 'background': 'red'},
     'error': {'color': 'red'},
-    'info': {'color': 'white'},
-    'notice': {'color': 'magenta'},
-    'test': {'color': 'magenta'},
-    'socket': {'color': 216},
-    'important': {'color': 'cyan', 'bold': True, 'background': 'magenta'},
-    'important2': {'color': 'magenta', 'bold': True, 'background': 'cyan'},
-    'important3': {'color': 'black', 'bold': True, 'background': 'yellow'},
-    'spam': {'color': 'white', 'faint': True},
-    'success': {'color': 'white', 'bold': True, 'background': 'green'},
-    'success2': {'color': 165, 'bold': True, 'background': 'green'},
-    'verbose': {'color': 'blue'},
     'warning': {'color': 'yellow'},
-    'debugv': {'color': 'blue', 'faint': False}
+    'notice': {'color': 'magenta'},
+    'debugv': {'color': 'blue', 'faint': False},
+    'info': {'color': 'white'},
+    'debug1': {'color': 'cyan', 'bold': True, 'background': 'magenta'},
+    'debug2': {'color': 'magenta', 'bold': True, 'background': 'cyan'},
+    'debug3': {'color': 'black', 'bold': True, 'background': 'yellow'},
+    'debug': {'color': 'green'},
+    'test': {'color': 'magenta'},
+    'verbose': {'color': 'blue'},
+
+    #TODO deprecated levels to be cleaned up
+    'socket': {'color': 'white', 'background': 'yellow'},
+    'important': {'color': 'white', 'background': 'yellow'},
+    'important2': {'color': 'white', 'background': 'yellow'},
+    'important3': {'color': 'white', 'background': 'yellow'},
+    'spam': {'color': 'white', 'background': 'yellow'},
+    'success': {'color': 'white', 'background': 'yellow'},
+    'success2': {'color': 'white', 'background': 'yellow'}
 }
 coloredlogs.DEFAULT_FIELD_STYLES = {
     'asctime': {'color': 'green'},
