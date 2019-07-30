@@ -16,8 +16,8 @@ class PayloadStub():
 class TransactionStub():
     def __init__(self, sender, contract_name, func_name, kwargs):
         self.payload = PayloadStub(sender)
-        self.contract_name = contract_name
-        self.func_name = func_name
+        self.contractName = contract_name
+        self.functionName = func_name
         self.kwargs = kwargs
 
 
