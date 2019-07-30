@@ -194,19 +194,18 @@ class DBTests(unittest.TestCase):
 # Stub out the Contract Transaction object for use in the unit test
 # We will need to write an integration test that passes real contract
 # objects, but here is not the place
-class PayloadStub():
-    def __init__(self, sender, stampsSupplied=1000000):
+class PayloadStub:
+    def __init__(self, sender, contract_name, func_name, kwargs, stampsSupplied=1000000):
         self.sender = sender
-        self.stampsSupplied = stampsSupplied
-
-
-class ContractTxStub(object):
-    def __init__(self, sender, contract_name, func_name, kwargs):
-        self.payload = PayloadStub(sender)
         self.contractName = contract_name
         self.functionName = func_name
         self.kwargs = kwargs
+        self.stampsSupplied = stampsSupplied
 
+
+class ContractTxStub:
+    def __init__(self, sender, contract_name, func_name, kwargs):
+        self.payload = PayloadStub(sender, contract_name, func_name, kwargs)
 
 def completion_handler_stub():
     pass

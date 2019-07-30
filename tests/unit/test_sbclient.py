@@ -8,18 +8,18 @@ import asyncio, glob
 from typing import List
 
 
-class PayloadStub():
-    def __init__(self, sender, stampsSupplied=1000000):
+class PayloadStub:
+    def __init__(self, sender, contract_name, func_name, kwargs, stampsSupplied=1000000):
         self.sender = sender
+        self.contractName = contract_name
+        self.functionName = func_name
+        self.kwargs = kwargs
         self.stampsSupplied = stampsSupplied
 
 
 class TransactionStub:
     def __init__(self, sender, contract_name, func_name, kwargs):
-        self.payload = PayloadStub(sender)
-        self.contract_name = contract_name
-        self.func_name = func_name
-        self.kwargs = kwargs
+        self.payload = PayloadStub(sender, contract_name, func_name, kwargs)
 
 
 driver = ContractDriver(db=0)
@@ -37,7 +37,7 @@ class TestSBClient(TestCase):
 
     def setUp(self):
         # Add submission contract
-        self.author = 'unittest'
+        self.author = b'unittest'
         self.log = get_logger("TestSBClient")
         with open('../../contracting/contracts/submission.s.py') as f:
             contract = f.read()

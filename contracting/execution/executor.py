@@ -110,9 +110,9 @@ class Sandbox(object):
         for idx, tx in txbag:
             # Each TX is a list of Capnp ContractTransaction structs
             response_obj[idx] = self.execute(tx.payload.sender.hex(),
-                                             tx.contractName,
-                                             tx.functionName,
-                                             tx.kwargs,
+                                             tx.payload.contractName,
+                                             tx.payload.functionName,
+                                             tx.payload.kwargs,
                                              auto_commit=auto_commit,
                                              environment=environment,
                                              driver=driver,
@@ -241,9 +241,9 @@ class MultiProcessingSandbox(Sandbox):
         for tx_idx, tx in txbag:
             msg['txns'][tx_idx] = {
                 'sender': tx.payload.sender,
-                'contract_name': tx.contractName,
-                'function_name': tx.functionName,
-                'kwargs': tx.kwargs,
+                'contract_name': tx.payload.contractName,
+                'function_name': tx.payload.functionName,
+                'kwargs': tx.payload.kwargs,
                 'auto_commit': auto_commit,
                 'environment': environment,
                 'metering': metering

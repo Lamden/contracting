@@ -8,17 +8,18 @@ from contracting.execution.executor import Executor
 from contracting.db.driver import ContractDriver
 from contracting.db.cr.transaction_bag import TransactionBag
 
-class PayloadStub():
-    def __init__(self, sender, stampsSupplied=1000000):
+class PayloadStub:
+    def __init__(self, sender, contract_name, func_name, kwargs, stampsSupplied=1000000):
         self.sender = sender
-        self.stampsSupplied = stampsSupplied
-
-class TransactionStub():
-    def __init__(self, sender, contract_name, func_name, kwargs):
-        self.payload = PayloadStub(sender)
         self.contractName = contract_name
         self.functionName = func_name
         self.kwargs = kwargs
+        self.stampsSupplied = stampsSupplied
+
+
+class TransactionStub:
+    def __init__(self, sender, contract_name, func_name, kwargs):
+        self.payload = PayloadStub(sender, contract_name, func_name, kwargs)
 
 
 #unittest.TestLoader.sortTestMethodsUsing = None
