@@ -108,9 +108,15 @@ class Sandbox(object):
         response_obj = {}
 
         for idx, tx in txbag:
-            response_obj[idx] = self.execute(tx.payload.sender, tx.contract_name, tx.func_name,
-                                             tx.kwargs, auto_commit=auto_commit,
-                                             environment=environment, driver=driver, metering=metering)
+            # Each TX is a list of Capnp ContractTransaction structs
+            response_obj[idx] = self.execute(tx.payload.sender.hex(),
+                                             tx.contractName,
+                                             tx.functionName,
+                                             tx.kwargs,
+                                             auto_commit=auto_commit,
+                                             environment=environment,
+                                             driver=driver,
+                                             metering=metering)
         return response_obj
 
     def execute(self, sender, contract_name, function_name, kwargs,
@@ -235,8 +241,8 @@ class MultiProcessingSandbox(Sandbox):
         for tx_idx, tx in txbag:
             msg['txns'][tx_idx] = {
                 'sender': tx.payload.sender,
-                'contract_name': tx.contract_name,
-                'function_name': tx.func_name,
+                'contract_name': tx.contractName,
+                'function_name': tx.functionName,
                 'kwargs': tx.kwargs,
                 'auto_commit': auto_commit,
                 'environment': environment,
@@ -311,9 +317,13 @@ class MultiProcessingSandbox(Sandbox):
             }
             for tx_idx in sorted(msg['txns'].keys()):
                 tx = msg['txns'][tx_idx]
-                response_obj['results'][tx_idx] = execute_fn(tx['sender'], tx['contract_name'], tx['function_name'],
-                                                             tx['kwargs'], auto_commit=tx['auto_commit'],
-                                                             environment=tx['environment'], driver=driver)
+                response_obj['results'][tx_idx] = execute_fn(tx['sender'],
+                                                             tx['contract_name'],
+                                                             tx['function_name'],
+                                                             tx['kwargs'],
+                                                             auto_commit=tx['auto_commit'],
+                                                             environment=tx['environment'],
+                                                             driver=driver)
 
             parent_pipe.send(response_obj)
 

@@ -33,7 +33,7 @@ class DBTests(unittest.TestCase):
         sys.meta_path.append(DatabaseFinder)
         driver.flush()
         contracts = glob.glob('./test_sys_contracts/*.py')
-        self.author = 'unittest'
+        self.author = b'unittest'
         self.sb = Sandbox()
         self.mpsb = MultiProcessingSandbox()
 
@@ -203,8 +203,8 @@ class PayloadStub():
 class ContractTxStub(object):
     def __init__(self, sender, contract_name, func_name, kwargs):
         self.payload = PayloadStub(sender)
-        self.contract_name = contract_name
-        self.func_name = func_name
+        self.contractName = contract_name
+        self.functionName = func_name
         self.kwargs = kwargs
 
 
