@@ -5,10 +5,12 @@ from transitions import Machine
 
 
 class TransactionBag:
-    def __init__(self, transactions: list, input_hash: str, completion_handler: Callable, environment={}):
+    def __init__(self, transactions: list, input_hash: str, sub_block_idx: int,
+                       completion_handler: Callable, environment={}):
         self.input_hash = input_hash
         self.transactions = transactions
         self.to_yield = list(range(len(self.transactions)))
+        self.sub_block_idx = sub_block_idx
         self.completion_handler = completion_handler
         self.environment = environment
 
