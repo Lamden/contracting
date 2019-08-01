@@ -85,7 +85,7 @@ class DBTests(unittest.TestCase):
         input_hash = 'A'*64
 
         tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
-        txbag = TransactionBag([tx], input_hash, completion_handler_stub)
+        txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
 
         results = self.sb.execute_bag(txbag)
 
@@ -118,7 +118,7 @@ class DBTests(unittest.TestCase):
         input_hash = 'A'*64
 
         tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
-        txbag = TransactionBag([tx], input_hash, completion_handler_stub)
+        txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
 
         results = self.mpsb.execute_bag(txbag)
 
@@ -150,7 +150,7 @@ class DBTests(unittest.TestCase):
         input_hash = 'A'*64
 
         tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
-        txbag = TransactionBag([tx], input_hash, completion_handler_stub)
+        txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
 
         results = self.e.execute_bag(txbag)
 
@@ -183,7 +183,7 @@ class DBTests(unittest.TestCase):
         input_hash = 'A'*64
 
         tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
-        txbag = TransactionBag([tx], input_hash, completion_handler_stub)
+        txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
 
         results = self.e_prod.execute_bag(txbag)
 
