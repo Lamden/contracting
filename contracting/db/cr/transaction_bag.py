@@ -2,10 +2,11 @@ from ...logger import get_logger
 from typing import Callable
 
 from transitions import Machine
-
+log = get_logger('Contracting[TX-Bag]')
 
 class TransactionBag:
     def __init__(self, transactions: list, input_hash: str, completion_handler: Callable, environment={}):
+        log.spam('New TX Bag initialized with txs: {}'.format(transactions))
         self.input_hash = input_hash
         self.transactions = transactions
         self.to_yield = list(range(len(self.transactions)))
@@ -17,6 +18,7 @@ class TransactionBag:
             yield i, self.transactions[i]
 
     def yield_from(self, idx):
+        log.info('Yielding TX')
         """
         Update the list of indicies to yield from a new start point
 

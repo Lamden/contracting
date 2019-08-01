@@ -26,6 +26,7 @@ class SubBlockClient:
             return False
 
         self.log.spam("Execute SB call for input hash {}".format(input_hash))
+        self.log.spam('Transactions: {}'.format(contracts))
         bag = TransactionBag(contracts, input_hash, completion_handler)
 
         # Set the environment of the bag, which is going to be standard (time, blocknum, blockhash).
@@ -97,6 +98,7 @@ class CacheManager:
         return self.working_caches[0] == cache
 
     def execute_bag(self, bag: TransactionBag):
+        self.log.spam('Executing bag {}'.format(bag.transactions))
         current_cache = self.free_caches.popleft()
         current_cache.execute_bag(bag)
 
