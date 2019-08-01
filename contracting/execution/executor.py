@@ -54,11 +54,7 @@ class Executor:
                 stamps=1000000,
                 metering=None) -> tuple:
 
-        log.info('Executing with sender {}, contract {}, function {}.'.format(
-            sender, contract_name, function_name
-        ))
-        log.info('Kwargs: {}'.format(kwargs))
-        log.info('Kwargs type: {}'.format(type(kwargs)))
+
 
         if metering is None:
             metering = self.metering
@@ -135,6 +131,12 @@ class Sandbox(object):
                 stamps=1000000,
                 currency_contract=None,
                 balances_hash=None):
+
+        log.info('Executing with sender {}, contract {}, function {}.'.format(
+            sender, contract_name, function_name
+        ))
+        log.info('Kwargs: {}'.format(kwargs))
+        log.info('Kwargs type: {}'.format(type(kwargs)))
 
 
 
