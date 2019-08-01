@@ -1,6 +1,5 @@
 import importlib
 import multiprocessing
-
 from typing import Dict
 import decimal
 from contracting.logger import get_logger
