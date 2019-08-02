@@ -112,7 +112,12 @@ class Sandbox(object):
 
         for idx, tx in txbag:
             # Each TX is a list of Capnp ContractTransaction structs
-            response_obj[idx] = self.execute(tx.payload.sender.hex(),
+            if isinstance(tx.payload.sender, bytes):
+                sender = tx.payload.sender.hex()
+            else:
+                sender = tx.payload.sender
+
+            response_obj[idx] = self.execute(sender,
                                              tx.payload.contractName,
                                              tx.payload.functionName,
                                              tx.payload.kwargs,
