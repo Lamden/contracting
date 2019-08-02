@@ -1,14 +1,15 @@
 import importlib
 import multiprocessing
-
 from typing import Dict
 import decimal
-
+from contracting.logger import get_logger
 from . import runtime
 from ..db.cr.transaction_bag import TransactionBag
 from ..db.driver import ContractDriver, CacheDriver
 from ..execution.module import install_database_loader, uninstall_builtins
 from .. import config
+
+log = get_logger('Executor')
 
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
@@ -51,6 +52,8 @@ class Executor:
                 driver=None,
                 stamps=1000000,
                 metering=None) -> tuple:
+
+
 
         if metering is None:
             metering = self.metering
@@ -109,7 +112,12 @@ class Sandbox(object):
 
         for idx, tx in txbag:
             # Each TX is a list of Capnp ContractTransaction structs
-            response_obj[idx] = self.execute(tx.payload.sender.hex(),
+            if isinstance(tx.payload.sender, bytes):
+                sender = tx.payload.sender.hex()
+            else:
+                sender = tx.payload.sender
+
+            response_obj[idx] = self.execute(sender,
                                              tx.payload.contractName,
                                              tx.payload.functionName,
                                              tx.payload.kwargs,
@@ -127,6 +135,14 @@ class Sandbox(object):
                 stamps=1000000,
                 currency_contract=None,
                 balances_hash=None):
+
+        log.info('Executing with sender {}, contract {}, function {}.'.format(
+            sender, contract_name, function_name
+        ))
+        log.info('Kwargs: {}'.format(kwargs))
+        log.info('Kwargs type: {}'.format(type(kwargs)))
+
+
 
 ### EXECUTION START
 

@@ -1,8 +1,7 @@
 from ...logger import get_logger
 from typing import Callable
 
-from transitions import Machine
-
+log = get_logger('Contracting[TX-Bag]')
 
 class TransactionBag:
     def __init__(self, transactions: list, input_hash: str, sub_block_idx: int,

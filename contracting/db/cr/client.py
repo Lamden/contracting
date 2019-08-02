@@ -20,7 +20,7 @@ class SubBlockClient:
 
         self.cache_manager = CacheManager(self.loop, sbb_idx, num_sbb)
 
-    def execute_sb(self, input_hash: str, contracts: list, sub_block_idx: int, 
+    def execute_sb(self, input_hash: str, contracts: list, sub_block_idx: int,
                    completion_handler: Callable[[SBData], None], environment={}):
         if not self.cache_manager.is_cache_available():
             self.log.spam("No free cache available to execute input bag {}".format(input_hash))
@@ -98,6 +98,7 @@ class CacheManager:
         return self.working_caches[0] == cache
 
     def execute_bag(self, bag: TransactionBag):
+        self.log.spam('Executing bag {}'.format(bag.transactions))
         current_cache = self.free_caches.popleft()
         current_cache.execute_bag(bag)
 
