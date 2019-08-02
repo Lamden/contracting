@@ -58,7 +58,7 @@ class TestSingleCRCache(unittest.TestCase):
         input_hash = 'A'*64
         sbb_idx = 0
         # self.cache_mgr = SchedulerStub()
-        self.bag = TransactionBag([tx1, tx2, tx3], input_hash, lambda y: y)
+        self.bag = TransactionBag([tx1, tx2, tx3], input_hash, 0, lambda y: y)
         self.cache = CRCache(idx=1, master_db=self.master_db, sbb_idx=sbb_idx,
                              num_sbb=num_sbb, executor=executor)
 
