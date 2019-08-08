@@ -21,7 +21,9 @@ class Encoder(json.JSONEncoder):
                 '__delta__': [o._timedelta.days, o._timedelta.seconds]
             }
         if isinstance(o, bytes):
-            return o.hex()
+            return {
+                '__bytes__': o.hex()
+            }
         if isinstance(o, decimal.Decimal):
             return float(o)
 
@@ -38,6 +40,8 @@ def as_object(d):
         return Datetime(*d['__time__'])
     elif '__delta__' in d:
         return Timedelta(days=d['__delta__'][0], seconds=d['__delta__'][1])
+    elif '__bytes__' in d:
+        return bytes.fromhex(d['__bytes__'])
     return dict(d)
 
 

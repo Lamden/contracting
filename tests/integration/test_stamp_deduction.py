@@ -49,8 +49,7 @@ class TestMetering(TestCase):
                        kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'), metering=False)
 
     def tearDown(self):
-        # self.d.flush()
-        pass
+        self.d.flush()
 
     def test_simple_execution_deducts_stamps(self):
         prior_balance = self.d.get('currency.balances:stu')
@@ -76,6 +75,8 @@ class TestMetering(TestCase):
     def test_adding_too_many_stamps_throws_error(self):
         prior_balance = self.d.get('currency.balances:stu')
         too_many_stamps = (prior_balance + 1000) * STAMPS_PER_TAU
+
+        print(too_many_stamps)
 
         #too_many_stamps = 2147483648
 
