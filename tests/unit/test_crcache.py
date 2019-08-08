@@ -8,17 +8,18 @@ from contracting.execution.executor import Executor
 from contracting.db.driver import ContractDriver
 from contracting.db.cr.transaction_bag import TransactionBag
 
-class PayloadStub():
-    def __init__(self, sender, stampsSupplied=1000000):
+class PayloadStub:
+    def __init__(self, sender, contract_name, func_name, kwargs, stampsSupplied=1000000):
         self.sender = sender
+        self.contractName = contract_name
+        self.functionName = func_name
+        self.kwargs = kwargs
         self.stampsSupplied = stampsSupplied
 
-class TransactionStub():
+
+class TransactionStub:
     def __init__(self, sender, contract_name, func_name, kwargs):
-        self.payload = PayloadStub(sender)
-        self.contract_name = contract_name
-        self.func_name = func_name
-        self.kwargs = kwargs
+        self.payload = PayloadStub(sender, contract_name, func_name, kwargs)
 
 
 #unittest.TestLoader.sortTestMethodsUsing = None
@@ -57,7 +58,7 @@ class TestSingleCRCache(unittest.TestCase):
         input_hash = 'A'*64
         sbb_idx = 0
         # self.cache_mgr = SchedulerStub()
-        self.bag = TransactionBag([tx1, tx2, tx3], input_hash, lambda y: y)
+        self.bag = TransactionBag([tx1, tx2, tx3], input_hash, 0, lambda y: y)
         self.cache = CRCache(idx=1, master_db=self.master_db, sbb_idx=sbb_idx,
                              num_sbb=num_sbb, executor=executor)
 

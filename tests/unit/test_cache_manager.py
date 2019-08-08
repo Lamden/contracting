@@ -12,19 +12,21 @@ from contracting.db.cr.client import CacheManager
 
 driver = ContractDriver(db=0)
 
-class PayloadStub():
-    def __init__(self, sender, stampsSupplied=1000000):
+
+class PayloadStub:
+    def __init__(self, sender, contract_name, func_name, kwargs, stampsSupplied=1000000):
         self.sender = sender
+        self.contractName = contract_name
+        self.functionName = func_name
+        self.kwargs = kwargs
         self.stampsSupplied = stampsSupplied
 
-class TransactionStub():
-    def __init__(self, sender, contract_name, func_name, kwargs):
-        self.payload = PayloadStub(sender)
-        self.contract_name = contract_name
-        self.func_name = func_name
-        self.kwargs = kwargs
 
-def completion_handler_stub(cache):
+class TransactionStub:
+    def __init__(self, sender, contract_name, func_name, kwargs):
+        self.payload = PayloadStub(sender, contract_name, func_name, kwargs)
+
+def completion_handler_stub(sb_idx, cache):
     pass
 
 class TestMultiCRCache(unittest.TestCase):
@@ -63,8 +65,8 @@ class TestMultiCRCache(unittest.TestCase):
         tx3 = TransactionStub(self.author, 'module_func', 'test_func', {'status': 'tx3_succ'})
         tx4 = TransactionStub(self.author, 'module_func_bad', 'test_func', {'status': 'tx4_succ'})
         self.bags = [
-            TransactionBag([tx1, tx2], 'A'*64, completion_handler_stub),
-            TransactionBag([tx3, tx4], 'B'*64, completion_handler_stub)
+            TransactionBag([tx1, tx2], 'A'*64, 0, completion_handler_stub),
+            TransactionBag([tx3, tx4], 'B'*64, 1, completion_handler_stub)
         ]
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)

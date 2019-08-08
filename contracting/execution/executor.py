@@ -1,14 +1,15 @@
 import importlib
 import multiprocessing
-
 from typing import Dict
 import decimal
-
+from contracting.logger import get_logger
 from . import runtime
 from ..db.cr.transaction_bag import TransactionBag
 from ..db.driver import ContractDriver, CacheDriver
 from ..execution.module import install_database_loader, uninstall_builtins
 from .. import config
+
+log = get_logger('Executor')
 
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
@@ -51,6 +52,8 @@ class Executor:
                 driver=None,
                 stamps=1000000,
                 metering=None) -> tuple:
+
+
 
         if metering is None:
             metering = self.metering
@@ -108,9 +111,20 @@ class Sandbox(object):
         response_obj = {}
 
         for idx, tx in txbag:
-            response_obj[idx] = self.execute(tx.payload.sender, tx.contract_name, tx.func_name,
-                                             tx.kwargs, auto_commit=auto_commit,
-                                             environment=environment, driver=driver, metering=metering)
+            # Each TX is a list of Capnp ContractTransaction structs
+            if isinstance(tx.payload.sender, bytes):
+                sender = tx.payload.sender.hex()
+            else:
+                sender = tx.payload.sender
+
+            response_obj[idx] = self.execute(sender,
+                                             tx.payload.contractName,
+                                             tx.payload.functionName,
+                                             tx.payload.kwargs,
+                                             auto_commit=auto_commit,
+                                             environment=environment,
+                                             driver=driver,
+                                             metering=metering)
         return response_obj
 
     def execute(self, sender, contract_name, function_name, kwargs,
@@ -121,6 +135,14 @@ class Sandbox(object):
                 stamps=1000000,
                 currency_contract=None,
                 balances_hash=None):
+
+        log.info('Executing with sender {}, contract {}, function {}.'.format(
+            sender, contract_name, function_name
+        ))
+        log.info('Kwargs: {}'.format(kwargs))
+        log.info('Kwargs type: {}'.format(type(kwargs)))
+
+
 
 ### EXECUTION START
 
@@ -235,9 +257,9 @@ class MultiProcessingSandbox(Sandbox):
         for tx_idx, tx in txbag:
             msg['txns'][tx_idx] = {
                 'sender': tx.payload.sender,
-                'contract_name': tx.contract_name,
-                'function_name': tx.func_name,
-                'kwargs': tx.kwargs,
+                'contract_name': tx.payload.contractName,
+                'function_name': tx.payload.functionName,
+                'kwargs': tx.payload.kwargs,
                 'auto_commit': auto_commit,
                 'environment': environment,
                 'metering': metering
@@ -311,9 +333,13 @@ class MultiProcessingSandbox(Sandbox):
             }
             for tx_idx in sorted(msg['txns'].keys()):
                 tx = msg['txns'][tx_idx]
-                response_obj['results'][tx_idx] = execute_fn(tx['sender'], tx['contract_name'], tx['function_name'],
-                                                             tx['kwargs'], auto_commit=tx['auto_commit'],
-                                                             environment=tx['environment'], driver=driver)
+                response_obj['results'][tx_idx] = execute_fn(tx['sender'],
+                                                             tx['contract_name'],
+                                                             tx['function_name'],
+                                                             tx['kwargs'],
+                                                             auto_commit=tx['auto_commit'],
+                                                             environment=tx['environment'],
+                                                             driver=driver)
 
             parent_pipe.send(response_obj)
 

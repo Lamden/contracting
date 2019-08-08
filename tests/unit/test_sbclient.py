@@ -8,18 +8,18 @@ import asyncio, glob
 from typing import List
 
 
-class PayloadStub():
-    def __init__(self, sender, stampsSupplied=1000000):
+class PayloadStub:
+    def __init__(self, sender, contract_name, func_name, kwargs, stampsSupplied=1000000):
         self.sender = sender
+        self.contractName = contract_name
+        self.functionName = func_name
+        self.kwargs = kwargs
         self.stampsSupplied = stampsSupplied
 
 
 class TransactionStub:
     def __init__(self, sender, contract_name, func_name, kwargs):
-        self.payload = PayloadStub(sender)
-        self.contract_name = contract_name
-        self.func_name = func_name
-        self.kwargs = kwargs
+        self.payload = PayloadStub(sender, contract_name, func_name, kwargs)
 
 
 driver = ContractDriver(db=0)
@@ -37,7 +37,7 @@ class TestSBClient(TestCase):
 
     def setUp(self):
         # Add submission contract
-        self.author = 'unittest'
+        self.author = b'unittest'
         self.log = get_logger("TestSBClient")
         with open('../../contracting/contracts/submission.s.py') as f:
             contract = f.read()
@@ -81,7 +81,7 @@ class TestSBClient(TestCase):
         self.loop.run_until_complete(run())
 
     def test_some_conflicts(self):
-        def _assert_handler1(sb_data: SBData):
+        def _assert_handler1(sb_idx: int, sb_data: SBData):
             contract1 = sb_data.tx_data[0].contract 
             status1 = sb_data.tx_data[0].status 
             result1 = sb_data.tx_data[0].response 
@@ -101,7 +101,7 @@ class TestSBClient(TestCase):
             self.assertEqual(state1, '{}')
             self.assertEqual(state2, '{}')
 
-        def _assert_handler2(sb_data: SBData):
+        def _assert_handler2(sb_idx: int, sb_data: SBData):
             contract1 = sb_data.tx_data[0].contract 
             status1 = sb_data.tx_data[0].status 
             result1 = sb_data.tx_data[0].response 
@@ -129,8 +129,8 @@ class TestSBClient(TestCase):
         input_hash1 = 'A' * 64
         input_hash2 = 'B' * 64
 
-        self.clients[0].execute_sb(input_hash1, [tx1, tx2], _assert_handler1)
-        self.clients[1].execute_sb(input_hash2, [tx3, tx4], _assert_handler2)
+        self.clients[0].execute_sb(input_hash1, [tx1, tx2], 0, _assert_handler1)
+        self.clients[1].execute_sb(input_hash2, [tx3, tx4], 1, _assert_handler2)
 
         self.run_loop(2)
 

@@ -3,7 +3,6 @@
 # Local imports
 from contracting.logger import get_logger
 from contracting.db.driver import ContractDriver, CacheDriver
-from contracting.db.cr.transaction_bag import TransactionBag
 from contracting import config
 from contracting.db.cr.callback_data import ExecutionData, SBData
 from typing import List
@@ -117,7 +116,7 @@ class CRCache:
             self.rerun_transactions()
 
         # call completion handler on bag so Cilantro can build a SubBlockContender
-        self.bag.completion_handler(self._get_sb_data())
+        self.bag.completion_handler(self.bag.sub_block_idx, self._get_sb_data())
         self._incr_macro_key(Macros.CONFLICT_RESOLUTION)
 
         self.db.commit()  # this will wipe the cache   ?? is this right, raghu todo

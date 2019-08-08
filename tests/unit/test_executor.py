@@ -33,7 +33,7 @@ class DBTests(unittest.TestCase):
         sys.meta_path.append(DatabaseFinder)
         driver.flush()
         contracts = glob.glob('./test_sys_contracts/*.py')
-        self.author = 'unittest'
+        self.author = b'unittest'
         self.sb = Sandbox()
         self.mpsb = MultiProcessingSandbox()
 
@@ -85,7 +85,7 @@ class DBTests(unittest.TestCase):
         input_hash = 'A'*64
 
         tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
-        txbag = TransactionBag([tx], input_hash, completion_handler_stub)
+        txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
 
         results = self.sb.execute_bag(txbag)
 
@@ -118,7 +118,7 @@ class DBTests(unittest.TestCase):
         input_hash = 'A'*64
 
         tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
-        txbag = TransactionBag([tx], input_hash, completion_handler_stub)
+        txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
 
         results = self.mpsb.execute_bag(txbag)
 
@@ -150,7 +150,7 @@ class DBTests(unittest.TestCase):
         input_hash = 'A'*64
 
         tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
-        txbag = TransactionBag([tx], input_hash, completion_handler_stub)
+        txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
 
         results = self.e.execute_bag(txbag)
 
@@ -183,7 +183,7 @@ class DBTests(unittest.TestCase):
         input_hash = 'A'*64
 
         tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
-        txbag = TransactionBag([tx], input_hash, completion_handler_stub)
+        txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
 
         results = self.e_prod.execute_bag(txbag)
 
@@ -194,19 +194,18 @@ class DBTests(unittest.TestCase):
 # Stub out the Contract Transaction object for use in the unit test
 # We will need to write an integration test that passes real contract
 # objects, but here is not the place
-class PayloadStub():
-    def __init__(self, sender, stampsSupplied=1000000):
+class PayloadStub:
+    def __init__(self, sender, contract_name, func_name, kwargs, stampsSupplied=1000000):
         self.sender = sender
+        self.contractName = contract_name
+        self.functionName = func_name
+        self.kwargs = kwargs
         self.stampsSupplied = stampsSupplied
 
 
-class ContractTxStub(object):
+class ContractTxStub:
     def __init__(self, sender, contract_name, func_name, kwargs):
-        self.payload = PayloadStub(sender)
-        self.contract_name = contract_name
-        self.func_name = func_name
-        self.kwargs = kwargs
-
+        self.payload = PayloadStub(sender, contract_name, func_name, kwargs)
 
 def completion_handler_stub():
     pass
