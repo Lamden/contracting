@@ -66,10 +66,11 @@ class AbstractDatabaseDriver:
             return True
         return False
 
-'''
+
 import plyvel
+
 class LevelDBDriver(AbstractDatabaseDriver):
-    def __init__(self, db=config.MASTER_DB, **kwargs):
+    def __init__(self, db=config.MASTER_DB):
         self.db_name = 'state.db'
         if db != config.MASTER_DB:
             self.db_name = 'cache_{}.db'.format(db)
@@ -93,6 +94,7 @@ class LevelDBDriver(AbstractDatabaseDriver):
             value = value.encode()
         except AttributeError:
             pass
+
         self.conn.put(_key, value)
 
     def delete(self, _key):
@@ -108,6 +110,7 @@ class LevelDBDriver(AbstractDatabaseDriver):
             prefix = prefix.encode()
         except AttributeError:
             pass
+
         it = self.conn.iterator(prefix=prefix)
         return [k[0] for k in it]
 
@@ -134,7 +137,7 @@ class LevelDBDriver(AbstractDatabaseDriver):
         self.conn.put(_key, '{}'.format(k).encode())
 
         return k
-'''
+
 
 # The theoretically fastest _driver. It's a dictionary.
 class DictDriver(AbstractDatabaseDriver):
@@ -166,71 +169,6 @@ class DictDriver(AbstractDatabaseDriver):
 
     def incrby(self, key, amount=1):
         """Increment a numeric _key by one"""
-        k = self.get(key)
-
-        if k is None:
-            k = 0
-        k = int(k) + amount
-        self.set(key, k)
-
-        return k
-
-import atexit
-class DBMDriver(AbstractDatabaseDriver):
-    def __init__(self, dir='./', db=0, **kwargs):
-        self.filename = '{}{}'.format(dir, db)
-
-        # Make sure the DB exists and close it after writing
-        self.db = dbm.open(self.filename, 'c')
-        atexit.register(self.close)
-
-    def close(self):
-        self.db.close()
-
-    def get(self, key):
-        #with dbm.open(self.filename, 'r') as db:
-        try:
-            return self.db[key]
-        except:
-            return None
-
-    def set(self, key, value):
-        #with dbm.open(self.filename, 'w') as db:
-        self.db[key] = value
-
-    def delete(self, key):
-        #with dbm.open(self.filename, 'w') as db:
-        del self.db[key]
-
-    def iter(self, prefix):
-        try:
-            prefix = prefix.encode()
-        except:
-            pass
-
-        keys = []
-
-        for k in self.keys():
-            try:
-                k = k.encode()
-            except:
-                pass
-            if k.startswith(prefix):
-                keys.append(k)
-        return keys
-
-    def keys(self):
-        all_keys = []
-
-        #with dbm.open(self.filename, 'r') as db:
-        all_keys.extend(self.db.keys())
-        return all_keys
-
-    def flush(self, db=None):
-        for k in self.keys():
-            self.delete(k)
-
-    def incrby(self, key, amount=1):
         k = self.get(key)
 
         if k is None:
@@ -350,31 +288,7 @@ class RedisDriver(AbstractDatabaseDriver):
         """Increment a numeric _key by one"""
         return self.conn.incrby(key, amount)
 
-# Defined at the bottom since needs to be instantiated
-# after the classes have been defined. Allows us to
-# parameterize the type of database _driver required
-# from the top level instead of having to manually change
-# a bunch of code to get to it.
-DATABASE_DRIVER_MAPS = {
-    'redis': RedisConnectionDriver
-}
-
-
-def get_database_driver():
-    cls = DATABASE_DRIVER_MAPS.get(config.DB_TYPE)
-    if cls is None:
-        raise DatabaseDriverNotFound(
-            driver=config.DB_TYPE,
-            known_drivers=DATABASE_DRIVER_MAPS.keys())
-    return cls
-
-
-#DatabaseDriver = get_database_driver()
-#DatabaseDriver = LevelDBDriver
-DatabaseDriver = RedisDriver
-
-
-class CacheDriver(DatabaseDriver):
+class CacheDriver(RedisDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=0,):
         super().__init__(host=host, port=port, db=db)
         #self.log = get_logger("CacheDriver")
