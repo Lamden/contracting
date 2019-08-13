@@ -94,7 +94,9 @@ class DatabaseLoader(Loader):
             if code is None:
                 raise ImportError("Module {} not found".format(module.__name__))
 
-            code = bytes.fromhex(code)
+            if type(code) != bytes:
+                code = bytes.fromhex(code)
+
             code = marshal.loads(code)
             MODULE_CACHE[module.__name__] = code
 

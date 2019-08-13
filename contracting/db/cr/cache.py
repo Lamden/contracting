@@ -35,7 +35,10 @@ class CRCache:
         name = self.__class__.__name__ + "[cache-{}]".format(self.idx)
         self.log = get_logger(name)
 
+        # Replace DB with a Cache thing that either gets from itself or the raw db supplied.
         self.db = ContractDriver(db=self.idx)
+
+        # This is the state driver
         self.master_db = master_db
 
         self._reset_macro_keys()
@@ -156,7 +159,6 @@ class CRCache:
             self.log.debugv("{} is flushing db!".format(self))
             self.db.flush()
             self._reset_macro_keys()
-
 
     def _get_sb_data(self) -> SBData:
         if len(self.results) != len(self.bag.transactions):

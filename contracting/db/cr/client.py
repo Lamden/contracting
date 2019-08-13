@@ -10,6 +10,7 @@ from collections import deque
 from typing import Callable
 import traceback
 
+
 class SubBlockClient:
     def __init__(self, sbb_idx, num_sbb, loop=None):
         name = self.__class__.__name__ + "[sbb-{}]".format(sbb_idx)
@@ -48,7 +49,6 @@ class SubBlockClient:
 POLL_INTERVAL = 0.1
 
 class CacheManager:
-
     def __init__(self, loop, sbb_idx, num_sbb, executor=Executor(),
                  driver=ContractDriver(), num_caches=config.NUM_CACHES):
         self.loop = loop
@@ -117,7 +117,6 @@ class CacheManager:
         self.working_caches[0].merge_to_master()
         self.reset_current_db()
 
-
     # shouldn't be flush all - only top of the stack that is not in reset state
     def flush_all(self):
         self.log.spam("Flushing all caches...")
@@ -125,7 +124,6 @@ class CacheManager:
             self.reset_current_db()
 
         # self._log_caches()
-
 
     async def _working_cache_event(self):
         if len(self.working_caches) == 0:
