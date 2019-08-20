@@ -7,7 +7,6 @@ import glob
 from contracting.db.driver import AbstractDatabaseDriver, ContractDriver
 from contracting.execution.module import DatabaseFinder
 from contracting.compilation.compiler import ContractingCompiler
-from contracting.db.cr.transaction_bag import TransactionBag
 
 class TestExecutor(unittest.TestCase):
     def setUp(self):
@@ -74,20 +73,6 @@ class DBTests(unittest.TestCase):
 
         self.assertEqual(status_code, 1)
         self.assertIsInstance(result, ImportError)
-
-    def test_base_execute_bag(self):
-        contract_name = 'module_func'
-        function_name = 'test_func'
-        kwargs = {'status': 'Working'}
-        input_hash = 'A'*64
-
-        tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
-        txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
-
-        results = self.sb.execute_bag(txbag)
-
-        self.assertEqual(results[0][0], 0)
-        self.assertEqual(results[0][1], 'Working')
 
     def test_executor_execute(self):
         contract_name = 'module_func'
