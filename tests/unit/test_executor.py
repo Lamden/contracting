@@ -54,7 +54,6 @@ class DBTests(unittest.TestCase):
             driver.commit()
 
     def tearDown(self):
-        self.e_prod.sandbox.terminate()
         sys.meta_path.remove(DatabaseFinder)
         driver.flush()
 
@@ -108,20 +107,6 @@ class DBTests(unittest.TestCase):
         self.assertEqual(status_code, 1)
         self.assertIsInstance(result, ImportError)
 
-    def test_executor_execute_bag(self):
-        contract_name = 'module_func'
-        function_name = 'test_func'
-        kwargs = {'status': 'Working'}
-        input_hash = 'A'*64
-
-        tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
-        txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
-
-        results = self.e.execute_bag(txbag)
-
-        self.assertEqual(results[0][0], 0)
-        self.assertEqual(results[0][1], 'Working')
-
     def test_executor_prod_execute(self):
         contract_name = 'module_func'
         function_name = 'test_func'
@@ -141,19 +126,6 @@ class DBTests(unittest.TestCase):
         self.assertEqual(status_code, 1)
         self.assertIsInstance(result, ImportError)
 
-    def test_executor_prod_execute_bag(self):
-        contract_name = 'module_func'
-        function_name = 'test_func'
-        kwargs = {'status': 'Working'}
-        input_hash = 'A'*64
-
-        tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
-        txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
-
-        results = self.e_prod.execute_bag(txbag)
-
-        self.assertEqual(results[0][0], 0)
-        self.assertEqual(results[0][1], 'Working')
 
 
 # Stub out the Contract Transaction object for use in the unit test

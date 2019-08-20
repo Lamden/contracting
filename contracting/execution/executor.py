@@ -22,10 +22,7 @@ class Executor:
             self.driver = ContractDriver()
         self.production = production
 
-        if self.production:
-            self.sandbox = MultiProcessingSandbox()
-        else:
-            self.sandbox = Sandbox()
+        self.sandbox = Sandbox()
 
         self.currency_contract = currency_contract
         self.balances_hash = balances_hash
