@@ -12,7 +12,6 @@ DB_DELIMITER = ':'
 NUM_CACHES = 4
 
 # Resource limits
-MEMORY_LIMIT = 32768  # 32kb
 RECURSION_LIMIT = 1024
 
 DELIMITER = ':'
