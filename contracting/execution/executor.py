@@ -119,14 +119,6 @@ class Sandbox(object):
                 currency_contract=None,
                 balances_hash=None):
 
-        log.info('Executing with sender {}, contract {}, function {}.'.format(
-            sender, contract_name, function_name
-        ))
-        log.info('Kwargs: {}'.format(kwargs))
-        log.info('Kwargs type: {}'.format(type(kwargs)))
-
-
-
 ### EXECUTION START
 
         # Use _driver if one is provided, otherwise use the default _driver, ensuring to set it
