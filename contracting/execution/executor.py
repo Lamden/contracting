@@ -1,15 +1,14 @@
 import importlib
 import multiprocessing
-from typing import Dict
 import decimal
 from contracting.logger import get_logger
 from . import runtime
-from ..db.cr.transaction_bag import TransactionBag
 from ..db.driver import ContractDriver, CacheDriver
 from ..execution.module import install_database_loader, uninstall_builtins
 from .. import config
 
 log = get_logger('Executor')
+
 
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
@@ -32,19 +31,6 @@ class Executor:
         self.balances_hash = balances_hash
 
         runtime.rt.env.update({'__Driver': self.driver})
-
-    def execute_bag(self, bag: TransactionBag,
-                    auto_commit=False,
-                    driver=None,
-                    environment={},
-                    metering=None) -> Dict[int, tuple]:
-
-        results = self.sandbox.execute_bag(bag,
-                                           auto_commit=auto_commit,
-                                           driver=driver,
-                                           environment=environment,
-                                           metering=metering)
-        return results
 
     def execute(self, sender, contract_name, function_name, kwargs,
                 environment={},
@@ -216,130 +202,3 @@ class Sandbox(object):
         runtime.rt.env.update({'__Driver': driver})
 
         return status_code, result, stamps_used
-
-
-# THIS SHOULD BE USED LATER
-class MultiProcessingSandbox(Sandbox):
-    def __init__(self):
-        super().__init__()
-        self.pipe = multiprocessing.Pipe()
-        self.p = None
-
-    def terminate(self):
-        if self.p is not None:
-            self.p.terminate()
-        self.p = None
-
-    def _lazy_instantiate(self):
-        if self.p is None:
-            self.p = multiprocessing.Process(target=self.process_loop,
-                                             args=(super().execute, ))
-            self.p.start()
-            self.wipe_modules()
-
-    def _update_driver_cache(self, driver, updated_driver):
-        if updated_driver and isinstance(updated_driver, CacheDriver):
-            driver.reset_cache(modified_keys=updated_driver.modified_keys,
-                               contract_modifications=updated_driver.contract_modifications,
-                               original_values=updated_driver.original_values)
-
-    def execute_bag(self, txbag, environment={}, auto_commit=False, driver=None, metering=None):
-
-        self._lazy_instantiate()
-
-        _, child_pipe = self.pipe
-
-        msg = {
-            '_driver': driver,
-            'txns': {}
-        }
-
-        for tx_idx, tx in txbag:
-            msg['txns'][tx_idx] = {
-                'sender': tx.payload.sender,
-                'contract_name': tx.payload.contractName,
-                'function_name': tx.payload.functionName,
-                'kwargs': tx.payload.kwargs,
-                'auto_commit': auto_commit,
-                'environment': environment,
-                'metering': metering
-            }
-
-        child_pipe.send(msg)
-
-        response_obj = child_pipe.recv()
-        self._update_driver_cache(driver, response_obj['_driver'])
-
-        return response_obj['results']
-
-    def execute(self, sender, contract_name, function_name, kwargs,
-                auto_commit=True,
-                environment={},
-                driver=None,
-                metering=None,
-                stamps=1000000,
-                currency_contract=None,
-                balances_hash=None):
-
-        self._lazy_instantiate()
-
-        _, child_pipe = self.pipe
-
-        # Sends code to be executed in the process loop
-        # Create a message of type single execute
-        # The reason it is a dictionary with a integer _key is
-        # because we may be running a subset of the transactions but
-        # still want to maintain order (e.g. 0,1,5)
-        msg = {
-            '_driver': driver,
-            'txns': {
-                0: {
-                    'sender': sender,
-                    'contract_name': contract_name,
-                    'function_name': function_name,
-                    'kwargs': kwargs,
-                    'auto_commit': auto_commit,
-                    'environment': environment,
-                    'metering': metering,
-                    'stamps': stamps,
-                    'currency_contract': currency_contract,
-                    'balances_hash': balances_hash
-                }
-            }
-        }
-        child_pipe.send(msg)
-
-        # Receive result object back from process loop, formatted as
-        # (status_code, result), loaded in using dill due to python
-        # base pickler not knowning how to pickle module object
-        # returned from execute
-        response_obj = child_pipe.recv()
-        self._update_driver_cache(driver, response_obj['_driver'])
-        # In the case mp.execute() is called, we know we only have one
-        # entry into the response object
-        status_code, result, stamps_used = response_obj['results'][0]
-
-        # Check the status code for failure, if failure raise the result
-        return status_code, result, stamps_used
-
-    def process_loop(self, execute_fn):
-        parent_pipe, _ = self.pipe
-        while True:
-            msg = parent_pipe.recv()
-            driver = msg['_driver']
-            response_obj = {
-                '_driver': driver,
-                'results': {}
-            }
-            for tx_idx in sorted(msg['txns'].keys()):
-                tx = msg['txns'][tx_idx]
-                response_obj['results'][tx_idx] = execute_fn(tx['sender'],
-                                                             tx['contract_name'],
-                                                             tx['function_name'],
-                                                             tx['kwargs'],
-                                                             auto_commit=tx['auto_commit'],
-                                                             environment=tx['environment'],
-                                                             driver=driver)
-
-            parent_pipe.send(response_obj)
-

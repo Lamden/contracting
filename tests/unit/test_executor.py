@@ -1,5 +1,5 @@
 import unittest
-from contracting.execution.executor import Sandbox, Executor, MultiProcessingSandbox
+from contracting.execution.executor import Sandbox, Executor
 import sys
 import glob
 # Import ContractDriver and AbstractDatabaseDriver for property type
@@ -35,7 +35,6 @@ class DBTests(unittest.TestCase):
         contracts = glob.glob('./test_sys_contracts/*.py')
         self.author = b'unittest'
         self.sb = Sandbox()
-        self.mpsb = MultiProcessingSandbox()
 
         self.e = Executor(metering=False)
         self.e_prod = Executor(production=True, metering=False)
@@ -55,7 +54,6 @@ class DBTests(unittest.TestCase):
             driver.commit()
 
     def tearDown(self):
-        self.mpsb.terminate()
         self.e_prod.sandbox.terminate()
         sys.meta_path.remove(DatabaseFinder)
         driver.flush()
@@ -88,39 +86,6 @@ class DBTests(unittest.TestCase):
         txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
 
         results = self.sb.execute_bag(txbag)
-
-        self.assertEqual(results[0][0], 0)
-        self.assertEqual(results[0][1], 'Working')
-
-    def test_multiproc_execute(self):
-        contract_name = 'module_func'
-        function_name = 'test_func'
-        kwargs = {'status': 'Working'}
-
-        status_code, result, _ = self.mpsb.execute(self.author, contract_name,
-                                                function_name, kwargs)
-        self.assertEqual(result, 'Working')
-        self.assertEqual(status_code, 0)
-
-    def test_multiproc_execute_fail(self):
-        contract_name = 'badmodule'
-        function_name = 'test_func'
-        kwargs = {'status': 'Working'}
-        status_code, result, _ = self.mpsb.execute(self.author, contract_name, function_name, kwargs)
-
-        self.assertEqual(status_code, 1)
-        self.assertIsInstance(result, ImportError)
-
-    def test_multiproc_execute_bag(self):
-        contract_name = 'module_func'
-        function_name = 'test_func'
-        kwargs = {'status': 'Working'}
-        input_hash = 'A'*64
-
-        tx = ContractTxStub(self.author, contract_name, function_name, kwargs)
-        txbag = TransactionBag([tx], input_hash, 0, completion_handler_stub)
-
-        results = self.mpsb.execute_bag(txbag)
 
         self.assertEqual(results[0][0], 0)
         self.assertEqual(results[0][1], 'Working')
