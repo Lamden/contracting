@@ -6,8 +6,6 @@ import dbm
 # result in an interpret time error
 from redis import Redis
 from redis.connection import Connection
-from .. import config
-from ..exceptions import DatabaseDriverNotFound
 from ..db.encoder import encode, decode
 
 #from ..logger import get_logger
@@ -135,111 +133,6 @@ class LevelDBDriver(AbstractDatabaseDriver):
 
         return k
 '''
-
-# The theoretically fastest _driver. It's a dictionary.
-class DictDriver(AbstractDatabaseDriver):
-    def __init__(self, **kwargs):
-        self.conn = {}
-
-    def get(self, key):
-        return self.conn.get(key)
-
-    def set(self, key, value):
-        self.conn[key] = value
-
-    def delete(self, key):
-        del self.conn[key]
-
-    def iter(self, prefix):
-        keys = []
-        for k, v in self.conn.items():
-            if k.startswith(prefix):
-                keys.append(k)
-        return keys
-
-    def keys(self):
-        return self.conn.keys()
-
-    def flush(self, db=None):
-        del self.conn
-        self.conn = {}
-
-    def incrby(self, key, amount=1):
-        """Increment a numeric _key by one"""
-        k = self.get(key)
-
-        if k is None:
-            k = 0
-        k = int(k) + amount
-        self.set(key, k)
-
-        return k
-
-import atexit
-class DBMDriver(AbstractDatabaseDriver):
-    def __init__(self, dir='./', db=0, **kwargs):
-        self.filename = '{}{}'.format(dir, db)
-
-        # Make sure the DB exists and close it after writing
-        self.db = dbm.open(self.filename, 'c')
-        atexit.register(self.close)
-
-    def close(self):
-        self.db.close()
-
-    def get(self, key):
-        #with dbm.open(self.filename, 'r') as db:
-        try:
-            return self.db[key]
-        except:
-            return None
-
-    def set(self, key, value):
-        #with dbm.open(self.filename, 'w') as db:
-        self.db[key] = value
-
-    def delete(self, key):
-        #with dbm.open(self.filename, 'w') as db:
-        del self.db[key]
-
-    def iter(self, prefix):
-        try:
-            prefix = prefix.encode()
-        except:
-            pass
-
-        keys = []
-
-        for k in self.keys():
-            try:
-                k = k.encode()
-            except:
-                pass
-            if k.startswith(prefix):
-                keys.append(k)
-        return keys
-
-    def keys(self):
-        all_keys = []
-
-        #with dbm.open(self.filename, 'r') as db:
-        all_keys.extend(self.db.keys())
-        return all_keys
-
-    def flush(self, db=None):
-        for k in self.keys():
-            self.delete(k)
-
-    def incrby(self, key, amount=1):
-        k = self.get(key)
-
-        if k is None:
-            k = 0
-        k = int(k) + amount
-        self.set(key, k)
-
-        return k
-
 
 class RedisConnectionDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
