@@ -7,9 +7,19 @@ import ast
 driver = ContractDriver()
 compiler = ContractingCompiler()
 
+NO_CONTRACT = 1
+NO_VARIABLE = 2
+
 
 def get_contract(name: str):
-    return driver.get_contract(name)
+    code = driver.get_contract(name)
+
+    if code is None:
+        return {
+            'status': NO_CONTRACT
+        }
+
+    return code
 
 
 def get_methods(contract: str):
@@ -17,7 +27,7 @@ def get_methods(contract: str):
 
     if contract_code is None:
         return {
-            'error': '{} does not exist'.format(contract)
+            'status': NO_CONTRACT
         }
 
     tree = ast.parse(contract_code)
@@ -29,10 +39,11 @@ def get_methods(contract: str):
         func_name = definition.name
         kwargs = [arg.arg for arg in definition.args.args]
 
-        funcs.append({
-            'name': func_name,
-            'arguments': kwargs
-        })
+        if not func_name.startswith('__'):
+            funcs.append({
+                'name': func_name,
+                'arguments': kwargs
+            })
 
     return funcs
 
@@ -42,9 +53,11 @@ def get_var(contract: str, variable: str, key: str):
 
     if contract_code is None:
         return {
-            'error': '{} does not exist'.format(contract)
+            'status': NO_CONTRACT
         }
 
+    # Multihashes don't work here
+    # Make contract driver deal with this so we can abstract it later
     if key is None:
         response = driver.get('{}.{}'.format(contract, variable))
     else:
@@ -52,12 +65,12 @@ def get_var(contract: str, variable: str, key: str):
 
     if response is None:
         return {
-            'value': None
+            'status': NO_VARIABLE
         }
-    else:
-        return {
-            'value': response
-        }
+
+    return {
+        'value': response
+    }
 
 
 def get_vars(contract: str):
