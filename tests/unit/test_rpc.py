@@ -66,6 +66,13 @@ def stu():
 
         self.assertEqual(response, contract)
 
+    def test_get_contract_doesnt_exist_returns_status(self):
+        response = rpc.get_contract('stustu')
+
+        expected = {'status': 1}
+
+        self.assertEqual(response, expected)
+
     def test_get_methods(self):
         contract = '''
 def stu():
@@ -101,19 +108,51 @@ def stu():
         self.assertEqual(response, expected)
 
     def test_get_var_that_exists(self):
-        pass
+        response = rpc.get_var('currency', 'seed_amount')
+
+        expected = 1000000
+
+        self.assertEqual(response, expected)
 
     def test_get_var_that_doesnt_exist(self):
-        pass
+        response = rpc.get_var('currency', 'bleck')
+
+        expected = {'status': 2}
+
+        self.assertEqual(response, expected)
 
     def test_get_var_hash_that_exists(self):
-        pass
+        response = rpc.get_var('currency', 'balances', '324ee2e3544a8853a3c5a0ef0946b929aa488cbe7e7ee31a0fef9585ce398502')
+
+        expected = 1000000
+
+        self.assertEqual(response, expected)
 
     def test_get_var_hash_that_doesnt_exist(self):
-        pass
+        response = rpc.get_var('currency', 'balances',
+                               'xxx')
+
+        expected = {'status': 2}
+
+        self.assertEqual(response, expected)
+
+    def test_get_var_contract_doesnt_exist(self):
+        response = rpc.get_var('xxx', 'balances',
+                               'xxx')
+
+        expected = {'status': 1}
+
+        self.assertEqual(response, expected)
 
     def test_get_var_multihash_that_exists(self):
         pass
 
     def test_get_var_multihash_that_doesnt_exist(self):
         pass
+
+    def test_get_vars_returns_correctly(self):
+        expected = ['xrate', 'seed_amount', 'balances', 'allowed']
+
+        response = rpc.get_vars('currency')
+
+        self.assertEqual(response, expected)

@@ -48,7 +48,7 @@ def get_methods(contract: str):
     return funcs
 
 
-def get_var(contract: str, variable: str, key: str):
+def get_var(contract: str, variable: str, key: str=None):
     contract_code = driver.get_contract(contract)
 
     if contract_code is None:
@@ -68,13 +68,39 @@ def get_var(contract: str, variable: str, key: str):
             'status': NO_VARIABLE
         }
 
-    return {
-        'value': response
-    }
+    return response
 
 
 def get_vars(contract: str):
-    pass
+    contract_code = driver.get_contract(contract)
+
+    if contract_code is None:
+        return {
+            'status': NO_CONTRACT
+        }
+
+    v = []
+
+    tree = ast.parse(contract_code)
+
+    for node in ast.walk(tree):
+        if type(node) != ast.Assign:
+            continue
+
+        try:
+            if type(node.value) is not ast.Call:
+                continue
+
+            if node.value.func.id not in {'Variable', 'Hash'}:
+                continue
+
+            var_name = node.targets[0].id
+            v.append(var_name.lstrip('__'))
+
+        except Exception as e:
+            pass
+
+    return v
 
 
 def run(transaction: dict):
