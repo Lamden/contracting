@@ -9,13 +9,7 @@ compiler = ContractingCompiler()
 
 
 def get_contract(name: str):
-    contract_code = driver.get_contract(name)
-
-    return_dict = {
-        'code': contract_code
-    }
-
-    return return_dict
+    return driver.get_contract(name)
 
 
 def get_methods(contract: str):
@@ -35,9 +29,12 @@ def get_methods(contract: str):
         func_name = definition.name
         kwargs = [arg.arg for arg in definition.args.args]
 
-        funcs.append({'name': func_name, 'arguments': kwargs})
+        funcs.append({
+            'name': func_name,
+            'arguments': kwargs
+        })
 
-    return {'methods': funcs}
+    return funcs
 
 
 def get_var(contract: str, variable: str, key: str):
@@ -54,9 +51,13 @@ def get_var(contract: str, variable: str, key: str):
         response = driver.get('{}.{}:{}'.format(contract, variable, key))
 
     if response is None:
-        return {'value': None}
+        return {
+            'value': None
+        }
     else:
-        return {'value': response}
+        return {
+            'value': response
+        }
 
 
 def get_vars(contract: str):
@@ -88,11 +89,9 @@ def lint(code: str):
 def compile(code: str):
     compiled_code = compiler.parse_to_code(code)
 
-    return_dict = {
+    return {
         'compiled_code': compiled_code
     }
-
-    return return_dict
 
 
 # String to callable map for strict RPC capabilities. Explicit for a reason!
@@ -107,6 +106,7 @@ command_map = {
 }
 
 
+# Single function call to map RPC command to an actual Python function. Allows the server to just call this.
 def process_json_rpc_command(payload: dict):
     command = payload.get('command')
     arguments = payload.get('arguments')

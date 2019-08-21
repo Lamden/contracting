@@ -1,7 +1,7 @@
 import asyncio
 import zmq
 import json
-
+from .rpc import process_json_rpc_command
 
 class AsyncInbox:
     def __init__(self, port: int, ctx: zmq.Context, linger=2000, poll_timeout=2000):
@@ -38,6 +38,11 @@ class AsyncInbox:
         self.socket.close()
 
     async def handle_msg(self, _id, msg):
+        try:
+            json_command = json.loads(msg.decode())
+        except:
+            pass
+
         asyncio.ensure_future(self.return_msg(_id, msg))
 
     async def return_msg(self, _id, msg):

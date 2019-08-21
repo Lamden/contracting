@@ -77,7 +77,8 @@ class TestCoinContract(TestCase):
         self.coin = self.c.get_contract('coin')
 
     def tearDown(self):
-        self.c.flush()
+        #self.c.flush()
+        pass
 
     def test_coin_construction(self):
         self.assertEqual(self.coin.balances['stu'], 1000000)
