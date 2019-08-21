@@ -8,17 +8,19 @@ from .. import config
 
 log = get_logger('Executor')
 
-
+# Support other signature schemes here
 class Executor:
-    def __init__(self, production=False, driver=None, metering=True,
-                 currency_contract='currency', balances_hash='balances'):
+    def __init__(self,
+                 production=False,
+                 driver=ContractDriver(),
+                 metering=True,
+                 currency_contract='currency',
+                 balances_hash='balances'):
 
         self.metering = metering
 
         self.driver = driver
 
-        if not self.driver:
-            self.driver = ContractDriver()
         self.production = production
 
         self.sandbox = Sandbox()
@@ -68,6 +70,8 @@ class Sandbox(object):
                 stamps=1000000,
                 currency_contract=None,
                 balances_hash=None):
+
+    ### Verify TX here
 
 ### EXECUTION START
 

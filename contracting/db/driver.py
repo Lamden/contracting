@@ -111,7 +111,7 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
         """Increment a numeric _key by one"""
         return self.conn.send_command('INCRBY', key, amount)
 
-
+### Redis driver is never used by itself in the code, so database plugins should be explicit
 class RedisDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
         self.host = host
@@ -172,6 +172,7 @@ class RedisDriver(AbstractDatabaseDriver):
         return self.conn.incrby(key, amount)
 
 
+### Put where the balances table is in here instead of executor and create a 'setup' function to seed genesis contracts
 class ContractDriver(RedisConnectionDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, delimiter=config.INDEX_SEPARATOR, db=0,
                  code_key=config.CODE_KEY, type_key=config.TYPE_KEY, author_key=config.AUTHOR_KEY):
@@ -184,7 +185,6 @@ class ContractDriver(RedisConnectionDriver):
         self.author_key = author_key
 
         # Tests if access to the DB is available
-        #self.conn.ping()
 
     def get(self, key):
         value = super().get(key)
@@ -227,6 +227,7 @@ class ContractDriver(RedisConnectionDriver):
     def get_contract(self, name):
         return self.hget(name, self.code_key)
 
+    ### Change to insert contract
     def set_contract(self, name, code, author='sys', _type='user', overwrite=False):
         if not overwrite or self.is_contract(name):
             self.hset(name, self.code_key, code)
@@ -237,21 +238,27 @@ class ContractDriver(RedisConnectionDriver):
             code_blob = marshal.dumps(code_obj)
             self.hset(name, '__compiled__', code_blob)
 
+    ### Get bytecode? This is used in module
     def get_compiled(self, name):
-        return self.hget(name, '__compiled__')
+        return self.hget(name, '__compiled__') ## Abstract this so you can set where compiled code is
+
 
     def delete_contract(self, name):
         for k in self.iter(prefix=name):
             self.delete(k)
 
+    ### This is dumb
     def is_contract(self, name):
         return self.exists(
             self.make_key(name, self.code_key)
         )
 
+    ### Only used in Client. Again, try to remove this and replace it with something more abstract
     def keys(self):
         return [k.decode() for k in super().keys()]
 
+
+    ### This is only used in Seneca Client, so it should be rewritten to potentially support sql
     def get_contract_keys(self, name):
         keys = [k.decode() for k in self.iter(prefix='{}{}'.format(name, self.delimiter))]
         return keys
