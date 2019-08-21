@@ -50,7 +50,6 @@ class DBTests(unittest.TestCase):
             new_code = compiler.parse_to_code(code, lint=False)
 
             driver.set_contract(name=name, code=new_code, author=self.author)
-            driver.commit()
 
     def tearDown(self):
         sys.meta_path.remove(DatabaseFinder)

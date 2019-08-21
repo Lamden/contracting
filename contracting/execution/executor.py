@@ -3,7 +3,7 @@ import multiprocessing
 import decimal
 from contracting.logger import get_logger
 from . import runtime
-from ..db.driver import ContractDriver, CacheDriver
+from ..db.driver import ContractDriver
 from ..execution.module import install_database_loader, uninstall_builtins
 from .. import config
 
@@ -156,16 +156,10 @@ class Sandbox(object):
 
             result = func(**kwargs)
 
-            if auto_commit:
-                driver.commit()
         except Exception as e:
             result = e
             status_code = 1
-            if auto_commit:
-                driver.revert()
-        finally:
-            if isinstance(driver, CacheDriver):
-                driver.new_tx()
+
 
 ### EXECUTION END
 
@@ -184,7 +178,6 @@ class Sandbox(object):
             balance -= to_deduct
 
             driver.set(balances_key, balance)
-            driver.commit()
 
         stamps_used = runtime.rt.tracer.get_stamp_used()
         runtime.rt.clean_up()

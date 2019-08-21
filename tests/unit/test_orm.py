@@ -88,8 +88,6 @@ class TestHash(TestCase):
 
         h.set('stu', 1234)
 
-        driver.commit()
-
         self.assertEqual(driver.get(raw_key_1), 1234)
 
     def test_get(self):
@@ -159,7 +157,6 @@ class TestHash(TestCase):
         h = Hash(contract, name, driver=driver)
         h['stu'] = 123
         h['stu', 'raghu'] = 1000
-        driver.commit()
 
         val = driver.get('blah.scoob:stu:raghu')
         self.assertEqual(val, 1000)
@@ -210,8 +207,6 @@ class TestHash(TestCase):
 
         driver.set(raw_key, 54321)
 
-        driver.commit()
-
         self.assertEqual(h['stu', 'raghu'], 54321)
 
     def test_getsetitems(self):
@@ -222,8 +217,6 @@ class TestHash(TestCase):
         h = Hash(contract, name, driver=driver)
 
         h['stu', 'raghu'] = 999
-
-        driver.commit()
 
         self.assertEqual(h['stu', 'raghu'], 999)
 
@@ -288,8 +281,6 @@ class TestHash(TestCase):
 
         l = [123, 456, 789]
 
-        driver.commit()
-
         # we care about whats included, not order
         self.assertSetEqual(set(h.all()), set(l))
 
@@ -302,8 +293,6 @@ class TestHash(TestCase):
         h['1'] = 123
         h['2'] = 456
         h['3'] = 789
-
-        driver.commit()
 
         kvs = sorted([(b'blah.scoob:3', 789), (b'blah.scoob:1', 123), (b'blah.scoob:2', 456)])
 
@@ -321,8 +310,6 @@ class TestHash(TestCase):
         h['2'] = 456
         h['3'] = 789
 
-        driver.commit()
-
         kvs = sorted([(b'blah.scoob:3', 789), (b'blah.scoob:1', 123), (b'blah.scoob:2', 456)])
 
         got = sorted(h._items())
@@ -330,8 +317,6 @@ class TestHash(TestCase):
         self.assertListEqual(kvs, got)
 
         h.clear()
-
-        driver.commit()
 
         got = sorted(h._items())
 

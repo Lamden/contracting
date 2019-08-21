@@ -36,7 +36,6 @@ class TestDatabase(TestCase):
         name = 'test'
 
         self.d.set_contract(name, code)
-        self.d.commit()
         self.d.flush()
 
         self.assertIsNone(self.d.get_contract(name))
@@ -94,7 +93,6 @@ class TestInstallLoader(TestCase):
     def test_integration_and_importing(self):
         dl = DatabaseLoader()
         dl.d.set_contract('testing', 'a = 1234567890')
-        dl.d.commit()
 
         install_database_loader()
 
@@ -123,7 +121,6 @@ class TestModuleLoadingIntegration(TestCase):
             author = 'stuart'
 
             driver.set_contract(name=name, code=code, author=author)
-            driver.commit()
 
     def tearDown(self):
         sys.meta_path.remove(DatabaseFinder)
