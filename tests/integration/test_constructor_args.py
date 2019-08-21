@@ -13,8 +13,6 @@ class TestSenecaClientReplacesExecutor(TestCase):
 
         self.c.raw_driver.set_contract(name='submission', code=contract, author='sys')
 
-        self.c.raw_driver.commit()
-
         # submit erc20 clone
         with open('./test_contracts/constructor_args_contract.s.py') as f:
             self.code = f.read()

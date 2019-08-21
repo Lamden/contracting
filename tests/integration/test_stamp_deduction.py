@@ -41,7 +41,6 @@ class TestMetering(TestCase):
         self.d.set_contract(name='submission',
                             code=contract,
                             author='sys')
-        self.d.commit()
 
         # Execute the currency contract with metering disabled
         self.e = Executor()
@@ -86,7 +85,6 @@ class TestMetering(TestCase):
 
     def test_adding_all_stamps_with_infinate_loop_eats_all_balance(self):
         self.d.set('currency.balances:stu', 500)
-        self.d.commit()
 
         prior_balance = self.d.get('currency.balances:stu')
 

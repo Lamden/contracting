@@ -41,7 +41,6 @@ class TestComplexContracts(TestCase):
         self.d.set_contract(name='submission',
                             code=contract,
                             author='sys')
-        self.d.commit()
 
     def tearDown(self):
         self.d.flush()
@@ -170,20 +169,6 @@ class TestComplexContracts(TestCase):
         self.assertEqual(raghu, 0)
         self.assertEqual(stu, (1000000 - 123))
         self.assertEqual(tejas, 123)
-
-    def test_failure_after_data_writes_doesnt_commit(self):
-        e = Executor(metering=False)
-
-        e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/leaky.s.py'))
-
-        e.execute('colin', 'leaky', 'transfer', kwargs={'amount': 1234, 'to': 'raghu'})
-
-        _, raghu, _ = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'raghu'})
-        _, colin, _ = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'colin'})
-
-        self.assertEqual(raghu, 0)
-        self.assertEqual(colin, 100)
 
     def test_leaky_contract_commits_on_success(self):
         e = Executor(metering=False)

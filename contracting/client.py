@@ -117,8 +117,6 @@ class ContractingClient:
                                      code=contract,
                                      author=self.signer)
 
-        self.raw_driver.commit()
-
         self.submission_contract = self.get_contract('submission')
 
     def flush(self):
@@ -130,8 +128,6 @@ class ContractingClient:
         self.raw_driver.set_contract(name='submission',
                                      code=contract,
                                      author=self.signer)
-
-        self.raw_driver.commit()
 
         self.submission_contract = self.get_contract('submission')
 

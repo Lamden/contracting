@@ -40,7 +40,6 @@ class TestExecutor(TestCase):
         self.d.set_contract(name='submission',
                             code=contract,
                             author='sys')
-        self.d.commit()
 
         self.compiler = ContractingCompiler()
 

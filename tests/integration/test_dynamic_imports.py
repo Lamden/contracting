@@ -13,8 +13,6 @@ class TestDynamicImports(TestCase):
 
         self.c.raw_driver.set_contract(name='submission', code=contract, author='sys')
 
-        self.c.raw_driver.commit()
-
         # submit erc20 clone
         with open('./test_contracts/stubucks.s.py') as f:
             code = f.read()
