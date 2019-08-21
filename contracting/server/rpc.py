@@ -1,9 +1,14 @@
+from ..db.driver import ContractDriver
+
+driver = ContractDriver()
+
+
 def get_contract(name: str):
-    pass
+    return driver.get_contract(name)
 
 
 def get_var(contract: str, variable: str, key: str):
-    pass
+    return driver.get
 
 
 def get_vars(contract: str):

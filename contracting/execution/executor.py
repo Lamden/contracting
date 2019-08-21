@@ -1,5 +1,4 @@
 import importlib
-import multiprocessing
 import decimal
 from contracting.logger import get_logger
 from . import runtime
@@ -31,12 +30,9 @@ class Executor:
 
     def execute(self, sender, contract_name, function_name, kwargs,
                 environment={},
-                auto_commit=True,
                 driver=None,
                 stamps=1000000,
                 metering=None) -> tuple:
-
-
 
         if metering is None:
             metering = self.metering
@@ -47,7 +43,6 @@ class Executor:
             driver = runtime.rt.env.get('__Driver')
 
         status_code, result, stamps_used = self.sandbox.execute(sender, contract_name, function_name, kwargs,
-                                                                auto_commit=auto_commit,
                                                                 environment=environment,
                                                                 driver=driver,
                                                                 metering=metering,
@@ -58,30 +53,6 @@ class Executor:
         return status_code, result, stamps_used
 
 
-"""
-The Sandbox class is used as a execution sandbox for a transaction.
-
-I/O pattern:
-
-    ------------                                  -----------
-    | Executor |  ---> Transaction Bag (all) ---> | Sandbox |
-    ------------                                  -----------
-                                                       |
-    ------------                                       v
-    | Executor |  <---      Send Results     <---  Execute all tx
-    ------------
-
-    * The client sends the whole transaction bag to the Sandbox for
-      processing. This is done to minimize back/forth I/O overhead
-      and deadlocks
-    * The sandbox executes all of the transactions one by one, resetting
-      the syspath after each execution.
-    * After all execution is complete, pass the full set of results
-      back to the client again to minimize I/O overhead and deadlocks
-    * Sandbox blocks on pipe again for new bag of transactions
-"""
-
-
 class Sandbox(object):
     def __init__(self):
         install_database_loader()
@@ -90,28 +61,7 @@ class Sandbox(object):
         uninstall_builtins()
         install_database_loader()
 
-    def execute_bag(self, txbag, environment={}, auto_commit=False, driver=None, metering=None):
-        response_obj = {}
-
-        for idx, tx in txbag:
-            # Each TX is a list of Capnp ContractTransaction structs
-            if isinstance(tx.payload.sender, bytes):
-                sender = tx.payload.sender.hex()
-            else:
-                sender = tx.payload.sender
-
-            response_obj[idx] = self.execute(sender,
-                                             tx.payload.contractName,
-                                             tx.payload.functionName,
-                                             tx.payload.kwargs,
-                                             auto_commit=auto_commit,
-                                             environment=environment,
-                                             driver=driver,
-                                             metering=metering)
-        return response_obj
-
     def execute(self, sender, contract_name, function_name, kwargs,
-                auto_commit=True,
                 environment={},
                 driver=None,
                 metering=None,
@@ -146,11 +96,12 @@ class Sandbox(object):
         runtime.rt.ctx.clear()
         runtime.rt.ctx.append(sender)
         runtime.rt.env.update(environment)
-        status_code = 0
         runtime.rt.set_up(stmps=stamps, meter=metering)
+
+        status_code = 0
+
         try:
             module = importlib.import_module(contract_name)
-            #module = __import__(contract_name)
 
             func = getattr(module, function_name)
 
@@ -159,9 +110,6 @@ class Sandbox(object):
         except Exception as e:
             result = e
             status_code = 1
-
-
-### EXECUTION END
 
         runtime.rt.tracer.stop()
 
@@ -184,3 +132,7 @@ class Sandbox(object):
         runtime.rt.env.update({'__Driver': driver})
 
         return status_code, result, stamps_used
+
+
+## Create new executor that takes a transaction JSON thing and executes it. It also enforces the stamps, etc.
+# if that is set in the environment variables

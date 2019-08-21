@@ -117,6 +117,3 @@ class ForeignHash(Hash):
 
     def __getitem__(self, item):
         return self.get(item)
-
-
-

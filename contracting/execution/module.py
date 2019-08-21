@@ -38,6 +38,7 @@ def enable_restricted_imports():
 def disable_restricted_imports():
     __builtins__['__import__'] = __import__
 
+
 def uninstall_builtins():
     sys.meta_path.clear()
     sys.path_hooks.clear()

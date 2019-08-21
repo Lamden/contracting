@@ -1,6 +1,4 @@
 import abc
-import copy
-import dbm
 
 # we can't include pylevel in production since its not installed on the docker images and will
 # result in an interpret time error
@@ -8,13 +6,12 @@ from redis import Redis
 from redis.connection import Connection
 from ..db.encoder import encode, decode
 
-#from ..logger import get_logger
 from ..execution.runtime import rt
 
 from .. import config
 
-from collections import deque, defaultdict
 import marshal
+
 
 class AbstractDatabaseDriver:
     __metaclass__ = abc.ABCMeta
@@ -64,75 +61,6 @@ class AbstractDatabaseDriver:
             return True
         return False
 
-'''
-import plyvel
-class LevelDBDriver(AbstractDatabaseDriver):
-    def __init__(self, db=config.MASTER_DB, **kwargs):
-        self.db_name = 'state.db'
-        if db != config.MASTER_DB:
-            self.db_name = 'cache_{}.db'.format(db)
-        self.conn = plyvel.DB(self.db_name, create_if_missing=True, error_if_exists=False)
-
-    def get(self, _key):
-        try:
-            _key = _key.encode()
-        except AttributeError:
-            pass
-
-        return self.conn.get(_key)
-
-    def set(self, _key, value):
-        try:
-            _key = _key.encode()
-        except AttributeError:
-            pass
-
-        try:
-            value = value.encode()
-        except AttributeError:
-            pass
-        self.conn.put(_key, value)
-
-    def delete(self, _key):
-        try:
-            _key = _key.encode()
-        except AttributeError:
-            pass
-
-        self.conn.delete(_key)
-
-    def iter(self, prefix):
-        try:
-            prefix = prefix.encode()
-        except AttributeError:
-            pass
-        it = self.conn.iterator(prefix=prefix)
-        return [k[0] for k in it]
-
-    def keys(self):
-        return self.iter(prefix=b'')
-
-    def flush(self, db=None):
-        for k in self.keys():
-            self.delete(k)
-
-    def incrby(self, _key, amount=1):
-        """Increment a numeric _key by one"""
-        try:
-            _key = _key.encode()
-        except:
-            pass
-
-        k = self.conn.get(_key)
-
-        if k is None:
-            k = 0
-        k = int(k) + amount
-
-        self.conn.put(_key, '{}'.format(k).encode())
-
-        return k
-'''
 
 class RedisConnectionDriver(AbstractDatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
@@ -243,29 +171,8 @@ class RedisDriver(AbstractDatabaseDriver):
         """Increment a numeric _key by one"""
         return self.conn.incrby(key, amount)
 
-# Defined at the bottom since needs to be instantiated
-# after the classes have been defined. Allows us to
-# parameterize the type of database _driver required
-# from the top level instead of having to manually change
-# a bunch of code to get to it.
-DATABASE_DRIVER_MAPS = {
-    'redis': RedisConnectionDriver
-}
 
-
-def get_database_driver():
-    cls = DATABASE_DRIVER_MAPS.get(config.DB_TYPE)
-    if cls is None:
-        raise DatabaseDriverNotFound(
-            driver=config.DB_TYPE,
-            known_drivers=DATABASE_DRIVER_MAPS.keys())
-    return cls
-
-
-DatabaseDriver = RedisDriver
-
-
-class ContractDriver(DatabaseDriver):
+class ContractDriver(RedisConnectionDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, delimiter=config.INDEX_SEPARATOR, db=0,
                  code_key=config.CODE_KEY, type_key=config.TYPE_KEY, author_key=config.AUTHOR_KEY):
         super().__init__(host=host, port=port, db=db)
