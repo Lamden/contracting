@@ -97,7 +97,7 @@ def get_vars(contract: str):
             var_name = node.targets[0].id
             v.append(var_name.lstrip('__'))
 
-        except Exception as e:
+        except AttributeError:
             pass
 
     return v

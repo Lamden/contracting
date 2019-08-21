@@ -156,3 +156,11 @@ def stu():
         response = rpc.get_vars('currency')
 
         self.assertEqual(response, expected)
+
+    def test_get_vars_on_contract_doesnt_exist(self):
+        response = rpc.get_vars('xxx')
+
+        expected = {'status': 1}
+
+        self.assertEqual(response, expected)
+

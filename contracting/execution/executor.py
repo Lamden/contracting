@@ -6,6 +6,10 @@ from ..db.driver import ContractDriver
 from ..execution.module import install_database_loader, uninstall_builtins
 from .. import config
 
+import json
+import nacl.signing
+import nacl.exceptions
+
 log = get_logger('Executor')
 
 # Support other signature schemes here
@@ -140,3 +144,74 @@ class Sandbox(object):
 
 ## Create new executor that takes a transaction JSON thing and executes it. It also enforces the stamps, etc.
 # if that is set in the environment variables
+
+expected_tx_keys = {'sender', 'signature', 'payload'}
+expected_payload_keys = {'contract', 'function', 'arguments'}
+
+MALFORMED_TX = 1
+INVALID_SIG = 2
+
+class Engine:
+    def __init__(self, stamps_enabled=False, timestamps_enabled=False):
+        uninstall_builtins()
+        install_database_loader()
+
+        self.stamps_enabled = stamps_enabled
+        self.timestamps_enabled = timestamps_enabled
+
+    def verify_tx_structure(self, tx: dict):
+        if tx.keys() ^ expected_tx_keys != set():
+            return False
+
+        if tx['payload'].keys() ^ expected_payload_keys != set():
+            return False
+
+        if self.stamps_enabled and not tx['payload'].get('stamps'):
+            return False
+
+        if self.timestamps_enabled and not tx['payload'].get('timestamp'):
+            return False
+
+        return True
+
+    @staticmethod
+    def verify_tx_signature(tx: dict):
+        tx_payload = json.dumps(tx['payload'])
+        tx_payload_bytes = tx_payload.encode()
+
+        signature = bytes.fromhex(tx['signature'])
+        pk = bytes.fromhex(tx['sender'])
+
+        key = nacl.signing.VerifyKey(pk)
+        try:
+            key.verify(tx_payload_bytes, signature)
+        except nacl.exceptions.BadSignatureError:
+            return False
+        return True
+
+    def run(self, tx:dict):
+        tx_output = {
+            'status': 0,
+            'updates': {},
+            'cost': 0
+        }
+
+        if not self.verify_tx_structure(tx):
+            tx_output['status'] = MALFORMED_TX
+            return tx_output
+
+        if not self.verify_tx_signature(tx):
+            tx_output['status'] = INVALID_SIG
+            return tx_output
+
+        payload = tx.get('payload')
+
+        try:
+            # Access the payload values and load them from the database
+
+            module = importlib.import_module(payload.get('contract'))
+            func = getattr(module, payload.get('function'))
+            result = func(**payload.get('arguments'))
+
+        except:
+            pass
