@@ -262,108 +262,10 @@ def get_database_driver():
     return cls
 
 
-#DatabaseDriver = get_database_driver()
-#DatabaseDriver = LevelDBDriver
 DatabaseDriver = RedisDriver
 
 
-class CacheDriver(DatabaseDriver):
-    def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=0,):
-        super().__init__(host=host, port=port, db=db)
-        #self.log = get_logger("CacheDriver")
-        self.modified_keys = None
-        self.contract_modifications = None
-        self.original_values = None
-        self.reset_cache()
-
-    def reset_cache(self, modified_keys=None, contract_modifications=None, original_values=None):
-        # Modified keys is a dictionary of deques representing the contracts that have modified
-        # that _key
-        if modified_keys:
-            self.modified_keys = copy.deepcopy(modified_keys)
-        else:
-            self.modified_keys = defaultdict(deque)
-        # Contract modififications is a list of dicts containing the keys updated by a contract
-        # and their final value
-        if contract_modifications:
-            self.contract_modifications = copy.deepcopy(contract_modifications)
-        else:
-            self.contract_modifications = []
-        # Original values is a dictionary of keys representing the original value fetched from
-        # the DB
-        if original_values:
-            self.original_values = copy.deepcopy(original_values)
-        else:
-            self.original_values = {}
-
-        # If we do not have any contract modifications, add a new one
-        if len(self.contract_modifications) == 0:
-            self.new_tx()
-
-    def get(self, key):
-        key_location = self.modified_keys.get(key)
-        if key_location is None:
-            value = super().get(key)
-            self.original_values[key] = value
-        else:
-            value = self.contract_modifications[key_location[-1]][key]
-        return value
-
-    def get_direct(self, key):
-        return super().get(key)
-
-    def set(self, key, value):
-        self.contract_modifications[-1].update({key: value})
-        # TODO: May have multiple instances of contract_idx if multiple sets on same _key
-        self.modified_keys[key].append(len(self.contract_modifications) - 1)
-
-    def delete(self, key):
-        self.set(key, None) # Indirection is going on here where None gets encoded into JSONs none
-
-    def set_direct(self, key, value):
-        super().set(key, value)
-
-    def revert(self, idx=0):
-        if idx == 0:
-            self.reset_cache()
-        else:
-            for key, i in self.modified_keys.items():
-                while len(i) >= 1:
-                    if i[-1] >= idx:
-                        i.pop()
-                    else:
-                        break
-                if len(i) == 0:
-                    i = None
-                self.modified_keys[key] = i
-
-            self.contract_modifications = self.contract_modifications[:idx + 1]
-            # self.contract_modifications[idx].clear()
-            # for mod_dict in self.contract_modifications[:idx + 1]:
-
-    def commit(self):
-        for key, idx in self.modified_keys.items():
-            value = self.contract_modifications[idx[-1]][key]
-            if value == 'null': # This shit is null because that is the JSON representation and the data is being encoded in the contract driver
-                super().delete(key)
-            else:
-                super().set(key, value)
-
-        self.reset_cache()
-    #
-
-    def iter(self, prefix):
-        keys = set(super().iter(prefix=prefix))
-        for k in self.modified_keys.keys():
-            if k not in keys and k.startswith(prefix):
-                keys.add(k)
-        return list(keys)
-
-    def new_tx(self):
-        self.contract_modifications.append(dict())
-
-
-class ContractDriver(CacheDriver):
+class ContractDriver(DatabaseDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, delimiter=config.INDEX_SEPARATOR, db=0,
                  code_key=config.CODE_KEY, type_key=config.TYPE_KEY, author_key=config.AUTHOR_KEY):
         super().__init__(host=host, port=port, db=db)
