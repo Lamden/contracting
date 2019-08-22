@@ -185,6 +185,7 @@ class ContractDriver(RedisConnectionDriver):
         self.author_key = author_key
 
         # Tests if access to the DB is available
+        self.sets = {}
 
     def get(self, key):
         value = super().get(key)
@@ -193,6 +194,10 @@ class ContractDriver(RedisConnectionDriver):
     def set(self, key, value):
         v = encode(value)
         super().set(key, v)
+        self.sets[key] = v
+
+    def clear_sets(self):
+        self.sets = {}
 
     def values(self, prefix):
         keys = super().iter(prefix=prefix)

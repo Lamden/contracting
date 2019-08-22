@@ -2,11 +2,14 @@ from unittest import TestCase
 import nacl.signing
 import json
 from contracting.execution.executor import Engine
+from contracting.db.driver import ContractDriver
+
+driver = ContractDriver()
 
 
 class TestEngine(TestCase):
-    def test_init(self):
-        e = Engine()
+    def tearDown(self):
+        driver.flush()
 
     def test_verify_good_tx_structure(self):
         tx = {
@@ -139,3 +142,14 @@ class TestEngine(TestCase):
         e = Engine()
 
         self.assertFalse(e.verify_tx_signature(tx))
+
+    def test_submission_contract_works_on_engine(self):
+        driver.flush()
+
+        with open('../../contracting/contracts/submission.s.py') as f:
+            contract = f.read()
+
+        driver.set_contract(name='submission',
+                            code=contract,
+                            author='sys')
+

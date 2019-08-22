@@ -140,6 +140,9 @@ class Sandbox(object):
         runtime.rt.clean_up()
         runtime.rt.env.update({'__Driver': driver})
 
+        _driver = runtime.rt.env.get('__Driver')
+        _driver.clear_sets()
+
         return status_code, result, stamps_used
 
 
@@ -151,11 +154,14 @@ expected_payload_keys = {'contract', 'function', 'arguments'}
 
 MALFORMED_TX = 1
 INVALID_SIG = 2
+PY_EXCEPTION = 3
+
 
 class Engine:
-    def __init__(self, stamps_enabled=False, timestamps_enabled=False):
-        #uninstall_builtins()
+    def __init__(self, stamps_enabled=False, timestamps_enabled=False, driver=ContractDriver()):
         install_database_loader()
+
+        self.driver = driver
 
         self.stamps_enabled = stamps_enabled
         self.timestamps_enabled = timestamps_enabled
@@ -190,29 +196,49 @@ class Engine:
             return False
         return True
 
-    def run(self, tx:dict):
+    def run(self, tx: dict):
         tx_output = {
             'status': 0,
             'updates': {},
-            'cost': 0
+            'result': None,
         }
 
+        # Add additional KV pair if stamps are enabled
+        if self.stamps_enabled:
+            tx_output['cost'] = 0
+
+        # Verify the structure of the tx
         if not self.verify_tx_structure(tx):
             tx_output['status'] = MALFORMED_TX
             return tx_output
 
+        # Verify the signature of the tx
         if not self.verify_tx_signature(tx):
             tx_output['status'] = INVALID_SIG
             return tx_output
 
+        # Extract the payload to pass as execution arguments
         payload = tx.get('payload')
+
+        # Set the runtime driver (we might be able to remove this)
+        runtime.rt.env.update({'__Driver': self.driver})
 
         try:
             # Access the payload values and load them from the database
-
             module = importlib.import_module(payload.get('contract'))
             func = getattr(module, payload.get('function'))
-            result = func(**payload.get('arguments'))
+            tx_output['result'] = func(**payload.get('arguments'))
 
-        except:
-            pass
+        except Exception as e:
+            tx_output['result'] = str(e)
+            tx_output['status'] = PY_EXCEPTION
+
+        # Get the current cache of sets for the tx output
+        _driver = runtime.rt.env.get('__Driver')
+
+        tx_output['updates'] = _driver.sets
+
+        # Clear them for the next execution
+        _driver.clear_sets()
+
+        return tx_output
