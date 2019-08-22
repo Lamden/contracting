@@ -12,6 +12,7 @@ import nacl.exceptions
 
 log = get_logger('Executor')
 
+
 # Support other signature schemes here
 class Executor:
     def __init__(self,
@@ -153,7 +154,7 @@ INVALID_SIG = 2
 
 class Engine:
     def __init__(self, stamps_enabled=False, timestamps_enabled=False):
-        uninstall_builtins()
+        #uninstall_builtins()
         install_database_loader()
 
         self.stamps_enabled = stamps_enabled

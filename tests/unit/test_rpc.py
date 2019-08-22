@@ -39,8 +39,8 @@ class TestRPC(TestCase):
             contract = f.read()
 
         rpc.driver.set_contract(name='submission',
-                            code=contract,
-                            author='sys')
+                                code=contract,
+                                author='sys')
 
         self.e = Executor(currency_contract='erc20_clone', metering=False)
 
