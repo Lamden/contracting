@@ -153,3 +153,34 @@ class TestEngine(TestCase):
                             code=contract,
                             author='sys')
 
+        with open('./test_sys_contracts/currency.s.py') as file:
+            contract_code = file.read()
+
+        nakey = nacl.signing.SigningKey.generate()
+
+        pk = nakey.verify_key.encode().hex()
+
+        tx = {
+            'sender': pk,
+            'signature': None,
+            'payload': {
+                'contract': 'submission',
+                'function': 'submit_contract',
+                'arguments': {
+                    'code': contract_code,
+                    'name': 'stu_bucks'
+                }
+            }
+        }
+
+        message = json.dumps(tx['payload']).encode()
+
+        sig = nakey.sign(message)[:64].hex()
+
+        tx['signature'] = sig
+
+        e = Engine()
+
+        output = e.run(tx)
+
+        print(output)
