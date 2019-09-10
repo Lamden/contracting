@@ -2,12 +2,11 @@ from unittest import TestCase
 from contracting.stdlib.bridge import imports
 from types import ModuleType
 from contracting.db.orm import Hash, Variable
-from contracting.stdlib.env import gather
 
 
 class TestImports(TestCase):
     def setUp(self):
-        scope = gather()
+        scope = {}
 
         with open('./precompiled/compiled_token.py') as f:
             code = f.read()

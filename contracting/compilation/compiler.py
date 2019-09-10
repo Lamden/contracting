@@ -75,9 +75,7 @@ class ContractingCompiler(ast.NodeTransformer):
             # change the name of the init function to '____' so it is uncallable except once
             if decorator.id == config.INIT_DECORATOR_STRING:
                 node.name = '____'
-            else:
-                decorator.id = '__{}'.format(decorator.id)
-                node.decorator_list.append(decorator)
+
         else:
             self.private_names.add(node.name)
             node.name = self.privatize(node.name)
