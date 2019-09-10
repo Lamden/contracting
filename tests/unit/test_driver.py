@@ -437,7 +437,7 @@ def stu():
         name = 'stustu'
         _t = 'test'
 
-        self.d.set_contract(name, contract, _type=_t)
+        self.d.set_contract(name, contract)
 
         self.assertEqual(self.d.get_contract(name), contract)
 
@@ -450,7 +450,7 @@ def stu():
         name = 'stustu'
         _t = 'test'
 
-        self.d.set_contract(name, contract, _type=_t)
+        self.d.set_contract(name, contract)
 
         keys = [
             '{}{}{}'.format(name, self.d.delimiter, config.CODE_KEY),
@@ -475,7 +475,7 @@ def stu():
             name = 'stustu'
             _t = 'test'
 
-            self.d.set_contract(name, contract, _type=_t)
+            self.d.set_contract(name, contract)
 
             self.d.commit()
 
@@ -497,5 +497,5 @@ def stu():
         name = 'stustu'
         _t = 'test'
 
-        self.d.set_contract(name, contract, _type=_t)
+        self.d.set_contract(name, contract)
         self.assertTrue(self.d.is_contract('stustu'))

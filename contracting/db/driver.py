@@ -525,7 +525,7 @@ class ContractDriver(CacheDriver):
     def get_contract(self, name):
         return self.hget(name, self.code_key)
 
-    def set_contract(self, name, code, _type='user', overwrite=False):
+    def set_contract(self, name, code, overwrite=False):
         if not overwrite or self.is_contract(name):
             self.hset(name, self.code_key, code)
 
