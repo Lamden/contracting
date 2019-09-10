@@ -38,8 +38,7 @@ class TestExecutor(TestCase):
             contract = f.read()
 
         self.d.set_contract(name='submission',
-                            code=contract,
-                            author='sys')
+                            code=contract)
         self.d.commit()
 
         self.compiler = ContractingCompiler()

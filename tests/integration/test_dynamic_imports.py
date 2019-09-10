@@ -11,7 +11,7 @@ class TestDynamicImports(TestCase):
         with open('../../contracting/contracts/submission.s.py') as f:
             contract = f.read()
 
-        self.c.raw_driver.set_contract(name='submission', code=contract, author='sys')
+        self.c.raw_driver.set_contract(name='submission', code=contract)
 
         self.c.raw_driver.commit()
 

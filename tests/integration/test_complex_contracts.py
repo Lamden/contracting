@@ -39,8 +39,7 @@ class TestComplexContracts(TestCase):
             contract = f.read()
 
         self.d.set_contract(name='submission',
-                            code=contract,
-                            author='sys')
+                            code=contract)
         self.d.commit()
 
     def tearDown(self):
