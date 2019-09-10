@@ -76,8 +76,8 @@ class AbstractContract:
             raise e
 
     def _abstract_function_call(self, signer, executor, contract, environment, func, metering=None, **kwargs):
-        for k, v in kwargs.items():
-            assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
+        # for k, v in kwargs.items():
+        #     assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
 
         status, result, stamps = executor.execute(sender=signer,
                                                   contract_name=contract,

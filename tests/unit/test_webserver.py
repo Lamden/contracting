@@ -40,7 +40,7 @@ class TestWebserver(TestCase):
         _, response = app.test_client.get('/contracts/submission/methods')
 
         method = 'submit_contract'
-        kwargs = ['name', 'code', 'constructor_args']
+        kwargs = ['name', 'code', 'owner', 'constructor_args']
 
         methods = response.json.get('methods')
 

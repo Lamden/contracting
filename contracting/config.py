@@ -19,6 +19,7 @@ DELIMITER = ':'
 CODE_KEY = '__code__'
 TYPE_KEY = '__type__'
 AUTHOR_KEY = '__author__'
+OWNER_KEY = '__owner__'
 INDEX_SEPARATOR = '.'
 
 DECIMAL_PRECISION = 64
