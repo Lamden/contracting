@@ -93,3 +93,13 @@ class TestDynamicImports(TestCase):
     def test_erc20_enforced_fails_for_bastardcoin(self):
         with self.assertRaises(AssertionError):
             stu = self.dynamic_importing.only_erc20(tok='bastardcoin', account='stu')
+
+    def test_owner_of_returns_default(self):
+        with open('./test_contracts/owner_stuff.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='owner_stuff', owner='poo')
+
+        owner_stuff = self.c.get_contract('owner_stuff')
+
+        self.assertIsNone(owner_stuff.get_owner(s='stubucks'))
+        self.assertEqual(owner_stuff.get_owner(s='owner_stuff'), 'poo')

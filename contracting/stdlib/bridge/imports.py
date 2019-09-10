@@ -2,6 +2,7 @@ import importlib
 from types import FunctionType, ModuleType
 from ...config import PRIVATE_METHOD_PREFIX
 from ...db.orm import Datum
+from ...db.driver import ContractDriver
 
 
 class Func:
@@ -55,11 +56,18 @@ def enforce_interface(m: ModuleType, interface: list):
     return True
 
 
+def owner_of(m: ModuleType):
+    driver = ContractDriver()
+    owner = driver.hget(m.__name__, driver.owner_key)
+    return owner
+
+
 imports_module = ModuleType('importlib')
 imports_module.import_module = import_module
 imports_module.enforce_interface = enforce_interface
 imports_module.Func = Func
 imports_module.Var = Var
+imports_module.owner_of = owner_of
 
 exports = {
     'importlib': imports_module,
