@@ -12,3 +12,7 @@ def export(fn):
             raise Exception('Caller is not the owner.')
 
     return ret_fn
+
+exports = {
+    '__export': export
+}

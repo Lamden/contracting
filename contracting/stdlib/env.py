@@ -3,7 +3,7 @@ from .bridge.hashing import exports as hash_exports
 from .bridge.time import exports as time_exports
 from .bridge.random import exports as random_exports
 from .bridge.imports import exports as imports_exports
-
+from .bridge.access import exports as access_exports
 
 # TODO create a module instead and return it inside of a dictionary like:
 # {
@@ -20,5 +20,6 @@ def gather():
     env.update(time_exports)
     env.update(random_exports)
     env.update(imports_exports)
+    env.update(access_exports)
 
     return env

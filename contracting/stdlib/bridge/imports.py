@@ -6,6 +6,10 @@ from ...db.driver import ContractDriver
 from ...execution.runtime import rt
 
 
+def extract_closure(fn):
+    closure = fn.__closure__[0]
+    return closure.cell_contents
+
 class Func:
     def __init__(self, name, args=(), private=False):
         self.name = name
@@ -16,7 +20,12 @@ class Func:
         self.args = args
 
     def is_of(self, f: FunctionType):
+
+        if f.__closure__ is not None:
+            f = extract_closure(f)
+
         num_args = f.__code__.co_argcount
+
         if f.__code__.co_name == self.name and f.__code__.co_varnames[:num_args] == self.args:
             return True
         return False
