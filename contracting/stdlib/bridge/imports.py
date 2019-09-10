@@ -3,6 +3,7 @@ from types import FunctionType, ModuleType
 from ...config import PRIVATE_METHOD_PREFIX
 from ...db.orm import Datum
 from ...db.driver import ContractDriver
+from ...execution.runtime import rt
 
 
 class Func:
