@@ -73,8 +73,8 @@ class DatabaseFinder:
                 return None
         return ModuleSpec(self, DatabaseLoader())
 
+
 MODULE_CACHE = {}
-CACHE = {}
 
 
 class DatabaseLoader(Loader):
@@ -108,6 +108,7 @@ class DatabaseLoader(Loader):
 
         ctx = ModuleType('context')
 
+        ctx.owner = self.d.get_owner(module.__name__)
         ctx.caller = rt.ctx[-1]
         ctx.this = module.__name__
         ctx.signer = rt.ctx[0]

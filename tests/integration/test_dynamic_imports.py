@@ -103,3 +103,12 @@ class TestDynamicImports(TestCase):
 
         self.assertIsNone(owner_stuff.get_owner(s='stubucks'))
         self.assertEqual(owner_stuff.get_owner(s='owner_stuff'), 'poo')
+
+    def test_ctx_owner_works(self):
+        with open('./test_contracts/owner_stuff.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='owner_stuff', owner='poot')
+
+        owner_stuff = self.c.get_contract('owner_stuff')
+
+        self.assertEqual(owner_stuff.owner_of_this(), 'poot')
