@@ -4,6 +4,7 @@ from types import ModuleType
 from contracting.db.orm import Hash, Variable
 from contracting.stdlib.env import gather
 
+
 class TestImports(TestCase):
     def setUp(self):
         scope = gather()

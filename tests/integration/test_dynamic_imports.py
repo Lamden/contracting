@@ -112,3 +112,12 @@ class TestDynamicImports(TestCase):
         owner_stuff = self.c.get_contract('owner_stuff')
 
         self.assertEqual(owner_stuff.owner_of_this(), 'poot')
+
+    def test_incorrect_owner_prevents_function_call(self):
+        with open('./test_contracts/owner_stuff.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='owner_stuff', owner='poot')
+
+        print(self.c.raw_driver.get_contract('owner_stuff'))
+        owner_stuff = self.c.get_contract('owner_stuff')
+        print(owner_stuff.owner_of_this())
