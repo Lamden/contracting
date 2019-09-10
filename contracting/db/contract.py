@@ -34,4 +34,4 @@ class Contract:
         if scope.get(config.INIT_FUNC_NAME) is not None:
             scope[config.INIT_FUNC_NAME](**constructor_args)
 
-        self._driver.set_contract(name=name, code=code_obj, author=author, overwrite=False)
+        self._driver.set_contract(name=name, code=code_obj, overwrite=False)
