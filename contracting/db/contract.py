@@ -12,7 +12,7 @@ class Contract:
     def __init__(self, driver: ContractDriver=driver):
         self._driver = driver
 
-    def submit(self, name, code, constructor_args={}):
+    def submit(self, name, code, owner=None, constructor_args={}):
 
         c = ContractingCompiler(module_name=name)
 
