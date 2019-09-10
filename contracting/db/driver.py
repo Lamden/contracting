@@ -528,8 +528,6 @@ class ContractDriver(CacheDriver):
     def set_contract(self, name, code, author='sys', _type='user', overwrite=False):
         if not overwrite or self.is_contract(name):
             self.hset(name, self.code_key, code)
-            self.hset(name, self.author_key, author)
-            self.hset(name, self.type_key, _type)
 
             code_obj = compile(code, '', 'exec')
             code_blob = marshal.dumps(code_obj)
