@@ -120,9 +120,7 @@ class TestModuleLoadingIntegration(TestCase):
             with open(contract) as f:
                 code = f.read()
 
-            author = 'stuart'
-
-            driver.set_contract(name=name, code=code, author=author)
+            driver.set_contract(name=name, code=code)
             driver.commit()
 
     def tearDown(self):

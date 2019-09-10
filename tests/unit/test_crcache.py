@@ -41,8 +41,7 @@ class TestSingleCRCache(unittest.TestCase):
             contract = f.read()
 
         self.driver.set_contract(name='submission',
-                            code=contract,
-                            author='sys')
+                            code=contract)
 
         self.driver.commit()
 

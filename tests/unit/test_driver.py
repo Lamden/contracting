@@ -435,10 +435,9 @@ def stu():
 '''
 
         name = 'stustu'
-        author = 'woohoo'
         _t = 'test'
 
-        self.d.set_contract(name, contract, author=author, _type=_t)
+        self.d.set_contract(name, contract, _type=_t)
 
         self.assertEqual(self.d.get_contract(name), contract)
 
@@ -449,10 +448,9 @@ def stu():
 '''
 
         name = 'stustu'
-        author = 'woohoo'
         _t = 'test'
 
-        self.d.set_contract(name, contract, author=author, _type=_t)
+        self.d.set_contract(name, contract, _type=_t)
 
         keys = [
             '{}{}{}'.format(name, self.d.delimiter, config.CODE_KEY),
@@ -475,10 +473,9 @@ def stu():
 '''
 
             name = 'stustu'
-            author = 'woohoo'
             _t = 'test'
 
-            self.d.set_contract(name, contract, author=author, _type=_t)
+            self.d.set_contract(name, contract, _type=_t)
 
             self.d.commit()
 
@@ -498,8 +495,7 @@ def stu():
 '''
 
         name = 'stustu'
-        author = 'woohoo'
         _t = 'test'
 
-        self.d.set_contract(name, contract, author=author, _type=_t)
+        self.d.set_contract(name, contract, _type=_t)
         self.assertTrue(self.d.is_contract('stustu'))

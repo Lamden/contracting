@@ -114,8 +114,7 @@ class ContractingClient:
             contract = f.read()
 
         self.raw_driver.set_contract(name='submission',
-                                     code=contract,
-                                     author=self.signer)
+                                     code=contract)
 
         self.raw_driver.commit()
 
@@ -128,8 +127,7 @@ class ContractingClient:
             contract = f.read()
 
         self.raw_driver.set_contract(name='submission',
-                                     code=contract,
-                                     author=self.signer)
+                                     code=contract)
 
         self.raw_driver.commit()
 

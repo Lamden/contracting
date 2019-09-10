@@ -38,8 +38,7 @@ class TestAtomicSwapContract(TestCase):
             contract = f.read()
 
         self.d.set_contract(name='submission',
-                            code=contract,
-                            author='sys')
+                            code=contract)
         self.d.commit()
 
         self.e = Executor(currency_contract='erc20_clone', metering=False)
