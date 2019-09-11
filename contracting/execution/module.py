@@ -113,13 +113,13 @@ class DatabaseLoader(Loader):
         ctx.this = module.__name__
         ctx.signer = rt.ctx[0]
 
-        if ctx.owner is not None and ctx.owner != ctx.caller:
-            raise Exception('Caller is not the owner.')
-
         scope.update({'ctx': ctx})
         scope.update({'__contract__': True})
 
         rt.ctx.append(module.__name__)
+
+        if ctx.owner is not None and ctx.owner != ctx.caller:
+            raise Exception('Caller is not the owner.')
 
         # execute the module with the std env and update the module to pass forward
         exec(code, scope)

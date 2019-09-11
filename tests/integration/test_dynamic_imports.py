@@ -121,3 +121,18 @@ class TestDynamicImports(TestCase):
         owner_stuff = self.c.get_contract('owner_stuff')
         with self.assertRaises(Exception):
             owner_stuff.owner_of_this()
+
+    def test_delegate_call_with_owner_works(self):
+        with open('./test_contracts/parent_test.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='parent_test')
+
+        with open('./test_contracts/child_test.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='child_test', owner='parent_test')
+
+        parent_test = self.c.get_contract('parent_test')
+
+        val = parent_test.get_val_from_child(s='child_test')
+
+        self.assertEqual(val, 'good')

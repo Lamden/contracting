@@ -22,6 +22,8 @@ class Runtime:
 
     tracer = Tracer()
 
+    ctx2 = deque(maxlen=config.RECURSION_LIMIT)
+
     @classmethod
     def set_up(cls, stmps, meter):
         if meter:
