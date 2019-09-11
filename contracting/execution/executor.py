@@ -171,7 +171,7 @@ class Sandbox(object):
         runtime.rt.ctx.clear()
         runtime.rt.ctx.append(sender)
 
-        runtime.rt.ctx2.append(contract_name)
+        runtime.rt.ctx2.push(contract_name)
         runtime.rt.signer = sender
 
         runtime.rt.env.update(environment)

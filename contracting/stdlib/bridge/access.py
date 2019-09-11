@@ -2,6 +2,7 @@ from ...execution.runtime import rt
 from contextlib import ContextDecorator
 from types import ModuleType
 from ...db.driver import ContractDriver
+from collections import deque
 
 ctx = ModuleType('context')
 
@@ -11,22 +12,17 @@ class __export(ContextDecorator):
         self.contract = contract
 
     def __enter__(self):
-        print('entering {}'.format(self.contract))
-        if rt.ctx2[-1] != self.contract:
-            print('contract: {}'.format(self.contract))
-            rt.ctx2.append(self.contract)
-
         driver = rt.env.get('__Driver') or ContractDriver()
 
         ctx.owner = driver.get_owner(self.contract)
 
-        if len(rt.ctx2) < 2:
+        print('entering {}'.format(self.contract))
+        rt.ctx2.push(self.contract)
+
+        if rt.ctx2.last_parent() == self.contract:
             ctx.caller = rt.signer
         else:
-            if rt.ctx2[-1] == self.contract:
-                ctx.caller = rt.ctx2[-2]
-            else:
-                ctx.caller = rt.ctx2[-1]
+            ctx.caller = rt.ctx2.last_parent()
 
         ctx.this = self.contract
         ctx.signer = rt.signer
