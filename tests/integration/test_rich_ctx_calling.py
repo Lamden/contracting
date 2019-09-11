@@ -1,6 +1,7 @@
 from unittest import TestCase
 from contracting.client import ContractingClient
 
+
 def module1():
     import module2
     import module3
@@ -13,6 +14,16 @@ def module1():
             'signer': ctx.signer,
             'caller': ctx.caller
         }
+
+    @export
+    def get_context2():
+        return {
+            'owner': ctx2.owner,
+            'this': ctx2.this,
+            'signer': ctx2.signer,
+            'caller': ctx2.caller
+        }
+
 
 def module2():
     import module4
@@ -27,6 +38,7 @@ def module2():
             'caller': ctx.caller
         }
 
+
 def module3():
     import module6
     import module7
@@ -40,6 +52,7 @@ def module3():
             'caller': ctx.caller
         }
 
+
 def module4():
     @export
     def get_context():
@@ -49,6 +62,7 @@ def module4():
             'signer': ctx.signer,
             'caller': ctx.caller
         }
+
 
 def module5():
     import module8
@@ -62,6 +76,7 @@ def module5():
             'caller': ctx.caller
         }
 
+
 def module6():
     @export
     def get_context():
@@ -72,6 +87,7 @@ def module6():
             'caller': ctx.caller
         }
 
+
 def module7():
     @export
     def get_context():
@@ -81,6 +97,7 @@ def module7():
             'signer': ctx.signer,
             'caller': ctx.caller
         }
+
 
 def module8():
     @export
@@ -111,6 +128,7 @@ def all_in_one():
             'caller': ctx.caller
         }
 
+
 def dynamic_import():
     @export
     def called_from_a_far():
@@ -121,6 +139,7 @@ def dynamic_import():
     def called_from_a_far_stacked():
         m = importlib.import_module('all_in_one')
         return m.call()
+
 
 class TestRandomsContract(TestCase):
     def setUp(self):
@@ -139,5 +158,6 @@ class TestRandomsContract(TestCase):
         self.c.submit(all_in_one)
         self.c.submit(dynamic_import)
 
-    def test_init(self):
-        pass
+    def test_ctx2(self):
+        module = self.c.get_contract('module1')
+        print(module.get_context2())
