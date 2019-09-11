@@ -16,7 +16,6 @@ class __export(ContextDecorator):
 
         ctx.owner = driver.get_owner(self.contract)
 
-        print('entering {}'.format(self.contract))
         rt.ctx2.push(self.contract)
 
         if rt.ctx2.last_parent() == self.contract:
@@ -24,11 +23,13 @@ class __export(ContextDecorator):
         else:
             ctx.caller = rt.ctx2.last_parent()
 
+        if ctx.owner is not None and ctx.owner != ctx.caller:
+            raise Exception('Caller is not the owner!')
+
         ctx.this = self.contract
         ctx.signer = rt.signer
 
     def __exit__(self, *args, **kwargs):
-        print('popping from {}'.format(self.contract))
         rt.ctx2.pop()
 
 
