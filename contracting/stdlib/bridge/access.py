@@ -1,6 +1,7 @@
 from ...execution.runtime import rt
 from contextlib import ContextDecorator
 from types import ModuleType
+from ...db.driver import ContractDriver
 
 
 class __export(ContextDecorator):
@@ -10,7 +11,9 @@ class __export(ContextDecorator):
     def __enter__(self):
         ctx = ModuleType('context')
 
-        ctx.owner = self.d.get_owner(self.contract)
+        driver = rt.env.get('__Driver') or ContractDriver()
+
+        ctx.owner = driver.get_owner(self.contract)
         ctx.caller = rt.ctx[-1]
         ctx.this = self.contract
         ctx.signer = rt.ctx[0]

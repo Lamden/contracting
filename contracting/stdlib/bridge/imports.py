@@ -10,6 +10,7 @@ def extract_closure(fn):
     closure = fn.__closure__[0]
     return closure.cell_contents
 
+
 class Func:
     def __init__(self, name, args=(), private=False):
         self.name = name

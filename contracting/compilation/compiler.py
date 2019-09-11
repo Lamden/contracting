@@ -76,6 +76,18 @@ class ContractingCompiler(ast.NodeTransformer):
             if decorator.id == config.INIT_DECORATOR_STRING:
                 node.name = '____'
 
+            elif decorator.id == config.EXPORT_DECORATOR_STRING:
+                decorator.id = '{}{}'.format('__', config.EXPORT_DECORATOR_STRING)
+
+                new_node = ast.Call(
+                    func=decorator,
+                    args=[ast.Str(s=self.module_name)],
+                    keywords=[]
+                )
+
+                node.decorator_list.append(new_node)
+                print(vars(new_node))
+
         else:
             self.private_names.add(node.name)
             node.name = self.privatize(node.name)

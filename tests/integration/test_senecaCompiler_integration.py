@@ -167,3 +167,14 @@ def goodbye():
         c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
+
+    def test_export_decorator_argument_is_added(self):
+        code = '''
+@export
+def test():
+    pass        
+'''
+        c = ContractingCompiler()
+        comp = c.parse(code, lint=False)
+        code_str = astor.to_source(comp)
+        print(code_str)
