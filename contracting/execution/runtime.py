@@ -22,6 +22,7 @@ class Runtime:
 
     tracer = Tracer()
 
+    signer = None
     ctx2 = deque(maxlen=config.RECURSION_LIMIT)
 
     @classmethod
@@ -38,7 +39,12 @@ class Runtime:
         cls.stamps = 0
 
         cls.ctx = deque(maxlen=config.RECURSION_LIMIT)
+        cls.ctx2 = deque(maxlen=config.RECURSION_LIMIT)
+
         cls.ctx.append('__main__')
+
+        cls.signer = None
+
 
         for mod in cls.loaded_modules:
             if sys.modules.get(mod) is not None:
