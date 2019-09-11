@@ -12,6 +12,7 @@ class __export(ContextDecorator):
         self.contract = contract
 
     def __enter__(self):
+        print('entering {}'.format(self.contract))
         driver = rt.env.get('__Driver') or ContractDriver()
 
         ctx.owner = driver.get_owner(self.contract)
@@ -19,8 +20,10 @@ class __export(ContextDecorator):
         rt.ctx2.push(self.contract)
 
         if rt.ctx2.last_parent() == self.contract:
+            print('nope')
             ctx.caller = rt.signer
         else:
+            print('yup')
             ctx.caller = rt.ctx2.last_parent()
 
         if ctx.owner is not None and ctx.owner != ctx.caller:
@@ -35,6 +38,6 @@ class __export(ContextDecorator):
 
 exports = {
     '__export': __export,
-    'ctx2': ctx,
+    'ctx': ctx,
     'rt': rt,
 }

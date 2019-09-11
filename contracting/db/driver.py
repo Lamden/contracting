@@ -484,12 +484,14 @@ class ContractDriver(CacheDriver):
         #self.conn.ping()
 
     def get(self, key):
+        print('getting {}'.format(key))
         value = super().get(key)
         return decode(value)
 
     def set(self, key, value):
         v = encode(value)
         super().set(key, v)
+        print('set {} to {}'.format(key, v))
 
     def values(self, prefix):
         keys = super().iter(prefix=prefix)

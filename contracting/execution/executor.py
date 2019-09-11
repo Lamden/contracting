@@ -168,8 +168,8 @@ class Sandbox(object):
             assert balance * config.STAMPS_PER_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
                                                        Balance at key {} is {}'.format(balances_key, balance)
 
-        runtime.rt.ctx.clear()
-        runtime.rt.ctx.append(sender)
+#        runtime.rt.ctx.clear()
+        #runtime.rt.ctx.append(sender)
 
         runtime.rt.ctx2.push(contract_name)
         runtime.rt.signer = sender

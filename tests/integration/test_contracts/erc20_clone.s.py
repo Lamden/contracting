@@ -25,6 +25,7 @@ def total_supply():
 
 @export
 def allowance(owner, spender):
+    print(ctx.caller)
     return balances[owner, spender]
 
 @export

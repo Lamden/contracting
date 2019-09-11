@@ -106,20 +106,17 @@ class DatabaseLoader(Loader):
         scope = env.gather()
         scope.update(rt.env)
 
-        ctx = ModuleType('context')
+        #ctx = ModuleType('context')
 
-        ctx.owner = self.d.get_owner(module.__name__)
-        ctx.caller = rt.ctx[-1]
-        ctx.this = module.__name__
-        ctx.signer = rt.ctx[0]
+        #ctx.owner = self.d.get_owner(module.__name__)
+        #ctx.caller = rt.ctx[-1]
+        #ctx.this = module.__name__
+        #ctx.signer = rt.ctx[0]
 
-        scope.update({'ctx': ctx})
+#        scope.update({'ctx': ctx})
         scope.update({'__contract__': True})
 
-        rt.ctx.append(module.__name__)
-
-        if ctx.owner is not None and ctx.owner != ctx.caller:
-            raise Exception('Caller is not the owner.')
+        #rt.ctx.append(module.__name__)
 
         # execute the module with the std env and update the module to pass forward
         exec(code, scope)
@@ -128,7 +125,7 @@ class DatabaseLoader(Loader):
         vars(module).update(scope)
         del vars(module)['__builtins__']
 
-        rt.loaded_modules.append(rt.ctx.pop())
+        rt.loaded_modules.append(module.__name__)
 
     def module_repr(self, module):
         return '<module {!r} (smart contract)>'.format(module.__name__)

@@ -41,6 +41,9 @@ def refund(participant, secret):
 
     result = swaps[participant, hashlock]
 
+    print(hashlock)
+    print(participant)
+
     assert result is not None, 'No swap to refund found.'
 
     expiration, amount = result

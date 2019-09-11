@@ -6,32 +6,32 @@ def module1():
     @export
     def get_context2():
         return {
-            'owner': ctx2.owner,
-            'this': ctx2.this,
-            'signer': ctx2.signer,
-            'caller': ctx2.caller
+            'owner': ctx.owner,
+            'this': ctx.this,
+            'signer': ctx.signer,
+            'caller': ctx.caller
         }
 
 
 def all_in_one():
     @export
     def call_me():
-        print(rt.ctx2)
+        print(rt.ctx)
         return call_me_again()
 
     @export
     def call_me_again():
-        print(rt.ctx2)
+        print(rt.ctx)
         return call_me_again_again()
 
     @export
     def call_me_again_again():
         print('inside call_me_again')
         print({
-            'owner': ctx2.owner,
-            'this': ctx2.this,
-            'signer': ctx2.signer,
-            'caller': ctx2.caller
+            'owner': ctx.owner,
+            'this': ctx.this,
+            'signer': ctx.signer,
+            'caller': ctx.caller
         })
 
 
@@ -41,10 +41,10 @@ def dynamic_import():
         print('CTX2 from dynamic imp: {}'.format(rt.ctx2))
         m = importlib.import_module('all_in_one')
         print({
-            'owner': ctx2.owner,
-            'this': ctx2.this,
-            'signer': ctx2.signer,
-            'caller': ctx2.caller
+            'owner': ctx.owner,
+            'this': ctx.this,
+            'signer': ctx.signer,
+            'caller': ctx.caller
         })
         m.call_me_again_again()
 

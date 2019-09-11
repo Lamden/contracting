@@ -36,8 +36,8 @@ class Runtime:
 
     os.environ['CU_COST_FNAME'] = cu_path
 
-    ctx = deque(maxlen=config.RECURSION_LIMIT)
-    ctx.append('__main__')
+    #ctx = deque(maxlen=config.RECURSION_LIMIT)
+    #ctx.append('__main__')
 
     loaded_modules = []
 
@@ -62,13 +62,12 @@ class Runtime:
         cls.tracer.reset()
         cls.stamps = 0
 
-        cls.ctx = deque(maxlen=config.RECURSION_LIMIT)
+        #cls.ctx = deque(maxlen=config.RECURSION_LIMIT)
         cls.ctx2.clear()
 
-        cls.ctx.append('__main__')
+        #cls.ctx.append('__main__')
 
         cls.signer = None
-
 
         for mod in cls.loaded_modules:
             if sys.modules.get(mod) is not None:
