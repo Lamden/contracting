@@ -170,6 +170,7 @@ class Sandbox(object):
 
         runtime.rt.ctx.clear()
         runtime.rt.ctx.append(sender)
+
         runtime.rt.env.update(environment)
         status_code = 0
         runtime.rt.set_up(stmps=stamps, meter=metering)

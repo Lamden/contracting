@@ -113,7 +113,7 @@ class DatabaseLoader(Loader):
         ctx.this = module.__name__
         ctx.signer = rt.ctx[0]
 
-        if ctx.owner is not None or ctx.owner == ctx.caller:
+        if ctx.owner is not None and ctx.owner != ctx.caller:
             raise Exception('Caller is not the owner.')
 
         scope.update({'ctx': ctx})

@@ -101,8 +101,8 @@ class TestDynamicImports(TestCase):
 
         owner_stuff = self.c.get_contract('owner_stuff')
 
-        self.assertIsNone(owner_stuff.get_owner(s='stubucks'))
-        self.assertEqual(owner_stuff.get_owner(s='owner_stuff'), 'poo')
+        self.assertIsNone(owner_stuff.get_owner(s='stubucks', signer='poo'))
+        self.assertEqual(owner_stuff.get_owner(s='owner_stuff', signer='poo'), 'poo')
 
     def test_ctx_owner_works(self):
         with open('./test_contracts/owner_stuff.s.py') as f:
@@ -111,13 +111,13 @@ class TestDynamicImports(TestCase):
 
         owner_stuff = self.c.get_contract('owner_stuff')
 
-        self.assertEqual(owner_stuff.owner_of_this(), 'poot')
+        self.assertEqual(owner_stuff.owner_of_this(signer='poot'), 'poot')
 
     def test_incorrect_owner_prevents_function_call(self):
         with open('./test_contracts/owner_stuff.s.py') as f:
             code = f.read()
             self.c.submit(code, name='owner_stuff', owner='poot')
 
-        print(self.c.raw_driver.get_contract('owner_stuff'))
         owner_stuff = self.c.get_contract('owner_stuff')
-        print(owner_stuff.owner_of_this())
+        with self.assertRaises(Exception):
+            owner_stuff.owner_of_this()
