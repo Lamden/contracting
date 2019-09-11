@@ -4,6 +4,7 @@ swaps = Hash()
 
 @export
 def initiate(participant: str, expiration: datetime, hashlock: str, amount: float):
+    print('initiating with {} and {}'.format(ctx.caller, ctx.this))
 
     allowance = erc20_clone.allowance(ctx.caller, ctx.this)
 
@@ -13,6 +14,7 @@ def initiate(participant: str, expiration: datetime, hashlock: str, amount: floa
 
     swaps[participant, hashlock] = [expiration, amount]
 
+    print('transfering from where this={} and caller={}'.format(ctx.this, ctx.caller))
     erc20_clone.transfer_from(amount, ctx.this, ctx.caller)
 
 @export

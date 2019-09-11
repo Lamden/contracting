@@ -16,12 +16,10 @@ def module1():
 def all_in_one():
     @export
     def call_me():
-        print(rt.ctx)
         return call_me_again()
 
     @export
     def call_me_again():
-        print(rt.ctx)
         return call_me_again_again()
 
     @export

@@ -25,8 +25,6 @@ class Contract:
         # ctx.signer = rt.ctx[0]
         #
         scope = env.gather()
-        print(vars(scope['ctx']))
-        # scope.update({'ctx': ctx})
         scope.update({'__contract__': True})
         scope.update(rt.env)
 

@@ -25,8 +25,10 @@ def total_supply():
 
 @export
 def allowance(owner, spender):
-    print(ctx.caller)
-    return balances[owner, spender]
+    print('getting allowance with {} and {}'.format(owner, spender))
+    bal = balances[owner, spender]
+    print(bal)
+    return bal
 
 @export
 def approve(amount, to):
@@ -36,6 +38,7 @@ def approve(amount, to):
 
 @export
 def transfer_from(amount, to, main_account):
+    print('spending money from {}'.format(main_account))
     sender = ctx.caller
 
     assert balances[main_account, sender] >= amount, 'Not enough coins approved to send! You have {} and are trying to spend {}'\

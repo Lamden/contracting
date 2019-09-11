@@ -15,8 +15,7 @@ class DequeSet:
             self.d.append(item)
 
     def pop(self):
-        if len(self.d) > 1:
-            return self.d.popleft()
+        return self.d.pop()
 
     def last(self):
         return self.d[-1]

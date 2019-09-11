@@ -9,7 +9,6 @@ def coin():
 
     @construct
     def seed():
-        print(rt.ctx2.d)
         balances[ctx.caller] = 1000000
         owner.set(ctx.caller)
         supply.set(1000000)
@@ -64,8 +63,6 @@ def coin():
 
     @export
     def change_ownership(new_owner):
-        #print(ctx.caller)
-        #print(owner.get())
         assert ctx.caller == owner.get(), 'Only the owner can change ownership!'
 
         owner.set(new_owner)

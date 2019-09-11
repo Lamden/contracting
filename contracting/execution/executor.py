@@ -99,6 +99,28 @@ I/O pattern:
 """
 
 
+class Context:
+    def __init__(self, base_state):
+        self.state = []
+        self.base_state = base_state
+
+    def context_changed(self, contract):
+        if self.get_state()['this'] == contract:
+            return False
+        return True
+
+    def get_state(self):
+        if len(self.state) == 0:
+            return self.base_state
+        return self.state[-1]
+
+    def add_state(self, state):
+        self.state.append(state)
+
+    def pop_state(self):
+        if len(self.state) > 0:
+            self.state.pop(-1)
+
 class Sandbox(object):
     def __init__(self):
         install_database_loader()
@@ -173,6 +195,8 @@ class Sandbox(object):
 
         runtime.rt.ctx2.push(contract_name)
         runtime.rt.signer = sender
+
+
 
         runtime.rt.env.update(environment)
         status_code = 0
