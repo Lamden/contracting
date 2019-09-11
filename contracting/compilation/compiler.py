@@ -77,6 +77,7 @@ class ContractingCompiler(ast.NodeTransformer):
                 node.name = '____'
 
             elif decorator.id == config.EXPORT_DECORATOR_STRING:
+                # Transform @export decorators to @__export(contract_name) decorators
                 decorator.id = '{}{}'.format('__', config.EXPORT_DECORATOR_STRING)
 
                 new_node = ast.Call(
@@ -86,7 +87,6 @@ class ContractingCompiler(ast.NodeTransformer):
                 )
 
                 node.decorator_list.append(new_node)
-                print(vars(new_node))
 
         else:
             self.private_names.add(node.name)

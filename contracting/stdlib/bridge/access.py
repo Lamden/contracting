@@ -22,12 +22,10 @@ class __export(ContextDecorator):
 
         rt.ctx2.append(self.contract)
 
-    def __exit__(self):
+    def __exit__(self, *args, **kwargs):
         rt.ctx2.pop()
 
 
-@__export('erc20')
-def activity():
-    print('Some time consuming activity goes here')
-
-activity()
+exports = {
+    '__export': __export
+}
