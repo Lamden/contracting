@@ -382,6 +382,74 @@ class TestHash(TestCase):
 
         self.assertListEqual(kvs, got)
 
+    def test_all_multihash_returns_values(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        h[0, '1'] = 123
+        h[0, '2'] = 456
+        h[0, '3'] = 789
+
+        h[1, '1'] = 999
+        h[1, '2'] = 888
+        h[1, '3'] = 777
+
+        l = [123, 456, 789]
+
+        driver.commit()
+
+        # we care about whats included, not order
+        self.assertSetEqual(set(h.all(0)), set(l))
+
+    def test_multihash_multiple_dims_clear_behaves_similar_to_single_dim(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        h[1, 0, '1'] = 123
+        h[1, 0, '2'] = 456
+        h[1, 0, '3'] = 789
+
+        h[1, 1, '1'] = 999
+        h[1, 1, '2'] = 888
+        h[1, 1, '3'] = 777
+
+        driver.commit()
+
+        kvs = sorted([(b'blah.scoob:1:0:3', 789), (b'blah.scoob:1:0:1', 123), (b'blah.scoob:1:0:2', 456)])
+
+        h.clear(1, 1)
+
+        driver.commit()
+
+        got = sorted(h._items())
+
+        self.assertListEqual(kvs, got)
+
+    def test_multihash_multiple_dims_all_gets_items_similar_to_single_dim(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        h[1, 0, '1'] = 123
+        h[1, 0, '2'] = 456
+        h[1, 0, '3'] = 789
+
+        h[1, 1, '1'] = 999
+        h[1, 1, '2'] = 888
+        h[1, 1, '3'] = 777
+
+        l = [123, 456, 789]
+
+        driver.commit()
+
+        # we care about whats included, not order
+        self.assertSetEqual(set(h.all(1, 0)), set(l))
+
     def test_clear_items_deletes_all_key_value_pairs(self):
         contract = 'blah'
         name = 'scoob'
@@ -407,6 +475,7 @@ class TestHash(TestCase):
         got = sorted(h._items())
 
         self.assertListEqual([], got)
+
 
 class TestForeignVariable(TestCase):
     def setUp(self):
