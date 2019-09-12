@@ -168,17 +168,17 @@ class Sandbox(object):
             assert balance * config.STAMPS_PER_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
                                                        Balance at key {} is {}'.format(balances_key, balance)
 
-#        runtime.rt.ctx.clear()
-        #runtime.rt.ctx.append(sender)
-
-        runtime.rt.ctx2.push(contract_name)
-        runtime.rt.signer = sender
-
-
-
         runtime.rt.env.update(environment)
         status_code = 0
         runtime.rt.set_up(stmps=stamps, meter=metering)
+
+        runtime.rt.context._base_state = {
+            'signer': sender,
+            'caller': sender,
+            'this': contract_name,
+            'owner': driver.get_owner(contract_name)
+        }
+
         try:
             module = importlib.import_module(contract_name)
             #module = __import__(contract_name)

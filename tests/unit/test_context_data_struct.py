@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.stdlib.bridge.access import Context
+from contracting.execution.runtime import Context
 
 
 class TestContext(TestCase):
