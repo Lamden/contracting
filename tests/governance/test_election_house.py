@@ -1,6 +1,6 @@
 from unittest import TestCase
 from contracting.client import ContractingClient
-
+from contracting.stdlib.bridge.time import Timedelta, DAYS, WEEKS
 
 def election_house():
     # Convenience
@@ -91,6 +91,20 @@ def election_house():
         states.clear(VOTES, policy)
 
 
+def good_policy():
+    @export
+    def voter_is_valid(vk):
+        return True
+
+    @export
+    def vote_is_valid(obj):
+        return True
+
+    @export
+    def new_policy_value(values):
+        return values[0]
+
+
 class TestElectionHouse(TestCase):
     def setUp(self):
         self.client = ContractingClient()
@@ -98,8 +112,12 @@ class TestElectionHouse(TestCase):
         self.election_house = self.client.get_contract('election_house')
 
     def tearDown(self):
-        #self.client.flush()
-        pass
+        self.client.flush()
 
-    def test_multihash_get(self):
-        pass
+    def test_submit_policy_works(self):
+        self.client.submit(good_policy, owner='election_house')
+        self.election_house.register_policy(policy='testing',
+                                            contract='good_policy',
+                                            election_interval=WEEKS*1,
+                                            voting_period=DAYS*1)
+
