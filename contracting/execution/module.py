@@ -7,7 +7,6 @@ from importlib.machinery import ModuleSpec
 from ..db.driver import ContractDriver
 from ..stdlib import env
 from ..execution.runtime import rt
-from ..db.orm import Variable, Hash
 
 from types import ModuleType
 import marshal
@@ -106,17 +105,7 @@ class DatabaseLoader(Loader):
         scope = env.gather()
         scope.update(rt.env)
 
-        #ctx = ModuleType('context')
-
-        #ctx.owner = self.d.get_owner(module.__name__)
-        #ctx.caller = rt.ctx[-1]
-        #ctx.this = module.__name__
-        #ctx.signer = rt.ctx[0]
-
-#        scope.update({'ctx': ctx})
         scope.update({'__contract__': True})
-
-        #rt.ctx.append(module.__name__)
 
         # execute the module with the std env and update the module to pass forward
         exec(code, scope)

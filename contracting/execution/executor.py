@@ -11,6 +11,7 @@ from .. import config
 
 log = get_logger('Executor')
 
+
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
                  currency_contract='currency', balances_hash='balances'):
@@ -52,8 +53,6 @@ class Executor:
                 driver=None,
                 stamps=1000000,
                 metering=None) -> tuple:
-
-
 
         if metering is None:
             metering = self.metering

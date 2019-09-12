@@ -337,7 +337,6 @@ class TestHash(TestCase):
 
         self.assertListEqual([], got)
 
-
 class TestForeignVariable(TestCase):
     def setUp(self):
         driver.flush()
