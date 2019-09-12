@@ -33,7 +33,7 @@ class AbstractContract:
             # each function is a partial that allows kwarg overloading and overriding
             setattr(self, func, partial(self._abstract_function_call,
                                         signer=self.signer,
-                                        contract=self.name,
+                                        contract_name=self.name,
                                         executor=self.executor,
                                         func=func,
                                         environment=self.environment,
@@ -75,12 +75,12 @@ class AbstractContract:
             # otherwise, the attribut does not exist, so throw the error.
             raise e
 
-    def _abstract_function_call(self, signer, executor, contract, environment, func, metering=None, **kwargs):
+    def _abstract_function_call(self, signer, executor, contract_name, environment, func, metering=None, **kwargs):
         # for k, v in kwargs.items():
         #     assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
 
         status, result, stamps = executor.execute(sender=signer,
-                                                  contract_name=contract,
+                                                  contract_name=contract_name,
                                                   function_name=func,
                                                   kwargs=kwargs,
                                                   environment=environment,
