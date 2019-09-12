@@ -58,31 +58,27 @@ class Context:
 
     @property
     def this(self):
-        print('getting this')
         return self._get_state()['this']
 
     @property
     def caller(self):
-        print(self._base_state)
         return self._get_state()['caller']
 
     @property
     def signer(self):
-        print('getting signer')
         return self._get_state()['signer']
 
     @property
     def owner(self):
-        print('getting this')
         return self._get_state()['owner']
 
-print('resetting context')
 _context = Context({
         'this': None,
         'caller': None,
         'owner': None,
         'signer': None
     })
+
 
 class Runtime:
     cu_path = contracting.__path__[0]

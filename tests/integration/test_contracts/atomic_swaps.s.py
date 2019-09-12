@@ -4,12 +4,6 @@ swaps = Hash()
 
 @export
 def initiate(participant: str, expiration: datetime, hashlock: str, amount: float):
-    print(ctx)
-    print(ctx.this)
-    print(ctx.caller)
-    print(ctx.signer)
-    print('initiating with {} and {}'.format(ctx.caller, ctx.this))
-
     allowance = erc20_clone.allowance(ctx.caller, ctx.this)
 
     assert allowance >= amount, \
@@ -18,7 +12,6 @@ def initiate(participant: str, expiration: datetime, hashlock: str, amount: floa
 
     swaps[participant, hashlock] = [expiration, amount]
 
-    print('transfering from where this={} and caller={}'.format(ctx.this, ctx.caller))
     erc20_clone.transfer_from(amount, ctx.this, ctx.caller)
 
 @export
@@ -46,9 +39,6 @@ def refund(participant, secret):
     hashlock = hashlib.sha256(secret)
 
     result = swaps[participant, hashlock]
-
-    print(hashlock)
-    print(participant)
 
     assert result is not None, 'No swap to refund found.'
 

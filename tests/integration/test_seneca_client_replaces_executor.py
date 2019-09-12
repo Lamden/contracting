@@ -42,9 +42,7 @@ class TestSenecaClientReplacesExecutor(TestCase):
                                        amount=5000000)
 
     def test_initiate_transfers_coins_correctly(self):
-        print('before approve')
         self.erc20_clone.approve(amount=1000000, to='atomic_swaps')
-        print('after approve')
 
         self.atomic_swaps.initiate(participant='raghu',
                                    expiration=Datetime(2020, 1, 1),

@@ -8,11 +8,7 @@ class __export(ContextDecorator):
         self.contract = contract
 
     def __enter__(self):
-        print('entering')
         driver = rt.env.get('__Driver') or ContractDriver()
-
-        print('entered {}'.format(self.contract))
-        print(rt.context._get_state())
 
         if rt.context._context_changed(self.contract):
             current_state = rt.context._get_state()
@@ -30,8 +26,6 @@ class __export(ContextDecorator):
                 raise Exception('Caller is not the owner!')
 
     def __exit__(self, *args, **kwargs):
-        print('exiting')
-
         rt.context._pop_state()
 
 

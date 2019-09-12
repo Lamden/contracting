@@ -36,7 +36,6 @@ def all_in_one():
 def dynamic_import():
     @export
     def called_from_a_far():
-        print('CTX2 from dynamic imp: {}'.format(rt.ctx2))
         m = importlib.import_module('all_in_one')
         print({
             'owner': ctx.owner,
