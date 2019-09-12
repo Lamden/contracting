@@ -311,6 +311,28 @@ class TestHash(TestCase):
 
         self.assertListEqual(kvs, got)
 
+    def test_items_multi_hash_returns_kv_pairs(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver, default_value=0)
+
+        h[0, '1'] = 123
+        h[0, '2'] = 456
+        h[0, '3'] = 789
+
+        h[1, '1'] = 999
+        h[1, '2'] = 888
+        h[1, '3'] = 777
+
+        driver.commit()
+
+        kvs = sorted([(b'blah.scoob:0:3', 789), (b'blah.scoob:0:1', 123), (b'blah.scoob:0:2', 456)])
+
+        got = sorted(h._items(0))
+
+        self.assertListEqual(kvs, got)
+
     def test_clear_items_deletes_all_key_value_pairs(self):
         contract = 'blah'
         name = 'scoob'
