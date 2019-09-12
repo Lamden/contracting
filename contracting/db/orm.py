@@ -66,14 +66,24 @@ class Hash(Datum):
         assert len(key) <= config.MAX_KEY_SIZE, 'Key is too long ({}). Max is {}.'.format(len(key), config.MAX_KEY_SIZE)
         return key
 
-    def all(self):
-        return self._driver.values(prefix='{}{}'.format(self._key, self._delimiter))
+    def _prefix_for_args(self, args):
+        multi = self._validate_key(args)
+        prefix = '{}{}'.format(self._key, self._delimiter)
+        if multi != '':
+            prefix += '{}{}'.format(multi, self._delimiter)
 
-    def _items(self):
-        return self._driver.items(prefix='{}{}'.format(self._key, self._delimiter))
+        return prefix
 
-    def clear(self):
-        kvs = self._items()
+    def all(self, *args):
+        prefix = self._prefix_for_args(args)
+        return self._driver.values(prefix=prefix)
+
+    def _items(self, *args):
+        prefix = self._prefix_for_args(args)
+        return self._driver.items(prefix=prefix)
+
+    def clear(self, *args):
+        kvs = self._items(*args)
         for k, v in kvs:
             self._driver.delete(k)
 
