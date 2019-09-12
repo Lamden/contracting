@@ -6,34 +6,11 @@ import os
 from .metering.tracer import Tracer
 
 
-class DequeSet:
-    def __init__(self, maxlen=config.RECURSION_LIMIT):
-        self.d = deque(maxlen=maxlen)
-
-    def push(self, item):
-        if len(self.d) == 0 or self.last() != item:
-            self.d.append(item)
-
-    def pop(self):
-        return self.d.pop()
-
-    def last(self):
-        return self.d[-1]
-
-    def clear(self):
-        self.d.clear()
-
-    def last_parent(self):
-        try:
-            return self.d[-2]
-        except IndexError:
-            return self.d[-1]
-
-
 class Context:
-    def __init__(self, base_state):
+    def __init__(self, base_state, maxlen=config.RECURSION_LIMIT):
         self._state = []
         self._base_state = base_state
+        self._maxlen = maxlen
 
     def _context_changed(self, contract):
         if self._get_state()['this'] == contract:
@@ -46,7 +23,7 @@ class Context:
         return self._state[-1]
 
     def _add_state(self, state: dict):
-        if self._context_changed(state['this']):
+        if self._context_changed(state['this']) and len(self._state) < self._maxlen:
             self._state.append(state)
 
     def _pop_state(self):
@@ -72,6 +49,7 @@ class Context:
     def owner(self):
         return self._get_state()['owner']
 
+
 _context = Context({
         'this': None,
         'caller': None,
@@ -85,9 +63,6 @@ class Runtime:
     cu_path = os.path.join(cu_path, 'execution', 'metering', 'cu_costs.const')
 
     os.environ['CU_COST_FNAME'] = cu_path
-
-    #ctx = deque(maxlen=config.RECURSION_LIMIT)
-    #ctx.append('__main__')
 
     loaded_modules = []
 
