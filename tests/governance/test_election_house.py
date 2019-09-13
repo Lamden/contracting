@@ -214,4 +214,14 @@ class TestElectionHouse(TestCase):
                                                 election_interval=WEEKS * 1,
                                                 voting_period=DAYS * 1)
 
+    def test_submit_with_initial_value_can_be_retrieved(self):
+        self.client.submit(good_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='good_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1,
+                                            initial_value='XYZ')
+
+        self.assertEqual(self.election_house.get_policy(policy='testing'), 'XYZ')
 
