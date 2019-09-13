@@ -88,7 +88,8 @@ def election_house():
                 states[ELECTION_START_TIME, policy] = now
                 states[IN_ELECTION, policy] = True
 
-                states[VOTES, policy, ctx.caller] = value
+                if p.voter_is_valid(ctx.caller) and p.vote_is_valid(value):
+                    states[VOTES, policy, ctx.caller] = value
             else:
                 raise Exception('Outside of governance parameters.')
 
@@ -123,6 +124,22 @@ def bad_policy():
 
     @export
     def xnew_policy_valuex(values):
+        return values[0]
+
+
+def fail_voter_policy():
+    @export
+    def voter_is_valid(vk):
+        if vk == 'sys':
+            return False
+        return True
+
+    @export
+    def vote_is_valid(obj):
+        return True
+
+    @export
+    def new_policy_value(values):
         return values[0]
 
 
@@ -230,7 +247,7 @@ class TestElectionHouse(TestCase):
         with self.assertRaises(AssertionError):
             self.election_house.vote(policy='not_existing', value=False)
 
-    def submit_policy(self):
+    def test_vote_right_after_submission_fails(self):
         self.client.submit(good_policy, owner='election_house')
 
         self.election_house.register_policy(policy='testing',
@@ -238,14 +255,16 @@ class TestElectionHouse(TestCase):
                                             election_interval=WEEKS * 1,
                                             voting_period=DAYS * 1)
 
-    def test_vote_right_after_submission_fails(self):
-        self.submit_policy()
-
         with self.assertRaises(Exception):
             self.election_house.vote(policy='testing', value=False)
 
     def test_not_in_election_but_past_election_interval_starts_election(self):
-        self.submit_policy()
+        self.client.submit(good_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='good_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1)
 
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
 
@@ -259,3 +278,39 @@ class TestElectionHouse(TestCase):
         # states[IN_ELECTION, policy] = True
         #
         # states[VOTES, policy, ctx.caller] = value
+
+    def test_anyone_can_start_vote_but_invalid_voters_vote_does_not_count(self):
+        self.client.submit(fail_voter_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='fail_voter_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.election_house.vote(policy='testing', value=False, environment=env)
+
+        self.assertEqual(self.election_house.states['in_election', 'testing'], True)
+        self.assertEqual(self.election_house.states['election_start_time', 'testing'], env['now'])
+        self.assertEqual(self.election_house.states['votes', 'testing', 'sys'], None)
+
+    def test_invalid_voters_vote_not_counted_if_in_vote(self):
+        self.client.submit(fail_voter_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='fail_voter_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.election_house.vote(policy='testing', value=123, environment=env, signer='not_sys')
+
+        self.assertEqual(self.election_house.states['in_election', 'testing'], True)
+        self.assertEqual(self.election_house.states['election_start_time', 'testing'], env['now'])
+        self.assertEqual(self.election_house.states['votes', 'testing', 'not_sys'], 123)
+
+        self.election_house.vote(policy='testing', value=999, environment=env, signer='sys')
+
+        self.assertEqual(self.election_house.states['votes', 'testing', 'sys'], None)
