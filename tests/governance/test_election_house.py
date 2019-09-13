@@ -225,3 +225,24 @@ class TestElectionHouse(TestCase):
 
         self.assertEqual(self.election_house.get_policy(policy='testing'), 'XYZ')
 
+    def test_vote_invalid_policy_fails(self):
+        with self.assertRaises(AssertionError):
+            self.election_house.vote(policy='not_existing', value=False)
+
+    def submit_policy(self):
+        self.client.submit(good_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='good_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1)
+
+    def test_vote_right_after_submission_fails(self):
+        self.submit_policy()
+
+        with self.assertRaises(Exception):
+            self.election_house.vote(policy='testing', value=False)
+
+    def test_not_in_election_but_past_election_interval_starts_election(self):
+        self.submit_policy()
+
