@@ -77,13 +77,18 @@ class AbstractContract:
             # otherwise, the attribut does not exist, so throw the error.
             raise e
 
-    def _abstract_function_call(self, signer, executor, contract_name, environment, func, metering=None, **kwargs):
+    def now(self):
+        d = datetime.today()
+        return Datetime(d.year, d.month, d.day, hour=d.hour, minute=d.minute)
+
+    def _abstract_function_call(self, signer, executor, contract_name, environment, func, metering=None, now=None, **kwargs):
         # for k, v in kwargs.items():
         #     assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
 
-        d = datetime.today()
+        if now is None:
+            now = self.now()
 
-        environment.update({'now': Datetime(d.year, d.month, d.day, hour=d.hour, minute=d.minute)})
+        environment.update({'now': now})
 
         status, result, stamps = executor.execute(sender=signer,
                                                   contract_name=contract_name,

@@ -116,8 +116,13 @@ class TestElectionHouse(TestCase):
 
     def test_submit_policy_works(self):
         self.client.submit(good_policy, owner='election_house')
+
         self.election_house.register_policy(policy='testing',
                                             contract='good_policy',
                                             election_interval=WEEKS*1,
                                             voting_period=DAYS*1)
 
+        self.assertEqual(self.election_house.states['contract', 'testing'], 'good_policy')
+        self.assertEqual(self.election_house.states['election_interval', 'testing'], WEEKS*1)
+        self.assertEqual(self.election_house.states['voting_period', 'testing'], DAYS*1)
+        self.assertEqual(self.election_house.states['in_election', 'testing'], False)
