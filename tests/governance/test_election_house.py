@@ -1,6 +1,7 @@
 from unittest import TestCase
 from contracting.client import ContractingClient
-from contracting.stdlib.bridge.time import Timedelta, DAYS, WEEKS
+from contracting.stdlib.bridge.time import Timedelta, DAYS, WEEKS, Datetime
+from datetime import datetime as dt, timedelta as td
 
 def election_house():
     # Convenience
@@ -246,3 +247,15 @@ class TestElectionHouse(TestCase):
     def test_not_in_election_but_past_election_interval_starts_election(self):
         self.submit_policy()
 
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.election_house.vote(policy='testing', value=False, environment=env)
+
+        self.assertEqual(self.election_house.states['in_election', 'testing'], True)
+        self.assertEqual(self.election_house.states['election_start_time', 'testing'], env['now'])
+        self.assertEqual(self.election_house.states['votes', 'testing', 'sys'], False)
+
+        # states[ELECTION_START_TIME, policy] = now
+        # states[IN_ELECTION, policy] = True
+        #
+        # states[VOTES, policy, ctx.caller] = value
