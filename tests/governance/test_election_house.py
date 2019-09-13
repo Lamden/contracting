@@ -160,6 +160,21 @@ def fail_vote_policy():
         return values[0]
 
 
+def always_yay_policy():
+    @export
+    def voter_is_valid(vk):
+        return True
+
+    @export
+    def vote_is_valid(obj):
+        if obj == 123:
+            return True
+        return False
+
+    @export
+    def new_policy_value(values):
+        return 'yay'
+
 class TestElectionHouse(TestCase):
     def setUp(self):
         self.client = ContractingClient()
@@ -403,3 +418,23 @@ class TestElectionHouse(TestCase):
 
         self.assertEqual(self.election_house.states['votes', 'testing', 'sys'], 123)
 
+    def test_in_election_voting_ends_creates_new_policy_value(self):
+        self.client.submit(always_yay_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='always_yay_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1,
+                                            initial_value='not_yay')
+
+        self.assertEqual(self.election_house.states['current_value', 'testing'], 'not_yay')
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.election_house.vote(policy='testing', value=999, environment=env)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=8))}
+
+        self.election_house.vote(policy='testing', value=123, environment=env)
+
+        self.assertEqual(self.election_house.states['current_value', 'testing'], 'yay')
