@@ -3,6 +3,7 @@ from contracting.client import ContractingClient
 from contracting.stdlib.bridge.time import Timedelta, DAYS, WEEKS, Datetime
 from datetime import datetime as dt, timedelta as td
 
+
 def election_house():
     # Convenience
     I = importlib
@@ -143,6 +144,22 @@ def fail_voter_policy():
         return values[0]
 
 
+def fail_vote_policy():
+    @export
+    def voter_is_valid(vk):
+        return True
+
+    @export
+    def vote_is_valid(obj):
+        if obj == 123:
+            return True
+        return False
+
+    @export
+    def new_policy_value(values):
+        return values[0]
+
+
 class TestElectionHouse(TestCase):
     def setUp(self):
         self.client = ContractingClient()
@@ -258,7 +275,7 @@ class TestElectionHouse(TestCase):
         with self.assertRaises(Exception):
             self.election_house.vote(policy='testing', value=False)
 
-    def test_not_in_election_but_past_election_interval_starts_election(self):
+    def test_not_in_election_but_past_election_interval_starts_election_and_tallies_vote(self):
         self.client.submit(good_policy, owner='election_house')
 
         self.election_house.register_policy(policy='testing',
@@ -273,11 +290,6 @@ class TestElectionHouse(TestCase):
         self.assertEqual(self.election_house.states['in_election', 'testing'], True)
         self.assertEqual(self.election_house.states['election_start_time', 'testing'], env['now'])
         self.assertEqual(self.election_house.states['votes', 'testing', 'sys'], False)
-
-        # states[ELECTION_START_TIME, policy] = now
-        # states[IN_ELECTION, policy] = True
-        #
-        # states[VOTES, policy, ctx.caller] = value
 
     def test_anyone_can_start_vote_but_invalid_voters_vote_does_not_count(self):
         self.client.submit(fail_voter_policy, owner='election_house')
@@ -314,3 +326,80 @@ class TestElectionHouse(TestCase):
         self.election_house.vote(policy='testing', value=999, environment=env, signer='sys')
 
         self.assertEqual(self.election_house.states['votes', 'testing', 'sys'], None)
+
+    def test_invalid_vote_from_valid_voter_is_not_counted_if_starting_election(self):
+        self.client.submit(fail_vote_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='fail_vote_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.election_house.vote(policy='testing', value=999, environment=env)
+
+        self.assertEqual(self.election_house.states['in_election', 'testing'], True)
+        self.assertEqual(self.election_house.states['election_start_time', 'testing'], env['now'])
+        self.assertEqual(self.election_house.states['votes', 'testing', 'sys'], None)
+
+    def test_invalid_vote_from_valid_voter_is_not_counted_after_starting_election_either(self):
+        self.client.submit(fail_vote_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='fail_vote_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.election_house.vote(policy='testing', value=999, environment=env)
+
+        self.assertEqual(self.election_house.states['in_election', 'testing'], True)
+        self.assertEqual(self.election_house.states['election_start_time', 'testing'], env['now'])
+        self.assertEqual(self.election_house.states['votes', 'testing', 'sys'], None)
+
+        self.election_house.vote(policy='testing', value=222, environment=env, signer='not_sys')
+
+        self.assertEqual(self.election_house.states['votes', 'testing', 'not_sys'], None)
+
+    def test_valid_vote_and_voter_after_voting_started_counts(self):
+        self.client.submit(good_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='good_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.election_house.vote(policy='testing', value=999, environment=env)
+
+        self.assertEqual(self.election_house.states['in_election', 'testing'], True)
+        self.assertEqual(self.election_house.states['election_start_time', 'testing'], env['now'])
+        self.assertEqual(self.election_house.states['votes', 'testing', 'sys'], 999)
+
+        self.election_house.vote(policy='testing', value=123, environment=env, signer='not_sys')
+
+        self.assertEqual(self.election_house.states['votes', 'testing', 'not_sys'], 123)
+
+    def test_voting_twice_overwrites_vote(self):
+        self.client.submit(good_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='good_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.election_house.vote(policy='testing', value=999, environment=env)
+
+        self.assertEqual(self.election_house.states['in_election', 'testing'], True)
+        self.assertEqual(self.election_house.states['election_start_time', 'testing'], env['now'])
+        self.assertEqual(self.election_house.states['votes', 'testing', 'sys'], 999)
+
+        self.election_house.vote(policy='testing', value=123, environment=env)
+
+        self.assertEqual(self.election_house.states['votes', 'testing', 'sys'], 123)
+
