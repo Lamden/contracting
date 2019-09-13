@@ -492,20 +492,20 @@ class ContractDriver(CacheDriver):
         super().set(key, v)
 
     def values(self, prefix):
-        keys = super().iter(prefix=prefix)
+        keys = sorted(list(super().iter(prefix=prefix)))
         values = []
         for key in keys:
             value = self.get(key)
             values.append(value)
-        return sorted(values)
+        return values
 
     def items(self, prefix):
-        keys = self.iter(prefix=prefix)
+        keys = sorted(list(self.iter(prefix=prefix)))
         kvs = []
         for key in keys:
             value = self.get(key)
             kvs.append((key, value))
-        return sorted(kvs)
+        return kvs
 
     def make_key(self, key, field):
         return '{}{}{}'.format(key, self.delimiter, field)
