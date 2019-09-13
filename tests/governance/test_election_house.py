@@ -126,3 +126,4 @@ class TestElectionHouse(TestCase):
         self.assertEqual(self.election_house.states['election_interval', 'testing'], WEEKS*1)
         self.assertEqual(self.election_house.states['voting_period', 'testing'], DAYS*1)
         self.assertEqual(self.election_house.states['in_election', 'testing'], False)
+

@@ -88,7 +88,8 @@ class AbstractContract:
         if now is None:
             now = self.now()
 
-        environment.update({'now': now})
+        if environment.get('now') is None:
+            environment.update({'now': now})
 
         status, result, stamps = executor.execute(sender=signer,
                                                   contract_name=contract_name,
