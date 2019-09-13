@@ -9,6 +9,8 @@ def election_house():
     # Subhash IDs
     CONTRACT = 'contract'
 
+    POLICY = 'policy'
+
     VOTES = 'votes'
     CURRENT_VALUE = 'current_value'
 
@@ -29,9 +31,9 @@ def election_house():
     ]
 
     @export
-    def register_policy(policy, contract, election_interval, voting_period):
+    def register_policy(policy, contract, election_interval, voting_period, initial_value=None):
         # Make sure the policy is not registered
-        if states[CONTRACT, policy] is None:
+        if states[CONTRACT, policy] is None and states[POLICY, contract] is None:
 
             # Attempt to import the contract to make sure it is already submitted
             p = I.import_module(contract)
@@ -43,9 +45,13 @@ def election_house():
             assert I.enforce_interface(p, policy_interface), \
                 'Policy contract does not follow the correct interface'
 
+            # Double linked hash to prevent double submission of policies
             states[CONTRACT, policy] = contract
+            states[POLICY, contract] = policy
+
             states[ELECTION_INTERVAL, policy] = election_interval
             states[VOTING_PERIOD, policy] = voting_period
+            states[CURRENT_VALUE, policy] = initial_value
 
             reset_election(policy)
         else:
@@ -105,6 +111,20 @@ def good_policy():
         return values[0]
 
 
+def bad_policy():
+    @export
+    def xvoter_is_validx(vk):
+        return True
+
+    @export
+    def xvote_is_validx(obj):
+        return True
+
+    @export
+    def xnew_policy_valuex(values):
+        return values[0]
+
+
 class TestElectionHouse(TestCase):
     def setUp(self):
         self.client = ContractingClient()
@@ -126,4 +146,72 @@ class TestElectionHouse(TestCase):
         self.assertEqual(self.election_house.states['election_interval', 'testing'], WEEKS*1)
         self.assertEqual(self.election_house.states['voting_period', 'testing'], DAYS*1)
         self.assertEqual(self.election_house.states['in_election', 'testing'], False)
+
+    def test_submit_policy_wrong_owner_fails(self):
+        self.client.submit(good_policy, owner='wrong_owner')
+
+        with self.assertRaises(Exception):
+            self.election_house.register_policy(policy='testing',
+                                                contract='good_policy',
+                                                election_interval=WEEKS * 1,
+                                                voting_period=DAYS * 1)
+
+    def test_submit_policy_that_does_not_exist_fails(self):
+        with self.assertRaises(ImportError):
+            self.election_house.register_policy(policy='testing',
+                                                contract='good_policy',
+                                                election_interval=WEEKS * 1,
+                                                voting_period=DAYS * 1)
+
+    def test_submit_policy_with_bad_interface_fails(self):
+        self.client.submit(bad_policy, owner='election_house')
+
+        with self.assertRaises(Exception):
+            self.election_house.register_policy(policy='testing',
+                                                contract='bad_policy',
+                                                election_interval=WEEKS * 1,
+                                                voting_period=DAYS * 1)
+
+    def test_submit_same_policy_twice_fails(self):
+        self.client.submit(good_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='good_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1)
+
+        with self.assertRaises(Exception):
+            self.election_house.register_policy(policy='testing',
+                                                contract='good_policy',
+                                                election_interval=WEEKS * 1,
+                                                voting_period=DAYS * 1)
+
+    def test_submit_same_policy_different_name_fails(self):
+        self.client.submit(good_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='good_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1)
+
+        with self.assertRaises(Exception):
+            self.election_house.register_policy(policy='testing2',
+                                                contract='good_policy',
+                                                election_interval=WEEKS * 1,
+                                                voting_period=DAYS * 1)
+
+    def test_submit_different_policy_same_name_fails(self):
+        self.client.submit(good_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='good_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1)
+
+        with self.assertRaises(Exception):
+            self.election_house.register_policy(policy='testing',
+                                                contract='bad_policy',
+                                                election_interval=WEEKS * 1,
+                                                voting_period=DAYS * 1)
+
 
