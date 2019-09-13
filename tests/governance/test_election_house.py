@@ -175,6 +175,25 @@ def always_yay_policy():
     def new_policy_value(values):
         return 'yay'
 
+def average_votes_policy():
+    @export
+    def voter_is_valid(vk):
+        return True
+
+    @export
+    def vote_is_valid(obj):
+        if type(obj) == int:
+            return True
+        return False
+
+    @export
+    def new_policy_value(values):
+        vv = 0
+        for v in values:
+            vv += v
+        return vv // len(values)
+
+
 class TestElectionHouse(TestCase):
     def setUp(self):
         self.client = ContractingClient()
@@ -438,3 +457,54 @@ class TestElectionHouse(TestCase):
         self.election_house.vote(policy='testing', value=123, environment=env)
 
         self.assertEqual(self.election_house.states['current_value', 'testing'], 'yay')
+
+    def test_in_election_voting_ends_creates_new_policy_that_is_mutated_by_policy(self):
+        self.client.submit(average_votes_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='average_votes_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1,
+                                            initial_value=0)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.election_house.vote(policy='testing', value=10, environment=env, signer='v1')
+        self.election_house.vote(policy='testing', value=10, environment=env, signer='v2')
+        self.election_house.vote(policy='testing', value=10, environment=env, signer='v3')
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=8))}
+
+        self.election_house.vote(policy='testing', value=50, environment=env, signer='v4')
+
+        # Answer is 35
+
+        self.assertEqual(self.election_house.states['current_value', 'testing'], 20)
+
+    def test_in_election_voting_period_ends_resets_state(self):
+        self.client.submit(average_votes_policy, owner='election_house')
+
+        self.election_house.register_policy(policy='testing',
+                                            contract='average_votes_policy',
+                                            election_interval=WEEKS * 1,
+                                            voting_period=DAYS * 1,
+                                            initial_value=0)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.election_house.vote(policy='testing', value=10, environment=env, signer='v1')
+        self.election_house.vote(policy='testing', value=10, environment=env, signer='v2')
+        self.election_house.vote(policy='testing', value=10, environment=env, signer='v3')
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=8))}
+
+        self.election_house.vote(policy='testing', value=50, environment=env, signer='v4')
+
+        self.assertEqual(self.election_house.states['election_end_time', 'testing'], env['now'])
+        self.assertEqual(self.election_house.states['in_election', 'testing'], False)
+
+        self.assertEqual(self.election_house.states['votes', 'testing', 'v1'], None)
+        self.assertEqual(self.election_house.states['votes', 'testing', 'v2'], None)
+        self.assertEqual(self.election_house.states['votes', 'testing', 'v3'], None)
+        self.assertEqual(self.election_house.states['votes', 'testing', 'v4'], None)
+

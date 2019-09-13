@@ -492,7 +492,7 @@ class ContractDriver(CacheDriver):
         super().set(key, v)
 
     def values(self, prefix):
-        keys = sorted(list(super().iter(prefix=prefix)))
+        keys = super().iter(prefix=prefix)
         values = []
         for key in keys:
             value = self.get(key)
@@ -500,7 +500,7 @@ class ContractDriver(CacheDriver):
         return values
 
     def items(self, prefix):
-        keys = sorted(list(self.iter(prefix=prefix)))
+        keys = self.iter(prefix=prefix)
         kvs = []
         for key in keys:
             value = self.get(key)
