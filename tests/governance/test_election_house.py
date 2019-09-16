@@ -477,8 +477,6 @@ class TestElectionHouse(TestCase):
 
         self.election_house.vote(policy='testing', value=50, environment=env, signer='v4')
 
-        # Answer is 35
-
         self.assertEqual(self.election_house.states['current_value', 'testing'], 20)
 
     def test_in_election_voting_period_ends_resets_state(self):
@@ -507,4 +505,3 @@ class TestElectionHouse(TestCase):
         self.assertEqual(self.election_house.states['votes', 'testing', 'v2'], None)
         self.assertEqual(self.election_house.states['votes', 'testing', 'v3'], None)
         self.assertEqual(self.election_house.states['votes', 'testing', 'v4'], None)
-
