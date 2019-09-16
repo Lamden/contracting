@@ -43,8 +43,7 @@ class TestSBClient(TestCase):
             contract = f.read()
 
         driver.set_contract(name='submission',
-                            code=contract,
-                            author='sys')
+                            code=contract)
         driver.set('currency.balances:unittest', 1000000)
         driver.commit()
 

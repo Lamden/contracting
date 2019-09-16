@@ -38,8 +38,7 @@ class TestExecutor(TestCase):
             contract = f.read()
 
         self.d.set_contract(name='submission',
-                            code=contract,
-                            author='sys')
+                            code=contract)
         self.d.commit()
 
         self.compiler = ContractingCompiler()
@@ -63,6 +62,7 @@ def d():
 
         e.execute(**TEST_SUBMISSION_KWARGS, kwargs=kwargs)
 
+        self.compiler.module_name = 'stubucks'
         new_code = self.compiler.parse_to_code(code)
 
         self.assertEqual(self.d.get_contract('stubucks'), new_code)

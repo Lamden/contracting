@@ -12,20 +12,19 @@ class Contract:
     def __init__(self, driver: ContractDriver=driver):
         self._driver = driver
 
-    def submit(self, name, code, author, constructor_args={}):
+    def submit(self, name, code, owner=None, constructor_args={}):
 
         c = ContractingCompiler(module_name=name)
 
         code_obj = c.parse_to_code(code, lint=True)
 
-        ctx = ModuleType('context')
-
-        ctx.caller = rt.ctx[-1]
-        ctx.this = name
-        ctx.signer = rt.ctx[0]
-
+        # ctx = ModuleType('context')
+        #
+        # ctx.caller = rt.ctx[-1]
+        # ctx.this = name
+        # ctx.signer = rt.ctx[0]
+        #
         scope = env.gather()
-        scope.update({'ctx': ctx})
         scope.update({'__contract__': True})
         scope.update(rt.env)
 
@@ -34,4 +33,4 @@ class Contract:
         if scope.get(config.INIT_FUNC_NAME) is not None:
             scope[config.INIT_FUNC_NAME](**constructor_args)
 
-        self._driver.set_contract(name=name, code=code_obj, author=author, overwrite=False)
+        self._driver.set_contract(name=name, code=code_obj, owner=owner, overwrite=False)

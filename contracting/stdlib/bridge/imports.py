@@ -2,6 +2,13 @@ import importlib
 from types import FunctionType, ModuleType
 from ...config import PRIVATE_METHOD_PREFIX
 from ...db.orm import Datum
+from ...db.driver import ContractDriver
+from ...execution.runtime import rt
+
+
+def extract_closure(fn):
+    closure = fn.__closure__[0]
+    return closure.cell_contents
 
 
 class Func:
@@ -14,7 +21,12 @@ class Func:
         self.args = args
 
     def is_of(self, f: FunctionType):
+
+        if f.__closure__ is not None:
+            f = extract_closure(f)
+
         num_args = f.__code__.co_argcount
+
         if f.__code__.co_name == self.name and f.__code__.co_varnames[:num_args] == self.args:
             return True
         return False
@@ -55,11 +67,18 @@ def enforce_interface(m: ModuleType, interface: list):
     return True
 
 
+def owner_of(m: ModuleType):
+    driver = ContractDriver()
+    owner = driver.hget(m.__name__, driver.owner_key)
+    return owner
+
+
 imports_module = ModuleType('importlib')
 imports_module.import_module = import_module
 imports_module.enforce_interface = enforce_interface
 imports_module.Func = Func
 imports_module.Var = Var
+imports_module.owner_of = owner_of
 
 exports = {
     'importlib': imports_module,

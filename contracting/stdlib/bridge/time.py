@@ -44,11 +44,27 @@ class Datetime:
             return Timedelta(days=delta.days, seconds=delta.seconds)
         return NotImplemented
 
+    def __add__(self, other):
+        if isinstance(other, Timedelta):
+            return Datetime._from_datetime(self._datetime + other._timedelta)
+        return NotImplemented
+
     def __str__(self):
         return str(self._datetime)
 
     def __repr__(self):
         return self.__str__()
+
+    @classmethod
+    def _from_datetime(cls, d: dt):
+        return cls(year=d.year,
+                   month=d.month,
+                   day=d.day,
+                   hour=d.hour,
+                   minute=d.minute,
+                   second=d.second,
+                   microsecond=d.microsecond)
+
 
 class Timedelta:
     def __init__(self, weeks=0,

@@ -73,19 +73,19 @@ fv = ForeignHash(foreign_contract='scoob', foreign_name='kumbucha')
 
         self.assertEqual(fv._key, '__main__.fv')
         self.assertEqual(fv.foreign_key, 'scoob.kumbucha')
-
-    def test_export_decorator_pops(self):
-        code = '''
-@export
-def funtimes():
-    print('cool')
-        '''
-
-        c = ContractingCompiler()
-        comp = c.parse(code, lint=False)
-        code_str = astor.to_source(comp)
-
-        self.assertNotIn('@export', code_str)
+#
+#     def test_export_decorator_pops(self):
+#         code = '''
+# @export
+# def funtimes():
+#     print('cool')
+#         '''
+#
+#         c = ContractingCompiler()
+#         comp = c.parse(code, lint=False)
+#         code_str = astor.to_source(comp)
+#
+#         self.assertNotIn('@export', code_str)
 
     def test_private_function_prefixes_properly(self):
         code = '''
@@ -167,3 +167,14 @@ def goodbye():
         c = ContractingCompiler()
         comp = c.parse(code, lint=False)
         code_str = astor.to_source(comp)
+
+    def test_export_decorator_argument_is_added(self):
+        code = '''
+@export
+def test():
+    pass        
+'''
+        c = ContractingCompiler()
+        comp = c.parse(code, lint=False)
+        code_str = astor.to_source(comp)
+        print(code_str)

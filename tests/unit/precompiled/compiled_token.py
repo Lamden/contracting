@@ -13,31 +13,25 @@ def ____():
     __balances['colin'] = 100
     __supply.set(__balances['stu'] + __balances['colin'])
 
-
 def transfer(amount, to):
     sender = ctx.caller
     assert __balances[sender] >= amount, 'Not enough coins to send!'
     __balances[sender] -= amount
     __balances[to] += amount
 
-
 def balance_of(account):
     return __balances[account]
-
 
 def total_supply():
     return __supply.get()
 
-
 def allowance(owner, spender):
     return __balances[owner, spender]
-
 
 def approve(amount, to):
     sender = ctx.caller
     __balances[sender, to] += amount
     return __balances[sender, to]
-
 
 def transfer_from(amount, to, main_account):
     sender = ctx.caller

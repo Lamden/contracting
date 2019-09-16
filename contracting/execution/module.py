@@ -7,7 +7,6 @@ from importlib.machinery import ModuleSpec
 from ..db.driver import ContractDriver
 from ..stdlib import env
 from ..execution.runtime import rt
-from ..db.orm import Variable, Hash
 
 from types import ModuleType
 import marshal
@@ -73,8 +72,8 @@ class DatabaseFinder:
                 return None
         return ModuleSpec(self, DatabaseLoader())
 
+
 MODULE_CACHE = {}
-CACHE = {}
 
 
 class DatabaseLoader(Loader):
@@ -106,16 +105,7 @@ class DatabaseLoader(Loader):
         scope = env.gather()
         scope.update(rt.env)
 
-        ctx = ModuleType('context')
-
-        ctx.caller = rt.ctx[-1]
-        ctx.this = module.__name__
-        ctx.signer = rt.ctx[0]
-
-        scope.update({'ctx': ctx})
         scope.update({'__contract__': True})
-
-        rt.ctx.append(module.__name__)
 
         # execute the module with the std env and update the module to pass forward
         exec(code, scope)
@@ -124,7 +114,7 @@ class DatabaseLoader(Loader):
         vars(module).update(scope)
         del vars(module)['__builtins__']
 
-        rt.loaded_modules.append(rt.ctx.pop())
+        rt.loaded_modules.append(module.__name__)
 
     def module_repr(self, module):
         return '<module {!r} (smart contract)>'.format(module.__name__)

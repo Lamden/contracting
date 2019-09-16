@@ -1,5 +1,7 @@
 from .execution.executor import Executor
 from .compilation.compiler import ContractingCompiler
+from .stdlib.bridge.time import Datetime
+from datetime import datetime
 from functools import partial
 import ast
 import inspect
@@ -33,7 +35,7 @@ class AbstractContract:
             # each function is a partial that allows kwarg overloading and overriding
             setattr(self, func, partial(self._abstract_function_call,
                                         signer=self.signer,
-                                        contract=self.name,
+                                        contract_name=self.name,
                                         executor=self.executor,
                                         func=func,
                                         environment=self.environment,
@@ -75,12 +77,22 @@ class AbstractContract:
             # otherwise, the attribut does not exist, so throw the error.
             raise e
 
-    def _abstract_function_call(self, signer, executor, contract, environment, func, metering=None, **kwargs):
-        for k, v in kwargs.items():
-            assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
+    def now(self):
+        d = datetime.today()
+        return Datetime(d.year, d.month, d.day, hour=d.hour, minute=d.minute)
+
+    def _abstract_function_call(self, signer, executor, contract_name, environment, func, metering=None, now=None, **kwargs):
+        # for k, v in kwargs.items():
+        #     assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
+
+        if now is None:
+            now = self.now()
+
+        if environment.get('now') is None:
+            environment.update({'now': now})
 
         status, result, stamps = executor.execute(sender=signer,
-                                                  contract_name=contract,
+                                                  contract_name=contract_name,
                                                   function_name=func,
                                                   kwargs=kwargs,
                                                   environment=environment,
@@ -114,8 +126,7 @@ class ContractingClient:
             contract = f.read()
 
         self.raw_driver.set_contract(name='submission',
-                                     code=contract,
-                                     author=self.signer)
+                                     code=contract)
 
         self.raw_driver.commit()
 
@@ -128,8 +139,7 @@ class ContractingClient:
             contract = f.read()
 
         self.raw_driver.set_contract(name='submission',
-                                     code=contract,
-                                     author=self.signer)
+                                     code=contract)
 
         self.raw_driver.commit()
 
@@ -199,13 +209,13 @@ class ContractingClient:
         code = self.compiler.parse_to_code(f)
         return code
 
-    def submit(self, f, name=None, metering=None, constructor_args={}):
+    def submit(self, f, name=None, metering=None, owner=None, constructor_args={}):
         if isinstance(f, FunctionType):
             f, name = self.closure_to_code_string(f)
 
         assert name is not None, 'No name provided.'
 
-        self.submission_contract.submit_contract(name=name, code=f, constructor_args=constructor_args, metering=metering)
+        self.submission_contract.submit_contract(name=name, code=f, owner=owner, constructor_args=constructor_args, metering=metering)
 
     def get_contracts(self):
         contracts = []

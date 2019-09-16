@@ -11,6 +11,7 @@ from .. import config
 
 log = get_logger('Executor')
 
+
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
                  currency_contract='currency', balances_hash='balances'):
@@ -52,8 +53,6 @@ class Executor:
                 driver=None,
                 stamps=1000000,
                 metering=None) -> tuple:
-
-
 
         if metering is None:
             metering = self.metering
@@ -168,16 +167,26 @@ class Sandbox(object):
             assert balance * config.STAMPS_PER_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
                                                        Balance at key {} is {}'.format(balances_key, balance)
 
-        runtime.rt.ctx.clear()
-        runtime.rt.ctx.append(sender)
         runtime.rt.env.update(environment)
         status_code = 0
         runtime.rt.set_up(stmps=stamps, meter=metering)
+
+        runtime.rt.context._base_state = {
+            'signer': sender,
+            'caller': sender,
+            'this': contract_name,
+            'owner': driver.get_owner(contract_name)
+        }
+
         try:
+            if runtime.rt.context.owner is not None and runtime.rt.context.owner != runtime.rt.context.caller:
+                raise Exception('Caller is not the owner!')
+
             module = importlib.import_module(contract_name)
             #module = __import__(contract_name)
 
             func = getattr(module, function_name)
+
 
             result = func(**kwargs)
 

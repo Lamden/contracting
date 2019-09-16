@@ -11,7 +11,7 @@ class TestDynamicImports(TestCase):
         with open('../../contracting/contracts/submission.s.py') as f:
             contract = f.read()
 
-        self.c.raw_driver.set_contract(name='submission', code=contract, author='sys')
+        self.c.raw_driver.set_contract(name='submission', code=contract)
 
         self.c.raw_driver.commit()
 
@@ -93,3 +93,60 @@ class TestDynamicImports(TestCase):
     def test_erc20_enforced_fails_for_bastardcoin(self):
         with self.assertRaises(AssertionError):
             stu = self.dynamic_importing.only_erc20(tok='bastardcoin', account='stu')
+
+    def test_owner_of_returns_default(self):
+        with open('./test_contracts/owner_stuff.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='owner_stuff', owner='poo')
+
+        owner_stuff = self.c.get_contract('owner_stuff')
+
+        self.assertIsNone(owner_stuff.get_owner(s='stubucks', signer='poo'))
+        self.assertEqual(owner_stuff.get_owner(s='owner_stuff', signer='poo'), 'poo')
+
+    def test_ctx_owner_works(self):
+        with open('./test_contracts/owner_stuff.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='owner_stuff', owner='poot')
+
+        owner_stuff = self.c.get_contract('owner_stuff')
+
+        self.assertEqual(owner_stuff.owner_of_this(signer='poot'), 'poot')
+
+    def test_incorrect_owner_prevents_function_call(self):
+        with open('./test_contracts/owner_stuff.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='owner_stuff', owner='poot')
+
+        owner_stuff = self.c.get_contract('owner_stuff')
+        with self.assertRaises(Exception):
+            owner_stuff.owner_of_this()
+
+    def test_delegate_call_with_owner_works(self):
+        with open('./test_contracts/parent_test.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='parent_test')
+
+        with open('./test_contracts/child_test.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='child_test', owner='parent_test')
+
+        parent_test = self.c.get_contract('parent_test')
+
+        val = parent_test.get_val_from_child(s='child_test')
+
+        self.assertEqual(val, 'good')
+
+    def test_delegate_with_wrong_owner_does_not_work(self):
+        with open('./test_contracts/parent_test.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='parent_test')
+
+        with open('./test_contracts/child_test.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='child_test', owner='blorg')
+
+        parent_test = self.c.get_contract('parent_test')
+
+        with self.assertRaises(Exception) as e:
+            parent_test.get_val_from_child(s='child_test')
