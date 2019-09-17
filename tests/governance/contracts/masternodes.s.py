@@ -1,45 +1,135 @@
-import stake
+INTRODUCE_MOTION = 'introduce_motion'
+VOTE_ON_MOTION = 'vote_on_motion'
 
-EPOCH_LENGTH = 100_000
-EPOCH = block_num // EPOCH_LENGTH
+NO_MOTION = 0
+ADD_MASTER = 1
+REMOVE_MASTER = 2
+ADD_SEAT = 3
+REMOVE_SEAT = 4
 
-masternodes = Hash()
+VOTING_PERIOD = datetime.DAYS * 1
 
-current_electorate = Variable()
-votes = Hash()
-has_voted = Hash()
+S = Hash()
+
 
 @construct
-def seed():
-    masternodes[0] = [
-        'stu',
-        'raghu',
-        'tejas'
-    ]
+def seed(initial_masternodes, initial_open_seats):
+    S['masternodes'] = initial_masternodes
+    S['open_seats'] = initial_open_seats
 
-    current_electorate.set(0) # The number of the
+    S['yays'] = 0
+    S['nays'] = 0
+
+    S['current_motion'] = NO_MOTION
+    S['motion_opened'] = now
+
+
+@export
+def current_value():
+    return {
+        'masternodes': S['masternodes'],
+        'open_seats': S['open_seats']
+    }
 
 
 @export
-def get_for_epoch(e):
-    return masternodes[e]
+def vote(vk, obj):
+    assert type(obj) == tuple, 'Pass a tuple!'
 
-@export
-def vote(account):
-    # Make sure user can actually vote for who they want to
-    assert stake.is_staked(ctx.caller), 'You cannot vote if you are not staked!'
-    assert stake.is_staked(account), 'You cannot vote for someone unstaked!'
-    assert not has_voted[EPOCH, ctx.caller], 'You cannot vote twice!'
+    arg = None
+    try:
+        action, position, arg = obj
+    except ValueError:
+        action, position = obj
 
-    # Add to the current epoch's vote and prevent them from double voting
-    votes[EPOCH, account] += 1
-    has_voted[EPOCH, ctx.caller] = True
+    assert_vote_is_valid(vk, action, position, arg)
 
-    # Tally the votes if we are in a new Epoch beyond the current electorate
-    e = current_electorate.get()
-    if EPOCH > e:
-        tally()
+    if action == INTRODUCE_MOTION:
+        introduce_motion(position, arg)
 
-@export
-def tally():
-    pass
+    else:
+        assert S['current_motion'] != NO_MOTION, 'No motion proposed.'
+        assert S['positions', vk] is None, 'VK already voted.'
+
+        if position is True:
+            S['yays'] += 1
+            S['positions', vk] = position
+        else:
+            S['nays'] += 1
+            S['positions', vk] = position
+
+        if S['yays'] >= len(S['masternodes']) // 2 + 1:
+            pass_current_motion()
+            reset()
+
+        elif S['nays'] >= len(S['masternodes']) // 2 + 1:
+            reset()
+
+        elif now - S['motion_opened'] >= VOTING_PERIOD:
+            reset()
+
+
+def assert_vote_is_valid(vk, action, position, arg=None):
+    assert vk in S['masternodes'], 'Not a masternode.'
+
+    assert action in [INTRODUCE_MOTION, VOTE_ON_MOTION], 'Invalid action.'
+
+    if action == INTRODUCE_MOTION:
+        assert S['current_motion'] == NO_MOTION, 'Already in motion.'
+        assert 0 < position <= REMOVE_SEAT, 'Invalid motion.'
+        if position == ADD_MASTER or position == REMOVE_MASTER:
+            assert_vk_is_valid(arg)
+
+    elif action == VOTE_ON_MOTION:
+        assert type(position) == bool, 'Invalid position'
+
+
+def assert_vk_is_valid(vk):
+    assert vk is not None, 'No VK provided.'
+    assert type(vk) == str, 'VK not a string.'
+    assert len(vk) == 64, 'VK is not 64 characters.'
+    int(vk, 16)
+
+
+def introduce_motion(position, arg):
+    if position == ADD_MASTER or position == REMOVE_SEAT:
+        assert S['open_seats'] > 0, 'No open seats to add or remove.'
+
+    if position == ADD_MASTER or position == REMOVE_MASTER:
+        # If remove master, must be a master that already exists
+        if position == REMOVE_MASTER:
+            assert arg in S['masternodes'], 'Master does not exist.'
+
+        S['master_in_question'] = arg
+
+    S['current_motion'] = position
+    S['motion_opened'] = now
+
+
+def pass_current_motion():
+    current_motion = S['current_motion']
+    masters = S['masternodes']
+
+    if current_motion == ADD_MASTER:
+        masters.append(S['master_in_question'])
+        S['open_seats'] -= 1
+
+    elif current_motion == REMOVE_MASTER:
+        masters.remove(S['master_in_question'])
+        S['open_seats'] += 1
+
+    elif current_motion == ADD_SEAT:
+        S['open_seats'] += 1
+
+    elif current_motion == REMOVE_SEAT:
+        S['open_seats'] -= 1
+
+    S['masternodes'] = masters
+
+
+def reset():
+    S['current_motion'] = NO_MOTION
+    S['master_in_question'] = None
+    S['yays'] = 0
+    S['nays'] = 0
+    S.clear('positions')

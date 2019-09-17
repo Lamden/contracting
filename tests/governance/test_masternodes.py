@@ -3,6 +3,7 @@ from contracting.client import ContractingClient
 from contracting.stdlib.bridge.time import Timedelta, DAYS, WEEKS, Datetime
 from datetime import datetime as dt, timedelta as td
 
+
 def masternodes():
     INTRODUCE_MOTION = 'introduce_motion'
     VOTE_ON_MOTION = 'vote_on_motion'
