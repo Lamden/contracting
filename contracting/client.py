@@ -50,8 +50,9 @@ class AbstractContract:
     # a hash contains a DOT, no __, and a :
     # a constant contains __, a DOT, and :
 
-    def quick_read(self, variable, keys, **kwargs):
-        pass
+    def quick_read(self, variable, key=None, *args):
+        k = self.executor.driver.make_key(key=self.name, field=variable, *[key, *args])
+        return self.executor.driver.get(k)
 
     def run_private_function(self, f, signer=None, environment=None, **kwargs):
         # Override kwargs if provided

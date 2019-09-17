@@ -36,3 +36,17 @@ class TestRunPrivateFunction(TestCase):
 
     def test_can_call_private_func_if_run_private_function_called_and_no_prefix(self):
         self.assertEqual(self.private_methods.run_private_function('private'), 'abc')
+
+    def test_can_call_private_but_then_not(self):
+        self.assertEqual(self.private_methods.run_private_function('private'), 'abc')
+
+        with self.assertRaises(AssertionError):
+            self.private_methods.executor.execute(
+                sender='sys',
+                contract_name='private_methods',
+                function_name='__private',
+                kwargs={}
+            )
+
+    def test_quick_read_single_hash(self):
+        pass

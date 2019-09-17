@@ -508,8 +508,15 @@ class ContractDriver(CacheDriver):
             kvs.append((key, value))
         return kvs
 
-    def make_key(self, key, field):
-        return '{}{}{}'.format(key, self.delimiter, field)
+    def make_key(self, key, field, *args):
+        k = '{}{}{}'.format(key, self.delimiter, field)
+
+        # Support multihashes through argument overloading
+        if len(args) > 0:
+            for a in args:
+                k += '{}{}'.format(self.delimiter, a)
+
+        return k
 
     def hget(self, key, field):
         return self.get(
