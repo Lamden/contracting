@@ -1,64 +1,184 @@
 from unittest import TestCase
 from contracting.client import ContractingClient
-from contracting.stdlib.bridge.time import WEEKS, DAYS, Datetime
+from contracting.stdlib.bridge.time import Timedelta, DAYS, WEEKS, Datetime
 from datetime import datetime as dt, timedelta as td
 
+def masternodes():
+    INTRODUCE_MOTION = 'introduce_motion'
+    VOTE_ON_MOTION = 'vote_on_motion'
 
-def new():
-    votes = Hash()
-    value = Variable()
+    NO_MOTION = 0
+    ADD_MASTER = 1
+    REMOVE_MASTER = 2
+    ADD_SEAT = 3
+    REMOVE_SEAT = 4
+
+    VOTING_PERIOD = datetime.DAYS * 1
+
+    S = Hash()
+
+    @construct
+    def seed(initial_masternodes, initial_open_seats):
+        S['masternodes'] = initial_masternodes
+        S['open_seats'] = initial_open_seats
+
+        S['votes'] = 0
+        S['current_motion'] = NO_MOTION
+        S['motion_opened'] = now
 
     @export
     def current_value():
-        return value.get()
+        return {
+            'masternodes': S['masternodes'],
+            'open_seats': S['open_seats']
+        }
 
     @export
     def vote(vk, obj):
-        raise NotImplementedError
+        arg = None
+        try:
+            action, position, arg = obj
+        except ValueError:
+            action, position = obj
 
-    @export
-    def start():
-        pass
+        assert_vote_is_valid(vk, action, position, arg)
 
-    def finish():
-        pass
+        if action == INTRODUCE_MOTION:
+            introduce_motion(position, arg)
 
-    def is_in_election():
-        pass
+        else:
+            assert S['current_motion'] != NO_MOTION, 'No motion proposed.'
 
-    def can_start_election():
-        pass
+            if position is True:
+                S['votes'] += 1
+                S['positions', ctx.caller] = position
 
-def masternodes():
-    @export
-    def voter_is_valid(vk):
-        return True
+            if S['votes'] >= len(S['masternodes']) // 2 + 1:
+                pass_current_motion()
+                reset()
 
-    @export
-    def vote_is_valid(obj):
-        return True
+            if now - S['motion_opened'] >= VOTING_PERIOD:
+                reset()
 
-    @export
-    def new_policy_value(values):
-        return None
+    def pass_current_motion():
+        current_motion = S['current_motion']
 
-class TestMasternodes(TestCase):
+        if current_motion == ADD_MASTER:
+            S['masternodes'].append(S['master_in_question'])
+            S['open_seats'] -= 1
+
+        elif current_motion == REMOVE_MASTER:
+            S['masternodes'].remove(S['master_in_question'])
+            S['open_seats'] += 1
+
+        elif current_motion == ADD_SEAT:
+            S['open_seats'] += 1
+
+        elif current_motion == REMOVE_SEAT:
+            S['open_seats'] -= 1
+
+    def introduce_motion(position, arg):
+        if position == ADD_MASTER or position == REMOVE_SEAT:
+            assert S['open_seats'] > 0, 'No open seats to add or remove.'
+
+        if position == ADD_MASTER or position == REMOVE_MASTER:
+            S['master_in_question'] = arg
+
+        S['current_motion'] = position
+        S['motion_opened'] = now
+
+    def assert_vote_is_valid(vk, action, position, arg=None):
+        assert vk in S['masternodes'], 'Not a masternode.'
+
+        assert action in [INTRODUCE_MOTION, VOTE_ON_MOTION], 'Invalid action.'
+
+        if action == INTRODUCE_MOTION:
+            assert S['current_motion'] == NO_MOTION, 'Already in motion.'
+            assert 0 < position <= REMOVE_SEAT, 'Invalid motion.'
+            if position == ADD_MASTER or position == REMOVE_MASTER:
+                assert_vk_is_valid(arg)
+
+        elif action == VOTE_ON_MOTION:
+            assert type(position) == bool, 'Invalid position'
+
+    def assert_vk_is_valid(vk):
+        assert vk is not None, 'No VK provided.'
+        assert type(vk) == str, 'VK not a string.'
+        assert len(vk) == 64, 'VK is not 64 characters.'
+        int(vk, 16)
+
+    def reset():
+        S['current_motion'] = NO_MOTION
+        S['master_in_question'] = None
+        S['votes'] = 0
+        S.clear('positions')
+
+class TestMasternodePolicy(TestCase):
     def setUp(self):
-        self.c = ContractingClient()
-        self.c.flush()
+        self.client = ContractingClient()
 
         with open('./contracts/election_house.s.py') as f:
             contract = f.read()
 
-        self.c.submit(contract, name='election_house')
-        self.c.submit(masternodes, owner='election_house')
-        self.c.raw_driver.commit()
+        self.client.submit(contract, name='election_house')
+        self.election_house = self.client.get_contract('election_house')
 
-        self.election_house = self.c.get_contract('election_house')
-        self.rewards = self.c.get_contract('masternodes')
+    def tearDown(self):
+        self.client.flush()
 
-        self.election_house.register_policy(policy='masternodes',
-                                            contract='masternodes',
-                                            election_interval=WEEKS * 1,
-                                            voting_period=DAYS * 1,
-                                            initial_value=[])
+    def test_init(self):
+        self.client.submit(masternodes, owner='election_house', constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        self.assertEqual(mn_contract.current_value(signer='election_house'), {
+            'masternodes': [1, 2, 3],
+            'open_seats': 0
+        })
+
+        self.assertEqual(mn_contract.S['votes'], 0)
+        self.assertEqual(mn_contract.S['current_motion'], 0)
+
+    def test_voter_not_masternode_fails(self):
+        self.client.submit(masternodes, owner='election_house', constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        self.election_house.register_policy(
+            policy='masternodes',
+            contract='masternodes'
+        )
+
+        with self.assertRaises(AssertionError):
+            self.election_house.vote(policy='masternodes', value=('introduce_motion', 1))
+
+    def test_vote_invalid_action_fails(self):
+        self.client.submit(masternodes, owner='election_house', constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        self.election_house.register_policy(
+            policy='masternodes',
+            contract='masternodes'
+        )
+
+        with self.assertRaises(AssertionError):
+            self.election_house.vote(policy='masternodes', value=('xxx', 1), signer=1)
+
+    def test_vote_on_motion_bool_succeeds(self):
+        self.client.submit(masternodes, owner='election_house', constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        self.election_house.register_policy(
+            policy='masternodes',
+            contract='masternodes'
+        )
+
+        self.election_house.vote(policy='masternodes', value=('introduce_motion', False), signer=1)

@@ -20,6 +20,7 @@ def foundation():
         if ctx.caller == owner.get():
             owner.set(vk)
 
+
 class TestFoundation(TestCase):
     def test_init(self):
         pass
