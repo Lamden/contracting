@@ -1,30 +1,91 @@
-import currency
-import masternodes
-import delegates
+value = Variable()
+current_votes = Hash(default_value=0)
+has_voted = Hash()
 
-shares = Hash()
+last_election = Variable()
+election_start = Variable()
 
-EPOCH_LENGTH = 100_000
-EPOCH = block_num // EPOCH_LENGTH
+election_length = datetime.DAYS * 1
+election_interval = datetime.WEEKS * 1
+
+@construct
+def seed():
+    value.set([0.5, 0.5, 0, 0])
+    last_election.set(now)
+    election_start.set(None)
 
 @export
-def withdraw(epoch):
-    assert epoch > EPOCH, 'Current reward epoch is not over yet!'
+def current_value():
+    return value.get()
 
-    mn_list = masternodes.get_all()
-    del_list = delegates.get_all()
+@export
+def vote(vk, obj):
+    if election_start.get() is not None:
+        tally_vote(vk, obj)
 
-    assert ctx.caller in mn_list or ctx.caller in del_list, 'Only delegates and masternodes can withdraw a reward'
+        # If it has been over a day since the election started... End the election
+        if now - election_start.get() >= election_length:
+            # Calculate ratio of votes
+            masternode_votes = current_votes['masternodes'] or 1
+            delegate_votes = current_votes['delegates'] or 1
+            blackhole_votes = current_votes['blackhole'] or 1
+            foundation_votes = current_votes['foundation'] or 1
 
-    # This is the first time someone is trying to withdraw from this epoch
-    if not shares[epoch, 'is_closed']:
-        assert isinstance(del_list, list)
+            total_votes = masternode_votes + delegate_votes + blackhole_votes + foundation_votes
 
-        participants = len(mn_list) + len(del_list)
-        shares[epoch, 'amount'] = shares[epoch, 'balance'] / participants
-        shares[epoch, 'is_closed'] = True
+            # Do the same for each party before dividing
+            mn = masternode_votes / total_votes
+            dl = delegate_votes / total_votes
+            bh = blackhole_votes / total_votes
+            fd = foundation_votes / total_votes
 
-    # Make sure this person has not redeemed yet
-    if not shares[epoch, 'redeemed', ctx.caller]:
-        currency.transfer(ctx.caller, shares[epoch, 'amount'])
-        shares[epoch, 'redeemed', ctx.caller] = True
+            # Set the new value
+            value.set([mn, dl, bh, fd])
+
+            # Reset everything
+            election_start.set(None)
+            last_election.set(now)
+            current_votes.clear()
+            has_voted.clear()
+
+    # If its been 1 week since the last election ended... Start the election
+    elif now - last_election.get() > election_interval:
+        # Set start to now
+        election_start.set(now)
+        current_votes.clear()
+        tally_vote(vk, obj)
+
+
+def tally_vote(vk, obj):
+    assert vote_is_valid(obj), 'Invalid vote object passed!'
+    assert has_voted[vk] is None, 'VK has already voted!'
+
+    has_voted[vk] = True
+
+    a, b, c, d = obj
+
+    current_votes['masternodes'] += a
+    current_votes['delegates'] += b
+    current_votes['blackhole'] += c
+    current_votes['foundation'] += d
+
+
+def vote_is_valid(obj):
+    if type(obj) != list:
+        return False
+
+    if len(obj) != 4:
+        return False
+
+    s = 0
+    for o in obj:
+        if type(o) != int:
+            return False
+        if o < 0:
+            return False
+        s += o
+
+    if s != 100:
+        return False
+
+    return True

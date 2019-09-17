@@ -5,6 +5,7 @@ balances = Hash(default_value=0)
 def seed():
     balances['stu'] = 1000000
     balances['colin'] = 100
+    balances['blackhole'] = 0
     supply.set(balances['stu'] + balances['colin'])
 
 @export
