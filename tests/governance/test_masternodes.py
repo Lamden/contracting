@@ -176,9 +176,6 @@ class TestMasternodePolicy(TestCase):
             'initial_open_seats': 0
         })
 
-        self.election_house.register_policy(
-            policy='masternodes',
-            contract='masternodes'
-        )
-
-        self.election_house.vote(policy='masternodes', value=('introduce_motion', False), signer=1)
+        mn_contract = self.client.get_contract('masternodes')
+        print(mn_contract.functions)
+        mn_contract.__pass_current_motion()

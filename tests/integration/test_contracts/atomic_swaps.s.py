@@ -48,3 +48,8 @@ def refund(participant, secret):
 
     erc20_clone.transfer(amount, ctx.caller)
     swaps[participant, hashlock] = None
+
+
+# Should fail if called
+def test():
+    return 123

@@ -14,7 +14,7 @@ log = get_logger('Executor')
 
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
-                 currency_contract='currency', balances_hash='balances'):
+                 currency_contract='currency', balances_hash='balances', bypass_privates=False):
 
         self.metering = metering
 
@@ -31,6 +31,8 @@ class Executor:
 
         self.currency_contract = currency_contract
         self.balances_hash = balances_hash
+
+        self.bypass_privates = bypass_privates
 
         runtime.rt.env.update({'__Driver': self.driver})
 
@@ -53,6 +55,9 @@ class Executor:
                 driver=None,
                 stamps=1000000,
                 metering=None) -> tuple:
+
+        if not self.bypass_privates:
+            assert not function_name.startswith(config.PRIVATE_METHOD_PREFIX), 'Private method not callable.'
 
         if metering is None:
             metering = self.metering
@@ -99,8 +104,9 @@ I/O pattern:
 
 
 class Sandbox(object):
-    def __init__(self):
+    def __init__(self, bypass_privates=False):
         install_database_loader()
+        self.bypass_privates = bypass_privates
 
     def wipe_modules(self):
         uninstall_builtins()
@@ -147,6 +153,9 @@ class Sandbox(object):
 
         # Use _driver if one is provided, otherwise use the default _driver, ensuring to set it
         # back to default only if it was set previously to something else
+        if not self.bypass_privates:
+            assert not function_name.startswith(config.PRIVATE_METHOD_PREFIX), 'Private method not callable.'
+
         if driver:
             runtime.rt.env.update({'__Driver': driver})
         else:

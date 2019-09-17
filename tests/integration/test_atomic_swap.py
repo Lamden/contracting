@@ -50,8 +50,10 @@ class TestAtomicSwapContract(TestCase):
                   kwargs=submission_kwargs_for_file('./test_contracts/atomic_swaps.s.py'))
 
     def tearDown(self):
-        ##self.d.flush()
-        pass
+        self.e.bypass_privates = False
+        self.e.sandbox.bypass_privates = False
+
+        self.d.flush()
 
     def test_initiate_not_enough_approved(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
@@ -271,3 +273,12 @@ class TestAtomicSwapContract(TestCase):
         v = self.d.get(key)
 
         self.assertEqual(v, None)
+
+    def test_trying_to_call_private_function_fails(self):
+        with self.assertRaises(AssertionError):
+            self.e.execute('stu', 'atomic_swaps', '__test', kwargs={})
+
+        self.e.bypass_privates = True
+        self.e.sandbox.bypass_privates = True
+
+        self.e.execute('stu', 'atomic_swaps', '__test', kwargs={})

@@ -48,6 +48,24 @@ class AbstractContract:
     # a hash contains a DOT, no __, and a :
     # a constant contains __, a DOT, and :
 
+    def quick_read(self, variable, keys, **kwargs):
+        pass
+
+    def run_private_function(self, f, signer=None, environment=None, **kwargs):
+        signer = signer or self.signer
+        environment = environment or self.environment
+
+        self.executor.bypass_privates = True
+        self.executor.sandbox.bypass_privates = True
+
+        result = self._abstract_function_call(signer=signer, executor=self.executor, contract_name=self.name,
+                                              environment=environment, func=f, metering=None, now=None, **kwargs)
+
+        self.executor.bypass_privates = False
+        self.executor.sandbox.bypass_privates = False
+
+        return result
+
     def __getattr__(self, item):
         try:
             # return the attribute if it exists on the instance
