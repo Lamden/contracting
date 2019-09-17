@@ -54,6 +54,10 @@ class AbstractContract:
         k = self.executor.driver.make_key(key=self.name, field=variable, *[key, *args])
         return self.executor.driver.get(k)
 
+    def quick_write(self, variable, key=None, value=None, *args):
+        k = self.executor.driver.make_key(key=self.name, field=variable, args=[key, *args])
+        self.executor.driver.set(k, value)
+
     def run_private_function(self, f, signer=None, environment=None, **kwargs):
         # Override kwargs if provided
         signer = signer or self.signer
