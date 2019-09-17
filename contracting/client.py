@@ -10,6 +10,8 @@ import autopep8
 from types import FunctionType
 import os
 
+from . import config
+
 from .db.orm import Variable
 from .db.orm import Hash
 
@@ -52,15 +54,23 @@ class AbstractContract:
         pass
 
     def run_private_function(self, f, signer=None, environment=None, **kwargs):
+        # Override kwargs if provided
         signer = signer or self.signer
         environment = environment or self.environment
 
+        # Let executor access private functions
         self.executor.bypass_privates = True
         self.executor.sandbox.bypass_privates = True
 
+        # Append private method prefix to function name if it isn't there already
+        if not f.startswith(config.PRIVATE_METHOD_PREFIX):
+            f = '{}{}'.format(config.PRIVATE_METHOD_PREFIX, f)
+
+        # Execute
         result = self._abstract_function_call(signer=signer, executor=self.executor, contract_name=self.name,
                                               environment=environment, func=f, metering=None, now=None, **kwargs)
 
+        # Set executor back to restricted mode
         self.executor.bypass_privates = False
         self.executor.sandbox.bypass_privates = False
 

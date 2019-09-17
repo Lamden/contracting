@@ -113,6 +113,7 @@ def masternodes():
         S['votes'] = 0
         S.clear('positions')
 
+
 class TestMasternodePolicy(TestCase):
     def setUp(self):
         self.client = ContractingClient()
