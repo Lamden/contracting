@@ -55,7 +55,6 @@ def masternodes():
             if position is True:
                 S['votes'] += 1
                 S['positions', vk] = position
-                print('mk')
 
             if S['votes'] >= len(S['masternodes']) // 2 + 1:
                 pass_current_motion()
@@ -136,8 +135,8 @@ class TestMasternodePolicy(TestCase):
         self.election_house = self.client.get_contract('election_house')
 
     def tearDown(self):
-        # self.client.flush()
-        pass
+        self.client.flush()
+
     def test_init(self):
         self.client.submit(masternodes, owner='election_house', constructor_args={
             'initial_masternodes': [1, 2, 3],
@@ -625,3 +624,41 @@ class TestMasternodePolicy(TestCase):
 
         self.assertEqual(mn_contract.quick_read('S', 'votes'), 1)
         self.assertEqual(mn_contract.quick_read(variable='S', key='positions', args=['b' * 64]), True)
+
+    def test_vote_on_motion_twice_fails(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': ['a' * 64, 'b' * 64, 'c' * 64],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        mn_contract.vote(vk='a' * 64, obj=('introduce_motion', 3), environment=env)
+
+        mn_contract.vote(vk='b' * 64, obj=('vote_on_motion', True))
+
+        with self.assertRaises(AssertionError):
+            mn_contract.vote(vk='b' * 64, obj=('vote_on_motion', False))
+
+    def test_vote_reaches_more_than_half_passes(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': ['a' * 64, 'b' * 64, 'c' * 64],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        mn_contract.vote(vk='a' * 64, obj=('introduce_motion', 3), environment=env)
+
+        mn_contract.vote(vk='a' * 64, obj=('vote_on_motion', True))
+        mn_contract.vote(vk='b' * 64, obj=('vote_on_motion', True))
+
+        self.assertEqual(mn_contract.quick_read('S', 'open_seats'), 1)
+
+        self.assertEqual(mn_contract.quick_read('S', 'current_motion'), 0)
+        self.assertEqual(mn_contract.quick_read('S', 'master_in_question'), None)
+        self.assertEqual(mn_contract.quick_read('S', 'votes'), 0)
