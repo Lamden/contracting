@@ -6,7 +6,7 @@ from datetime import datetime as dt, timedelta as td
 
 def rewards():
     value = Variable()
-    current_votes = Hash()
+    current_votes = Hash(default_value=0)
     has_voted = Hash()
 
     last_election = Variable()
@@ -32,18 +32,22 @@ def rewards():
 
             # If it has been over a day since the election started... End the election
             if now - election_start.get() >= election_length:
-                print('woohoo')
                 # Calculate ratio of votes
-                total_votes = current_votes['masternodes'] + current_votes['delegates'] + \
-                              current_votes['blackhole'] + current_votes['foundation']
+                masternode_votes = current_votes['masternodes'] or 1
+                delegate_votes = current_votes['delegates'] or 1
+                blackhole_votes = current_votes['blackhole'] or 1
+                foundation_votes = current_votes['foundation'] or 1
 
-                a = current_votes['masternodes'] / total_votes
-                b = current_votes['delegates'] / total_votes
-                c = current_votes['blackhole'] / total_votes
-                d = current_votes['foundation'] / total_votes
+                total_votes = masternode_votes + delegate_votes + blackhole_votes + foundation_votes
+
+                # Do the same for each party before dividing
+                mn = masternode_votes / total_votes
+                dl = delegate_votes / total_votes
+                bh = blackhole_votes / total_votes
+                fd = foundation_votes / total_votes
 
                 # Set the new value
-                value.set([a, b, c, d])
+                value.set([mn, dl, bh, fd])
 
                 # Reset everything
                 election_start.set(None)
@@ -55,14 +59,7 @@ def rewards():
         elif now - last_election.get() > election_interval:
             # Set start to now
             election_start.set(now)
-
-            print(f'set election start to {now}')
-
-            current_votes['masternodes'] = 1
-            current_votes['delegates'] = 1
-            current_votes['blackhole'] = 1
-            current_votes['foundation'] = 1
-
+            current_votes.clear()
             tally_vote(vk, obj)
 
     def tally_vote(vk, obj):
@@ -177,6 +174,6 @@ class TestRewards(TestCase):
 
         self.election_house.vote(policy='rewards', value=[100, 0, 0, 0], environment=env, signer='v4')
 
-        # Expected [175, 25, 75, 125] / 400 = [0.4375, 0.0625, 0.1875, 0.3125]
+        # Expected [176, 26, 76, 126] / 404 = [0.4375, 0.0625, 0.1875, 0.3125]
 
         self.assertEqual(self.election_house.current_value_for_policy(policy='rewards'), [0.4375, 0.0625, 0.1875, 0.3125])

@@ -458,7 +458,6 @@ class CacheDriver(DatabaseDriver):
                 super().set(key, value)
 
         self.reset_cache()
-    #
 
     def iter(self, prefix):
         keys = set(super().iter(prefix=prefix))
