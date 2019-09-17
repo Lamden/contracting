@@ -47,6 +47,3 @@ class TestRunPrivateFunction(TestCase):
                 function_name='__private',
                 kwargs={}
             )
-
-    def test_quick_read_single_hash(self):
-        pass

@@ -158,25 +158,32 @@ class TestMasternodePolicy(TestCase):
             self.election_house.vote(policy='masternodes', value=('introduce_motion', 1))
 
     def test_vote_invalid_action_fails(self):
-        self.client.submit(masternodes, owner='election_house', constructor_args={
-            'initial_masternodes': [1, 2, 3],
-            'initial_open_seats': 0
-        })
-
-        self.election_house.register_policy(
-            policy='masternodes',
-            contract='masternodes'
-        )
-
-        with self.assertRaises(AssertionError):
-            self.election_house.vote(policy='masternodes', value=('xxx', 1), signer=1)
-
-    def test_vote_on_motion_bool_succeeds(self):
-        self.client.submit(masternodes, owner='election_house', constructor_args={
+        self.client.submit(masternodes, constructor_args={
             'initial_masternodes': [1, 2, 3],
             'initial_open_seats': 0
         })
 
         mn_contract = self.client.get_contract('masternodes')
-        print(mn_contract.functions)
-        mn_contract.__pass_current_motion()
+
+        with self.assertRaises(AssertionError):
+            mn_contract.run_private_function(
+                f='assert_vote_is_valid',
+                vk=1,
+                action='xxx',
+                position=1
+            )
+
+    def test_vote_on_motion_bool_succeeds(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        mn_contract.run_private_function(
+            f='assert_vote_is_valid',
+            vk=1,
+            action='vote_on_motion',
+            position=True
+        )
