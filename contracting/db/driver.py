@@ -512,7 +512,7 @@ class ContractDriver(CacheDriver):
         k = '{}{}{}'.format(key, self.delimiter, field)
 
         # Support multihashes through argument overloading
-        if args is not None:
+        if args is not None and isinstance(args, list):
             for a in args:
                 k += '{}{}'.format(':', a)
 

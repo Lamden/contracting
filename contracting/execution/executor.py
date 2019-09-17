@@ -9,7 +9,7 @@ from ..db.driver import ContractDriver, CacheDriver
 from ..execution.module import install_database_loader, uninstall_builtins
 from .. import config
 
-log = get_logger('Executor')
+#log = get_logger('Executor')
 
 
 class Executor:
@@ -141,11 +141,11 @@ class Sandbox(object):
                 currency_contract=None,
                 balances_hash=None):
 
-        log.info('Executing with sender {}, contract {}, function {}.'.format(
-            sender, contract_name, function_name
-        ))
-        log.info('Kwargs: {}'.format(kwargs))
-        log.info('Kwargs type: {}'.format(type(kwargs)))
+        # log.info('Executing with sender {}, contract {}, function {}.'.format(
+        #     sender, contract_name, function_name
+        # ))
+        # log.info('Kwargs: {}'.format(kwargs))
+        # log.info('Kwargs type: {}'.format(type(kwargs)))
 
 
 

@@ -35,6 +35,8 @@ def masternodes():
 
     @export
     def vote(vk, obj):
+        assert type(obj) == tuple, 'Pass a tuple!'
+
         arg = None
         try:
             action, position, arg = obj
@@ -48,10 +50,12 @@ def masternodes():
 
         else:
             assert S['current_motion'] != NO_MOTION, 'No motion proposed.'
+            assert S['positions', vk] is None, 'VK already voted.'
 
             if position is True:
                 S['votes'] += 1
-                S['positions', ctx.caller] = position
+                S['positions', vk] = position
+                print('mk')
 
             if S['votes'] >= len(S['masternodes']) // 2 + 1:
                 pass_current_motion()
@@ -59,33 +63,6 @@ def masternodes():
 
             if now - S['motion_opened'] >= VOTING_PERIOD:
                 reset()
-
-    def pass_current_motion():
-        current_motion = S['current_motion']
-
-        if current_motion == ADD_MASTER:
-            S['masternodes'].append(S['master_in_question'])
-            S['open_seats'] -= 1
-
-        elif current_motion == REMOVE_MASTER:
-            S['masternodes'].remove(S['master_in_question'])
-            S['open_seats'] += 1
-
-        elif current_motion == ADD_SEAT:
-            S['open_seats'] += 1
-
-        elif current_motion == REMOVE_SEAT:
-            S['open_seats'] -= 1
-
-    def introduce_motion(position, arg):
-        if position == ADD_MASTER or position == REMOVE_SEAT:
-            assert S['open_seats'] > 0, 'No open seats to add or remove.'
-
-        if position == ADD_MASTER or position == REMOVE_MASTER:
-            S['master_in_question'] = arg
-
-        S['current_motion'] = position
-        S['motion_opened'] = now
 
     def assert_vote_is_valid(vk, action, position, arg=None):
         assert vk in S['masternodes'], 'Not a masternode.'
@@ -107,6 +84,40 @@ def masternodes():
         assert len(vk) == 64, 'VK is not 64 characters.'
         int(vk, 16)
 
+    def introduce_motion(position, arg):
+        if position == ADD_MASTER or position == REMOVE_SEAT:
+            assert S['open_seats'] > 0, 'No open seats to add or remove.'
+
+        if position == ADD_MASTER or position == REMOVE_MASTER:
+            # If remove master, must be a master that already exists
+            if position == REMOVE_MASTER:
+                assert arg in S['masternodes'], 'Master does not exist.'
+
+            S['master_in_question'] = arg
+
+        S['current_motion'] = position
+        S['motion_opened'] = now
+
+    def pass_current_motion():
+        current_motion = S['current_motion']
+        masters = S['masternodes']
+
+        if current_motion == ADD_MASTER:
+            masters.append(S['master_in_question'])
+            S['open_seats'] -= 1
+
+        elif current_motion == REMOVE_MASTER:
+            masters.remove(S['master_in_question'])
+            S['open_seats'] += 1
+
+        elif current_motion == ADD_SEAT:
+            S['open_seats'] += 1
+
+        elif current_motion == REMOVE_SEAT:
+            S['open_seats'] -= 1
+
+        S['masternodes'] = masters
+
     def reset():
         S['current_motion'] = NO_MOTION
         S['master_in_question'] = None
@@ -125,8 +136,8 @@ class TestMasternodePolicy(TestCase):
         self.election_house = self.client.get_contract('election_house')
 
     def tearDown(self):
-        self.client.flush()
-
+        # self.client.flush()
+        pass
     def test_init(self):
         self.client.submit(masternodes, owner='election_house', constructor_args={
             'initial_masternodes': [1, 2, 3],
@@ -306,3 +317,311 @@ class TestMasternodePolicy(TestCase):
                 action='vote_on_motion',
                 position=1,
             )
+
+    def test_vote_not_tuple_fails(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 'sys'],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+        with self.assertRaises(AssertionError):
+            mn_contract.vote(vk='sys', obj={'hanky': 'panky'})
+
+    def test_vote_1_elem_tuple_fails(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 'sys'],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+        with self.assertRaises(ValueError):
+            mn_contract.vote(vk='sys', obj=(1, ))
+
+    def test_vote_4_elem_tuple_fails(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 'sys'],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+        with self.assertRaises(ValueError):
+            mn_contract.vote(vk='sys', obj=(1, 2, 3, 4))
+
+    # ADD_MASTER = 1
+    # REMOVE_MASTER = 2
+    # ADD_SEAT = 3
+    # REMOVE_SEAT = 4
+    def test_introduce_motion_add_master_fails_if_no_open_seats(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        with self.assertRaises(AssertionError):
+            mn_contract.run_private_function(
+                f='introduce_motion',
+                position=1,
+                arg=None
+            )
+
+    def test_introduce_motion_remove_seat_fails_if_no_open_seats(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        with self.assertRaises(AssertionError):
+            mn_contract.run_private_function(
+                f='introduce_motion',
+                position=4,
+                arg=None
+            )
+
+    def test_introduce_motion_remove_seat_works_and_sets_position_and_motion_opened(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        mn_contract.quick_write('S', 'open_seats', 1)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        mn_contract.run_private_function(
+            f='introduce_motion',
+            position=1,
+            arg=None,
+            environment=env
+        )
+
+        self.assertEqual(mn_contract.quick_read('S', 'current_motion'), 1)
+        self.assertEqual(mn_contract.quick_read('S', 'motion_opened'), env['now'])
+
+    def test_add_master_or_remove_master_adds_arg(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        mn_contract.quick_write('S', 'open_seats', 1)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        mn_contract.run_private_function(
+            f='introduce_motion',
+            position=1,
+            arg='abc',
+            environment=env
+        )
+
+        self.assertEqual(mn_contract.quick_read('S', 'current_motion'), 1)
+        self.assertEqual(mn_contract.quick_read('S', 'motion_opened'), env['now'])
+        self.assertEqual(mn_contract.quick_read('S', 'master_in_question'), 'abc')
+
+    def test_remove_master_that_does_not_exist_fails(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        with self.assertRaises(AssertionError):
+            mn_contract.run_private_function(
+                f='introduce_motion',
+                position=2,
+                arg='abc',
+            )
+
+    def test_remove_master_that_exists_passes(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        mn_contract.run_private_function(
+            f='introduce_motion',
+            position=2,
+            arg=1,
+        )
+
+    def test_pass_current_motion_add_master_appends_and_removes_seat(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        mn_contract.quick_write('S', 'open_seats', 1)
+        mn_contract.quick_write('S', 'master_in_question', 'abc')
+        mn_contract.quick_write('S', 'current_motion', 1)
+
+        mn_contract.run_private_function(
+            f='pass_current_motion',
+        )
+
+        self.assertEqual(mn_contract.quick_read('S', 'masternodes'), [1, 2, 3, 'abc'])
+        self.assertEqual(mn_contract.quick_read('S', 'open_seats'), 0)
+
+    def test_pass_current_motion_remove_master_adds_new_seat_and_removes_master(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        mn_contract.quick_write('S', 'open_seats', 0)
+        mn_contract.quick_write('S', 'master_in_question', 1)
+        mn_contract.quick_write('S', 'current_motion', 2)
+
+        mn_contract.run_private_function(
+            f='pass_current_motion',
+        )
+
+        self.assertEqual(mn_contract.quick_read('S', 'masternodes'), [2, 3])
+        self.assertEqual(mn_contract.quick_read('S', 'open_seats'), 1)
+
+    def test_pass_current_motion_add_seat_adds_a_seat(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        mn_contract.quick_write('S', 'open_seats', 0)
+        mn_contract.quick_write('S', 'current_motion', 3)
+
+        mn_contract.run_private_function(
+            f='pass_current_motion',
+        )
+
+        self.assertEqual(mn_contract.quick_read('S', 'open_seats'), 1)
+
+    def test_pass_current_motion_remove_seat_removes_a_seat(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        mn_contract.quick_write('S', 'open_seats', 1)
+        mn_contract.quick_write('S', 'current_motion', 4)
+
+        mn_contract.run_private_function(
+            f='pass_current_motion',
+        )
+
+        self.assertEqual(mn_contract.quick_read('S', 'open_seats'), 0)
+
+    def test_current_value_returns_dict(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        d = mn_contract.current_value()
+
+        self.assertEqual(d.get('masternodes'), [1, 2, 3])
+        self.assertEqual(d.get('open_seats'), 0)
+
+    # S['current_motion'] = NO_MOTION
+    # S['master_in_question'] = None
+    # S['votes'] = 0
+    # S.clear('positions')
+    def test_reset_alters_state_correctly(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': [1, 2, 3],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        mn_contract.quick_write('S', 'current_motion', 1)
+        mn_contract.quick_write('S', 'master_in_question', 'abc')
+        mn_contract.quick_write('S', 'votes', 100)
+        mn_contract.quick_write(variable='S', key='positions', value=[1, 2, 3, 4], args=['id1'])
+        mn_contract.quick_write(variable='S', key='positions', value=[1, 2, 3, 4], args=['id2'])
+        mn_contract.quick_write(variable='S', key='positions', value=[1, 2, 3, 4], args=['id3'])
+        mn_contract.quick_write(variable='S', key='positions', value=[1, 2, 3, 4], args=['id4'])
+        mn_contract.quick_write(variable='S', key='positions', value=[1, 2, 3, 4], args=['id5'])
+        mn_contract.quick_write(variable='S', key='positions', value=[1, 2, 3, 4], args=['id6'])
+        mn_contract.quick_write(variable='S', key='positions', value=[1, 2, 3, 4], args=['id7'])
+        mn_contract.quick_write(variable='S', key='positions', value=[1, 2, 3, 4], args=['id8'])
+
+        mn_contract.run_private_function(
+            f='reset',
+        )
+
+        self.assertEqual(mn_contract.quick_read('S', 'current_motion'), 0)
+        self.assertEqual(mn_contract.quick_read('S', 'master_in_question'), None)
+        self.assertEqual(mn_contract.quick_read('S', 'votes'), 0)
+        self.assertIsNone(mn_contract.quick_read('S', 'positions', args=['id1']))
+        self.assertIsNone(mn_contract.quick_read('S', 'positions', args=['id2']))
+        self.assertIsNone(mn_contract.quick_read('S', 'positions', args=['id3']))
+        self.assertIsNone(mn_contract.quick_read('S', 'positions', args=['id4']))
+        self.assertIsNone(mn_contract.quick_read('S', 'positions', args=['id5']))
+        self.assertIsNone(mn_contract.quick_read('S', 'positions', args=['id6']))
+        self.assertIsNone(mn_contract.quick_read('S', 'positions', args=['id7']))
+        self.assertIsNone(mn_contract.quick_read('S', 'positions', args=['id8']))
+
+    def test_vote_introduce_motion_affects_state_when_done_properly(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': ['a' * 64, 'b' * 64, 'c' * 64],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        mn_contract.vote(vk='a' * 64, obj=('introduce_motion', 3), environment=env)
+
+        self.assertEqual(mn_contract.quick_read('S', 'current_motion'), 3)
+        self.assertEqual(mn_contract.quick_read('S', 'motion_opened'), env['now'])
+
+    def test_vote_no_motion_fails(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': ['a' * 64, 'b' * 64, 'c' * 64],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        with self.assertRaises(AssertionError):
+            mn_contract.vote(vk='a' * 64, obj=('vote_on_motion', False), environment=env)
+
+    def test_vote_on_motion_works(self):
+        self.client.submit(masternodes, constructor_args={
+            'initial_masternodes': ['a' * 64, 'b' * 64, 'c' * 64],
+            'initial_open_seats': 0
+        })
+
+        mn_contract = self.client.get_contract('masternodes')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        mn_contract.vote(vk='a' * 64, obj=('introduce_motion', 3), environment=env)
+
+        mn_contract.vote(vk='b' * 64, obj=('vote_on_motion', True))
+
+        self.assertEqual(mn_contract.quick_read('S', 'votes'), 1)
+        self.assertEqual(mn_contract.quick_read(variable='S', key='positions', args=['b' * 64]), True)
