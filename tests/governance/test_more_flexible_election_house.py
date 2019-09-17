@@ -16,8 +16,8 @@ def election_house():
     ]
 
     @export
-    def register_policy(policy_name, contract):
-        if policy_to_contract[policy_name] is None and contract_to_policy[contract] is None:
+    def register_policy(policy, contract):
+        if policy_to_contract[policy] is None and contract_to_policy[contract] is None:
             # Attempt to import the contract to make sure it is already submitted
             p = I.import_module(contract)
 
@@ -28,14 +28,14 @@ def election_house():
             assert I.enforce_interface(p, policy_interface), \
                 'Policy contract does not follow the correct interface'
 
-            policy_to_contract[policy_name] = contract
-            contract_to_policy[contract] = policy_name
+            policy_to_contract[policy] = contract
+            contract_to_policy[contract] = policy
         else:
             raise Exception('Policy already registered')
 
     @export
-    def current_value_for_policy(policy_name: str):
-        contract = policy_to_contract[policy_name]
+    def current_value_for_policy(policy: str):
+        contract = policy_to_contract[policy]
         assert contract is not None, 'Invalid policy.'
 
         p = I.import_module(contract)
@@ -43,9 +43,9 @@ def election_house():
         return p.current_value()
 
     @export
-    def vote(policy_name, value):
+    def vote(policy, value):
         # Verify policy has been registered
-        contract_name = policy_to_contract[policy_name]
+        contract_name = policy_to_contract[policy]
         assert contract_name is not None, 'Invalid policy.'
 
         p = I.import_module(contract_name)
@@ -89,38 +89,38 @@ class TestBetterElectionHouse(TestCase):
 
     def test_register_doesnt_fail(self):
         self.client.submit(test_policy, owner='election_house')
-        self.election_house.register_policy(policy_name='testing', contract='test_policy')
+        self.election_house.register_policy(policy='testing', contract='test_policy')
 
     def test_register_without_owner_fails(self):
         self.client.submit(test_policy)
         with self.assertRaises(AssertionError):
-            self.election_house.register_policy(policy_name='testing', contract='test_policy')
+            self.election_house.register_policy(policy='testing', contract='test_policy')
 
     def test_register_same_contract_twice_fails(self):
         self.client.submit(test_policy, owner='election_house')
-        self.election_house.register_policy(policy_name='testing', contract='test_policy')
+        self.election_house.register_policy(policy='testing', contract='test_policy')
 
         with self.assertRaises(Exception):
-            self.election_house.register_policy(policy_name='testing', contract='test_policy')
+            self.election_house.register_policy(policy='testing', contract='test_policy')
 
     def test_register_contract_without_entire_interface_fails(self):
         self.client.submit(test_policy, owner='election_house')
 
         with self.assertRaises(Exception):
-            self.election_house.register_policy(policy_name='testing', contract='bad_interface')
+            self.election_house.register_policy(policy='testing', contract='bad_interface')
 
     def test_register_same_contract_under_another_name_fails(self):
         self.client.submit(test_policy, owner='election_house')
-        self.election_house.register_policy(policy_name='testing', contract='test_policy')
+        self.election_house.register_policy(policy='testing', contract='test_policy')
 
         with self.assertRaises(Exception):
-            self.election_house.register_policy(policy_name='testing2', contract='test_policy')
+            self.election_house.register_policy(policy='testing2', contract='test_policy')
 
     def test_current_value_for_policy_returns_correct_value(self):
         self.client.submit(test_policy, owner='election_house')
-        self.election_house.register_policy(policy_name='testing', contract='test_policy')
+        self.election_house.register_policy(policy='testing', contract='test_policy')
 
-        res = self.election_house.current_value_for_policy(policy_name='testing')
+        res = self.election_house.current_value_for_policy(policy='testing')
 
         self.assertEqual(res, '1234')
 
@@ -128,18 +128,18 @@ class TestBetterElectionHouse(TestCase):
         self.client.submit(test_policy, owner='election_house')
 
         with self.assertRaises(AssertionError):
-            self.election_house.current_value_for_policy(policy_name='testing')
+            self.election_house.current_value_for_policy(policy='testing')
 
     def test_vote_delegate_calls_policy(self):
         self.client.submit(test_policy, owner='election_house')
-        self.election_house.register_policy(policy_name='testing', contract='test_policy')
-        self.election_house.vote(policy_name='testing', value='5678')
+        self.election_house.register_policy(policy='testing', contract='test_policy')
+        self.election_house.vote(policy='testing', value='5678')
 
     def test_full_vote_flow_works(self):
         self.client.submit(test_policy, owner='election_house')
-        self.election_house.register_policy(policy_name='testing', contract='test_policy')
-        self.election_house.vote(policy_name='testing', value='5678')
+        self.election_house.register_policy(policy='testing', contract='test_policy')
+        self.election_house.vote(policy='testing', value='5678')
 
-        res = self.election_house.current_value_for_policy(policy_name='testing')
+        res = self.election_house.current_value_for_policy(policy='testing')
 
         self.assertEqual(res, '5678')

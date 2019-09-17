@@ -338,6 +338,7 @@ class RedisDriver(AbstractDatabaseDriver):
         self.conn.delete(key)
 
     def iter(self, prefix):
+
         return list(self.conn.scan_iter(match=prefix+'*'))
 
     def keys(self):
@@ -462,8 +463,9 @@ class CacheDriver(DatabaseDriver):
     def iter(self, prefix):
         keys = set(super().iter(prefix=prefix))
         for k in self.modified_keys.keys():
-            if k not in keys and k.startswith(prefix):
+            if k not in keys and k[len(prefix):] == prefix:
                 keys.add(k)
+
         return list(keys)
 
     def new_tx(self):

@@ -5,11 +5,79 @@ from datetime import datetime as dt, timedelta as td
 
 
 def rewards():
-    @export
-    def voter_is_valid(vk):
-        return True
+    value = Variable()
+    current_votes = Hash()
+    has_voted = Hash()
+
+    last_election = Variable()
+    election_start = Variable()
+
+    election_length = datetime.DAYS * 1
+    election_interval = datetime.WEEKS * 1
+
+    @construct
+    def seed():
+        value.set([0.5, 0.5, 0, 0])
+        last_election.set(now)
+        election_start.set(None)
 
     @export
+    def current_value():
+        return value.get()
+
+    @export
+    def vote(vk, obj):
+        if election_start.get() is not None:
+            tally_vote(vk, obj)
+
+            # If it has been over a day since the election started... End the election
+            if now - election_start.get() >= election_length:
+                print('woohoo')
+                # Calculate ratio of votes
+                total_votes = current_votes['masternodes'] + current_votes['delegates'] + \
+                              current_votes['blackhole'] + current_votes['foundation']
+
+                a = current_votes['masternodes'] / total_votes
+                b = current_votes['delegates'] / total_votes
+                c = current_votes['blackhole'] / total_votes
+                d = current_votes['foundation'] / total_votes
+
+                # Set the new value
+                value.set([a, b, c, d])
+
+                # Reset everything
+                election_start.set(None)
+                last_election.set(now)
+                current_votes.clear()
+                has_voted.clear()
+
+        # If its been 1 week since the last election ended... Start the election
+        elif now - last_election.get() > election_interval:
+            # Set start to now
+            election_start.set(now)
+
+            print(f'set election start to {now}')
+
+            current_votes['masternodes'] = 1
+            current_votes['delegates'] = 1
+            current_votes['blackhole'] = 1
+            current_votes['foundation'] = 1
+
+            tally_vote(vk, obj)
+
+    def tally_vote(vk, obj):
+        assert vote_is_valid(obj), 'Invalid vote object passed!'
+        assert has_voted[vk] is None, 'VK has already voted!'
+
+        has_voted[vk] = True
+
+        a, b, c, d = obj
+
+        current_votes['masternodes'] += a
+        current_votes['delegates'] += b
+        current_votes['blackhole'] += c
+        current_votes['foundation'] += d
+
     def vote_is_valid(obj):
         if type(obj) != list:
             return False
@@ -30,29 +98,6 @@ def rewards():
 
         return True
 
-    @export
-    def new_policy_value(values):
-        mn = 0
-        dl = 0
-        bn = 0
-        dev = 0
-
-        for v in values:
-            m, d, b, dv = v
-            mn += m
-            dl += d
-            bn += b
-            dev += dv
-
-        total_votes = sum([mn, dl, bn, dev])
-
-        mn /= total_votes
-        dl /= total_votes
-        bn /= total_votes
-        dev /= total_votes
-
-        return [mn, dl, bn, dev]
-
 
 class TestRewards(TestCase):
     def setUp(self):
@@ -70,10 +115,7 @@ class TestRewards(TestCase):
         self.rewards = self.c.get_contract('rewards')
 
         self.election_house.register_policy(policy='rewards',
-                                            contract='rewards',
-                                            election_interval=WEEKS * 1,
-                                            voting_period=DAYS * 1,
-                                            initial_value=[0.5, 0.5, 0, 0])
+                                            contract='rewards')
 
     def tearDown(self):
         self.c.flush()
@@ -81,38 +123,48 @@ class TestRewards(TestCase):
     def test_vote_not_list_fails(self):
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
 
-        self.election_house.vote(policy='rewards', value=False, environment=env)
-        self.assertEqual(self.election_house.states['votes', 'rewards', 'sys'], None)
+        with self.assertRaises(AssertionError):
+            self.election_house.vote(policy='rewards', value=False, environment=env)
 
     def test_vote_list_not_ints_fails(self):
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
 
-        self.election_house.vote(policy='rewards', value=['a', 'b', 'c', 'd'], environment=env)
-        self.assertEqual(self.election_house.states['votes', 'rewards', 'sys'], None)
+        with self.assertRaises(AssertionError):
+            self.election_house.vote(policy='rewards', value=['a', 'b', 'c', 'd'], environment=env)
 
     def test_vote_list_not_4_elements_fails(self):
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
 
-        self.election_house.vote(policy='rewards', value=[1, 2, 3], environment=env)
-        self.assertEqual(self.election_house.states['votes', 'rewards', 'sys'], None)
+        with self.assertRaises(AssertionError):
+            self.election_house.vote(policy='rewards', value=[1, 2, 3], environment=env)
 
     def test_vote_list_negatives_fails(self):
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
 
-        self.election_house.vote(policy='rewards', value=[1, 2, 3, -1], environment=env)
-        self.assertEqual(self.election_house.states['votes', 'rewards', 'sys'], None)
+        with self.assertRaises(AssertionError):
+            self.election_house.vote(policy='rewards', value=[1, 2, 3, -1], environment=env)
 
     def test_vote_list_sum_not_100_fails(self):
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
 
-        self.election_house.vote(policy='rewards', value=[99, 0, 0, 0], environment=env)
-        self.assertEqual(self.election_house.states['votes', 'rewards', 'sys'], None)
+        with self.assertRaises(AssertionError):
+            self.election_house.vote(policy='rewards', value=[99, 0, 0, 0], environment=env)
 
     def test_vote_list_sum_100_succeeds(self):
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
 
         self.election_house.vote(policy='rewards', value=[25, 25, 25, 25], environment=env)
-        self.assertEqual(self.election_house.states['votes', 'rewards', 'sys'], [25, 25, 25, 25])
+        self.assertEqual(self.rewards.current_votes['masternodes'], 26)
+        self.assertEqual(self.rewards.current_votes['delegates'], 26)
+        self.assertEqual(self.rewards.current_votes['blackhole'], 26)
+        self.assertEqual(self.rewards.current_votes['masternodes'], 26)
+
+    def test_vote_twice_fails(self):
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.election_house.vote(policy='rewards', value=[25, 25, 25, 25], environment=env)
+        with self.assertRaises(AssertionError):
+            self.election_house.vote(policy='rewards', value=[25, 25, 25, 25], environment=env)
 
     def test_vote_finished_returns_average_sum(self):
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
@@ -127,4 +179,4 @@ class TestRewards(TestCase):
 
         # Expected [175, 25, 75, 125] / 400 = [0.4375, 0.0625, 0.1875, 0.3125]
 
-        self.assertEqual(self.election_house.states['current_value', 'rewards'], [0.4375, 0.0625, 0.1875, 0.3125])
+        self.assertEqual(self.election_house.current_value_for_policy(policy='rewards'), [0.4375, 0.0625, 0.1875, 0.3125])
