@@ -28,11 +28,8 @@ def stamps():
         if S['in_election']:
             S['votes', vk] = obj
 
-            print(S['votes', vk])
-
             if now - S['election_start_time'] >= VOTING_PERIOD:
                 # Tally votes and set the new value
-                print(S.all('votes'))
                 result = median(S.all('votes'))
                 S['rate'] = result
 
@@ -348,3 +345,24 @@ class TestStamps(TestCase):
         expected = 12500
 
         self.assertEqual(stamps_contract.S['rate'], expected)
+
+    def test_integration_into_election_house(self):
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        }, owner='election_house')
+
+        self.election_house.register_policy(policy='stamps', contract='stamps')
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.election_house.vote(policy='stamps', value=20000, signer='stu', environment=env)
+        self.election_house.vote(policy='stamps', value=5000, signer='raghu', environment=env)
+        self.election_house.vote(policy='stamps', value=12000, signer='alex', environment=env)
+        self.election_house.vote(policy='stamps', value=13000, signer='monica', environment=env)
+        self.election_house.vote(policy='stamps', value=7000, signer='steve', environment=env)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=14))}
+
+        self.election_house.vote(policy='stamps', value=15000, signer='tejas', environment=env)
+
+        self.assertEqual(self.election_house.current_value_for_policy(policy='stamps'), 12500)

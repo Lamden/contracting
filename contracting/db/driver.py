@@ -421,7 +421,6 @@ class CacheDriver(DatabaseDriver):
         return super().get(key)
 
     def set(self, key, value):
-        print(key, value)
         self.contract_modifications[-1].update({key: value})
         # TODO: May have multiple instances of contract_idx if multiple sets on same _key
         self.modified_keys[key].append(len(self.contract_modifications) - 1)
