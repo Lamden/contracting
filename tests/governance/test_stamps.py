@@ -225,3 +225,39 @@ class TestStamps(TestCase):
         )
 
         self.assertEqual(expected, got)
+
+    def test_reset_works(self):
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        stamps_contract.quick_write('S', 'votes', value=123, args=['id1'])
+        stamps_contract.quick_write('S', 'votes', value=124, args=['id2'])
+        stamps_contract.quick_write('S', 'votes', value=125, args=['id3'])
+        stamps_contract.quick_write('S', 'votes', value=126, args=['id4'])
+        stamps_contract.quick_write('S', 'votes', value=127, args=['id5'])
+        stamps_contract.quick_write('S', 'votes', value=128, args=['id6'])
+        stamps_contract.quick_write('S', 'votes', value=129, args=['id7'])
+        stamps_contract.quick_write('S', 'votes', value=130, args=['id8'])
+        stamps_contract.quick_write('S', 'votes', value=131, args=['id9'])
+
+        stamps_contract.quick_write('S', 'in_election', value=True)
+        stamps_contract.quick_write('S', 'last_election_end_time', value='something')
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+        stamps_contract.run_private_function('reset', environment=env)
+
+        self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id1']), None)
+        self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id2']), None)
+        self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id3']), None)
+        self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id4']), None)
+        self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id5']), None)
+        self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id6']), None)
+        self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id7']), None)
+        self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id8']), None)
+        self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id9']), None)
+
+        self.assertEqual(stamps_contract.quick_read('S', 'in_election'), False)
+        self.assertEqual(stamps_contract.quick_read('S', 'last_election_end_time'), env['now'])
