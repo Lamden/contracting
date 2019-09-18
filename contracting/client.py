@@ -255,12 +255,14 @@ class ContractingClient:
         return code
 
     def submit(self, f, name=None, metering=None, owner=None, constructor_args={}):
+
         if isinstance(f, FunctionType):
             f, name = self.closure_to_code_string(f)
 
         assert name is not None, 'No name provided.'
 
-        self.submission_contract.submit_contract(name=name, code=f, owner=owner, constructor_args=constructor_args, metering=metering)
+        self.submission_contract.submit_contract(name=name, code=f, owner=owner, constructor_args=constructor_args,
+                                                 metering=metering)
 
     def get_contracts(self):
         contracts = []

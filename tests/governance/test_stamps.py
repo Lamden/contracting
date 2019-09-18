@@ -22,29 +22,26 @@ def stamps():
 
     @export
     def vote(vk, obj):
+        assert_vote_is_valid(vk, obj)
+
         # Check to make sure that there is an election
         if S['in_election']:
-            assert_vote_is_valid(vk, obj)
             S['votes', vk] = obj
+
+            print(S['votes', vk])
 
             if now - S['election_start_time'] >= VOTING_PERIOD:
                 # Tally votes and set the new value
-                result = median(S['votes'].all())
+                print(S.all('votes'))
+                result = median(S.all('votes'))
                 S['rate'] = result
 
                 reset()
-        else:
-            # If there isn't, it might be time for a new one, so start it if so.
-            # You can then submit your vote as well.
-            if now - S['last_election_end_time'] > ELECTION_INTERVAL:
+        elif now - S['last_election_end_time'] > ELECTION_INTERVAL:
                 # Start the election and set the proper variables
                 S['election_start_time'] = now
                 S['in_election'] = True
-
-                assert_vote_is_valid(vk, obj)
                 S['votes', vk] = obj
-            else:
-                raise Exception('Outside of governance parameters.')
 
     def assert_vote_is_valid(vk, obj):
         current_rate = S['rate']
@@ -54,7 +51,7 @@ def stamps():
         masternode_policy = election_house.current_value_for_policy(policy='masternodes')
 
         assert vk in masternode_policy['masternodes'], 'VK is not a masternode!'
-        assert S['vote', vk] is None, 'VK already voted!'
+        assert S['votes', vk] is None, 'VK already voted!'
 
     def median(vs):
         sorted_votes = sorted(vs)
@@ -86,7 +83,7 @@ class TestStamps(TestCase):
 
         self.client.submit(contract, name='masternodes', owner='election_house', constructor_args={
             'initial_masternodes': [
-                'stu', 'raghu', 'alex'
+                'stu', 'raghu', 'alex', 'monica', 'steve', 'tejas'
             ],
             'initial_open_seats': 0
         })
@@ -249,7 +246,7 @@ class TestStamps(TestCase):
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
         stamps_contract.run_private_function('reset', environment=env)
 
-        self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id1']), None)
+        self.assertEqual(stamps_contract.S['votes', 'id1'], None)
         self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id2']), None)
         self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id3']), None)
         self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id4']), None)
@@ -261,3 +258,93 @@ class TestStamps(TestCase):
 
         self.assertEqual(stamps_contract.quick_read('S', 'in_election'), False)
         self.assertEqual(stamps_contract.quick_read('S', 'last_election_end_time'), env['now'])
+
+    def test_vote_starts_election_if_time_to(self):
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+        stamps_contract.vote(vk='stu', obj=20000, environment=env)
+
+        self.assertEqual(stamps_contract.S['election_start_time'], env['now'])
+        self.assertEqual(stamps_contract.S['in_election'], True)
+        self.assertEqual(stamps_contract.S['votes', 'stu'], 20000)
+
+    def test_vote_doesnt_start_election_if_not_valid(self):
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        with self.assertRaises(AssertionError):
+            stamps_contract.vote(vk='boo', obj=20000, environment=env)
+
+        self.assertEqual(stamps_contract.S['in_election'], False)
+        self.assertEqual(stamps_contract.S['votes', 'boo'], None)
+
+    def test_vote_if_started_correct_votes_tally_properly(self):
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        stamps_contract.vote(vk='stu', obj=20000, environment=env)
+        stamps_contract.vote(vk='raghu', obj=15000, environment=env)
+
+        self.assertEqual(stamps_contract.S['votes', 'raghu'], 15000)
+
+    def test_vote_if_started_bad_votes_not_tallied(self):
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        stamps_contract.vote(vk='stu', obj=20000, environment=env)
+        with self.assertRaises(AssertionError):
+            stamps_contract.vote(vk='raghu', obj=25000, environment=env)
+
+        self.assertEqual(stamps_contract.S['votes', 'raghu'], None)
+
+    def test_vote_passes_voting_period_runs_median_sets_new_rate_and_resets_properly(self):
+        # 'stu', 'raghu', 'alex', 'monica', 'steve', 'tejas'
+
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        self.assertEqual(stamps_contract.S['rate'], 10000)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        stamps_contract.vote(vk='stu', obj=20000, environment=env)
+        stamps_contract.vote(vk='raghu', obj=5000, environment=env)
+        stamps_contract.vote(vk='alex', obj=12000, environment=env)
+        stamps_contract.vote(vk='monica', obj=13000, environment=env)
+        stamps_contract.vote(vk='steve', obj=7000, environment=env)
+
+        self.assertEqual(stamps_contract.S['votes', 'stu'], 20000)
+        self.assertEqual(stamps_contract.S['votes', 'raghu'], 5000)
+        self.assertEqual(stamps_contract.S['votes', 'alex'], 12000)
+        self.assertEqual(stamps_contract.S['votes', 'monica'], 13000)
+        self.assertEqual(stamps_contract.S['votes', 'steve'], 7000)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=14))}
+
+        stamps_contract.vote(vk='tejas', obj=15000, environment=env)
+
+        expected = 12500
+
+        self.assertEqual(stamps_contract.S['rate'], expected)
