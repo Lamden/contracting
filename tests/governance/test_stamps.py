@@ -81,6 +81,20 @@ class TestStamps(TestCase):
         self.client.submit(contract, name='election_house')
         self.election_house = self.client.get_contract('election_house')
 
+        with open('./contracts/masternodes.s.py') as f:
+            contract = f.read()
+
+        self.client.submit(contract, name='masternodes', owner='election_house', constructor_args={
+            'initial_masternodes': [
+                'stu', 'raghu', 'alex'
+            ],
+            'initial_open_seats': 0
+        })
+
+        self.election_house.register_policy(policy='masternodes', contract='masternodes')
+
+        self.masternodes = self.client.get_contract('masternodes')
+
     def tearDown(self):
         self.client.flush()
 
@@ -94,16 +108,120 @@ class TestStamps(TestCase):
         self.assertEqual(stamps_contract.current_value(), 10000)
 
     def test_vote_is_not_int_fails(self):
-        pass
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        with self.assertRaises(AssertionError):
+            stamps_contract.run_private_function(
+                f='assert_vote_is_valid',
+                vk='sys',
+                obj='a'
+            )
 
     def test_vote_is_less_than_half_current_rate_fails(self):
-        pass
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        with self.assertRaises(AssertionError):
+            stamps_contract.run_private_function(
+                f='assert_vote_is_valid',
+                vk='sys',
+                obj=4000
+            )
 
     def test_vote_is_greater_than_double_current_rate_fails(self):
-        pass
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        with self.assertRaises(AssertionError):
+            stamps_contract.run_private_function(
+                f='assert_vote_is_valid',
+                vk='sys',
+                obj=40000
+            )
 
     def test_vk_is_not_masternode_fails(self):
-        pass
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        with self.assertRaises(AssertionError):
+            stamps_contract.run_private_function(
+                f='assert_vote_is_valid',
+                vk='sys',
+                obj=12000
+            )
+
+    def test_vote_works_if_vk_in_range_etc(self):
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        stamps_contract.run_private_function(
+            f='assert_vote_is_valid',
+            vk='stu',
+            obj=12000
+        )
 
     def test_vk_has_already_voted_fails(self):
-        pass
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        stamps_contract.quick_write('S', 'votes', args=['stu'], value=123)
+
+        with self.assertRaises(AssertionError):
+            stamps_contract.run_private_function(
+                f='assert_vote_is_valid',
+                vk='stu',
+                obj=12000
+            )
+
+    def test_median_performs_properly_on_even_lists(self):
+        a = [12, 62, 16, 24, 85, 41, 84, 13, 1999, 47, 27, 43]
+        expected = 42
+
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        got = stamps_contract.run_private_function(
+            f='median',
+            vs=a,
+        )
+
+        self.assertEqual(expected, got)
+
+    def test_median_performs_properly_on_odd_lists(self):
+        a = [92, 73, 187, 2067, 10, 204, 307, 24, 478, 23, 11]
+        expected = 92
+
+        self.client.submit(stamps, constructor_args={
+            'initial_rate': 10000,
+        })
+
+        stamps_contract = self.client.get_contract('stamps')
+
+        got = stamps_contract.run_private_function(
+            f='median',
+            vs=a,
+        )
+
+        self.assertEqual(expected, got)
