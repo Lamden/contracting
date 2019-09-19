@@ -227,7 +227,8 @@ class Sandbox(object):
             balance -= to_deduct
 
             driver.set(balances_key, balance)
-            driver.commit()
+            if auto_commit:
+                driver.commit()
 
         stamps_used = runtime.rt.tracer.get_stamp_used()
         runtime.rt.clean_up()
