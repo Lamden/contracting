@@ -51,7 +51,11 @@ class AbstractContract:
     # a constant contains __, a DOT, and :
 
     def quick_read(self, variable, key=None, args=None):
-        a = [key]
+        a = []
+
+        if key is not None:
+            a.append(key)
+
         if args is not None and isinstance(args, list):
             for arg in args:
                 a.append(arg)
