@@ -13,7 +13,7 @@
 
 import random
 from types import ModuleType
-from ...execution.runtime import rt
+from contracting.execution.runtime import rt
 
 block_height = rt.env.get('block_height') or '0'
 block_hash = rt.env.get('block_hash') or '0'

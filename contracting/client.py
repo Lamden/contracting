@@ -1,6 +1,6 @@
-from .execution.executor import Executor
-from .compilation.compiler import ContractingCompiler
-from .stdlib.bridge.time import Datetime
+from contracting.execution.executor import Executor
+from contracting.compilation.compiler import ContractingCompiler
+from contracting.stdlib.bridge.time import Datetime
 from datetime import datetime
 from functools import partial
 import ast

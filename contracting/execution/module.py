@@ -4,9 +4,9 @@ import importlib.util
 from importlib.abc import Loader, MetaPathFinder, PathEntryFinder
 from importlib import invalidate_caches, __import__
 from importlib.machinery import ModuleSpec
-from ..db.driver import ContractDriver
-from ..stdlib import env
-from ..execution.runtime import rt
+from contracting.db.driver import ContractDriver
+from contracting.stdlib import env
+from contracting.execution.runtime import rt
 
 from types import ModuleType
 import marshal

@@ -1,6 +1,6 @@
-from ...db.orm import Variable, Hash, ForeignVariable, ForeignHash
-from ...db.contract import Contract
-from ...execution.runtime import rt
+from contracting.db.orm import Variable, Hash, ForeignVariable, ForeignHash
+from contracting.db.contract import Contract
+from contracting.execution.runtime import rt
 
 
 class V(Variable):
