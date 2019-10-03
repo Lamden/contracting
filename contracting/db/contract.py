@@ -1,9 +1,9 @@
 from contracting.compilation.compiler import ContractingCompiler
-from ..db.driver import ContractDriver
-from ..execution.runtime import rt
+from contracting.db.driver import ContractDriver
+from contracting.execution.runtime import rt
 from types import ModuleType
-from ..stdlib import env
-from .. import config
+from contracting.stdlib import env
+from contracting import config
 
 driver = rt.env.get('__Driver') or ContractDriver()
 
