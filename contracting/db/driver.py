@@ -6,14 +6,14 @@ import dbm
 # result in an interpret time error
 from redis import Redis
 from redis.connection import Connection
-from .. import config
-from ..exceptions import DatabaseDriverNotFound
-from ..db.encoder import encode, decode
+from contracting import config
+from contracting.exceptions import DatabaseDriverNotFound
+from contracting.db.encoder import encode, decode
 
 #from ..logger import get_logger
-from ..execution.runtime import rt
+from contracting.execution.runtime import rt
 
-from .. import config
+from contracting import config
 
 from collections import deque, defaultdict
 import marshal

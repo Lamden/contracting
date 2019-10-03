@@ -1,4 +1,4 @@
-from ...logger import get_logger
+from contracting.logger import get_logger
 from typing import Callable
 
 log = get_logger('Contracting[TX-Bag]')

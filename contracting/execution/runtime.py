@@ -1,9 +1,9 @@
 from collections import deque
 import sys
-from .. import config
+from contracting import config
 import contracting
 import os
-from .metering.tracer import Tracer
+from contracting.execution.metering.tracer import Tracer
 
 
 class Context:

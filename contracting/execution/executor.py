@@ -3,11 +3,11 @@ import multiprocessing
 from typing import Dict
 import decimal
 from contracting.logger import get_logger
-from . import runtime
-from ..db.cr.transaction_bag import TransactionBag
-from ..db.driver import ContractDriver, CacheDriver
-from ..execution.module import install_database_loader, uninstall_builtins
-from .. import config
+from contracting.execution import runtime
+from contracting.db.cr.transaction_bag import TransactionBag
+from contracting.db.driver import ContractDriver, CacheDriver
+from contracting.execution.module import install_database_loader, uninstall_builtins
+from contracting import config
 
 #log = get_logger('Executor')
 

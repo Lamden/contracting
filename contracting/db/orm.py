@@ -1,6 +1,6 @@
-from ..db.driver import ContractDriver
-from ..execution.runtime import rt
-from .. import config
+from contracting.db.driver import ContractDriver
+from contracting.execution.runtime import rt
+from contracting import config
 
 driver = rt.env.get('__Driver') or ContractDriver()
 

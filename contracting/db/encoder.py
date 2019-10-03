@@ -1,6 +1,6 @@
 import json
 import decimal
-from ..stdlib.bridge.time import Datetime, Timedelta
+from contracting.stdlib.bridge.time import Datetime, Timedelta
 
 ##
 # ENCODER CLASS

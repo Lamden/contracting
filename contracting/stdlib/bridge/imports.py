@@ -1,9 +1,9 @@
 import importlib
 from types import FunctionType, ModuleType
-from ...config import PRIVATE_METHOD_PREFIX
-from ...db.orm import Datum
-from ...db.driver import ContractDriver
-from ...execution.runtime import rt
+from contracting.config import PRIVATE_METHOD_PREFIX
+from contracting.db.orm import Datum
+from contracting.db.driver import ContractDriver
+from contracting.execution.runtime import rt
 
 
 def extract_closure(fn):
