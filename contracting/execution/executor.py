@@ -196,7 +196,6 @@ class Sandbox(object):
 
             func = getattr(module, function_name)
 
-
             result = func(**kwargs)
 
             if auto_commit:

@@ -1,6 +1,8 @@
 import abc
 import copy
 import dbm
+from rocks.client import RocksDBClient
+from rocks import constants
 
 # we can't include pylevel in production since its not installed on the docker images and will
 # result in an interpret time error
@@ -17,6 +19,7 @@ from contracting import config
 
 from collections import deque, defaultdict
 import marshal
+
 
 class AbstractDatabaseDriver:
     __metaclass__ = abc.ABCMeta
@@ -351,6 +354,79 @@ class RedisDriver(AbstractDatabaseDriver):
         """Increment a numeric _key by one"""
         return self.conn.incrby(key, amount)
 
+
+class RocksDriver(AbstractDatabaseDriver):
+    def __init__(self):
+        self.client = RocksDBClient()
+
+    def get(self, key):
+        try:
+            key = key.encode()
+        except:
+            pass
+
+        val = self.client.get(key)
+
+        if val is not None and rt.tracer.is_started():
+            cost = len(key) + len(val)
+            cost *= config.READ_COST_PER_BYTE
+            rt.tracer.add_cost(cost)
+
+        return val
+
+    def set(self, key, value):
+        try:
+            key = key.encode()
+            value = value.encode()
+        except:
+            pass
+
+        if rt.tracer.is_started():
+            cost = len(key) + len(value)
+            cost *= config.READ_COST_PER_BYTE
+            rt.tracer.add_cost(cost)
+
+        self.client.set(key, value)
+
+    def delete(self, key):
+        try:
+            key = key.encode()
+        except:
+            pass
+
+        self.client.delete(key)
+
+    def iter(self, prefix):
+        try:
+            prefix = prefix.encode()
+        except:
+            pass
+
+        self.client.seek(prefix)
+
+        l = []
+        k = None
+        while k != constants.STOP_ITER_RESPONSE:
+            k = self.client.next()
+            if not k.startswith(prefix):
+                break
+            if k != constants.STOP_ITER_RESPONSE:
+                l.append(k)
+
+        return l
+
+    def keys(self):
+        return self.iter('')
+
+    def flush(self, db=None):
+        self.client.flush()
+
+    def incrby(self, key, amount=1):
+        v = self.get(key)
+        v = v.decode()
+        v += amount
+        self.client.set(key, v.encode())
+
 # Defined at the bottom since needs to be instantiated
 # after the classes have been defined. Allows us to
 # parameterize the type of database _driver required
@@ -509,6 +585,9 @@ class ContractDriver(CacheDriver):
         return kvs
 
     def make_key(self, key, field, args=None):
+        # Key is generally the contract
+        # Field is generally the variable
+        # Args are the hashes
         k = '{}{}{}'.format(key, self.delimiter, field)
 
         # Support multihashes through argument overloading

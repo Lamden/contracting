@@ -5,7 +5,7 @@ from contracting.execution.executor import Executor
 
 class TestBuiltinsLockedOff(TestCase):
     def setUp(self):
-        self.c = ContractingClient(signer='stu', executor=Executor(production=True))
+        self.c = ContractingClient(signer='stu', executor=Executor(production=False))
 
     def tearDown(self):
         self.c.raw_driver.flush()
