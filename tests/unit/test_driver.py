@@ -628,4 +628,5 @@ def stu():
         _t = 'test'
 
         self.d.set_contract(name, contract)
+        self.d.commit()
         self.assertTrue(self.d.is_contract('stustu'))

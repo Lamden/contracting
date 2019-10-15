@@ -448,12 +448,11 @@ def get_database_driver():
 
 #DatabaseDriver = get_database_driver()
 #DatabaseDriver = LevelDBDriver
-DatabaseDriver = RedisDriver
+DatabaseDriver = RocksDriver
 
-DEFAULT_REDIS_DRIVER = RedisDriver(host=config.DB_URL, port=config.DB_PORT, db=0)
 class CacheDriver:
-    def __init__(self, db=DEFAULT_REDIS_DRIVER):
-        self.db = db
+    def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=0):
+        self.db = RocksDriver()
         #self.log = get_logger("CacheDriver")
         self.modified_keys = None
         self.contract_modifications = None
