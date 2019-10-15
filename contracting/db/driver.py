@@ -450,10 +450,10 @@ def get_database_driver():
 #DatabaseDriver = LevelDBDriver
 DatabaseDriver = RedisDriver
 
-
-class CacheDriver(DatabaseDriver):
-    def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=0,):
-        super().__init__(host=host, port=port, db=db)
+DEFAULT_REDIS_DRIVER = RedisDriver(host=config.DB_URL, port=config.DB_PORT, db=0)
+class CacheDriver:
+    def __init__(self, db=DEFAULT_REDIS_DRIVER):
+        self.db = db
         #self.log = get_logger("CacheDriver")
         self.modified_keys = None
         self.contract_modifications = None
@@ -487,14 +487,14 @@ class CacheDriver(DatabaseDriver):
     def get(self, key):
         key_location = self.modified_keys.get(key)
         if key_location is None:
-            value = super().get(key)
+            value = self.db.get(key)
             self.original_values[key] = value
         else:
             value = self.contract_modifications[key_location[-1]][key]
         return value
 
     def get_direct(self, key):
-        return super().get(key)
+        return self.db.get(key)
 
     def set(self, key, value):
         self.contract_modifications[-1].update({key: value})
@@ -505,7 +505,7 @@ class CacheDriver(DatabaseDriver):
         self.set(key, None) # Indirection is going on here where None gets encoded into JSONs none
 
     def set_direct(self, key, value):
-        super().set(key, value)
+        self.db.set(key, value)
 
     def revert(self, idx=0):
         if idx == 0:
@@ -529,14 +529,14 @@ class CacheDriver(DatabaseDriver):
         for key, idx in self.modified_keys.items():
             value = self.contract_modifications[idx[-1]][key]
             if value == 'null': # This shit is null because that is the JSON representation and the data is being encoded in the contract driver
-                super().delete(key)
+                self.db.delete(key)
             else:
-                super().set(key, value)
+                self.db.set(key, value)
 
         self.reset_cache()
 
     def iter(self, prefix):
-        keys = set(super().iter(prefix=prefix))
+        keys = set(self.db.iter(prefix=prefix))
         for k in self.modified_keys.keys():
             if k not in keys and k[:len(prefix)] == prefix:
                 keys.add(k)
@@ -546,11 +546,17 @@ class CacheDriver(DatabaseDriver):
     def new_tx(self):
         self.contract_modifications.append(dict())
 
+    def flush(self):
+        self.db.flush()
+
+    def incrby(self, key, amount=1):
+        return self.db.incrby(key, amount)
+
 
 class ContractDriver(CacheDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, delimiter=config.INDEX_SEPARATOR, db=0,
                  code_key=config.CODE_KEY, owner_key=config.OWNER_KEY):
-        super().__init__(host=host, port=port, db=db)
+        super().__init__()
 
         self.delimiter = delimiter
 
@@ -631,12 +637,12 @@ class ContractDriver(CacheDriver):
             self.delete(k)
 
     def is_contract(self, name):
-        return self.exists(
+        return self.db.exists(
             self.make_key(name, self.code_key)
         )
 
     def keys(self):
-        return [k.decode() for k in super().keys()]
+        return [k.decode() for k in self.db.keys()]
 
     def get_contract_keys(self, name):
         keys = [k.decode() for k in self.iter(prefix='{}{}'.format(name, self.delimiter))]

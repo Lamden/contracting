@@ -86,12 +86,12 @@ class CRCache:
         cr_key_hits = []
         for key, value in self.db.original_values.items():
             if key not in cr_key_hits:
-                common_db_value = super(CacheDriver, self.db).get(key)
+                common_db_value = self.db.get(key)
                 if common_db_value is not None:
                     if common_db_value != value:
                         cr_key_hits.append(key)
                 else:
-                    master_db_value = super(CacheDriver, self.master_db).get(key)
+                    master_db_value = self.master_db.get(key)
                     if master_db_value != value:
                         cr_key_hits.append(key)
 
