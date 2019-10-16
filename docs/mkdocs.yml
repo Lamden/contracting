@@ -1,2 +1,17 @@
-site_name: My Docs
+site_name: Lamden Contracting
 theme: readthedocs
+nav:
+    - Home: index.md
+    - Introduction: 
+      - What: intro/intro.md
+      - Motivation: intro/motivation.md
+      - Philosophy: intro/philosophy.md
+      - Code Comparisons: intro/comparisons.md
+
+    - Installing: install.md
+    - Quick Start:
+      - Import and Submit: quickstart/import-submit.md
+      - Executing Functions: quickstart/functions.md
+      - Testing and Feedback: quickstart/testing.md
+    - Key Concepts: 
+        - Valid Code: valid-code.md

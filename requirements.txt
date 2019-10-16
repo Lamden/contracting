@@ -1,3 +1,4 @@
+rocks
 python-dotenv==0.9.1
 redis==3.2.0
 ujson==1.35

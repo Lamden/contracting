@@ -7,7 +7,7 @@ import sys
 
 major = 0
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 requirements = [
     'redis==3.2.0',
@@ -16,7 +16,8 @@ requirements = [
     'autopep8==1.4.3',
     'coloredlogs==10.0',
     'transitions==0.6.9',
-    'astor==0.7.1'
+    'astor==0.7.1',
+    'rocks'
 ]
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)

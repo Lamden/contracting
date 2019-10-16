@@ -445,13 +445,8 @@ def get_database_driver():
             known_drivers=DATABASE_DRIVER_MAPS.keys())
     return cls
 
-
-#DatabaseDriver = get_database_driver()
-#DatabaseDriver = LevelDBDriver
-DatabaseDriver = RocksDriver
-
 class CacheDriver:
-    def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=0):
+    def __init__(self):
         self.db = RocksDriver()
         #self.log = get_logger("CacheDriver")
         self.modified_keys = None
