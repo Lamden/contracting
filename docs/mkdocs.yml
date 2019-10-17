@@ -2,6 +2,7 @@ site_name: Lamden Contracting
 theme: readthedocs
 nav:
     - Home: index.md
+    
     - Introduction: 
       - What: intro/intro.md
       - Motivation: intro/motivation.md
@@ -9,9 +10,14 @@ nav:
       - Code Comparisons: intro/comparisons.md
 
     - Installing: install.md
+
     - Quick Start:
       - Import and Submit: quickstart/import-submit.md
       - Executing Functions: quickstart/functions.md
       - Testing and Feedback: quickstart/testing.md
+
     - Key Concepts: 
+        - Execution Model: concepts/model.md
         - Valid Code: valid-code.md
+        - Functions: concepts/functions.md
+        - Storage: concepts/storage.md
