@@ -125,3 +125,153 @@ ast.Interactive			| Only available in Python interpreters. Potential security ri
 ast.Suite				| Similar to ast.Interactive
 [ast.Yield](https://greentreesnakes.readthedocs.io/en/latest/nodes.html#Yield)				| Generator related code is not compatible with Contracting.
 [ast.YieldFrom](https://greentreesnakes.readthedocs.io/en/latest/nodes.html#YieldFrom)			| Generator related code is not compatible with Contracting.
+
+### Violations
+
+The linter will check for several violations that will fail your smart contract automatically. Here is a list of the current violations and examples of code that will cause them.
+
+#### S1- Illegal contracting syntax type used
+Thrown when an AST type that is not allowed is visited by the linter.
+
+```python
+def bad():
+	2 @ 2 # ast.MatMul code
+```
+
+#### S2- Illicit use of '\_' before variable
+\_ is used for gating certain functionality. Using it as a prefix to any variable will cause failure
+
+```python
+def bad_var():
+	_balances = Hash()
+```
+
+#### S3- Illicit use of Nested imports
+`import` keywords found inside of functions, loops, etc. will fail.
+
+```python
+def bad_import():
+	import this_wont_fail
+
+	@construct
+	def seed():
+		import this_will
+```
+#### S4- ImportFrom compilation nodes not yet supported
+Selective importing is not supported and will fail contracts.
+```python
+def bad_import():
+	from token import send
+```
+#### S5- Contract not found in lib
+Not currently used.
+#### S6- Illicit use of classes
+Classes are not supported in Contracting and their keywords will fail your contract.
+
+```python
+def bad_classes():
+	class Car:
+		def __init__(self, make, model):
+			self.make = make
+			self.model = model
+```
+#### S7- Illicit use of Async functions
+Any async related code will fail the contract.
+```python
+def bad_async():
+	async def fail_me():
+		pass
+```
+#### S8- Invalid decorator used
+`@export` and `@construct` are the only two decorators allowed in Contracting.
+```python
+def bad_decorator():
+	v = Variable()
+	@construct
+	def seed():
+		v.set(100)
+
+	@export
+	def get_v():
+		return v.get()
+
+	@unknown
+	def this_will_fail():
+		pass
+```
+#### S9- Multiple use of constructors detected
+Only a single `@construct` can be included in a contract.
+
+```python
+def bad_construct():
+	v = Variable()
+	@construct
+	def seed():
+		v.set(123)
+
+	@construct
+	def seed_2():
+		v.set(999)
+```
+#### S10- Illicit use of multiple decorators
+Stacking decorators is not allowed.
+
+```python
+def bad_construct():
+	v = Variable()
+	@export
+	@construct
+	def seed():
+		v.set(777)
+```
+#### S11- Illicit keyword overloading for ORM assignments
+ORM arguments are injected into the \_\_init\_\_ function on runtime. Messing with these will fail your contract.
+
+```python
+def bad_var():
+	v = Variable(contract='token')
+	w = Variable(driver=None)
+	x = Variable(another_kwarg='this will fail')
+
+	@export
+	def set():
+		v.set(777)
+		w.set(999)
+		x.set(123)
+```
+#### S12- Multiple targets to ORM definition detected
+Python allows multiple assignment. Trying to do a multiple assignment from an ORM object will fail your contract.
+```python
+def bad_targets():
+	x, y = Hash()
+	@export
+	def set():
+		x['stu'] = 100
+		y['stu'] = 999
+```
+#### S13- No valid contracting decorator found
+A contract without a single `@export` decorator is invalid.
+```python
+def bad_export():
+	@construct
+	def seed():
+		pass
+```
+#### S14- Illegal use of a builtin
+Referencing a builtin that is illegal will fail the contract.
+```python
+def bad_builtin():
+	@export
+	def credits():
+		return credits
+```
+#### S15- Reuse of ORM name definition in a function definition argument name
+Reuse of any ORM names in any loops, functions, etc. will fail the contract.
+```python
+def bad_var():
+	used_once = Variable()
+
+	@export
+	def override():
+		used_once = 123
+```

@@ -12,8 +12,10 @@ nav:
     - Installing: install.md
 
     - Quick Start:
-      - Import and Submit: quickstart/import-submit.md
+      - First Contract: quickstart/import-submit.md
       - Executing Functions: quickstart/functions.md
+      - Storing Data: quickstart/storage.md
+      - Advanced Features: quickstart/submit.md
       - Testing and Feedback: quickstart/testing.md
 
     - Key Concepts: 
@@ -21,3 +23,7 @@ nav:
         - Valid Code: valid-code.md
         - Functions: concepts/functions.md
         - Storage: concepts/storage.md
+        - Imports: concepts/imports.md
+        - Context: concepts/context.md
+        - Submission: concepts/submission.md
+        - Stamps: concepts/stamps.md
