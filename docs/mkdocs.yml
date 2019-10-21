@@ -7,7 +7,6 @@ nav:
       - What: intro/intro.md
       - Motivation: intro/motivation.md
       - Philosophy: intro/philosophy.md
-      - Code Comparisons: intro/comparisons.md
 
     - Installing: install.md
 
@@ -27,3 +26,7 @@ nav:
         - Context: concepts/context.md
         - Submission: concepts/submission.md
         - Stamps: concepts/stamps.md
+        - datetime Module: concepts/time.md
+        - hashlib Module: concepts/hashing.md
+        - random Module: concepts/randoms.md
+        - Extensions: concepts/extensions.md
