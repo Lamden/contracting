@@ -29,4 +29,3 @@ nav:
         - datetime Module: concepts/time.md
         - hashlib Module: concepts/hashing.md
         - random Module: concepts/randoms.md
-        - Extensions: concepts/extensions.md
