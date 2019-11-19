@@ -1,6 +1,7 @@
 from unittest import TestCase
 from contracting.client import ContractingClient
 
+
 def pending_masters():
     import currency
     import election_house
@@ -31,11 +32,11 @@ def pending_masters():
 
         # Determine if caller can vote
         v = S['last_voted', ctx.signer]
-        assert now - v > DAYS * 1 or v is None, 'Voting again too soon.'
+        assert v is None or now - v > DAYS * 1, 'Voting again too soon.'
 
         # Deduct small vote fee
-        vote_cost = STAMP_COST / election_house.get_policy('stamp_cost')
-        currency.transfer_from(vote_cost, ctx.signer, 'blackhole')
+        vote_cost = STAMP_COST / election_house.current_value_for_policy('stamp_cost')
+        currency.transfer_from(vote_cost, 'blackhole', ctx.signer)
 
         # Update last voted variable
         S['last_voted', ctx.signer] = now
@@ -79,12 +80,50 @@ class TestPendingMasters(TestCase):
         self.client.submit(f.read(), 'election_house')
         f.close()
 
+        f = open('./contracts/stamp_cost.s.py')
+        self.client.submit(f.read(), 'stamp_cost', owner='election_house', constructor_args={'initial_rate': 20_000})
+        f.close()
+
+        f = open('./contracts/masternodes.s.py')
+        self.client.submit(f.read(), 'masternodes', owner='election_house', constructor_args={'initial_masternodes':
+                                                                                              ['stu', 'raghu'],
+                                                                                              'initial_open_seats': 0})
+        f.close()
+
         self.client.submit(pending_masters)
 
         self.pending_masters = self.client.get_contract(name='pending_masters')
+        self.currency = self.client.get_contract(name='currency')
+
+        self.stamp_cost = self.client.get_contract(name='stamp_cost')
+        self.election_house = self.client.get_contract(name='election_house')
+        self.election_house.register_policy(policy='stamp_cost', contract='stamp_cost')
 
     def tearDown(self):
         self.client.flush()
 
-    def test_init(self):
-        pass
+    def test_register(self):
+        self.pending_masters.register(signer='stu')
+        q = self.pending_masters.Q.get()
+
+        self.assertEqual(q['stu'], 0)
+
+    def test_register_twice_throws_assertion_error(self):
+        self.pending_masters.register(signer='stu')
+
+        with self.assertRaises(AssertionError):
+            self.pending_masters.register(signer='stu')
+
+    def test_vote_for_someone_not_registered_throws_assertion_error(self):
+        with self.assertRaises(AssertionError):
+            self.pending_masters.vote(address='stu')
+
+    def test_vote_for_someone_registered_deducts_tau_and_adds_vote(self):
+        self.pending_masters.register(signer='joe')
+
+        self.currency.approve(signer='stu', amount=10_000, to='pending_masters')
+
+        self.pending_masters.vote(signer='stu', address='joe')
+
+        self.assertEqual(self.currency.balances['stu'], 999999)
+        self.assertEqual(self.pending_masters.Q.get()['joe'], 1)
