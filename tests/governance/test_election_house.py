@@ -197,6 +197,7 @@ def average_votes_policy():
 class TestElectionHouse(TestCase):
     def setUp(self):
         self.client = ContractingClient()
+        self.client.flush()
         self.client.submit(election_house)
         self.election_house = self.client.get_contract('election_house')
 
