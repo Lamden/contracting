@@ -25,7 +25,6 @@ def register_policy(policy, contract):
         assert I.enforce_interface(p, policy_interface), \
             'Policy contract does not follow the correct interface'
 
-
         policy_to_contract[policy] = contract
         contract_to_policy[contract] = policy
     else:
