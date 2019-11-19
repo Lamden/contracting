@@ -14,7 +14,8 @@ from contracting.db.encoder import encode, decode
 import time
 #from ..logger import get_logger
 from contracting.execution.runtime import rt
-
+from contracting.stdlib.bridge.time import Datetime
+from datetime import datetime
 from contracting import config
 
 from collections import deque, defaultdict
@@ -618,8 +619,8 @@ class ContractDriver(CacheDriver):
     def get_time_submitted(self, name):
         return self.hget(name, self.time_key)
 
-    def set_contract(self, name, code, owner=None, overwrite=False, timestamp=time.time()):
-        if not overwrite or self.is_contract(name):
+    def set_contract(self, name, code, owner=None, overwrite=False, timestamp=Datetime._from_datetime(datetime.now())):
+        if overwrite or not self.is_contract(name):
             self.hset(name, self.code_key, code)
 
             code_obj = compile(code, '', 'exec')
