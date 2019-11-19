@@ -1,6 +1,7 @@
 from unittest import TestCase
 from contracting.client import ContractingClient
-
+from contracting.stdlib.bridge.time import Timedelta, DAYS, WEEKS, Datetime
+from datetime import datetime as dt, timedelta as td
 
 def pending_masters():
     import currency
@@ -32,7 +33,7 @@ def pending_masters():
 
         # Determine if caller can vote
         v = S['last_voted', ctx.signer]
-        assert v is None or now - v > DAYS * 1, 'Voting again too soon.'
+        assert v is None or now - v > datetime.DAYS * 1, 'Voting again too soon.'
 
         # Deduct small vote fee
         vote_cost = STAMP_COST / election_house.current_value_for_policy('stamp_cost')
@@ -123,7 +124,42 @@ class TestPendingMasters(TestCase):
 
         self.currency.approve(signer='stu', amount=10_000, to='pending_masters')
 
-        self.pending_masters.vote(signer='stu', address='joe')
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        self.pending_masters.vote(signer='stu', address='joe', environment=env)
 
         self.assertEqual(self.currency.balances['stu'], 999999)
         self.assertEqual(self.pending_masters.Q.get()['joe'], 1)
+        self.assertEqual(self.currency.balances['blackhole'], 1)
+        self.assertEqual(self.pending_masters.S['last_voted', 'stu'], env['now'])
+
+    def test_voting_again_too_soon_throws_assertion_error(self):
+        self.pending_masters.register(signer='joe')
+
+        self.currency.approve(signer='stu', amount=10_000, to='pending_masters')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        self.pending_masters.vote(signer='stu', address='joe', environment=env)
+
+        with self.assertRaises(AssertionError):
+            self.pending_masters.vote(signer='stu', address='joe', environment=env)
+
+    def test_voting_again_after_waiting_one_day_works(self):
+        self.pending_masters.register(signer='joe')
+
+        self.currency.approve(signer='stu', amount=10_000, to='pending_masters')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        self.pending_masters.vote(signer='stu', address='joe', environment=env)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.pending_masters.vote(signer='stu', address='joe', environment=env)
+
+        self.assertEqual(self.currency.balances['stu'], 999998)
+        self.assertEqual(self.pending_masters.Q.get()['joe'], 2)
+        self.assertEqual(self.currency.balances['blackhole'], 2)
+        self.assertEqual(self.pending_masters.S['last_voted', 'stu'], env['now'])
+
