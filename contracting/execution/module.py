@@ -7,7 +7,6 @@ from importlib.machinery import ModuleSpec
 from contracting.db.driver import ContractDriver
 from contracting.stdlib import env
 from contracting.execution.runtime import rt
-from decimal import Decimal
 from types import ModuleType
 import marshal
 
@@ -32,12 +31,12 @@ def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
 
 def enable_restricted_imports():
     __builtins__['__import__'] = restricted_import
-    __builtins__.float = Decimal
+    __builtins__.float = env['decimal']
 
 
 def disable_restricted_imports():
     __builtins__['__import__'] = __import__
-    __builtins__.float = Decimal
+    __builtins__.float = env['decimal']
 
 
 def uninstall_builtins():

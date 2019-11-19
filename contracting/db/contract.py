@@ -30,7 +30,11 @@ class Contract:
 
         exec(code_obj, scope)
 
-        if scope.get(config.INIT_FUNC_NAME) is not None:
+        if scope.get(config.INIT_FUNC_NAME) is not None and constructor_args is not None:
             scope[config.INIT_FUNC_NAME](**constructor_args)
 
-        self._driver.set_contract(name=name, code=code_obj, owner=owner, overwrite=False)
+        now = scope.get('now')
+        if now is not None:
+            self._driver.set_contract(name=name, code=code_obj, owner=owner, overwrite=False, timestamp=now)
+        else:
+            self._driver.set_contract(name=name, code=code_obj, owner=owner, overwrite=False)

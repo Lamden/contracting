@@ -43,8 +43,10 @@ class TestAtomicSwapContract(TestCase):
 
         self.e = Executor(currency_contract='erc20_clone', metering=False)
 
+        environment = {'now': Datetime(2019, 1, 1)}
+
         self.e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'))
+                  kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'), environment=environment)
 
         self.e.execute(**TEST_SUBMISSION_KWARGS,
                   kwargs=submission_kwargs_for_file('./test_contracts/atomic_swaps.s.py'))

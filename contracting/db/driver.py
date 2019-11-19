@@ -11,7 +11,7 @@ from redis.connection import Connection
 from contracting import config
 from contracting.exceptions import DatabaseDriverNotFound
 from contracting.db.encoder import encode, decode
-
+import time
 #from ..logger import get_logger
 from contracting.execution.runtime import rt
 
@@ -549,13 +549,14 @@ class CacheDriver:
 
 class ContractDriver(CacheDriver):
     def __init__(self, host=config.DB_URL, port=config.DB_PORT, delimiter=config.INDEX_SEPARATOR, db=0,
-                 code_key=config.CODE_KEY, owner_key=config.OWNER_KEY):
+                 code_key=config.CODE_KEY, owner_key=config.OWNER_KEY, time_key=config.TIME_KEY):
         super().__init__()
 
         self.delimiter = delimiter
 
         self.code_key = code_key
         self.owner_key = owner_key
+        self.time_key = time_key
 
         # Tests if access to the DB is available
         #self.conn.ping()
@@ -614,7 +615,10 @@ class ContractDriver(CacheDriver):
     def get_owner(self, name):
         return self.hget(name, self.owner_key)
 
-    def set_contract(self, name, code, owner=None, overwrite=False):
+    def get_time_submitted(self, name):
+        return self.hget(name, self.time_key)
+
+    def set_contract(self, name, code, owner=None, overwrite=False, timestamp=time.time()):
         if not overwrite or self.is_contract(name):
             self.hset(name, self.code_key, code)
 
@@ -622,6 +626,7 @@ class ContractDriver(CacheDriver):
             code_blob = marshal.dumps(code_obj)
             self.hset(name, '__compiled__', code_blob)
             self.hset(name, self.owner_key, owner)
+            self.hset(name, self.time_key, timestamp)
 
     def get_compiled(self, name):
         return self.hget(name, '__compiled__')
