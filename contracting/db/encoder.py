@@ -1,7 +1,7 @@
 import json
 import decimal
 from contracting.stdlib.bridge.time import Datetime, Timedelta
-
+from contracting.stdlib.bridge.decimal import ContractingDecimal
 ##
 # ENCODER CLASS
 # Add to this to encode Python types for storage.
@@ -55,6 +55,6 @@ def decode(data):
         data = data.decode()
 
     try:
-        return json.loads(data, parse_float=decimal.Decimal, object_hook=as_object)
+        return json.loads(data, parse_float=ContractingDecimal, object_hook=as_object)
     except json.decoder.JSONDecodeError as e:
         return None
