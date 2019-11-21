@@ -234,18 +234,26 @@ class TestPendingMasters(TestCase):
             self.master_candidates.vote(address='stu')
 
     def test_vote_for_someone_registered_deducts_tau_and_adds_vote(self):
+        # Give joe money
+        self.currency.transfer(signer='stu', amount=100_000, to='joe')
+
+        # Joe Allows Spending
+        self.currency.approve(signer='joe', amount=100_000, to='master_candidates')
+
         self.master_candidates.register(signer='joe')
 
-        self.currency.approve(signer='stu', amount=10_000, to='pending_masters')
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
 
         env = {'now': Datetime._from_datetime(dt.today())}
 
-        self.master_candidates.vote(signer='stu', address='joe', environment=env)
+        stu_bal = self.currency.balances['stu']
 
-        self.assertEqual(self.currency.balances['stu'], 999999)
-        self.assertEqual(self.master_candidates.Q.get()['joe'], 1)
+        self.master_candidates.vote_candidate(signer='stu', address='joe', environment=env)
+
+        self.assertEqual(self.currency.balances['stu'], stu_bal - 1)
+        self.assertEqual(self.master_candidates.candidate_votes.get()['joe'], 1)
         self.assertEqual(self.currency.balances['blackhole'], 1)
-        self.assertEqual(self.master_candidates.S['last_voted', 'stu'], env['now'])
+        self.assertEqual(self.master_candidates.candidate_state['last_voted', 'stu'], env['now'])
 
     def test_voting_again_too_soon_throws_assertion_error(self):
         # Give joe money
