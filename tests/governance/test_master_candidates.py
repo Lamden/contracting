@@ -231,7 +231,7 @@ class TestPendingMasters(TestCase):
 
     def test_vote_for_someone_not_registered_throws_assertion_error(self):
         with self.assertRaises(AssertionError):
-            self.master_candidates.vote(address='stu')
+            self.master_candidates.vote_candidate(address='stu')
 
     def test_vote_for_someone_registered_deducts_tau_and_adds_vote(self):
         # Give joe money
@@ -300,3 +300,44 @@ class TestPendingMasters(TestCase):
         self.assertEqual(self.currency.balances['blackhole'], 2)
 
         self.assertEqual(self.master_candidates.candidate_state['last_voted', 'stu'], env['now'])
+
+    def test_top_masternode_returns_none_if_no_candidates(self):
+        self.assertIsNone(self.master_candidates.top_masternode())
+
+    def test_top_masternode_returns_joe_if_registered_but_no_votes(self):
+        self.currency.transfer(signer='stu', amount=100_000, to='joe')  # Give joe money
+        self.currency.approve(signer='joe', amount=100_000, to='master_candidates')  # Joe Allows Spending
+        self.master_candidates.register(signer='joe')  # Register Joe
+
+        #self.currency.approve(signer='stu', amount=10_000, to='master_candidates')  # Stu approves spending to vote
+        #env = {'now': Datetime._from_datetime(dt.today())}
+        #self.master_candidates.vote_candidate(signer='stu', address='joe', environment=env)  # Stu votes for Joe
+
+        self.assertEqual(self.master_candidates.top_masternode(), 'joe')  # Joe is the current top spot
+
+    def test_top_masternode_returns_bob_if_joe_and_bob_registered_but_bob_has_votes(self):
+        self.currency.transfer(signer='stu', amount=100_000, to='joe')  # Give joe money
+        self.currency.approve(signer='joe', amount=100_000, to='master_candidates')  # Joe Allows Spending
+        self.master_candidates.register(signer='joe')  # Register Joe
+
+        self.currency.transfer(signer='stu', amount=100_000, to='bob')  # Give Bob money
+        self.currency.approve(signer='bob', amount=100_000, to='master_candidates')  # Bob Allows Spending
+        self.master_candidates.register(signer='bob')  # Register Bob
+
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')  # Stu approves spending to vote
+        env = {'now': Datetime._from_datetime(dt.today())}
+        self.master_candidates.vote_candidate(signer='stu', address='bob', environment=env)  # Stu votes for Bob
+
+        self.assertEqual(self.master_candidates.top_masternode(), 'bob')  # bob is the current top spot
+
+    def test_top_masternode_returns_joe_if_joe_and_bob_registered_but_joe_first_and_no_votes(self):
+        self.currency.transfer(signer='stu', amount=100_000, to='joe')  # Give joe money
+        self.currency.approve(signer='joe', amount=100_000, to='master_candidates')  # Joe Allows Spending
+        self.master_candidates.register(signer='joe')  # Register Joe
+
+        self.currency.transfer(signer='stu', amount=100_000, to='bob')  # Give Bob money
+        self.currency.approve(signer='bob', amount=100_000, to='master_candidates')  # Bob Allows Spending
+        self.master_candidates.register(signer='bob')  # Register Bob
+
+        self.assertEqual(self.master_candidates.top_masternode(), 'joe')  # Joe is the current top spot
+
