@@ -1,5 +1,4 @@
-import pending_masters
-import deprecating_masters
+import master_candidates
 
 INTRODUCE_MOTION = 'introduce_motion'
 VOTE_ON_MOTION = 'vote_on_motion'
@@ -118,21 +117,21 @@ def pass_current_motion():
 
     elif current_motion == ADD_SEAT:
         # Get the top master
-        new_mn = pending_masters.top_masternode()
+        new_mn = master_candidates.top_masternode()
 
         # Append it to the list, and remove it from pending
         if new_mn is not None:
             masters.append(new_mn)
-            pending_masters.pop_top()
+            master_candidates.pop_top()
 
     elif current_motion == REMOVE_SEAT:
         # Get least popular master
-        old_mn = deprecating_masters.last_masternode()
+        old_mn = master_candidates.last_masternode()
 
         # Remove them from the list and pop them from deprecating
         if old_mn is not None:
             masters.remove(old_mn)
-            deprecating_masters.pop_last()
+            master_candidates.pop_last()
 
     S['masternodes'] = masters
 

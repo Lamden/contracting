@@ -2,12 +2,14 @@ import currency
 import election_house
 
 candidate_state = Hash()
+candidate_votes = Variable()
 
 no_confidence_state = Hash()
 no_confidence_votes = Variable()
 to_be_relinquished = Variable()
 
 STAMP_COST = 20_000
+MASTER_COST = 100_000
 
 @construct
 def seed():
@@ -22,13 +24,13 @@ def register():
     # Make sure someone is already staked
     assert not candidate_state['registered', ctx.signer], 'Already registered.'
 
-    currency.transfer_from(MASTER_COST, ctx.caller, ctx.this)
+    currency.transfer_from(MASTER_COST, ctx.this, ctx.caller)
 
     candidate_state['registered', ctx.signer] = True
 
-    _q = Q.get()
-    _q[ctx.signer] = 0
-    Q.set(_q)
+    cv = candidate_votes.get()
+    cv[ctx.signer] = 0
+    candidate_votes.set(cv)
 
 @export
 def unregister():
@@ -56,18 +58,18 @@ def vote_candidate(address):
     candidate_state['last_voted', ctx.signer] = now
 
     # Update vote dict
-    _q = Q.get()
-    _q[address] += 1
-    Q.set(_q)
+    cv = candidate_votes.get()
+    cv[address] += 1
+    candidate_votes.set(cv)
 
 @export
 def top_masternode():
-    _q = Q.get()
+    cv = candidate_votes.get()
 
     if len(_q) == 0:
         return None
 
-    top = sorted(_q.items(), key=lambda x: x[1], reverse=True)
+    top = sorted(cv.items(), key=lambda x: x[1], reverse=True)
 
     return top[0][0]
 
@@ -77,9 +79,9 @@ def pop_top():
 
     top = top_masternode()
 
-    _q = Q.get()
-    del _q[top]
-    Q.set(_q)
+    cv = candidate_votes.get()
+    del cv[top]
+    candidate_votes.set(cv)
 ### ### ###
 
 ###

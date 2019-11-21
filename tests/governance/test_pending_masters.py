@@ -3,6 +3,7 @@ from contracting.client import ContractingClient
 from contracting.stdlib.bridge.time import Timedelta, DAYS, WEEKS, Datetime
 from datetime import datetime as dt, timedelta as td
 
+
 def pending_masters():
     import currency
     import election_house
