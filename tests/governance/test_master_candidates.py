@@ -47,7 +47,6 @@ def master_candidates():
     @export
     def unregister():
         mns = election_house.current_value_for_policy(controller.get())
-
         assert candidate_state['registered', ctx.signer], 'Not registered.'
         assert ctx.caller not in mns, "Can't unstake if in governance."
 
@@ -140,6 +139,9 @@ def master_candidates():
             return r[0]
 
         nc = no_confidence_votes.get()
+        if len(nc) == 0:
+            return None
+
         last = sorted(nc.items(), key=lambda x: x[1], reverse=True)
         return last[0][0]
 
@@ -151,6 +153,7 @@ def master_candidates():
 
         if len(r) > 0:
             stepping_down = r.pop(0)
+
             to_be_relinquished.set(r)
 
             # If stepping down in no confidence, remove them
@@ -163,12 +166,20 @@ def master_candidates():
             last = last_masternode()
 
             nc = no_confidence_votes.get()
-            del nc[last]
-            no_confidence_votes.set(nc)
+            if nc.get(last) is not None:
+                del nc[last]
+                no_confidence_votes.set(nc)
+
+                candidate_state['registered', last] = False  # Registration is lost when no confidence vote. AKA: Stake revoked.
+
+    @export
+    def force_removal(address):
+        assert ctx.caller == controller.get(), 'Wrong smart contract caller.'
+        candidate_state['registered', address] = False  # Registration is lost when no confidence vote. AKA: Stake revoked.
 
     @export
     def relinquish():
-        assert ctx.signer in election_house.get_policy(controller.get())
+        assert ctx.signer in election_house.current_value_for_policy(controller.get())
 
         r = to_be_relinquished.get()
         r.append(ctx.signer)
@@ -438,4 +449,167 @@ class TestPendingMasters(TestCase):
         self.assertEqual(self.currency.balances['blackhole'], 2)
 
         self.assertEqual(self.master_candidates.no_confidence_state['last_voted', 'stu'], env['now'])
+
+    def test_last_masternode_returns_none_if_no_candidates(self):
+        self.assertIsNone(self.master_candidates.last_masternode())
+
+    def test_last_masternode_returns_none_if_no_votes(self):
+        self.assertEqual(self.master_candidates.last_masternode(), None)  # Joe is the current top spot
+
+    def test_relinquish_fails_if_not_in_masternodes(self):
+        with self.assertRaises(AssertionError):
+            self.master_candidates.relinquish(signer='joebob')
+
+    def test_relinquish_adds_ctx_signer_if_in_masternodes(self):
+        self.master_candidates.relinquish(signer='raghu')
+
+        self.assertIn('raghu', self.master_candidates.to_be_relinquished.get())
+
+    def test_last_masternode_returns_relinquished_if_there_is_one_to_be_relinquished(self):
+        self.master_candidates.relinquish(signer='raghu')
+
+        self.assertEqual(self.master_candidates.last_masternode(), 'raghu')
+
+    def test_last_masternode_returns_first_in_relinquished_if_multiple_are_to_be_relinquished(self):
+        self.master_candidates.relinquish(signer='raghu')
+        self.master_candidates.relinquish(signer='stux')
+
+        self.assertEqual(self.master_candidates.last_masternode(), 'raghu')
+
+    def test_last_masternode_returns_masternode_with_most_votes_if_none_in_relinquished(self):
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')  # Stu approves spending to vote
+        env = {'now': Datetime._from_datetime(dt.today())}
+        self.master_candidates.vote_no_confidence(signer='stu', address='raghu', environment=env)  # Stu votes for Bob
+
+        self.assertEqual(self.master_candidates.last_masternode(), 'raghu')  # bob is the current top spot
+
+    def test_last_masternode_returns_first_in_if_tie(self):
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        self.master_candidates.vote_no_confidence(signer='stu', address='stux', environment=env)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.master_candidates.vote_no_confidence(signer='stu', address='raghu', environment=env)
+
+        self.assertEqual(self.master_candidates.last_masternode(), 'stux')
+
+    def test_last_masternode_returns_least_popular_if_multiple_votes(self):
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+        self.master_candidates.vote_no_confidence(signer='stu', address='stux', environment=env)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+        self.master_candidates.vote_no_confidence(signer='stu', address='raghu', environment=env)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=14))}
+        self.master_candidates.vote_no_confidence(signer='stu', address='stux', environment=env)
+
+        self.assertEqual(self.master_candidates.last_masternode(), 'stux')
+
+    def test_pop_last_fails_if_not_masternodes_contract(self):
+        with self.assertRaises(AssertionError):
+            self.master_candidates.pop_last()
+
+    def test_pop_last_doesnt_fail_if_masternodes_contract(self):
+        self.master_candidates.pop_last(signer='masternodes')
+
+    def test_pop_last_deletes_stux_if_is_last_masternode_and_no_relinquished(self):
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+        self.master_candidates.vote_no_confidence(signer='stu', address='stux', environment=env)
+
+        self.assertIsNotNone(self.master_candidates.no_confidence_votes.get().get('stux'))
+        self.master_candidates.pop_last(signer='masternodes')
+        self.assertIsNone(self.master_candidates.no_confidence_votes.get().get('stux'))
+
+    def test_pop_last_deletes_raghu_if_stux_voted_but_raghu_relinquished(self):
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+        self.master_candidates.vote_no_confidence(signer='stu', address='stux', environment=env)
+
+        self.master_candidates.relinquish(signer='raghu')
+
+        self.assertIsNotNone(self.master_candidates.no_confidence_votes.get().get('stux'))
+        self.assertIn('raghu', self.master_candidates.to_be_relinquished.get())
+
+        self.master_candidates.pop_last(signer='masternodes')
+
+        self.assertNotIn('raghu', self.master_candidates.to_be_relinquished.get())
+        self.assertIsNotNone(self.master_candidates.no_confidence_votes.get().get('stux'))
+
+    def test_pop_last_deletes_raghu_from_no_confidence_hash_if_relinquished(self):
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+        self.master_candidates.vote_no_confidence(signer='stu', address='raghu', environment=env)
+
+        self.master_candidates.relinquish(signer='raghu')
+
+        self.assertIsNotNone(self.master_candidates.no_confidence_votes.get().get('raghu'))
+        self.assertIn('raghu', self.master_candidates.to_be_relinquished.get())
+
+        self.master_candidates.pop_last(signer='masternodes')
+
+        self.assertNotIn('raghu', self.master_candidates.to_be_relinquished.get())
+        self.assertIsNone(self.master_candidates.no_confidence_votes.get().get('raghu'))
+
+    def test_no_confidence_pop_last_prevents_unregistering(self):
+        # Give Raghu money
+        self.currency.transfer(signer='stu', amount=100_000, to='raghu')
+
+        # Raghu Allows Spending
+        self.currency.approve(signer='raghu', amount=100_000, to='master_candidates')
+
+        self.master_candidates.register(signer='raghu')
+
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
+
+        self.master_candidates.vote_no_confidence(signer='stu', address='raghu')
+
+        self.master_candidates.pop_last(signer='masternodes')
+
+        self.assertFalse(self.master_candidates.candidate_state['registered', 'raghu'])
+
+        with self.assertRaises(AssertionError):
+            self.master_candidates.unregister(signer='raghu')
+
+    def test_relinquish_pop_last_allows_unregistering(self):
+        # Give Raghu money
+        self.currency.transfer(signer='stu', amount=100_000, to='raghu')
+
+        # Raghu Allows Spending
+        self.currency.approve(signer='raghu', amount=100_000, to='master_candidates')
+
+        self.master_candidates.register(signer='raghu')
+
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
+
+        self.master_candidates.vote_no_confidence(signer='stu', address='raghu')
+        self.master_candidates.relinquish(signer='raghu')
+        self.master_candidates.pop_last(signer='masternodes')
+
+        self.assertTrue(self.master_candidates.candidate_state['registered', 'raghu'])
+        self.masternodes.quick_write('S', 'masternodes', ['stu'])
+        self.master_candidates.unregister(signer='raghu')
+
+    def test_force_removal_fails_if_not_masternodes(self):
+        with self.assertRaises(AssertionError):
+            self.master_candidates.force_removal(address='stux')
+
+    def test_force_removal_unregisters_address(self):
+        # Give Raghu money
+        self.currency.transfer(signer='stu', amount=100_000, to='stux')
+
+        # Raghu Allows Spending
+        self.currency.approve(signer='stux', amount=100_000, to='master_candidates')
+
+        self.master_candidates.register(signer='stux')
+        self.master_candidates.force_removal(signer='masternodes', address='stux')
+        self.assertFalse(self.master_candidates.candidate_state['registered', 'stux'])
 
