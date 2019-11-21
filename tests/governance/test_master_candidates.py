@@ -18,8 +18,12 @@ def master_candidates():
     STAMP_COST = 20_000
     MASTER_COST = 100_000
 
+    controller = Variable()
+
     @construct
-    def seed():
+    def seed(masternode_contract='masternodes'):
+        controller.set(masternode_contract)
+
         candidate_votes.set({})
         to_be_relinquished.set([])
         no_confidence_votes.set({})
@@ -87,9 +91,12 @@ def master_candidates():
 
     @export
     def pop_top():
-        assert ctx.caller == 'masternodes', 'Wrong smart contract caller.'
+        assert ctx.caller == controller.get(), 'Wrong smart contract caller.'
 
         top = top_masternode()
+
+        if top is None:
+            return None
 
         cv = candidate_votes.get()
         del cv[top]
@@ -309,10 +316,6 @@ class TestPendingMasters(TestCase):
         self.currency.approve(signer='joe', amount=100_000, to='master_candidates')  # Joe Allows Spending
         self.master_candidates.register(signer='joe')  # Register Joe
 
-        #self.currency.approve(signer='stu', amount=10_000, to='master_candidates')  # Stu approves spending to vote
-        #env = {'now': Datetime._from_datetime(dt.today())}
-        #self.master_candidates.vote_candidate(signer='stu', address='joe', environment=env)  # Stu votes for Joe
-
         self.assertEqual(self.master_candidates.top_masternode(), 'joe')  # Joe is the current top spot
 
     def test_top_masternode_returns_bob_if_joe_and_bob_registered_but_bob_has_votes(self):
@@ -340,4 +343,32 @@ class TestPendingMasters(TestCase):
         self.master_candidates.register(signer='bob')  # Register Bob
 
         self.assertEqual(self.master_candidates.top_masternode(), 'joe')  # Joe is the current top spot
+
+    def test_pop_top_fails_if_not_masternodes_contract(self):
+        with self.assertRaises(AssertionError):
+            self.master_candidates.pop_top()
+
+    def test_pop_top_doesnt_fail_if_masternode_contract(self):
+        self.master_candidates.pop_top(signer='masternodes')
+
+    def test_pop_top_deletes_bob_if_pop_is_top_masternode(self):
+        self.currency.transfer(signer='stu', amount=100_000, to='joe')  # Give joe money
+        self.currency.approve(signer='joe', amount=100_000, to='master_candidates')  # Joe Allows Spending
+        self.master_candidates.register(signer='joe')  # Register Joe
+
+        self.currency.transfer(signer='stu', amount=100_000, to='bob')  # Give Bob money
+        self.currency.approve(signer='bob', amount=100_000, to='master_candidates')  # Bob Allows Spending
+        self.master_candidates.register(signer='bob')  # Register Bob
+
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')  # Stu approves spending to vote
+        env = {'now': Datetime._from_datetime(dt.today())}
+        self.master_candidates.vote_candidate(signer='stu', address='bob', environment=env)  # Stu votes for Bob
+
+        self.assertEqual(self.master_candidates.top_masternode(), 'bob')  # bob is the current top spot
+
+        self.assertIsNotNone(self.master_candidates.candidate_votes.get().get('bob'))
+
+        self.master_candidates.pop_top(signer='masternodes')
+
+        self.assertIsNone(self.master_candidates.candidate_votes.get().get('bob'))
 
