@@ -222,7 +222,11 @@ class Sandbox(object):
 
             to_deduct = decimal.Decimal(to_deduct)
 
-            balance = driver.get(balances_key) or 0
+            balance = driver.get(balances_key)
+
+            if balance is None:
+                balance = 0
+
             balance -= to_deduct
 
             driver.set(balances_key, balance)
