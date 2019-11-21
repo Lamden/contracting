@@ -46,10 +46,10 @@ def master_candidates():
 
     @export
     def unregister():
-        mns = election_house.current_value_for_policy('masternodes')
+        mns = election_house.current_value_for_policy(controller.get())
 
-        assert ctx.caller not in mns, "Can't unstake if in governance."
         assert candidate_state['registered', ctx.signer], 'Not registered.'
+        assert ctx.caller not in mns, "Can't unstake if in governance."
 
         currency.transfer(MASTER_COST, ctx.caller)
 
@@ -142,7 +142,7 @@ def master_candidates():
 
     @export
     def pop_last():
-        assert ctx.caller == 'masternodes', 'Wrong smart contract caller.'
+        assert ctx.caller == controller.get(), 'Wrong smart contract caller.'
 
         r = to_be_relinquished.get()
 
@@ -159,7 +159,7 @@ def master_candidates():
 
     @export
     def relinquish():
-        assert ctx.signer in election_house.get_policy('masternodes')
+        assert ctx.signer in election_house.get_policy(controller.get())
 
         r = to_be_relinquished.get()
         r.append(ctx.signer)
@@ -193,11 +193,12 @@ class TestPendingMasters(TestCase):
 
         self.master_candidates = self.client.get_contract(name='master_candidates')
         self.currency = self.client.get_contract(name='currency')
+        self.masternodes = self.client.get_contract(name='masternodes')
 
         self.stamp_cost = self.client.get_contract(name='stamp_cost')
         self.election_house = self.client.get_contract(name='election_house')
-        self.election_house.register_policy(policy='stamp_cost', contract='stamp_cost')
-        self.election_house.register_policy(policy='masternodes', contract='masternodes')
+        self.election_house.register_policy(contract='stamp_cost')
+        self.election_house.register_policy(contract='masternodes')
 
     def tearDown(self):
         self.client.flush()
@@ -231,10 +232,17 @@ class TestPendingMasters(TestCase):
         self.assertEqual(self.currency.balances['stu'], b1)
 
     def test_unregister_if_in_masternodes_throws_assert(self):
-        pass
+        self.currency.approve(signer='stu', amount=100_000, to='master_candidates')
+        self.master_candidates.register(signer='stu')
+
+        self.masternodes.S['masternodes'] = ['stu', 'raghu']
+
+        with self.assertRaises(AssertionError):
+            self.master_candidates.unregister()
 
     def test_unregister_if_not_registered_throws_assert(self):
-        pass
+        with self.assertRaises(AssertionError):
+            self.master_candidates.unregister()
 
     def test_vote_for_someone_not_registered_throws_assertion_error(self):
         with self.assertRaises(AssertionError):
@@ -372,3 +380,5 @@ class TestPendingMasters(TestCase):
 
         self.assertIsNone(self.master_candidates.candidate_votes.get().get('bob'))
 
+    def test_pop_top_returns_none_if_noone_registered(self):
+        self.assertIsNone(self.master_candidates.pop_top(signer='masternodes'))

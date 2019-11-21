@@ -99,7 +99,7 @@ class TestPendingMasters(TestCase):
 
         self.stamp_cost = self.client.get_contract(name='stamp_cost')
         self.election_house = self.client.get_contract(name='election_house')
-        self.election_house.register_policy(policy='stamp_cost', contract='stamp_cost')
+        self.election_house.register_policy(contract='stamp_cost')
 
     def tearDown(self):
         self.client.flush()
