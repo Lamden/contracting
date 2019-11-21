@@ -110,12 +110,15 @@ def master_candidates():
     @export
     def vote_no_confidence(address):
         # Determine if caller can vote
+        assert address in election_house.current_value_for_policy(controller.get()), \
+            'Cannot vote against a non-committee member'
+
         v = no_confidence_state['last_voted', ctx.signer]
-        assert now - v > DAYS * 1 or v is None, 'Voting again too soon.'
+        assert v is None or now - v > datetime.DAYS * 1, 'Voting again too soon.'
 
         # Deduct small vote fee
-        vote_cost = STAMP_COST / election_house.get_policy('stamp_cost')
-        currency.transfer_from(vote_cost, ctx.signer, 'blackhole')
+        vote_cost = STAMP_COST / election_house.current_value_for_policy('stamp_cost')
+        currency.transfer_from(vote_cost, 'blackhole', ctx.signer)
 
         # Update last voted variable
         no_confidence_state['last_voted', ctx.signer] = now
@@ -147,8 +150,14 @@ def master_candidates():
         r = to_be_relinquished.get()
 
         if len(r) > 0:
-            r.pop(0)
+            stepping_down = r.pop(0)
             to_be_relinquished.set(r)
+
+            # If stepping down in no confidence, remove them
+            nc = no_confidence_votes.get()
+            if nc.get(stepping_down) is not None:
+                del nc[stepping_down]
+                no_confidence_votes.set(nc)
 
         else:
             last = last_masternode()
@@ -183,10 +192,9 @@ class TestPendingMasters(TestCase):
         self.client.submit(f.read(), 'stamp_cost', owner='election_house', constructor_args={'initial_rate': 20_000})
         f.close()
 
-        f = open('./contracts/masternodes.s.py')
+        f = open('./contracts/new_masternodes.s.py')
         self.client.submit(f.read(), 'masternodes', owner='election_house', constructor_args={'initial_masternodes':
-                                                                                              ['stux', 'raghu'],
-                                                                                              'initial_open_seats': 0})
+                                                                                              ['stux', 'raghu']})
         f.close()
 
         self.client.submit(master_candidates)
@@ -382,3 +390,52 @@ class TestPendingMasters(TestCase):
 
     def test_pop_top_returns_none_if_noone_registered(self):
         self.assertIsNone(self.master_candidates.pop_top(signer='masternodes'))
+
+    def test_voting_no_confidence_against_non_committee_member_fails(self):
+        with self.assertRaises(AssertionError):
+            self.master_candidates.vote_no_confidence(address='whoknows')
+
+    def test_vote_no_confidence_for_someone_registered_deducts_tau_and_adds_vote(self):
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
+
+        stu_bal = self.currency.balances['stu']
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        self.master_candidates.vote_no_confidence(signer='stu', address='raghu', environment=env) # Raghu is seeded in contract
+
+        self.assertEqual(self.currency.balances['stu'], stu_bal - 1)
+        self.assertEqual(self.master_candidates.no_confidence_votes.get()['raghu'], 1)
+        self.assertEqual(self.currency.balances['blackhole'], 1)
+        self.assertEqual(self.master_candidates.no_confidence_state['last_voted', 'stu'], env['now'])
+
+    def test_voting_no_confidence_again_too_soon_throws_assertion_error(self):
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        self.master_candidates.vote_no_confidence(signer='stu', address='raghu', environment=env)
+
+        with self.assertRaises(AssertionError):
+            self.master_candidates.vote_no_confidence(signer='stu', address='raghu', environment=env)
+
+    def test_voting_no_confidence_again_after_waiting_one_day_works(self):
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
+
+        stu_bal = self.currency.balances['stu']
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        self.master_candidates.vote_no_confidence(signer='stu', address='raghu', environment=env)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.master_candidates.vote_no_confidence(signer='stu', address='raghu', environment=env)
+
+        self.assertEqual(self.currency.balances['stu'], stu_bal - 2)
+        self.assertEqual(self.master_candidates.no_confidence_votes.get()['raghu'], 2)
+
+        self.assertEqual(self.currency.balances['blackhole'], 2)
+
+        self.assertEqual(self.master_candidates.no_confidence_state['last_voted', 'stu'], env['now'])
+

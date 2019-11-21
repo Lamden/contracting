@@ -1,5 +1,3 @@
-import master_candidates
-
 INTRODUCE_MOTION = 'introduce_motion'
 VOTE_ON_MOTION = 'vote_on_motion'
 
@@ -14,9 +12,9 @@ S = Hash()
 boot_num = Variable()
 
 @construct
-def seed(initial_masternodes, boot_num):
+def seed(initial_masternodes, bn=1):
     S['masternodes'] = initial_masternodes
-    boot_num.set(boot_num)
+    boot_num.set(bn)
 
     S['yays'] = 0
     S['nays'] = 0
@@ -30,7 +28,7 @@ def quorum_max():
 
 @export
 def quorum_min():
-    return min(quorum_max(), boot_num)
+    return min(quorum_max(), boot_num.get())
 
 @export
 def current_value():
