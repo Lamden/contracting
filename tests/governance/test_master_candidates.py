@@ -194,6 +194,8 @@ class TestPendingMasters(TestCase):
     def test_register(self):
         self.currency.approve(signer='stu', amount=100_000, to='master_candidates')
         self.master_candidates.register(signer='stu')
-        q = self.master_candidates.Q.get()
+        q = self.master_candidates.candidate_votes.get()
 
         self.assertEqual(q['stu'], 0)
+        self.assertEqual(self.currency.balances['master_candidates'], 100_000)
+        self.assertEqual(self.master_candidates.candidate_state['registered', 'stu'], True)
