@@ -274,7 +274,9 @@ class TestPendingMasters(TestCase):
 
         self.master_candidates.register(signer='joe')
 
-        self.currency.approve(signer='stu', amount=10_000, to='pending_masters')
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
+
+        stu_bal = self.currency.balances['stu']
 
         env = {'now': Datetime._from_datetime(dt.today())}
 
@@ -284,9 +286,9 @@ class TestPendingMasters(TestCase):
 
         self.master_candidates.vote_candidate(signer='stu', address='joe', environment=env)
 
-        self.assertEqual(self.currency.balances['stu'], 999998)
-        self.assertEqual(self.master_candidates.Q.get()['joe'], 2)
+        self.assertEqual(self.currency.balances['stu'], stu_bal - 2)
+        self.assertEqual(self.master_candidates.candidate_votes.get()['joe'], 2)
 
         self.assertEqual(self.currency.balances['blackhole'], 2)
 
-        self.assertEqual(self.master_candidates.S['last_voted', 'stu'], env['now'])
+        self.assertEqual(self.master_candidates.candidate_state['last_voted', 'stu'], env['now'])
