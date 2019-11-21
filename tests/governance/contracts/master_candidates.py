@@ -35,7 +35,10 @@ def register():
 @export
 def unregister():
     mns = election_house.get_policy('masternodes')
+
     assert ctx.caller not in mns, "Can't unstake if in governance."
+    assert candidate_state['registered', ctx.signer], 'Not registered.'
+
     currency.transfer(MASTER_COST, ctx.caller)
 ### ### ###
 

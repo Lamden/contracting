@@ -42,7 +42,7 @@ def master_candidates():
 
     @export
     def unregister():
-        mns = election_house.get_policy('masternodes')
+        mns = election_house.current_value_for_policy('masternodes')
         assert ctx.caller not in mns, "Can't unstake if in governance."
         currency.transfer(MASTER_COST, ctx.caller)
 
@@ -60,7 +60,7 @@ def master_candidates():
         assert now - v > DAYS * 1 or v is None, 'Voting again too soon.'
 
         # Deduct small vote fee
-        vote_cost = STAMP_COST / election_house.get_policy('stamp_cost')
+        vote_cost = STAMP_COST / election_house.current_value_for_policy('stamp_cost')
         currency.transfer_from(vote_cost, ctx.signer, 'blackhole')
 
         # Update last voted variable
@@ -199,3 +199,23 @@ class TestPendingMasters(TestCase):
         self.assertEqual(q['stu'], 0)
         self.assertEqual(self.currency.balances['master_candidates'], 100_000)
         self.assertEqual(self.master_candidates.candidate_state['registered', 'stu'], True)
+
+    def test_double_register_raises_assert(self):
+        self.currency.approve(signer='stu', amount=100_000, to='master_candidates')
+        self.master_candidates.register(signer='stu')
+        self.currency.approve(signer='stu', amount=100_000, to='master_candidates')
+
+        with self.assertRaises(AssertionError):
+            self.master_candidates.register(signer='stu')
+
+    def test_unregister_returns_currency(self):
+        b1 = self.currency.balances['stu']
+        self.currency.approve(signer='stu', amount=100_000, to='master_candidates')
+        self.master_candidates.register(signer='stu')
+
+        self.assertEqual(self.currency.balances['stu'], b1 - 100_000)
+
+        self.master_candidates.unregister()
+
+        self.assertEqual(self.currency.balances['stu'], b1)
+
