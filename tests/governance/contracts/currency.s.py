@@ -3,7 +3,7 @@ balances = Hash(default_value=0)
 
 @construct
 def seed():
-    balances['stu'] = 1000000
+    balances['stu'] = 1_000_000
     balances['colin'] = 100
     balances['blackhole'] = 0
     supply.set(balances['stu'] + balances['colin'])

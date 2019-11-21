@@ -60,11 +60,11 @@ def master_candidates():
 
         # Determine if caller can vote
         v = candidate_state['last_voted', ctx.signer]
-        assert now - v > DAYS * 1 or v is None, 'Voting again too soon.'
+        assert v is None or now - v > datetime.DAYS * 1, 'Voting again too soon.'
 
         # Deduct small vote fee
         vote_cost = STAMP_COST / election_house.current_value_for_policy('stamp_cost')
-        currency.transfer_from(vote_cost, ctx.signer, 'blackhole')
+        currency.transfer_from(vote_cost, 'blackhole', ctx.signer)
 
         # Update last voted variable
         candidate_state['last_voted', ctx.signer] = now
@@ -189,7 +189,7 @@ class TestPendingMasters(TestCase):
 
         self.stamp_cost = self.client.get_contract(name='stamp_cost')
         self.election_house = self.client.get_contract(name='election_house')
-        #self.election_house.register_policy(policy='stamp_cost', contract='stamp_cost')
+        self.election_house.register_policy(policy='stamp_cost', contract='stamp_cost')
         self.election_house.register_policy(policy='masternodes', contract='masternodes')
 
     def tearDown(self):
@@ -223,3 +223,70 @@ class TestPendingMasters(TestCase):
 
         self.assertEqual(self.currency.balances['stu'], b1)
 
+    def test_unregister_if_in_masternodes_throws_assert(self):
+        pass
+
+    def test_unregister_if_not_registered_throws_assert(self):
+        pass
+
+    def test_vote_for_someone_not_registered_throws_assertion_error(self):
+        with self.assertRaises(AssertionError):
+            self.master_candidates.vote(address='stu')
+
+    def test_vote_for_someone_registered_deducts_tau_and_adds_vote(self):
+        self.master_candidates.register(signer='joe')
+
+        self.currency.approve(signer='stu', amount=10_000, to='pending_masters')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        self.master_candidates.vote(signer='stu', address='joe', environment=env)
+
+        self.assertEqual(self.currency.balances['stu'], 999999)
+        self.assertEqual(self.master_candidates.Q.get()['joe'], 1)
+        self.assertEqual(self.currency.balances['blackhole'], 1)
+        self.assertEqual(self.master_candidates.S['last_voted', 'stu'], env['now'])
+
+    def test_voting_again_too_soon_throws_assertion_error(self):
+        # Give joe money
+        self.currency.transfer(signer='stu', amount=100_000, to='joe')
+
+        # Joe Allows Spending
+        self.currency.approve(signer='joe', amount=100_000, to='master_candidates')
+
+        self.master_candidates.register(signer='joe')
+
+        self.currency.approve(signer='stu', amount=10_000, to='master_candidates')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        self.master_candidates.vote_candidate(signer='stu', address='joe', environment=env)
+
+        with self.assertRaises(AssertionError):
+            self.master_candidates.vote_candidate(signer='stu', address='joe', environment=env)
+
+    def test_voting_again_after_waiting_one_day_works(self):
+        # Give joe money
+        self.currency.transfer(signer='stu', amount=100_000, to='joe')
+
+        # Joe Allows Spending
+        self.currency.approve(signer='joe', amount=100_000, to='master_candidates')
+
+        self.master_candidates.register(signer='joe')
+
+        self.currency.approve(signer='stu', amount=10_000, to='pending_masters')
+
+        env = {'now': Datetime._from_datetime(dt.today())}
+
+        self.master_candidates.vote_candidate(signer='stu', address='joe', environment=env)
+
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        self.master_candidates.vote_candidate(signer='stu', address='joe', environment=env)
+
+        self.assertEqual(self.currency.balances['stu'], 999998)
+        self.assertEqual(self.master_candidates.Q.get()['joe'], 2)
+
+        self.assertEqual(self.currency.balances['blackhole'], 2)
+
+        self.assertEqual(self.master_candidates.S['last_voted', 'stu'], env['now'])
