@@ -43,7 +43,10 @@ def master_candidates():
     @export
     def unregister():
         mns = election_house.current_value_for_policy('masternodes')
+
         assert ctx.caller not in mns, "Can't unstake if in governance."
+        assert candidate_state['registered', ctx.signer], 'Not registered.'
+
         currency.transfer(MASTER_COST, ctx.caller)
 
     ### ### ###
@@ -175,7 +178,7 @@ class TestPendingMasters(TestCase):
 
         f = open('./contracts/masternodes.s.py')
         self.client.submit(f.read(), 'masternodes', owner='election_house', constructor_args={'initial_masternodes':
-                                                                                              ['stu', 'raghu'],
+                                                                                              ['stux', 'raghu'],
                                                                                               'initial_open_seats': 0})
         f.close()
 
@@ -186,7 +189,8 @@ class TestPendingMasters(TestCase):
 
         self.stamp_cost = self.client.get_contract(name='stamp_cost')
         self.election_house = self.client.get_contract(name='election_house')
-        self.election_house.register_policy(policy='stamp_cost', contract='stamp_cost')
+        #self.election_house.register_policy(policy='stamp_cost', contract='stamp_cost')
+        self.election_house.register_policy(policy='masternodes', contract='masternodes')
 
     def tearDown(self):
         self.client.flush()
@@ -215,7 +219,7 @@ class TestPendingMasters(TestCase):
 
         self.assertEqual(self.currency.balances['stu'], b1 - 100_000)
 
-        self.master_candidates.unregister()
+        self.master_candidates.unregister(signer='stu')
 
         self.assertEqual(self.currency.balances['stu'], b1)
 
