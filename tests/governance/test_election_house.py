@@ -197,6 +197,7 @@ def average_votes_policy():
 class TestElectionHouse(TestCase):
     def setUp(self):
         self.client = ContractingClient()
+        self.client.flush()
         self.client.submit(election_house)
         self.election_house = self.client.get_contract('election_house')
 
@@ -226,7 +227,7 @@ class TestElectionHouse(TestCase):
                                                 voting_period=DAYS * 1)
 
     def test_submit_policy_that_does_not_exist_fails(self):
-        with self.assertRaises(ImportError):
+        with self.assertRaises(AssertionError):
             self.election_house.register_policy(policy='testing',
                                                 contract='good_policy',
                                                 election_interval=WEEKS * 1,

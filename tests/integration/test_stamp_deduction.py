@@ -57,6 +57,8 @@ class TestMetering(TestCase):
 
         new_balance = self.d.get('currency.balances:stu')
 
+        print(stamps_used)
+
         self.assertEqual(float(prior_balance - new_balance - 100), stamps_used / STAMPS_PER_TAU)
 
     def test_too_few_stamps_fails_and_deducts_properly(self):

@@ -261,7 +261,9 @@ class ContractingClient:
     def submit(self, f, name=None, metering=None, owner=None, constructor_args={}):
 
         if isinstance(f, FunctionType):
-            f, name = self.closure_to_code_string(f)
+            f, n = self.closure_to_code_string(f)
+            if name is None:
+                name = n
 
         assert name is not None, 'No name provided.'
 

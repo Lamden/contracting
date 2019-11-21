@@ -39,7 +39,8 @@ class TestEncode(TestCase):
         b = '0.0044997618965276'
         d = dec('0.0044997618965276')
 
-        self.assertEqual(decode(b), d)
+        # _d is the actual Decimal object included in the wrapped stdlib ContractingDecimal
+        self.assertEqual(decode(b)._d, d)
 
     def test_decode_failure(self):
         b = b'xwow'

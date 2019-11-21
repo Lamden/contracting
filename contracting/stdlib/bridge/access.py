@@ -2,12 +2,11 @@ from contracting.execution.runtime import rt
 from contextlib import ContextDecorator
 from contracting.db.driver import ContractDriver
 
-
 class __export(ContextDecorator):
     def __init__(self, contract):
         self.contract = contract
 
-    def __enter__(self):
+    def __enter__(self, *args, **kwargs):
         driver = rt.env.get('__Driver') or ContractDriver()
 
         if rt.context._context_changed(self.contract):

@@ -344,8 +344,6 @@ class TestRocksDriver(TestCase):
         prefix_1_keys.sort()
         p1.sort()
 
-        print(p1)
-
         self.assertListEqual(prefix_1_keys, p1)
 
         p2 = []
@@ -584,7 +582,8 @@ def stu():
 
         keys = [
             '{}{}{}'.format(name, self.d.delimiter, config.CODE_KEY),
-            '{}{}{}'.format(name, self.d.delimiter, '__compiled__')
+            '{}{}{}'.format(name, self.d.delimiter, '__compiled__'),
+            '{}{}{}'.format(name, self.d.delimiter, config.TIME_KEY)
         ]
 
         self.d.commit()
