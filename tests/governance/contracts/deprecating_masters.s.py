@@ -1,21 +1,21 @@
 import currency
 import election_house
 
-S = Hash()
-relinquish = Variable()
-no_confidence = Variable()
+no_confidence_state = Hash()
+no_confidence_votes = Variable()
+to_be_relinquished = Variable()
 
 STAMP_COST = 20_000
 
 @construct
 def seed():
-    relinquish.set([])
-    no_confidence.set({})
+    to_be_relinquished.set([])
+    no_confidence_votes.set({})
 
 @export
-def vote(address):
+def vote_no_confidence(address):
     # Determine if caller can vote
-    v = S['last_voted', ctx.signer]
+    v = no_confidence_state['last_voted', ctx.signer]
     assert now - v > DAYS * 1 or v is None, 'Voting again too soon.'
 
     # Deduct small vote fee
@@ -23,17 +23,17 @@ def vote(address):
     currency.transfer_from(vote_cost, ctx.signer, 'blackhole')
 
     # Update last voted variable
-    S['last_voted', ctx.signer] = now
+    no_confidence_state['last_voted', ctx.signer] = now
 
     # Update vote dict
-    nc = no_confidence.get()
+    nc = no_confidence_votes.get()
 
     if nc.get(address) is None:
         nc[address] = 1
     else:
         nc[address] += 1
 
-    no_confidence.set(nc)
+    no_confidence_votes.set(nc)
 
 @export
 def last_masternode():
@@ -41,7 +41,7 @@ def last_masternode():
     if len(r) > 0:
         return r[0]
 
-    nc = no_confidence.get()
+    nc = no_confidence_votes.get()
     last = sorted(nc.items(), key=lambda x: x[1], reverse=True)
     return last[0][0]
 
@@ -59,9 +59,9 @@ def pop_last():
     else:
         last = last_masternode()
 
-        nc = no_confidence.get()
+        nc = no_confidence_votes.get()
         del nc[last]
-        no_confidence.set(nc)
+        no_confidence_votes.set(nc)
 
 @export
 def relinquish():

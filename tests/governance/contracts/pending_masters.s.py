@@ -4,6 +4,7 @@ import election_house
 S = Hash()
 Q = Variable()
 STAMP_COST = 20_000
+MASTER_COST = 100_000
 
 @construct
 def seed():
@@ -15,11 +16,19 @@ def register():
     # Make sure someone is already staked
     assert not S['registered', ctx.signer], 'Already registered.'
 
+    currency.transfer_from(MASTER_COST, ctx.caller, ctx.this)
+
     S['registered', ctx.signer] = True
 
     _q = Q.get()
     _q[ctx.signer] = 0
     Q.set(_q)
+
+@export
+def unregister():
+    mns = election_house.get_policy('masternodes')
+    assert ctx.caller not in mns, "Can't unstake if in governance."
+    currency.transfer(MASTER_COST, ctx.caller)
 
 @export
 def vote(address):

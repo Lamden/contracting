@@ -94,6 +94,7 @@ def assert_vk_is_valid(vk):
     assert vk is not None, 'No VK provided.'
     assert type(vk) == str, 'VK not a string.'
     assert len(vk) == 64, 'VK is not 64 characters.'
+    assert vk == ctx.signer, 'Signer has to be the one voting to remove themselves.'
     int(vk, 16)
 
 
