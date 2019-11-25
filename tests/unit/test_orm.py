@@ -8,7 +8,7 @@ from contracting.db.orm import Datum, Variable, ForeignHash, ForeignVariable, Ha
 # ForeignVariable = gather()['ForeignVariable']
 # ForeignHash = gather()['ForeignHash']
 
-driver = ContractDriver(db=1)
+driver = ContractDriver()
 
 
 class TestDatum(TestCase):
@@ -161,7 +161,7 @@ class TestHash(TestCase):
         h['stu', 'raghu'] = 1000
         driver.commit()
 
-        val = driver.get('blah.scoob:stu:raghu')
+        val = driver.get('blah:scoob:stu:raghu')
         self.assertEqual(val, 1000)
 
     def test_setitems_too_many_dimensions_fails(self):
@@ -305,7 +305,7 @@ class TestHash(TestCase):
 
         driver.commit()
 
-        kvs = sorted([(b'blah.scoob:3', 789), (b'blah.scoob:1', 123), (b'blah.scoob:2', 456)])
+        kvs = sorted([(b'blah:scoob:3', 789), (b'blah:scoob:1', 123), (b'blah:scoob:2', 456)])
 
         got = sorted(h._items())
 
@@ -327,7 +327,7 @@ class TestHash(TestCase):
 
         driver.commit()
 
-        kvs = sorted([(b'blah.scoob:0:3', 789), (b'blah.scoob:0:1', 123), (b'blah.scoob:0:2', 456)])
+        kvs = sorted([(b'blah:scoob:0:3', 789), (b'blah:scoob:0:1', 123), (b'blah:scoob:0:2', 456)])
 
         got = sorted(h._items(0))
 
@@ -349,8 +349,8 @@ class TestHash(TestCase):
 
         driver.commit()
 
-        kvs = sorted([(b'blah.scoob:0:3', 789), (b'blah.scoob:0:1', 123), (b'blah.scoob:0:2', 456),
-                      (b'blah.scoob:1:3', 777), (b'blah.scoob:1:1', 999), (b'blah.scoob:1:2', 888)])
+        kvs = sorted([(b'blah:scoob:0:3', 789), (b'blah:scoob:0:1', 123), (b'blah:scoob:0:2', 456),
+                      (b'blah:scoob:1:3', 777), (b'blah:scoob:1:1', 999), (b'blah:scoob:1:2', 888)])
 
         got = sorted(h._items())
 
@@ -372,7 +372,7 @@ class TestHash(TestCase):
 
         driver.commit()
 
-        kvs = sorted([(b'blah.scoob:0:3', 789), (b'blah.scoob:0:1', 123), (b'blah.scoob:0:2', 456)])
+        kvs = sorted([(b'blah:scoob:0:3', 789), (b'blah:scoob:0:1', 123), (b'blah:scoob:0:2', 456)])
 
         h.clear(1)
 
@@ -419,7 +419,7 @@ class TestHash(TestCase):
 
         driver.commit()
 
-        kvs = sorted([(b'blah.scoob:1:0:3', 789), (b'blah.scoob:1:0:1', 123), (b'blah.scoob:1:0:2', 456)])
+        kvs = sorted([(b'blah:scoob:1:0:3', 789), (b'blah:scoob:1:0:1', 123), (b'blah:scoob:1:0:2', 456)])
 
         h.clear(1, 1)
 
@@ -462,7 +462,7 @@ class TestHash(TestCase):
 
         driver.commit()
 
-        kvs = sorted([(b'blah.scoob:3', 789), (b'blah.scoob:1', 123), (b'blah.scoob:2', 456)])
+        kvs = sorted([(b'blah:scoob:3', 789), (b'blah:scoob:1', 123), (b'blah:scoob:2', 456)])
 
         got = sorted(h._items())
 

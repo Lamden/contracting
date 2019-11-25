@@ -9,7 +9,7 @@ from contracting.execution.module import DatabaseFinder
 from contracting.compilation.compiler import ContractingCompiler
 from contracting.db.cr.transaction_bag import TransactionBag
 
-driver = ContractDriver(db=0)
+driver = ContractDriver(db_type='rocks')
 
 
 class DBTests(unittest.TestCase):

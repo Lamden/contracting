@@ -2,7 +2,7 @@ from contracting.db.driver import ContractDriver
 from contracting.execution.runtime import rt
 from contracting import config
 
-driver = rt.env.get('__Driver') or ContractDriver()
+driver = rt.env.get('__Driver') or ContractDriver(db_type='rocks')
 
 class Datum:
     def __init__(self, contract, name, driver: ContractDriver):

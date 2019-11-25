@@ -531,14 +531,14 @@ class TestDBMDatabaseDriver(TestCase):
 class TestContractDriver(TestCase):
     # Flush this sucker every test
     def setUp(self):
-        self.d = ContractDriver(db=1)
+        self.d = ContractDriver(db_type=config.DB)
         self.d.flush()
 
     def tearDown(self):
         self.d.flush()
 
     def test_make_key(self):
-        contract = 'token.balances'
+        contract = 'token:balances'
 
         name = 'token'
         func = 'balances'

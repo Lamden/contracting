@@ -21,7 +21,7 @@ class Executor:
         self.driver = driver
 
         if not self.driver:
-            self.driver = ContractDriver()
+            self.driver = ContractDriver(db_type=config.DB)
         self.production = production
 
         if self.production:
