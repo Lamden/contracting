@@ -170,7 +170,13 @@ class TestMasternodePolicy(TestCase):
         self.client.submit(f.read(), 'master_candidates')
         f.close()
 
+        f = open('./contracts/stamp_cost.s.py')
+        self.client.submit(f.read(), 'stamp_cost', owner='election_house', constructor_args={'initial_rate': 20_000})
+        f.close()
+
         self.election_house = self.client.get_contract('election_house')
+        self.stamp_cost = self.client.get_contract(name='stamp_cost')
+        self.election_house.register_policy(contract='stamp_cost')
         self.master_candidates = self.client.get_contract('master_candidates')
         self.currency = self.client.get_contract('currency')
 
@@ -499,54 +505,45 @@ class TestMasternodePolicy(TestCase):
         )
 
         self.assertEqual(mn_contract.quick_read('S', 'masternodes'), [2, 3])
-    #
-    # def test_pass_current_motion_add_seat_adds_a_seat(self):
-    #     self.client.submit(masternodes, constructor_args={
-    #         'initial_masternodes': [1, 2, 3],
-    #     })
-    #
-    #     mn_contract = self.client.get_contract('masternodes')
-    #
-    #     mn_contract.quick_write('S', 'current_motion', 3)
-    #
-    #     mn_contract.run_private_function(
-    #         f='pass_current_motion',
-    #     )
-    #
-    #
-    # def test_pass_current_motion_remove_seat_removes_a_seat(self):
-    #     self.client.submit(masternodes, constructor_args={
-    #         'initial_masternodes': [1, 2, 3],
-    #     })
-    #
-    #     mn_contract = self.client.get_contract('masternodes')
-    #
-    #     mn_contract.quick_write('S', 'current_motion', 4)
-    #
-    #     mn_contract.run_private_function(
-    #         f='pass_current_motion',
-    #     )
 
     def test_pass_remove_seat_removes_least_popular(self):
-        pass
+        self.client.submit(masternodes, owner='election_house', constructor_args={
+            'initial_masternodes': ['abc', 'bcd', 'def'],
+        })
+        self.election_house.register_policy(contract='masternodes')
+        self.currency.approve(signer='stu', amount=100_000, to='master_candidates')
+
+        self.master_candidates.vote_no_confidence(signer='stu', address='bcd')
+
+        self.election_house.vote(signer='abc', policy='masternodes', value=('introduce_motion', 3))
+        self.election_house.vote(signer='bcd', policy='masternodes', value=('vote_on_motion', True))
+        self.election_house.vote(signer='def', policy='masternodes', value=('vote_on_motion', True))
+
+        self.assertListEqual(self.election_house.current_value_for_policy(policy='masternodes'), ['abc', 'def'])
 
     def test_pass_remove_seat_removes_relinquished_first(self):
         self.client.submit(masternodes, owner='election_house', constructor_args={
-            'initial_masternodes': [1, 2, 3],
+            'initial_masternodes': ['abc', 'bcd', 'def'],
         })
         self.election_house.register_policy(contract='masternodes')
 
-        self.master_candidates.relinquish(signer=1)
+        self.master_candidates.relinquish(signer='abc')
 
-        self.election_house.vote(signer=1, policy='masternodes', value=('introduce_motion', 3))
+        self.election_house.vote(signer='abc', policy='masternodes', value=('introduce_motion', 3))
 
-        self.election_house.vote(signer=2, policy='masternodes', value=('vote_on_motion', True))
-        self.election_house.vote(signer=3, policy='masternodes', value=('vote_on_motion', True))
+        self.election_house.vote(signer='bcd', policy='masternodes', value=('vote_on_motion', True))
+        self.election_house.vote(signer='def', policy='masternodes', value=('vote_on_motion', True))
 
-        self.assertListEqual(self.election_house.current_value_for_policy(policy='masternodes'), [2, 3])
+        self.assertListEqual(self.election_house.current_value_for_policy(policy='masternodes'), ['bcd', 'def'])
 
     def test_remove_seat_not_current_masternode_fails(self):
-        pass
+        self.client.submit(masternodes, owner='election_house', constructor_args={
+            'initial_masternodes': ['abc', 'bcd', 'def'],
+        })
+        self.election_house.register_policy(contract='masternodes')
+
+        with self.assertRaises(AssertionError):
+            self.election_house.vote(signer='abc', policy='masternodes', value=('introduce_motion', 1, 'blah'))
 
     def test_pass_add_seat_adds_most_popular(self):
         # Give joe money
