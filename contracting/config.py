@@ -1,4 +1,5 @@
-DB = 'rocks'
+# DB = 'rocks'
+DB = 'redis'
 CACHE = 'redis'
 
 CACHE_URL = 'localhost'
