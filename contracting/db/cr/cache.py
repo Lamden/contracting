@@ -38,7 +38,7 @@ class CRCache:
         # Replace DB with a Cache thing that either gets from itself or the raw db supplied.
         kwargs = {}
         kwargs['db'] = self.idx
-        self.db = ContractDriver(db_type=config.CACHE, kwargs)
+        self.db = ContractDriver(db_type=config.CACHE, kwargs=kwargs)
 
         # This is the state driver
         self.master_db = master_db
