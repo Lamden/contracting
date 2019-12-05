@@ -1,6 +1,7 @@
 from contracting.execution.executor import Executor
 from contracting.compilation.compiler import ContractingCompiler
 from contracting.stdlib.bridge.time import Datetime
+from contracting.logger import get_logger
 from datetime import datetime
 from functools import partial
 import ast
@@ -15,6 +16,7 @@ from . import config
 from .db.orm import Variable
 from .db.orm import Hash
 
+log = get_logger("cc")
 
 class AbstractContract:
     def __init__(self, name, signer, environment, executor: Executor, funcs):
@@ -163,8 +165,11 @@ class ContractingClient:
                  compiler=ContractingCompiler(),
                  environment={}):
 
+        log.info("1")
         self.executor = executor
+        log.info("2")
         self.raw_driver = self.executor.driver
+        log.info("3")
         self.signer = signer
         self.compiler = compiler
         self.submission_filename = submission_filename
@@ -174,10 +179,13 @@ class ContractingClient:
         with open(self.submission_filename) as f:
             contract = f.read()
 
+        log.info("4")
         self.raw_driver.set_contract(name='submission',
                                      code=contract)
+        log.info("5")
 
         self.raw_driver.commit()
+        log.info("6")
 
         self.submission_contract = self.get_contract('submission')
 
