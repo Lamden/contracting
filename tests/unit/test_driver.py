@@ -45,6 +45,14 @@ class TestLevelDBDriver(TestCase):
         inc = int(self.d.get('inc'))
         self.assertEqual(inc, 1)
 
+    def test_rocks(self):
+        kwargs = {}
+        driver = ContractDriver(db_type='rocks', kwargs)
+
+    def test_redis(self):
+        kwargs = {}
+        kwargs['db'] = 1
+        driver = ContractDriver(db_type='redis', kwargs)
 
     def test_iter(self):
 

@@ -555,7 +555,7 @@ class ContractDriver(CacheDriver):
     def __init__(self, db_type=config.DB, delimiter=config.DELIMITER,
                  code_key=config.CODE_KEY, owner_key=config.OWNER_KEY,
                  time_key=config.TIME_KEY, kwargs={}):
-        super().__init__(db_type, kwargs)
+        super().__init__(db_type, **kwargs)
 
         self.delimiter = delimiter
 
