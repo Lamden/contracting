@@ -64,7 +64,7 @@ class CacheManager:
 
         # set up caches
         for i in range(num_caches):
-            cache = CRCache(config.DB_OFFSET + i, self.master_db,
+            cache = CRCache(config.CACHE_OFFSET + i, self.master_db,
                             sbb_idx, num_sbb, self.executor)
             self.free_caches.append(cache)
 

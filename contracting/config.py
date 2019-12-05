@@ -1,11 +1,13 @@
-DB_TYPE = 'redis'
+DB = 'rocks'
+CACHE = 'redis'
 
-DB_URL = 'localhost'
-DB_PORT = 6379
-MASTER_DB = 0
-DB_OFFSET = 1
+CACHE_URL = 'localhost'
+CACHE_PORT = 6379
+CACHE_OFFSET = 1
+MASTER_CACHE = 0
 
 DB_DELIMITER = ':'
+MASTER_DB = 0
 
 # Number of available db's SenecaClients have available to get ahead on the next sub block while other sb's are
 # awaiting a merge confirmation

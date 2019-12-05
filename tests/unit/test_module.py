@@ -6,18 +6,18 @@ import glob
 
 class TestDatabase(TestCase):
     def setUp(self):
-        self.d = ContractDriver(host='localhost', port=6379, db=10)
+        self.d = ContractDriver()
         self.d.flush()
 
     def tearDown(self):
         self.d.flush()
 
     def test_init(self):
-        self.assertEqual(self.d.delimiter, '.', 'Delimiter default not .')
+        self.assertEqual(self.d.delimiter, ':', 'Delimiter default not :')
         self.assertEqual(self.d.code_key, '__code__', 'Code Key default not "code"')
 
     def test_dynamic_init(self):
-        d = ContractDriver(host='localhost', port=6379, delimiter='*', db=9, code_key='jam')
+        d = ContractDriver(delimiter='*', code_key='jam')
 
         self.assertEqual(d.delimiter, '*', 'self._delimiter is not being set')
         self.assertEqual(d.code_key, 'jam', 'self.code_key is not being set')
@@ -105,7 +105,7 @@ class TestInstallLoader(TestCase):
         self.assertEqual(testing.a, 1234567890)
 
 
-driver = ContractDriver(db=0)
+driver = ContractDriver()
 
 
 class TestModuleLoadingIntegration(TestCase):

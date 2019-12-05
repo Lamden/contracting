@@ -5,7 +5,7 @@ from types import ModuleType
 from contracting.stdlib import env
 from contracting import config
 
-driver = rt.env.get('__Driver') or ContractDriver()
+driver = rt.env.get('__Driver') or ContractDriver(db_type=config.DB)
 
 
 class Contract:

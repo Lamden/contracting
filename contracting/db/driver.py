@@ -246,7 +246,8 @@ class DBMDriver(AbstractDatabaseDriver):
 
 
 class RedisConnectionDriver(AbstractDatabaseDriver):
-    def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
+    def __init__(self, host=config.CACHE_URL,
+                 port=config.CACHE_PORT, db=config.MASTER_CACHE):
         self.host = host
         self.db = db
         self.port = port
@@ -296,7 +297,8 @@ class RedisConnectionDriver(AbstractDatabaseDriver):
 
 
 class RedisDriver(AbstractDatabaseDriver):
-    def __init__(self, host=config.DB_URL, port=config.DB_PORT, db=config.MASTER_DB):
+    def __init__(self, host=config.CACHE_URL,
+                 port=config.CACHE_PORT, db=config.CACHE_OFFSET):
         self.host = host
         self.port = port
         self.db = db
@@ -434,21 +436,22 @@ class RocksDriver(AbstractDatabaseDriver):
 # from the top level instead of having to manually change
 # a bunch of code to get to it.
 DATABASE_DRIVER_MAPS = {
-    'redis': RedisConnectionDriver
+    'redis': RedisDriver,
+    'rocks': RocksDriver
 }
 
 
-def get_database_driver():
-    cls = DATABASE_DRIVER_MAPS.get(config.DB_TYPE)
+def get_database_driver(db_type, **kwargs):
+    cls = DATABASE_DRIVER_MAPS.get(db_type)
     if cls is None:
         raise DatabaseDriverNotFound(
-            driver=config.DB_TYPE,
+            driver=db_type,
             known_drivers=DATABASE_DRIVER_MAPS.keys())
-    return cls
+    return cls(**kwargs)
 
 class CacheDriver:
-    def __init__(self):
-        self.db = RocksDriver()
+    def __init__(self, db_type, **kwargs):
+        self.db = get_database_driver(db_type, **kwargs)
         #self.log = get_logger("CacheDriver")
         self.modified_keys = None
         self.contract_modifications = None
@@ -549,9 +552,10 @@ class CacheDriver:
 
 
 class ContractDriver(CacheDriver):
-    def __init__(self, host=config.DB_URL, port=config.DB_PORT, delimiter=config.INDEX_SEPARATOR, db=0,
-                 code_key=config.CODE_KEY, owner_key=config.OWNER_KEY, time_key=config.TIME_KEY):
-        super().__init__()
+    def __init__(self, db_type=config.DB, delimiter=config.DELIMITER,
+                 code_key=config.CODE_KEY, owner_key=config.OWNER_KEY,
+                 time_key=config.TIME_KEY):
+        super().__init__(db_type)
 
         self.delimiter = delimiter
 
@@ -619,7 +623,8 @@ class ContractDriver(CacheDriver):
     def get_time_submitted(self, name):
         return self.hget(name, self.time_key)
 
-    def set_contract(self, name, code, owner=None, overwrite=False, timestamp=Datetime._from_datetime(datetime.now())):
+    def set_contract(self, name, code, owner=None, overwrite=False,
+                     timestamp=Datetime._from_datetime(datetime.now())):
         if overwrite or not self.is_contract(name):
             self.hset(name, self.code_key, code)
 
