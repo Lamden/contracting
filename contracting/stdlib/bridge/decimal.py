@@ -15,6 +15,8 @@ class ContractingDecimal:
     def __eq__(self, other):
         if type(other) == float:
             other = Decimal(str(other))
+        elif type(other) == ContractingDecimal:
+            return self._d.__eq__(other._d)
         return self._d.__eq__(other)
 
     def __lt__(self, other):

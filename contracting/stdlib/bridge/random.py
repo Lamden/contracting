@@ -15,16 +15,20 @@ import random
 from types import ModuleType
 from contracting.execution.runtime import rt
 
-block_height = str(rt.env.get('block_num')) or '0'
+block_height = '0'
+if rt.env.get('block_num') is not None:
+    block_height = str(rt.env.get('block_num'))
+
 block_hash = rt.env.get('block_hash') or '0'
+__input_hash = rt.env.get('__input_hash') or '0'
 
 
 class Seeded:
     s = False
 
 
-def seed():
-    random.seed(block_height + block_hash)
+def seed(s=block_height + block_hash + __input_hash):
+    random.seed(s)
     Seeded.s = True
 
 

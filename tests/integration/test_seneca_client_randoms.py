@@ -1,6 +1,6 @@
 from unittest import TestCase
 from contracting.client import ContractingClient
-
+import random
 
 def random_contract():
     random.seed()
@@ -84,15 +84,36 @@ class TestRandomsContract(TestCase):
 
         self.assertNotEqual(k, k2)
 
-        self.assertEqual(k, 784)
-        self.assertEqual(k2, 161)
+        random.seed('000')
+
+        self.assertEqual(k, random.randrange(1000))
+
+        random.seed('000')
+        cards = [1, 2, 3, 4, 5, 6, 7, 8]
+        random.shuffle(cards)
+
+        self.assertEqual(k2, random.randrange(1000))
 
     def test_random_getrandbits(self):
         b = self.random_contract.random_bits(k=20)
-        self.assertEqual(b, 178715)
+
+        random.seed('000')
+
+        cards = [1, 2, 3, 4, 5, 6, 7, 8]
+        random.shuffle(cards)
+        random.shuffle(cards)
+        random.shuffle(cards)
+
+        self.assertEqual(b, random.getrandbits(20))
 
     def test_random_range_int(self):
         a = self.random_contract.int_in_range(a=100, b=50000)
+
+        random.seed('000')
+
+        cards = [1, 2, 3, 4, 5, 6, 7, 8]
+        random.shuffle(cards)
+        random.shuffle(cards)
 
         self.assertEqual(a, 37565)
 
