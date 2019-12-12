@@ -115,8 +115,13 @@ class TestRandomsContract(TestCase):
         random.shuffle(cards)
         random.shuffle(cards)
 
-        self.assertEqual(a, 37565)
+        self.assertEqual(a, random.randint(a=100, b=50000))
 
     def test_random_choice(self):
         cities = self.random_contract.pick_cities(k=2)
-        self.assertListEqual(cities, ['New York', 'Cleveland'])
+
+        random.seed('000')
+        c = ['Cleveland', 'Detroit', 'Chicago', 'New York', 'San Francisco']
+        cc = random.choices(c, k=2)
+
+        self.assertListEqual(cities, cc)
