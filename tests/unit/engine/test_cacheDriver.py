@@ -13,24 +13,24 @@ def dict_to_default_dict(d):
 class TestCacheDriver(TestCase):
     def setUp(self):
         self.c = CacheDriver()
-        self.c.conn.flushdb()
+        self.c.flush()
 
     def tearDown(self):
-        self.c.conn.flushdb()
+        self.c.flush()
 
     def test_get_from_db_if_not_in_modified_keys(self):
-        self.c.conn.set('test', 'val1')
+        self.c.set('test', 'val1')
 
         val = self.c.get('test')
-        self.assertEqual(val, b'val1')
+        self.assertEqual(val, 'val1')
 
     def test_get_from_contract_modification_if_already_set(self):
+        self.c.set('test', 'val1')
         update = {'test': 'val2'}
 
         self.c.contract_modifications[-1].update(update)
         self.c.modified_keys.update({'test': deque([0])})
 
-        self.c.conn.set('test', 'val1')
 
         val = self.c.get('test')
 
@@ -126,9 +126,9 @@ class TestCacheDriver(TestCase):
 
         self.c.commit()
 
-        s = self.c.conn.get('stu')
-        c = self.c.conn.get('col')
-        r = self.c.conn.get('raghu')
+        s = self.c.get('stu')
+        c = self.c.get('col')
+        r = self.c.get('raghu')
 
         self.assertEqual(s, b'farm')
         self.assertEqual(c, b'orb')

@@ -546,7 +546,7 @@ class TestContractDriver(TestCase):
         self.d.flush()
 
     def test_make_key(self):
-        contract = 'token:balances'
+        contract = 'token.balances'
 
         name = 'token'
         func = 'balances'

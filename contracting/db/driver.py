@@ -450,7 +450,7 @@ def get_database_driver(db_type, **kwargs):
     return cls(**kwargs)
 
 class CacheDriver:
-    def __init__(self, db_type, **kwargs):
+    def __init__(self, db_type='rocks', **kwargs):
         self.db = get_database_driver(db_type, **kwargs)
         #self.log = get_logger("CacheDriver")
         self.modified_keys = None
@@ -552,7 +552,7 @@ class CacheDriver:
 
 
 class ContractDriver(CacheDriver):
-    def __init__(self, db_type=config.DB, delimiter=config.DELIMITER,
+    def __init__(self, db_type=config.DB, delimiter=config.INDEX_SEPARATOR,
                  code_key=config.CODE_KEY, owner_key=config.OWNER_KEY,
                  time_key=config.TIME_KEY, kwargs={}):
         super().__init__(db_type, **kwargs)
