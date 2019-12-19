@@ -165,11 +165,8 @@ class ContractingClient:
                  compiler=ContractingCompiler(),
                  environment={}):
 
-        log.info("1")
         self.executor = executor
-        log.info("2")
         self.raw_driver = self.executor.driver
-        log.info("3")
         self.signer = signer
         self.compiler = compiler
         self.submission_filename = submission_filename
@@ -179,13 +176,10 @@ class ContractingClient:
         with open(self.submission_filename) as f:
             contract = f.read()
 
-        log.info("4")
         self.raw_driver.set_contract(name='submission',
                                      code=contract)
-        log.info("5")
 
         self.raw_driver.commit()
-        log.info("6")
 
         self.submission_contract = self.get_contract('submission')
 
