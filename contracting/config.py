@@ -24,7 +24,7 @@ TYPE_KEY = '__type__'
 AUTHOR_KEY = '__author__'
 OWNER_KEY = '__owner__'
 TIME_KEY = '__submitted__'
-INDEX_SEPARATOR = '.'
+INDEX_SEPARATOR = ':'
 
 DECIMAL_PRECISION = 64
 
