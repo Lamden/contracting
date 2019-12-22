@@ -171,7 +171,9 @@ class Sandbox(object):
                                                config.DELIMITER,
                                                sender)
 
-            balance = driver.get(balances_key) or 0
+            balance = driver.get(balances_key)
+            if balance is None:
+                balance = 0
 
             assert balance * config.STAMPS_PER_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
                                                        Balance at key {} is {}'.format(balances_key, balance)
