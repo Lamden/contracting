@@ -36,7 +36,6 @@ typedef struct {
     PyObject_HEAD
 
     /* Variables to keep track of metering */
-    int cu_costs[158];
     unsigned long long cost;
     unsigned long long stamp_supplied;
     int started;
@@ -44,36 +43,18 @@ typedef struct {
 
 } Tracer;
 
-void read_cu_costs(char *fname, int cu_costs[]) {
-    FILE * fp;
-    char * line = NULL;
-    size_t len = 0;
-    ssize_t read_bytes;
-
-    fp = fopen(fname, "r");
-    if (fp == NULL) {
-        PyErr_SetString(PyExc_AssertionError, "Computational Costs file is not found due to unsuccessful install.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    while ((read_bytes = getline(&line, &len, fp)) != -1) {
-        int opcode = strtol(strtok(line, ","), NULL, 10);
-        int cost = strtol(strtok(NULL, ","), NULL, 10);
-        cu_costs[opcode] = cost;
-    }
-
-    fclose(fp);
-    if (line)
-        free(line);
-}
+int cu_costs[] = {2, 4, 5, 2, 4, 0, 0, 0, 2, 2, 3, 2, 0, 0, 4, 1000, 1000, 0, 30, 3, 0, 4, 3, 3, 3, 4, 4, 4, 5, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 12, 15, 0, 0, 5, 5, 4, 0, 4, 4, 4, 6, 6, 6, 6, 6, 30,
+                7, 12, 1000, 1610, 4, 7, 0, 6, 6, 6, 6, 6, 2, 15, 15, 2, 126, 1000, 4, 4, 4, 4, 2, 2, 8, 8, 2, 6, 6, 4,
+                4, 0, 2, 2, 2, 5, 8, 7, 4, 4, 38, 126, 4, 4, 4, 4, 4, 4, 3, 0, 0, 2, 4, 2, 3, 0, 2, 2, 2, 1000, 0, 0, 5,
+                9, 7, 12, 0, 7, 2, 2, 2, 0, 0, 12, 12, 15, 2, 8, 8, 5, 2, 5, 7, 9, 2, 8, 15, 30, 7, 8, 4};
 
 static int
 Tracer_init(Tracer *self, PyObject *args, PyObject *kwds)
 {
+    //char *fname = getenv("CU_COST_FNAME");
 
-    char *fname = getenv("CU_COST_FNAME");
-
-    read_cu_costs(fname, self->cu_costs); // Read cu cu_costs from ones interpreted in Python
+    //read_cu_costs(fname, self->cu_costs); // Read cu cu_costs from ones interpreted in Python
 
     self->started = 0;
     self->cost = 0;
@@ -127,13 +108,13 @@ Tracer_dealloc(Tracer *self)
              str = PyBytes_AS_STRING(frame->f_code->co_code);
              opcode = str[frame->f_lasti];
              if (opcode < 0) opcode = -opcode;
-             if (self->cost + self->cu_costs[opcode] > self->stamp_supplied) {
+             if (self->cost + cu_costs[opcode] > self->stamp_supplied) {
                  PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
                  PyEval_SetTrace(NULL, NULL);
                  self->started = 0;
                  return RET_ERROR;
              }
-             self->cost += self->cu_costs[opcode];
+             self->cost += cu_costs[opcode];
              break;
 
          // case PyTrace_EXCEPTION:
