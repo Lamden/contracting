@@ -36,55 +36,48 @@ def token_contract():
 
 ### Installing
 
-Ubuntu 18.04 LTS
+#### Ubuntu 18.04 LTS
 
-Clone Contracting Repo
-```
-git clone https://github.com/Lamden/contracting.git
-cd contracting
-```
-
-Install pip3
-```
-apt install python3-pip
-```
-
-install redis
+Requirements
 ```
 sudo apt-get update
 sudo apt-get upgrade
-sudo apt-get install redis-server
-sudo systemctl enable redis-server.service
-```
-Validate redis is running
-```
-sudo systemctl status redis-server.service
-
+apt install python3-pip
 ```
 
-install contracting
+Install RocksDB & Dependencies
 ```
-python3 ./setup.py develop
-```
-
-install webserver.py depenancies
-```
-pip3 install sanic sanic_cors Cython
-
+sudo apt-get install libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev libzstd-dev librocksdb-dev
 ```
 
-START CONTRACTING API SERVER
-```
-python3 contracting/webserver.py
-```
-
-OSX
-
+Install Contracting
 ```
 pip3 install contracting
+```
 
-brew install redis
-brew services start redis
+Start Rocks Server
+```
+rocks serve &
+```
+
+#### OSX
+
+Install RocksDB
+
+```
+brew install rocksdb
+```
+
+If Homebrew is not installed, install it first: https://brew.sh/
+
+Install Contracting
+```
+pip3 install contracting
+```
+
+Start Rocks Server
+```
+rocks serve &
 ```
 
 ### Using Contracting in a Development Environment
@@ -140,14 +133,6 @@ Out[7]: 100000
 3. [Interacting with the Client](/examples/03%20Interacting%20with%20the%20Client.ipynb)
 4. [Standard Library and Extending Contracting](/examples/04%20Standard%20Library%20and%20Extending%20Contracting.ipynb)
 5. [Imports and Advanced Data Storage](/examples/05%20Imports%20and%20Advanced%20Data%20Storage.ipynb)
-
-### Storage Model
-
-Contracting uses Redis to store the state of the blockchain. This means you can use any Redis tooling to inspect the storage and retrieval of information to and from your smart contracts.
-
-You can also use a GUI like Medis without any issue.
-
-![Medis](medis.png)
 
 ## FAQs
 
