@@ -397,7 +397,7 @@ class RocksDriver(AbstractDatabaseDriver):
 
         self.client.delete(key)
 
-    def iter(self, prefix):
+    def iter(self, prefix, length=0):
         try:
             prefix = prefix.encode()
         except:
@@ -413,6 +413,8 @@ class RocksDriver(AbstractDatabaseDriver):
                 break
             if k != constants.STOP_ITER_RESPONSE:
                 l.append(k)
+            if 0 < length <= len(l):
+                break
 
         return l
 

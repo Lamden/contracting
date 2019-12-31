@@ -15,6 +15,7 @@ requirements = [
     'ujson==1.35',
     'autopep8==1.4.3',
     'coloredlogs==10.0',
+    'humanfriendly',
     'transitions==0.6.9',
     'astor==0.7.1',
     'rocks',
