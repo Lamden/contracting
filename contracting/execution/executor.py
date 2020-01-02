@@ -255,9 +255,6 @@ class Sandbox(object):
             'deletes': driver.deletes
         }
 
-        driver.writes = {}
-        driver.deletes = set()
-
         return output
 
 

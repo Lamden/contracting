@@ -484,6 +484,10 @@ class CacheDriver:
         if len(self.contract_modifications) == 0:
             self.new_tx()
 
+        # Reset latest deltas (used for storing outputs in blockchain)
+        self.writes = {}
+        self.deletes = set()
+
     def get(self, key):
         key_location = self.modified_keys.get(key)
         if key_location is None:
