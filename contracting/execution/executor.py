@@ -39,7 +39,7 @@ class Executor:
                     auto_commit=False,
                     driver=None,
                     environment={},
-                    metering=None) -> Dict[int, tuple]:
+                    metering=None) -> Dict[int, dict]:
 
         results = self.sandbox.execute_bag(bag,
                                            auto_commit=auto_commit,
@@ -53,7 +53,7 @@ class Executor:
                 auto_commit=True,
                 driver=None,
                 stamps=1000000,
-                metering=None) -> tuple:
+                metering=None) -> dict:
 
         if not self.bypass_privates:
             assert not function_name.startswith(config.PRIVATE_METHOD_PREFIX), 'Private method not callable.'
