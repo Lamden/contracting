@@ -11,7 +11,6 @@ from contracting import config
 
 #log = get_logger('Executor')
 
-
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
                  currency_contract='currency', balances_hash='balances', bypass_privates=False):
@@ -67,7 +66,18 @@ class Executor:
         if driver is None:
             driver = runtime.rt.env.get('__Driver')
 
-        status_code, result, stamps_used = self.sandbox.execute(sender, contract_name, function_name, kwargs,
+        #
+        # EXECUTION OUTPUT
+        # {
+        #     'result': None,
+        #     'status_code': None,
+        #     'stamps_used': None,
+        #     'writes': None, <- list of tuples sorted by key
+        #     'deletes': None <- Set
+        # }
+        #
+
+        output = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                                 auto_commit=auto_commit,
                                                                 environment=environment,
                                                                 driver=driver,
@@ -76,7 +86,7 @@ class Executor:
                                                                 currency_contract=self.currency_contract,
                                                                 balances_hash=self.balances_hash)
 
-        return status_code, result, stamps_used
+        return output
 
 
 """
@@ -237,7 +247,18 @@ class Sandbox(object):
         runtime.rt.clean_up()
         runtime.rt.env.update({'__Driver': driver})
 
-        return status_code, result, stamps_used
+        output = {
+            'status_code': status_code,
+            'result': result,
+            'stamps_used': stamps_used,
+            'writes': driver.writes,
+            'deletes': driver.deletes
+        }
+
+        driver.writes = {}
+        driver.deletes = set()
+
+        return output
 
 
 # THIS SHOULD BE USED LATER
