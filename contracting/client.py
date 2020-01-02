@@ -140,20 +140,20 @@ class AbstractContract:
         if environment.get('now') is None:
             environment.update({'now': now})
 
-        status, result, stamps = executor.execute(sender=signer,
-                                                  contract_name=contract_name,
-                                                  function_name=func,
-                                                  kwargs=kwargs,
-                                                  environment=environment,
-                                                  metering=metering)
+        output = executor.execute(sender=signer,
+                                  contract_name=contract_name,
+                                  function_name=func,
+                                  kwargs=kwargs,
+                                  environment=environment,
+                                  metering=metering)
 
         if executor.production:
             executor.sandbox.terminate()
 
-        if status == 1:
-            raise result
+        if output['status_code'] == 1:
+            raise output['result']
 
-        return result
+        return output['result']
 
 
 class ContractingClient:
