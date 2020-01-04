@@ -62,6 +62,8 @@ class Hash(Datum):
                 new_key_str += '{}{}'.format(k, self._delimiter)
 
             key = new_key_str[:-len(self._delimiter)]
+        else:
+            key = str(key)
 
         assert len(key) <= config.MAX_KEY_SIZE, 'Key is too long ({}). Max is {}.'.format(len(key), config.MAX_KEY_SIZE)
         return key

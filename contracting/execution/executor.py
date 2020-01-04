@@ -251,7 +251,7 @@ class Sandbox(object):
             'status_code': status_code,
             'result': result,
             'stamps_used': stamps_used,
-            'writes': driver.get_current_modifications(),
+            'writes': driver.pop_writes(),
         }
 
         return output
