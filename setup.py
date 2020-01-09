@@ -7,7 +7,7 @@ import sys
 
 major = 0
 
-__version__ = '1.0.1.0'
+__version__ = '1.0.1.1'
 
 requirements = [
     'redis==3.2.0',
