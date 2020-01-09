@@ -47,18 +47,18 @@ class DBTests(unittest.TestCase):
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
 
-        status_code, result, _ = self.sb.execute(self.author, contract_name,
+        output = self.sb.execute(self.author, contract_name,
                                               function_name, kwargs)
-        self.assertEqual(result, 'Working')
+        self.assertEqual(output['result'], 'Working')
 
     def test_base_execute_fail(self):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result, _ = self.sb.execute(self.author, contract_name, function_name, kwargs)
+        output = self.sb.execute(self.author, contract_name, function_name, kwargs)
 
-        self.assertEqual(status_code, 1)
-        self.assertIsInstance(result, ImportError)
+        self.assertEqual(output['status_code'], 1)
+        self.assertIsInstance(output['result'], ImportError)
 
     def test_base_execute_bag(self):
         contract_name = 'module_func'
@@ -71,26 +71,26 @@ class DBTests(unittest.TestCase):
 
         results = self.sb.execute_bag(txbag)
 
-        self.assertEqual(results[0][0], 0)
-        self.assertEqual(results[0][1], 'Working')
+        self.assertEqual(results[0]['status_code'], 0)
+        self.assertEqual(results[0]['result'], 'Working')
 
     def test_executor_execute(self):
         contract_name = 'module_func'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result, stamps = self.e.execute(self.author, contract_name,
+        output = self.e.execute(self.author, contract_name,
                                              function_name, kwargs)
-        self.assertEqual(result, 'Working')
-        self.assertEqual(status_code, 0)
+        self.assertEqual(output['result'], 'Working')
+        self.assertEqual(output['status_code'], 0)
 
     def test_executor_execute_fail(self):
         contract_name = 'badmodule'
         function_name = 'test_func'
         kwargs = {'status': 'Working'}
-        status_code, result, stamp = self.e.execute(self.author, contract_name,
+        output = self.e.execute(self.author, contract_name,
                                              function_name, kwargs)
-        self.assertEqual(status_code, 1)
-        self.assertIsInstance(result, ImportError)
+        self.assertEqual(output['status_code'], 1)
+        self.assertIsInstance(output['result'], ImportError)
 
     def test_executor_execute_bag(self):
         contract_name = 'module_func'
@@ -103,8 +103,8 @@ class DBTests(unittest.TestCase):
 
         results = self.e.execute_bag(txbag)
 
-        self.assertEqual(results[0][0], 0)
-        self.assertEqual(results[0][1], 'Working')
+        self.assertEqual(results[0]['status_code'], 0)
+        self.assertEqual(results[0]['result'], 'Working')
 
 
 # Stub out the Contract Transaction object for use in the unit test
@@ -131,7 +131,3 @@ class TestExecutorIntegration(unittest.TestCase):
     def setUp(self):
         e = Executor(metering=False, production=False)
 
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -59,15 +59,15 @@ class TestAtomicSwapContract(TestCase):
 
     def test_initiate_not_enough_approved(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
-        status, res, stamps = self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
+        output = self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
             'participant': 'raghu',
             'expiration': Datetime(2020, 1, 1),
             'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
             'amount': 5000000
         })
 
-        self.assertEqual(status, 1)
-        self.assertTrue(isinstance(res, AssertionError))
+        self.assertEqual(output['status_code'], 1)
+        self.assertTrue(isinstance(output['result'], AssertionError))
 
     def test_initiate_transfers_coins_correctly(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
@@ -78,13 +78,13 @@ class TestAtomicSwapContract(TestCase):
             'amount': 5
         })
 
-        _, atomic_swaps, _ = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account':'atomic_swaps'})
-        _, stu, _ = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'stu'})
-        _, stu_as, _ = self.e.execute('stu', 'erc20_clone', 'allowance', kwargs={'owner': 'stu', 'spender': 'atomic_swaps'})
+        atomic_swaps = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account':'atomic_swaps'})
+        stu = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'stu'})
+        stu_as = self.e.execute('stu', 'erc20_clone', 'allowance', kwargs={'owner': 'stu', 'spender': 'atomic_swaps'})
 
-        self.assertEqual(atomic_swaps, 5)
-        self.assertEqual(stu, 999995)
-        self.assertEqual(stu_as, 999995)
+        self.assertEqual(atomic_swaps['result'], 5)
+        self.assertEqual(stu['result'], 999995)
+        self.assertEqual(stu_as['result'], 999995)
 
     def test_initiate_writes_to_correct_key_and_properly(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
@@ -110,10 +110,10 @@ class TestAtomicSwapContract(TestCase):
             'amount': 5
         })
 
-        s, r, _ = self.e.execute('raghu', 'atomic_swaps', 'redeem', kwargs={'secret': '00'})
+        output = self.e.execute('raghu', 'atomic_swaps', 'redeem', kwargs={'secret': '00'})
 
-        self.assertEqual(s, 1)
-        self.assertEqual(str(r), 'Incorrect sender or secret passed.')
+        self.assertEqual(output['status_code'], 1)
+        self.assertEqual(str(output['result']), 'Incorrect sender or secret passed.')
 
     def test_redeem_on_wrong_sender_fails(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
@@ -124,10 +124,10 @@ class TestAtomicSwapContract(TestCase):
             'amount': 5
         })
 
-        s, r, _ = self.e.execute('stu', 'atomic_swaps', 'redeem', kwargs={'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'})
-
-        self.assertEqual(s, 1)
-        self.assertEqual(str(r), 'Incorrect sender or secret passed.')
+        output = self.e.execute('stu', 'atomic_swaps', 'redeem', kwargs={'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'})
+        # status_code, result, stamps_used
+        self.assertEqual(output['status_code'], 1)
+        self.assertEqual(str(output['result']), 'Incorrect sender or secret passed.')
 
     def test_past_expiration_fails(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
@@ -140,11 +140,11 @@ class TestAtomicSwapContract(TestCase):
 
         environment = {'now': Datetime(2021, 1, 1)}
 
-        s, r, _ = self.e.execute('raghu', 'atomic_swaps', 'redeem', kwargs={'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
+        output = self.e.execute('raghu', 'atomic_swaps', 'redeem', kwargs={'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
                               environment=environment)
 
-        self.assertEqual(s, 1)
-        self.assertEqual(str(r), 'Swap has expired.')
+        self.assertEqual(output['status_code'], 1)
+        self.assertEqual(str(output['result']), 'Swap has expired.')
 
     def test_successful_redeem_transfers_coins_correctly(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
@@ -160,11 +160,11 @@ class TestAtomicSwapContract(TestCase):
         self.e.execute('raghu', 'atomic_swaps', 'redeem', kwargs={'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
                        environment=environment)
 
-        _, atomic_swaps, _ = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'atomic_swaps'})
-        _, raghu, _ = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'raghu'})
+        atomic_swaps = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'atomic_swaps'})
+        raghu = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'raghu'})
 
-        self.assertEqual(raghu, 5)
-        self.assertEqual(atomic_swaps, 0)
+        self.assertEqual(raghu['result'], 5)
+        self.assertEqual(atomic_swaps['result'], 0)
 
     def test_successful_redeem_deletes_entry(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
@@ -199,11 +199,11 @@ class TestAtomicSwapContract(TestCase):
         self.e.execute('stu', 'atomic_swaps', 'refund', kwargs={'participant': 'raghu', 'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
                        environment=environment)
 
-        _, atomic_swaps, _ = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'atomic_swaps'})
-        _, stu, _ = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'stu'})
+        atomic_swaps = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'atomic_swaps'})
+        stu = self.e.execute('stu', 'erc20_clone', 'balance_of', kwargs={'account': 'stu'})
 
-        self.assertEqual(stu, 1000000)
-        self.assertEqual(atomic_swaps, 0)
+        self.assertEqual(stu['result'], 1000000)
+        self.assertEqual(atomic_swaps['result'], 0)
 
     def test_refund_too_early_fails(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
@@ -216,11 +216,11 @@ class TestAtomicSwapContract(TestCase):
 
         environment = {'now': Datetime(2019, 1, 1)}
 
-        _, res, _ = self.e.execute('stu', 'atomic_swaps', 'refund',
+        res = self.e.execute('stu', 'atomic_swaps', 'refund',
                        kwargs={'participant': 'raghu', 'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
                        environment=environment)
 
-        self.assertEqual(str(res), 'Swap has not expired.')
+        self.assertEqual(str(res['result']), 'Swap has not expired.')
 
     def test_refund_participant_is_signer_fails(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
@@ -233,11 +233,11 @@ class TestAtomicSwapContract(TestCase):
 
         environment = {'now': Datetime(2021, 1, 1)}
 
-        _, res, _ = self.e.execute('raghu', 'atomic_swaps', 'refund',
+        res = self.e.execute('raghu', 'atomic_swaps', 'refund',
                        kwargs={'participant': 'raghu', 'secret': '842b65a7d48e3a3c3f0e9d37eaced0b2'},
                        environment=environment)
 
-        self.assertEqual(str(res), 'Caller and signer cannot issue a refund.')
+        self.assertEqual(str(res['result']), 'Caller and signer cannot issue a refund.')
 
     def test_refund_fails_with_wrong_secret(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
@@ -250,11 +250,11 @@ class TestAtomicSwapContract(TestCase):
 
         environment = {'now': Datetime(2019, 1, 1)}
 
-        _, res, _ = self.e.execute('stu', 'atomic_swaps', 'refund',
+        res = self.e.execute('stu', 'atomic_swaps', 'refund',
                                 kwargs={'participant': 'raghu', 'secret': '00'},
                                 environment=environment)
 
-        self.assertEqual(str(res), 'No swap to refund found.')
+        self.assertEqual(str(res['result']), 'No swap to refund found.')
 
     def test_refund_resets_swaps(self):
         self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})

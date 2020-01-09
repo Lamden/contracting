@@ -457,6 +457,8 @@ class CacheDriver:
         self.original_values = None
         self.reset_cache()
 
+        self.writes = {}
+
     def reset_cache(self, modified_keys=None, contract_modifications=None, original_values=None):
         # Modified keys is a dictionary of deques representing the contracts that have modified
         # that _key
@@ -497,6 +499,7 @@ class CacheDriver:
         self.contract_modifications[-1].update({key: value})
         # TODO: May have multiple instances of contract_idx if multiple sets on same _key
         self.modified_keys[key].append(len(self.contract_modifications) - 1)
+        self.writes[key] = value
 
     def delete(self, key):
         self.set(key, None) # Indirection is going on here where None gets encoded into JSONs none
@@ -531,6 +534,18 @@ class CacheDriver:
                 self.db.set(key, value)
 
         self.reset_cache()
+
+    def pop_writes(self):
+        writes = {}
+        for key, value in self.writes.items():
+            if value == 'null':
+                writes[key] = None
+            else:
+                writes[key] = value
+
+        self.writes.clear()
+
+        return writes
 
     def iter(self, prefix):
         keys = set(self.db.iter(prefix=prefix))

@@ -53,36 +53,32 @@ class TestMetering(TestCase):
     def test_simple_execution_deducts_stamps(self):
         prior_balance = self.d.get('currency.balances:stu')
 
-        status, result, stamps_used = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'})
+        output = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'})
 
         new_balance = self.d.get('currency.balances:stu')
 
-        print(stamps_used)
-
-        self.assertEqual(float(prior_balance - new_balance - 100), stamps_used / STAMPS_PER_TAU)
+        self.assertEqual(float(prior_balance - new_balance - 100), output['stamps_used'] / STAMPS_PER_TAU)
 
     def test_too_few_stamps_fails_and_deducts_properly(self):
         prior_balance = self.d.get('currency.balances:stu')
 
         small_amount_of_stamps = 1 * STAMPS_PER_TAU
 
-        status, result, stamps = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
+        output = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
                                                 stamps=small_amount_of_stamps)
 
         new_balance = self.d.get('currency.balances:stu')
 
-        self.assertEqual(float(prior_balance - new_balance), stamps / STAMPS_PER_TAU)
+        self.assertEqual(float(prior_balance - new_balance), output['stamps_used'] / STAMPS_PER_TAU)
 
     def test_adding_too_many_stamps_throws_error(self):
         prior_balance = self.d.get('currency.balances:stu')
         too_many_stamps = (prior_balance + 1000) * STAMPS_PER_TAU
 
-        print(too_many_stamps)
-
         #too_many_stamps = 2147483648
 
         with self.assertRaises(AssertionError):
-            status, result, stamps = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
+            output = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
                                                     stamps=too_many_stamps)
 
     def test_adding_all_stamps_with_infinate_loop_eats_all_balance(self):
@@ -106,10 +102,10 @@ class TestMetering(TestCase):
     def test_submitting_contract_succeeds_with_enough_stamps(self):
         prior_balance = self.d.get('currency.balances:stu')
 
-        status, result, stamps = self.e.execute(**TEST_SUBMISSION_KWARGS,
+        output = self.e.execute(**TEST_SUBMISSION_KWARGS,
                                                 kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'),
                                                 )
 
         new_balance = self.d.get('currency.balances:stu')
 
-        self.assertEqual(float(prior_balance - new_balance), stamps / STAMPS_PER_TAU)
+        self.assertEqual(float(prior_balance - new_balance), output['stamps_used'] / STAMPS_PER_TAU)
