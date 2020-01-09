@@ -11,6 +11,7 @@ from contracting import config
 
 #log = get_logger('Executor')
 
+
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
                  currency_contract='currency', balances_hash='balances', bypass_privates=False):
@@ -39,7 +40,7 @@ class Executor:
                     auto_commit=False,
                     driver=None,
                     environment={},
-                    metering=None) -> Dict[int, dict]:
+                    metering=None) -> Dict[int, tuple]:
 
         results = self.sandbox.execute_bag(bag,
                                            auto_commit=auto_commit,
@@ -53,7 +54,7 @@ class Executor:
                 auto_commit=True,
                 driver=None,
                 stamps=1000000,
-                metering=None) -> dict:
+                metering=None) -> tuple:
 
         if not self.bypass_privates:
             assert not function_name.startswith(config.PRIVATE_METHOD_PREFIX), 'Private method not callable.'
@@ -66,18 +67,7 @@ class Executor:
         if driver is None:
             driver = runtime.rt.env.get('__Driver')
 
-        #
-        # EXECUTION OUTPUT
-        # {
-        #     'result': None,
-        #     'status_code': None,
-        #     'stamps_used': None,
-        #     'writes': None, <- list of tuples sorted by key
-        #     'deletes': None <- Set
-        # }
-        #
-
-        output = self.sandbox.execute(sender, contract_name, function_name, kwargs,
+        status_code, result, stamps_used = self.sandbox.execute(sender, contract_name, function_name, kwargs,
                                                                 auto_commit=auto_commit,
                                                                 environment=environment,
                                                                 driver=driver,
@@ -86,7 +76,7 @@ class Executor:
                                                                 currency_contract=self.currency_contract,
                                                                 balances_hash=self.balances_hash)
 
-        return output
+        return status_code, result, stamps_used
 
 
 """
@@ -181,7 +171,9 @@ class Sandbox(object):
                                                config.DELIMITER,
                                                sender)
 
-            balance = driver.get(balances_key) or 0
+            balance = driver.get(balances_key)
+            if balance is None:
+                balance = 0
 
             assert balance * config.STAMPS_PER_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
                                                        Balance at key {} is {}'.format(balances_key, balance)
@@ -205,6 +197,7 @@ class Sandbox(object):
             #module = __import__(contract_name)
 
             func = getattr(module, function_name)
+
 
             result = func(**kwargs)
 
@@ -233,7 +226,6 @@ class Sandbox(object):
             to_deduct = decimal.Decimal(to_deduct)
 
             balance = driver.get(balances_key)
-
             if balance is None:
                 balance = 0
 
@@ -247,14 +239,7 @@ class Sandbox(object):
         runtime.rt.clean_up()
         runtime.rt.env.update({'__Driver': driver})
 
-        output = {
-            'status_code': status_code,
-            'result': result,
-            'stamps_used': stamps_used,
-            'writes': driver.pop_writes(),
-        }
-
-        return output
+        return status_code, result, stamps_used
 
 
 # THIS SHOULD BE USED LATER
@@ -381,4 +366,3 @@ class MultiProcessingSandbox(Sandbox):
                                                              driver=driver)
 
             parent_pipe.send(response_obj)
-
