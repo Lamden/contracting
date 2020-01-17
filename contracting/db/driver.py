@@ -449,8 +449,8 @@ def get_database_driver():
     return cls
 
 class CacheDriver:
-    def __init__(self):
-        self.db = RocksDriver()
+    def __init__(self, db=RocksDriver()):
+        self.db = db
         #self.log = get_logger("CacheDriver")
         self.modified_keys = None
         self.contract_modifications = None

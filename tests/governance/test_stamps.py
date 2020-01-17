@@ -85,7 +85,7 @@ class TestStamps(TestCase):
             'initial_open_seats': 0
         })
 
-        self.election_house.register_policy(policy='masternodes', contract='masternodes')
+        self.election_house.register_policy(contract='masternodes')
 
         self.masternodes = self.client.get_contract('masternodes')
 
@@ -351,7 +351,7 @@ class TestStamps(TestCase):
             'initial_rate': 10000,
         }, owner='election_house')
 
-        self.election_house.register_policy(policy='stamps', contract='stamps')
+        self.election_house.register_policy(contract='stamps')
 
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
 
