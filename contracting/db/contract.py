@@ -30,7 +30,9 @@ class Contract:
 
         exec(code_obj, scope)
 
-        if scope.get(config.INIT_FUNC_NAME) is not None and constructor_args is not None:
+        if scope.get(config.INIT_FUNC_NAME) is not None:
+            if constructor_args is None:
+                constructor_args = {}
             scope[config.INIT_FUNC_NAME](**constructor_args)
 
         now = scope.get('now')
