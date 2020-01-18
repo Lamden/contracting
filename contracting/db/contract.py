@@ -18,12 +18,6 @@ class Contract:
 
         code_obj = c.parse_to_code(code, lint=True)
 
-        # ctx = ModuleType('context')
-        #
-        # ctx.caller = rt.ctx[-1]
-        # ctx.this = name
-        # ctx.signer = rt.ctx[0]
-        #
         scope = env.gather()
         scope.update({'__contract__': True})
         scope.update(rt.env)

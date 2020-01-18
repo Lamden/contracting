@@ -1,4 +1,5 @@
 from contracting.execution.executor import Executor
+from contracting.db.driver import ContractDriver
 from contracting.compilation.compiler import ContractingCompiler
 from contracting.stdlib.bridge.time import Datetime
 from datetime import datetime
@@ -159,12 +160,13 @@ class AbstractContract:
 class ContractingClient:
     def __init__(self, signer='sys',
                  submission_filename=os.path.join(os.path.dirname(__file__), 'contracts/submission.s.py'),
-                 executor=Executor(metering=False),
+                 driver=ContractDriver(),
+                 metering=False,
                  compiler=ContractingCompiler(),
                  environment={}):
 
-        self.executor = executor
-        self.raw_driver = self.executor.driver
+        self.executor = Executor(metering=metering, driver=driver)
+        self.raw_driver = driver
         self.signer = signer
         self.compiler = compiler
         self.submission_filename = submission_filename
