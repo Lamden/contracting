@@ -48,7 +48,7 @@ def uninstall_builtins():
 
 
 def install_database_loader(driver=ContractDriver()):
-    DatabaseFinder.d = driver
+    DatabaseFinder.driver = driver
     sys.meta_path.append(DatabaseFinder)
 
 
@@ -69,12 +69,13 @@ def install_system_contracts(directory=''):
 
 
 class DatabaseFinder:
-    d = ContractDriver()
+    driver = ContractDriver()
+
     def find_spec(self, fullname, path=None, target=None):
         if MODULE_CACHE.get(self) is None:
-            if DatabaseFinder.d.get_contract(self) is None:
+            if DatabaseFinder.driver.get_contract(self) is None:
                 return None
-        return ModuleSpec(self, DatabaseLoader(DatabaseFinder.d))
+        return ModuleSpec(self, DatabaseLoader(DatabaseFinder.driver))
 
 
 MODULE_CACHE = {}
