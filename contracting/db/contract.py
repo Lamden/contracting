@@ -5,11 +5,11 @@ from types import ModuleType
 from contracting.stdlib import env
 from contracting import config
 
-driver = rt.env.get('__Driver') or ContractDriver()
+_driver = rt.env.get('__Driver') or ContractDriver()
 
 
 class Contract:
-    def __init__(self, driver: ContractDriver=driver):
+    def __init__(self, driver: ContractDriver=_driver):
         self._driver = driver
 
     def submit(self, name, code, owner=None, constructor_args={}):

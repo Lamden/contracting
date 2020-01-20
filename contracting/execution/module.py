@@ -68,19 +68,20 @@ def install_system_contracts(directory=''):
 
 
 class DatabaseFinder:
+    d = ContractDriver()
     def find_spec(self, fullname, path=None, target=None):
         if MODULE_CACHE.get(self) is None:
-            if ContractDriver().get_contract(self) is None:
+            if DatabaseFinder.d.get_contract(self) is None:
                 return None
-        return ModuleSpec(self, DatabaseLoader())
+        return ModuleSpec(self, DatabaseLoader(DatabaseFinder.d))
 
 
 MODULE_CACHE = {}
 
 
 class DatabaseLoader(Loader):
-    def __init__(self):
-        self.d = ContractDriver()
+    def __init__(self, d=ContractDriver()):
+        self.d = d
 
     def create_module(self, spec):
         return None

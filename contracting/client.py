@@ -183,6 +183,7 @@ class ContractingClient:
 
         self.submission_contract = self.get_contract('submission')
 
+
     def flush(self):
         # flushes db and resubmits genesis contracts
         self.raw_driver.flush()
