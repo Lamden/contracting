@@ -116,7 +116,6 @@ I/O pattern:
 
 class Sandbox(object):
     def __init__(self, bypass_privates=False):
-        install_database_loader()
         self.bypass_privates = bypass_privates
 
     def wipe_modules(self):
@@ -124,6 +123,8 @@ class Sandbox(object):
         install_database_loader()
 
     def execute_bag(self, txbag, environment={}, auto_commit=False, driver=None, metering=None):
+        install_database_loader(driver=driver)
+
         response_obj = {}
 
         for idx, tx in txbag:
@@ -171,6 +172,8 @@ class Sandbox(object):
             runtime.rt.env.update({'__Driver': driver})
         else:
             driver = runtime.rt.env.get('__Driver')
+
+        install_database_loader(driver=driver)
 
         # __main__ is replaced by the sender of the message in this case
 
