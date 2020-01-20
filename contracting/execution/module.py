@@ -47,7 +47,8 @@ def uninstall_builtins():
     invalidate_caches()
 
 
-def install_database_loader():
+def install_database_loader(driver=ContractDriver()):
+    DatabaseFinder.d = driver
     sys.meta_path.append(DatabaseFinder)
 
 
