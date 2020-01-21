@@ -68,8 +68,8 @@ def enforce_interface(m: ModuleType, interface: list):
 
 
 def owner_of(m: ModuleType):
-    driver = ContractDriver()
-    owner = driver.hget(m.__name__, driver.owner_key)
+    _driver = rt.env.get('__Driver') or ContractDriver()
+    owner = _driver.hget(m.__name__, _driver.owner_key)
     return owner
 
 
