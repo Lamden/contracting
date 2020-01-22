@@ -83,7 +83,6 @@ class CacheDriver:
 
         # If it doesn't exist, get from db, add to cache
         dv = self.driver.get(key)
-        print('here')
         rt.deduct_read(key, dv)
 
         self.cache[key] = dv
@@ -113,7 +112,7 @@ class ContractDriver(CacheDriver):
         super().__init__(*args, **kwargs)
         self.delimiter = '.'
 
-    def items(self, prefix):
+    def items(self, prefix=''):
         # Get all of the items in the cache currently
         _items = {}
         keys = set()
@@ -127,7 +126,7 @@ class ContractDriver(CacheDriver):
 
         # Subtract the already gotten keys
         for k in db_keys - keys:
-            _items[k] = self.driver.get(k)
+            _items[k] = self.get(k) # Cache get will add the keys to the cache
 
         return _items
 
@@ -137,7 +136,7 @@ class ContractDriver(CacheDriver):
     def make_key(self, contract, variable, args=[]):
         contract_variable = self.delimiter.join((contract, variable))
         arguments = ':'.join(args)
-        return contract_variable + arguments
+        return ':'.join((contract_variable, arguments))
 
     def get_var(self, contract, variable, arguments=[]):
         key = self.make_key(contract, variable, arguments)
