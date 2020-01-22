@@ -66,7 +66,7 @@ class Driver:
         self.db.delete(k)
 
 
-class ContractDriver:
+class CacheDriver:
     def __init__(self, driver: Driver):
         self.driver = driver
         self.cache = {}
@@ -83,6 +83,7 @@ class ContractDriver:
 
         # If it doesn't exist, get from db, add to cache
         dv = self.driver.get(key)
+        print('here')
         rt.deduct_read(key, dv)
 
         self.cache[key] = dv
@@ -106,3 +107,49 @@ class ContractDriver:
         self.reads.clear()
         self.pending_writes.clear()
 
+
+class ContractDriver(CacheDriver):
+    def items(self, prefix):
+        # Get all of the items in the cache currently
+        _items = {}
+        keys = set()
+        for k, v in self.cache.items():
+            if k.startswith(prefix):
+                _items[k] = v
+                keys.add(k)
+
+        # Get all of the keys we need
+        db_keys = set(self.driver.iter(prefix=prefix))
+
+        # Subtract the already gotten keys
+        for k in db_keys - keys:
+            _items[k] = self.driver.get(k)
+
+        return _items
+
+    def values(self, prefix=''):
+        return list(self.items(prefix).values())
+
+    def make_key(self, key, field, args=None):
+        # Key is generally the contract
+        # Field is generally the variable
+        # Args are the hashes
+        k = '{}{}{}'.format(key, self.delimiter, field)
+
+        # Support multihashes through argument overloading
+        if args is not None and isinstance(args, list):
+            for a in args:
+                k += '{}{}'.format(':', a)
+
+        return k
+
+    def hget(self, key, field):
+        return self.get(
+            self.make_key(key, field)
+        )
+
+    def hset(self, key, field, value):
+        return self.set(
+            self.make_key(key, field),
+            value=value
+        )
