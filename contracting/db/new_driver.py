@@ -56,6 +56,7 @@ class Driver:
         value = self.get(item)
         if value is None:
             raise KeyError
+        return value
 
     def __setitem__(self, key: str, value):
         self.set(key, value)
