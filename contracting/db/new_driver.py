@@ -2,7 +2,10 @@ from rocks.client import RocksDBClient
 from rocks import constants
 from contracting.db.encoder import encode, decode
 from contracting.execution.runtime import rt
+from contracting.stdlib.bridge.time import Datetime
 
+from datetime import datetime
+import marshal
 # DB maps bytes to bytes
 # Driver maps string to python object
 CODE_KEY = '__code__'
@@ -10,7 +13,7 @@ TYPE_KEY = '__type__'
 AUTHOR_KEY = '__author__'
 OWNER_KEY = '__owner__'
 TIME_KEY = '__submitted__'
-
+COMPILED_KEY = '__compiled__'
 
 class Driver:
     def __init__(self):
@@ -135,6 +138,9 @@ class ContractDriver(CacheDriver):
 
         return _items
 
+    def keys(self, prefix=''):
+        return list(self.items(prefix).keys())
+
     def values(self, prefix=''):
         return list(self.items(prefix).values())
 
@@ -160,3 +166,30 @@ class ContractDriver(CacheDriver):
 
     def get_time_submitted(self, name):
         return self.get_var(name, TIME_KEY)
+
+    def get_compiled(self, name):
+        return self.get_var(name, COMPILED_KEY)
+
+    def set_contract(self, name, code, owner=None, overwrite=False, timestamp=Datetime._from_datetime(datetime.now())):
+        if self.get_contract(name) is None or overwrite:
+            code_obj = compile(code, '', 'exec')
+            code_blob = marshal.dumps(code_obj)
+
+            self.set_var(name, CODE_KEY, value=code)
+            self.set_var(name, COMPILED_KEY, value=code_blob)
+            self.set_var(name, OWNER_KEY, value=owner)
+            self.set_var(name, TIME_KEY, value=timestamp)
+
+    def delete_contract(self, name):
+        for key in self.keys(name):
+            if self.cache.get(key) is not None:
+                del self.cache[key]
+
+            if self.pending_writes.get(key) is not None:
+                del self.pending_writes[key]
+
+            self.driver.delete(key)
+
+    def flush(self):
+        self.driver.flush()
+        self.clear_pending_state()
