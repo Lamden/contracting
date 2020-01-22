@@ -291,3 +291,16 @@ class TestContractDriver(TestCase):
         expected = 'stubucks.balances:1:2:3'
 
         self.assertEqual(self.c.make_key(c, v, a), expected)
+
+    def test_get_var(self):
+        self.c.set('stubucks.balances', 123)
+
+        self.assertEqual(self.c.get_var('stubucks', 'balances'), 123)
+
+    def test_set_var(self):
+        self.c.set_var('stubucks', 'balances', value=123)
+        self.assertEqual(self.c.get_var('stubucks', 'balances'), 123)
+
+    def test_get_multi_hash_var(self):
+        self.c.set_var('stubucks', 'balances', ['1', '2', '3'], value=123)
+        self.assertEqual(self.c.get_var('stubucks', 'balances', ['1', '2', '3']), 123)

@@ -5,6 +5,11 @@ from contracting.execution.runtime import rt
 
 # DB maps bytes to bytes
 # Driver maps string to python object
+CODE_KEY = '__code__'
+TYPE_KEY = '__type__'
+AUTHOR_KEY = '__author__'
+OWNER_KEY = '__owner__'
+TIME_KEY = '__submitted__'
 
 
 class Driver:
@@ -135,8 +140,9 @@ class ContractDriver(CacheDriver):
 
     def make_key(self, contract, variable, args=[]):
         contract_variable = self.delimiter.join((contract, variable))
-        arguments = ':'.join(args)
-        return ':'.join((contract_variable, arguments))
+        if args:
+            return ':'.join((contract_variable, *args))
+        return contract_variable
 
     def get_var(self, contract, variable, arguments=[]):
         key = self.make_key(contract, variable, arguments)
@@ -146,3 +152,11 @@ class ContractDriver(CacheDriver):
         key = self.make_key(contract, variable, arguments)
         self.set(key, value)
 
+    def get_contract(self, name):
+        return self.get_var(name, CODE_KEY)
+
+    def get_owner(self, name):
+        return self.get_var(name, OWNER_KEY)
+
+    def get_time_submitted(self, name):
+        return self.get_var(name, TIME_KEY)
