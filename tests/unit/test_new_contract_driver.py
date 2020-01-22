@@ -42,3 +42,13 @@ class TestContractDriver(TestCase):
         expected.sort()
 
         self.assertListEqual(vs, expected)
+
+    def test_items_only_in_cache_works(self):
+        pass
+
+    def test_items_only_in_db_works(self):
+        pass
+
+    def test_items_in_both_cache_and_db_works(self):
+        pass
+

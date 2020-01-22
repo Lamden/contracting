@@ -109,6 +109,10 @@ class CacheDriver:
 
 
 class ContractDriver(CacheDriver):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.delimiter = '.'
+
     def items(self, prefix):
         # Get all of the items in the cache currently
         _items = {}
@@ -130,26 +134,16 @@ class ContractDriver(CacheDriver):
     def values(self, prefix=''):
         return list(self.items(prefix).values())
 
-    def make_key(self, key, field, args=None):
-        # Key is generally the contract
-        # Field is generally the variable
-        # Args are the hashes
-        k = '{}{}{}'.format(key, self.delimiter, field)
+    def make_key(self, contract, variable, args=[]):
+        contract_variable = self.delimiter.join((contract, variable))
+        arguments = ':'.join(args)
+        return contract_variable + arguments
 
-        # Support multihashes through argument overloading
-        if args is not None and isinstance(args, list):
-            for a in args:
-                k += '{}{}'.format(':', a)
+    def get_var(self, contract, variable, arguments=[]):
+        key = self.make_key(contract, variable, arguments)
+        return self.get(key)
 
-        return k
+    def set_var(self, contract, variable, arguments=[], value=None):
+        key = self.make_key(contract, variable, arguments)
+        self.set(key, value)
 
-    def hget(self, key, field):
-        return self.get(
-            self.make_key(key, field)
-        )
-
-    def hset(self, key, field, value):
-        return self.set(
-            self.make_key(key, field),
-            value=value
-        )
