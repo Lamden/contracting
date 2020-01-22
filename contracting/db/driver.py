@@ -146,36 +146,18 @@ class DictDriver(AbstractDatabaseDriver):
         self.conn = {}
 
     def get(self, key):
-        try:
-            key = key.encode()
-        except:
-            pass
-
         return self.conn.get(key)
 
     def set(self, key, value):
-        try:
-            key = key.encode()
-            value = value.encode()
-        except:
-            pass
-
+        if type(key) == str:
+            raise Exception
         self.conn[key] = value
 
     def delete(self, key):
-        try:
-            key = key.encode()
-        except:
-            pass
-
         if self.conn.get(key) is not None:
             del self.conn[key]
 
     def iter(self, prefix):
-        try:
-            prefix = prefix.encode()
-        except:
-            pass
         keys = []
         for k, v in self.conn.items():
             if k.startswith(prefix):
@@ -191,11 +173,6 @@ class DictDriver(AbstractDatabaseDriver):
 
     def incrby(self, key, amount=1):
         """Increment a numeric _key by one"""
-        try:
-            key = key.encode()
-        except:
-            pass
-
         k = self.get(key)
 
         if k is None:
@@ -564,10 +541,7 @@ class CacheDriver:
     def pop_writes(self):
         writes = {}
         for key, value in self.writes.items():
-            if value == 'null':
-                writes[key] = None
-            else:
-                writes[key] = value
+            writes[key] = value
 
         self.writes.clear()
 
