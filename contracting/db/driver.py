@@ -566,9 +566,9 @@ class CacheDriver:
 
 
 class ContractDriver(CacheDriver):
-    def __init__(self, host=config.DB_URL, port=config.DB_PORT, delimiter=config.INDEX_SEPARATOR, db=0,
+    def __init__(self, host=config.DB_URL, port=config.DB_PORT, delimiter=config.INDEX_SEPARATOR, db=RocksDriver(),
                  code_key=config.CODE_KEY, owner_key=config.OWNER_KEY, time_key=config.TIME_KEY):
-        super().__init__()
+        super().__init__(db=db)
 
         self.delimiter = delimiter
 
