@@ -27,6 +27,9 @@ class Encoder(json.JSONEncoder):
         if isinstance(o, decimal.Decimal):
             return float(o)
 
+        if isinstance(o, ContractingDecimal):
+            return float(o._d)
+
         return super().default(o)
 
 

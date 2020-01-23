@@ -43,7 +43,7 @@ class TestMetering(TestCase):
         self.d.commit()
 
         # Execute the currency contract with metering disabled
-        self.e = Executor()
+        self.e = Executor(driver=self.d)
         self.e.execute(**TEST_SUBMISSION_KWARGS,
                        kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'), metering=False)
 
@@ -89,11 +89,12 @@ class TestMetering(TestCase):
 
         prior_balance *= STAMPS_PER_TAU
 
-        print('PRIOR : {}'.format(prior_balance))
-
-        self.e.execute(**TEST_SUBMISSION_KWARGS,
-                        kwargs=submission_kwargs_for_file('./test_contracts/inf_loop.s.py'), stamps=prior_balance, environment={'tracer': runtime.rt.tracer},
-                       metering=True)
+        self.e.execute(
+            **TEST_SUBMISSION_KWARGS,
+            kwargs=submission_kwargs_for_file('./test_contracts/inf_loop.s.py'),
+            stamps=prior_balance,
+            metering=True
+        )
 
         new_balance = self.d.get('currency.balances:stu')
 

@@ -11,7 +11,7 @@ from contracting import config
 
 #log = get_logger('Executor')
 
-
+import inspect
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
                  currency_contract='currency', balances_hash='balances', bypass_privates=False):
@@ -210,19 +210,14 @@ class Sandbox(object):
 
             func = getattr(module, function_name)
 
-
             result = func(**kwargs)
 
             if auto_commit:
                 driver.commit()
-                driver.clear_pending_state()
         except Exception as e:
             result = e
             status_code = 1
             if auto_commit:
-                driver.clear_pending_state()
-        finally:
-            if isinstance(driver, CacheDriver):
                 driver.clear_pending_state()
 
 ### EXECUTION END

@@ -17,8 +17,12 @@ COMPILED_KEY = '__compiled__'
 
 
 def encode_kv(key, value):
-    key = key or ''
-    value = value or ''
+    if key is None:
+        key = ''
+
+    if value is None:
+        value = ''
+
     k = key.encode()
     v = encode(value).encode()
     return k, v
@@ -114,7 +118,7 @@ class CacheDriver:
         return dv
 
     def set(self, key, value):
-        rt.deduct_write(key, value)
+        rt.deduct_write(*encode_kv(key, value))
         self.cache[key] = value
         self.pending_writes[key] = value
 
