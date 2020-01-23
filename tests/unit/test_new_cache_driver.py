@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.db.new_driver import CacheDriver, Driver
+from contracting.db.driver import CacheDriver, Driver
 
 
 class TestCacheDriver(TestCase):

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.db.new_driver import ContractDriver, Driver
+from contracting.db.driver import ContractDriver, Driver
 from contracting.stdlib.bridge.time import Datetime
 
 import marshal

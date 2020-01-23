@@ -116,7 +116,7 @@ class InMemDriver(Driver):
         p = prefix.encode()
 
         l = []
-        for k in self.db.keys():
+        for k in sorted(self.db.keys()):
             if k.startswith(p):
                 l.append(k.decode())
             if 0 < length <= len(l):
@@ -125,7 +125,7 @@ class InMemDriver(Driver):
         return l
 
     def keys(self):
-        return list(self.db.keys())
+        return sorted([k.decode() for k in self.db.keys()])
 
     def flush(self):
         self.db.clear()
