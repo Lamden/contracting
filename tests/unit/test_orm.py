@@ -305,11 +305,15 @@ class TestHash(TestCase):
 
         driver.commit()
 
-        kvs = sorted([(b'blah.scoob:3', 789), (b'blah.scoob:1', 123), (b'blah.scoob:2', 456)])
+        kvs = {
+            'blah.scoob:3': 789,
+            'blah.scoob:1': 123,
+            'blah.scoob:2': 456
+        }
 
-        got = sorted(h._items())
+        got = h._items()
 
-        self.assertListEqual(kvs, got)
+        self.assertDictEqual(kvs, got)
 
     def test_items_multi_hash_returns_kv_pairs(self):
         contract = 'blah'
@@ -327,11 +331,15 @@ class TestHash(TestCase):
 
         driver.commit()
 
-        kvs = sorted([(b'blah.scoob:0:3', 789), (b'blah.scoob:0:1', 123), (b'blah.scoob:0:2', 456)])
+        kvs = {
+            'blah.scoob:0:3': 789,
+            'blah.scoob:0:1': 123,
+            'blah.scoob:0:2': 456
+        }
 
-        got = sorted(h._items(0))
+        got = h._items(0)
 
-        self.assertListEqual(kvs, got)
+        self.assertDictEqual(kvs, got)
 
     def test_items_multi_hash_returns_all(self):
         contract = 'blah'
@@ -349,12 +357,18 @@ class TestHash(TestCase):
 
         driver.commit()
 
-        kvs = sorted([(b'blah.scoob:0:3', 789), (b'blah.scoob:0:1', 123), (b'blah.scoob:0:2', 456),
-                      (b'blah.scoob:1:3', 777), (b'blah.scoob:1:1', 999), (b'blah.scoob:1:2', 888)])
+        kvs = {
+            'blah.scoob:0:3': 789,
+            'blah.scoob:0:1': 123,
+            'blah.scoob:0:2': 456,
+            'blah.scoob:1:3': 777,
+            'blah.scoob:1:1': 999,
+            'blah.scoob:1:2': 888
+        }
 
-        got = sorted(h._items())
+        got = h._items()
 
-        self.assertListEqual(kvs, got)
+        self.assertDictEqual(kvs, got)
 
     def test_items_clear_deletes_only_multi_hash(self):
         contract = 'blah'
@@ -372,15 +386,19 @@ class TestHash(TestCase):
 
         driver.commit()
 
-        kvs = sorted([(b'blah.scoob:0:3', 789), (b'blah.scoob:0:1', 123), (b'blah.scoob:0:2', 456)])
+        kvs = {
+            'blah.scoob:0:3': 789,
+            'blah.scoob:0:1': 123,
+            'blah.scoob:0:2': 456
+        }
 
         h.clear(1)
 
         driver.commit()
 
-        got = sorted(h._items())
+        got = h._items()
 
-        self.assertListEqual(kvs, got)
+        self.assertDictEqual(kvs, got)
 
     def test_all_multihash_returns_values(self):
         contract = 'blah'
@@ -419,15 +437,19 @@ class TestHash(TestCase):
 
         driver.commit()
 
-        kvs = sorted([(b'blah.scoob:1:0:3', 789), (b'blah.scoob:1:0:1', 123), (b'blah.scoob:1:0:2', 456)])
+        kvs = {
+            'blah.scoob:1:0:3': 789,
+            'blah.scoob:1:0:1': 123,
+            'blah.scoob:1:0:2': 456
+        }
 
         h.clear(1, 1)
 
         driver.commit()
 
-        got = sorted(h._items())
+        got = h._items()
 
-        self.assertListEqual(kvs, got)
+        self.assertDictEqual(kvs, got)
 
     def test_multihash_multiple_dims_all_gets_items_similar_to_single_dim(self):
         contract = 'blah'
@@ -462,19 +484,23 @@ class TestHash(TestCase):
 
         driver.commit()
 
-        kvs = sorted([(b'blah.scoob:3', 789), (b'blah.scoob:1', 123), (b'blah.scoob:2', 456)])
+        kvs = {
+            'blah.scoob:3': 789,
+            'blah.scoob:1': 123,
+            'blah.scoob:2': 456
+        }
 
-        got = sorted(h._items())
+        got = h._items()
 
-        self.assertListEqual(kvs, got)
+        self.assertDictEqual(kvs, got)
 
         h.clear()
 
         driver.commit()
 
-        got = sorted(h._items())
+        got = h._items()
 
-        self.assertListEqual([], got)
+        self.assertDictEqual({}, got)
 
 
 class TestForeignVariable(TestCase):

@@ -109,7 +109,7 @@ class AbstractContract:
 
             # if the raw name exists, it is a __protected__ or a variable, so prepare for those
             if fullname in self.keys():
-                variable = Variable(contract=self.name, name=item)
+                variable = Variable(contract=self.name, name=item, driver=self.executor.driver)
 
                 # return just the value if it is __protected__ to prevent sets
                 if item.startswith('__'):
@@ -122,7 +122,7 @@ class AbstractContract:
             if len(self.executor.driver.values(prefix=self.name + '.' + item + ':')) > 0:
 
                 # if so, it is a hash. return the hash object
-                return Hash(contract=self.name, name=item)
+                return Hash(contract=self.name, name=item, driver=self.executor.driver)
 
             # otherwise, the attribut does not exist, so throw the error.
             raise e

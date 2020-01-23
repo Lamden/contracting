@@ -113,6 +113,7 @@ class CacheDriver:
     def commit(self):
         for k, v in self.pending_writes.items():
             self.driver.set(k, v)
+        self.clear_pending_state()
 
     def clear_pending_state(self):
         self.cache.clear()

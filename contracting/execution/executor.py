@@ -84,6 +84,7 @@ class Executor:
                                                                 currency_contract=self.currency_contract,
                                                                 balances_hash=self.balances_hash)
 
+
         return output
 
 
@@ -214,6 +215,7 @@ class Sandbox(object):
 
             if auto_commit:
                 driver.commit()
+                driver.clear_pending_state()
         except Exception as e:
             result = e
             status_code = 1
@@ -221,8 +223,7 @@ class Sandbox(object):
                 driver.clear_pending_state()
         finally:
             if isinstance(driver, CacheDriver):
-                #driver.new_tx()
-                pass
+                driver.clear_pending_state()
 
 ### EXECUTION END
 
