@@ -16,6 +16,14 @@ TIME_KEY = '__submitted__'
 COMPILED_KEY = '__compiled__'
 
 
+def encode_kv(key, value):
+    key = key or ''
+    value = value or ''
+    k = key.encode()
+    v = encode(value).encode()
+    return k, v
+
+
 # Probably want to put the runtime stuff here, tbh
 class Driver:
     def __init__(self):
@@ -91,12 +99,12 @@ class CacheDriver:
         # Try to get from cache
         v = self.cache.get(key)
         if v is not None:
-            rt.deduct_read(key, v)
+            rt.deduct_read(*encode_kv(key, v))
             return v
 
         # If it doesn't exist, get from db, add to cache
         dv = self.driver.get(key)
-        rt.deduct_read(key, dv)
+        rt.deduct_read(*encode_kv(key, dv))
 
         self.cache[key] = dv
 
@@ -113,7 +121,6 @@ class CacheDriver:
     def commit(self):
         for k, v in self.pending_writes.items():
             self.driver.set(k, v)
-        self.clear_pending_state()
 
     def clear_pending_state(self):
         self.cache.clear()

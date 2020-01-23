@@ -5,7 +5,6 @@ import contracting
 import os
 from contracting.execution.metering.tracer import Tracer
 
-
 class Context:
     def __init__(self, base_state, maxlen=config.RECURSION_LIMIT):
         self._state = []
@@ -102,14 +101,14 @@ class Runtime:
     @classmethod
     def deduct_read(cls, key, value):
         if cls.tracer.is_started():
-            cost = sys.getsizeof(key) + sys.getsizeof(value)
+            cost = len(key) + len(value)
             cost *= config.READ_COST_PER_BYTE
             cls.tracer.add_cost(cost)
 
     @classmethod
     def deduct_write(cls, key, value):
         if key is not None and rt.tracer.is_started():
-            cost = sys.getsizeof(key) + sys.getsizeof(value)
+            cost = len(key) + len(value)
             cost *= config.READ_COST_PER_BYTE
             rt.tracer.add_cost(cost)
 

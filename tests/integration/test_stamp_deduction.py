@@ -92,7 +92,8 @@ class TestMetering(TestCase):
         print('PRIOR : {}'.format(prior_balance))
 
         self.e.execute(**TEST_SUBMISSION_KWARGS,
-                        kwargs=submission_kwargs_for_file('./test_contracts/inf_loop.s.py'), stamps=prior_balance, environment={'tracer': runtime.rt.tracer})
+                        kwargs=submission_kwargs_for_file('./test_contracts/inf_loop.s.py'), stamps=prior_balance, environment={'tracer': runtime.rt.tracer},
+                       metering=True)
 
         new_balance = self.d.get('currency.balances:stu')
 
