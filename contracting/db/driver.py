@@ -91,6 +91,61 @@ class Driver:
         self.db.delete(k)
 
 
+class InMemDriver(Driver):
+    def __init__(self):
+        super().__init__()
+        self.db = {}
+
+    def get(self, item):
+        key = item.encode()
+        value = self.db.get(key)
+        return decode(value)
+
+    def set(self, key: str, value):
+        k = key.encode()
+        if value is None:
+            self.__delitem__(key)
+        else:
+            v = encode(value).encode()
+            self.db[k] = v
+
+    def delete(self, key: str):
+        self.__delitem__(key)
+
+    def iter(self, prefix: str, length=0):
+        p = prefix.encode()
+
+        l = []
+        for k in self.db.keys():
+            if k.startswith(p):
+                l.append(k.decode())
+            if 0 < length <= len(l):
+                break
+
+        return l
+
+    def keys(self):
+        return list(self.db.keys())
+
+    def flush(self):
+        self.db.clear()
+
+    def __getitem__(self, item: str):
+        value = self.get(item)
+        if value is None:
+            raise KeyError
+        return value
+
+    def __setitem__(self, key: str, value):
+        self.set(key, value)
+
+    def __delitem__(self, key: str):
+        k = key.encode()
+        try:
+            del self.db[k]
+        except KeyError:
+            pass
+
 class CacheDriver:
     def __init__(self, driver: Driver=Driver()):
         self.driver = driver
