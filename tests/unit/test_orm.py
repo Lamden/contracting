@@ -8,7 +8,7 @@ from contracting.db.orm import Datum, Variable, ForeignHash, ForeignVariable, Ha
 # ForeignVariable = gather()['ForeignVariable']
 # ForeignHash = gather()['ForeignHash']
 
-driver = ContractDriver(db=1)
+driver = ContractDriver()
 
 
 class TestDatum(TestCase):

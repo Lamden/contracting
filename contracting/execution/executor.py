@@ -218,10 +218,11 @@ class Sandbox(object):
             result = e
             status_code = 1
             if auto_commit:
-                driver.revert()
+                driver.clear_pending_state()
         finally:
             if isinstance(driver, CacheDriver):
-                driver.new_tx()
+                #driver.new_tx()
+                pass
 
 ### EXECUTION END
 
@@ -254,7 +255,7 @@ class Sandbox(object):
             'status_code': status_code,
             'result': result,
             'stamps_used': stamps_used,
-            'writes': driver.pop_writes(),
+#            'writes': driver.pop_writes(),
         }
 
         return output

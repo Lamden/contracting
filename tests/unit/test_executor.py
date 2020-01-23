@@ -4,12 +4,12 @@ import sys
 import glob
 # Import ContractDriver and AbstractDatabaseDriver for property type
 # assertions for self.e._driver
-from contracting.db.driver import AbstractDatabaseDriver, ContractDriver
+from contracting.db.driver import ContractDriver
 from contracting.execution.module import DatabaseFinder
 from contracting.compilation.compiler import ContractingCompiler
 from contracting.db.cr.transaction_bag import TransactionBag
 
-driver = ContractDriver(db=0)
+driver = ContractDriver()
 
 
 class DBTests(unittest.TestCase):

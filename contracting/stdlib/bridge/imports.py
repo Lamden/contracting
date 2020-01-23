@@ -2,7 +2,7 @@ import importlib
 from types import FunctionType, ModuleType
 from contracting.config import PRIVATE_METHOD_PREFIX
 from contracting.db.orm import Datum
-from contracting.db.driver import ContractDriver
+from contracting.db.driver import ContractDriver, OWNER_KEY
 from contracting.execution.runtime import rt
 
 
@@ -69,7 +69,7 @@ def enforce_interface(m: ModuleType, interface: list):
 
 def owner_of(m: ModuleType):
     _driver = rt.env.get('__Driver') or ContractDriver()
-    owner = _driver.hget(m.__name__, _driver.owner_key)
+    owner = _driver.get_var(m.__name__, OWNER_KEY)
     return owner
 
 
