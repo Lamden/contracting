@@ -61,7 +61,7 @@ class AbstractContract:
             for arg in args:
                 a.append(arg)
 
-        k = self.executor.driver.make_key(key=self.name, field=variable, args=a)
+        k = self.executor.driver.make_key(contract=self.name, variable=variable, args=a)
         return self.executor.driver.get(k)
 
     def quick_write(self, variable, key=None, value=None, args=None):
@@ -70,7 +70,7 @@ class AbstractContract:
             for arg in args:
                 a.append(arg)
 
-        k = self.executor.driver.make_key(key=self.name, field=variable, args=a)
+        k = self.executor.driver.make_key(contract=self.name, variable=variable, args=a)
 
         self.executor.driver.set(k, value)
         self.executor.driver.commit()

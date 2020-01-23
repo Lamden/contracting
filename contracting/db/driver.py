@@ -99,7 +99,7 @@ class CacheDriver:
         self.reads = set()
         self.pending_writes = {}
 
-    def get(self, key: str):
+    def get(self, key: str, mark=True):
         # Try to get from cache
         v = self.cache.get(key)
         if v is not None:
@@ -113,14 +113,16 @@ class CacheDriver:
         self.cache[key] = dv
 
         # Add key to reads
-        self.reads.add(key)
+        if mark:
+            self.reads.add(key)
 
         return dv
 
-    def set(self, key, value):
+    def set(self, key, value, mark=True):
         rt.deduct_write(*encode_kv(key, value))
         self.cache[key] = value
-        self.pending_writes[key] = value
+        if mark:
+            self.pending_writes[key] = value
 
     def commit(self):
         for k, v in self.pending_writes.items():
