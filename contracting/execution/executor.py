@@ -145,7 +145,7 @@ class Sandbox(object):
     def execute(self, sender, contract_name, function_name, kwargs,
                 auto_commit=True,
                 environment={},
-                driver=None,
+                driver: ContractDriver=None,
                 metering=None,
                 stamps=1000000,
                 currency_contract=None,
@@ -251,7 +251,7 @@ class Sandbox(object):
             'status_code': status_code,
             'result': result,
             'stamps_used': stamps_used,
-#            'writes': driver.pop_writes(),
+            'writes': driver.pending_writes,
         }
 
         return output
