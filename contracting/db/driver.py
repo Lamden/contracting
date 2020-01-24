@@ -27,6 +27,10 @@ def encode_kv(key, value):
     v = encode(value).encode()
     return k, v
 
+def decode_kv(key, value):
+    k = key.decode()
+    v = decode(value)
+    return k, v
 
 # Probably want to put the runtime stuff here, tbh
 class Driver:
