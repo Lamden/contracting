@@ -284,6 +284,8 @@ class TestPendingMasters(TestCase):
 
         self.master_candidates.vote_candidate(signer='stu', address='joe', environment=env)
 
+        print(self.master_candidates.executor.driver.pending_writes)
+
         self.assertEqual(self.currency.balances['stu'], stu_bal - 1)
         self.assertEqual(self.master_candidates.candidate_votes.get()['joe'], 1)
         self.assertEqual(self.currency.balances['blackhole'], 1)

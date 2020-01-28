@@ -2,6 +2,7 @@ import json
 import decimal
 from contracting.stdlib.bridge.time import Datetime, Timedelta
 from contracting.stdlib.bridge.decimal import ContractingDecimal
+from contracting.config import INDEX_SEPARATOR, DELIMITER
 ##
 # ENCODER CLASS
 # Add to this to encode Python types for storage.
@@ -9,6 +10,12 @@ from contracting.stdlib.bridge.decimal import ContractingDecimal
 # and stored as dicts. Is there a better way? I don't know, maybe.
 ##
 
+
+def make_key(contract, variable, args=[]):
+    contract_variable = INDEX_SEPARATOR.join((contract, variable))
+    if args:
+        return DELIMITER.join((contract_variable, *args))
+    return contract_variable
 
 class Encoder(json.JSONEncoder):
     def default(self, o, *args):
