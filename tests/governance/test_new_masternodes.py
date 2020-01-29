@@ -17,7 +17,7 @@ def masternodes():
     REMOVE_SEAT = 3
 
     # Maximum time until a motion expires
-    VOTING_PERIOD = datetime.DAYS * 1
+    VOTING_PERIOD = Variable()
 
     # General contract state variable
     S = Hash()
@@ -27,7 +27,7 @@ def masternodes():
     candidates = Variable()
 
     @construct
-    def seed(initial_masternodes, bn=1, candidates_contract='master_candidates'):
+    def seed(initial_masternodes, bn=1, candidates_contract='master_candidates',  period=datetime.DAYS * 1):
         S['masternodes'] = initial_masternodes
         boot_num.set(bn)
         candidates.set(candidates_contract)
@@ -37,6 +37,8 @@ def masternodes():
 
         S['current_motion'] = NO_MOTION
         S['motion_opened'] = now
+
+        VOTING_PERIOD.set(period)
 
     @export
     def quorum_max():
@@ -83,7 +85,7 @@ def masternodes():
             elif S['nays'] >= len(S['masternodes']) // 2 + 1:
                 reset()
 
-            elif now - S['motion_opened'] >= VOTING_PERIOD:
+            elif now - S['motion_opened'] >= VOTING_PERIOD.get():
                 reset()
 
     def assert_vote_is_valid(vk, action, position, arg=None):
