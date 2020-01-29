@@ -5,8 +5,6 @@ from datetime import datetime as dt, timedelta as td
 
 
 def masternodes():
-    master_candidates = importlib.import_module('master_candidates')
-
     INTRODUCE_MOTION = 'introduce_motion'
     VOTE_ON_MOTION = 'vote_on_motion'
 
@@ -128,6 +126,7 @@ def masternodes():
             masters.remove(S['master_in_question'])
 
         elif current_motion == ADD_SEAT:
+            master_candidates = importlib.import_module(candidates.get())
             # Get the top master
             new_mn = master_candidates.top_masternode()
 
@@ -137,6 +136,7 @@ def masternodes():
                 master_candidates.pop_top()
 
         elif current_motion == REMOVE_SEAT:
+            master_candidates = importlib.import_module(candidates.get())
             # Get least popular master
             old_mn = master_candidates.last_masternode()
 
