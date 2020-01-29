@@ -10,13 +10,6 @@ from contracting.config import INDEX_SEPARATOR, DELIMITER
 # and stored as dicts. Is there a better way? I don't know, maybe.
 ##
 
-
-def make_key(contract, variable, args=[]):
-    contract_variable = INDEX_SEPARATOR.join((contract, variable))
-    if args:
-        return DELIMITER.join((contract_variable, *args))
-    return contract_variable
-
 class Encoder(json.JSONEncoder):
     def default(self, o, *args):
         if isinstance(o, Datetime):
@@ -68,3 +61,28 @@ def decode(data):
         return json.loads(data, parse_float=ContractingDecimal, object_hook=as_object)
     except json.decoder.JSONDecodeError as e:
         return None
+
+
+def make_key(contract, variable, args=[]):
+    contract_variable = INDEX_SEPARATOR.join((contract, variable))
+    if args:
+        return DELIMITER.join((contract_variable, *args))
+    return contract_variable
+
+
+def encode_kv(key, value):
+    if key is None:
+        key = ''
+
+    if value is None:
+        value = ''
+
+    k = key.encode()
+    v = encode(value).encode()
+    return k, v
+
+
+def decode_kv(key, value):
+    k = key.decode()
+    v = decode(value)
+    return k, v

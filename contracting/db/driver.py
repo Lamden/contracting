@@ -1,6 +1,6 @@
 from rocks.client import RocksDBClient
 from rocks import constants
-from contracting.db.encoder import encode, decode
+from contracting.db.encoder import encode, decode, encode_kv
 from contracting.execution.runtime import rt
 from contracting.stdlib.bridge.time import Datetime
 
@@ -15,22 +15,6 @@ OWNER_KEY = '__owner__'
 TIME_KEY = '__submitted__'
 COMPILED_KEY = '__compiled__'
 
-
-def encode_kv(key, value):
-    if key is None:
-        key = ''
-
-    if value is None:
-        value = ''
-
-    k = key.encode()
-    v = encode(value).encode()
-    return k, v
-
-def decode_kv(key, value):
-    k = key.decode()
-    v = decode(value)
-    return k, v
 
 # Probably want to put the runtime stuff here, tbh
 class Driver:
