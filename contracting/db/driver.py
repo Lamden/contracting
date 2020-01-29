@@ -148,8 +148,6 @@ class CacheDriver:
         v = self.cache.get(key)
         if v is not None:
             rt.deduct_read(*encode_kv(key, v))
-            if type(v) == decimal.Decimal:
-                v = ContractingDecimal(str(v))
             return v
 
         # If it doesn't exist, get from db, add to cache
@@ -166,6 +164,10 @@ class CacheDriver:
 
     def set(self, key, value, mark=True):
         rt.deduct_write(*encode_kv(key, value))
+
+        if type(value) == decimal.Decimal:
+            value = ContractingDecimal(str(value))
+
         self.cache[key] = value
         if mark:
             self.pending_writes[key] = value
