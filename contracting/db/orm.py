@@ -1,6 +1,7 @@
 from contracting.db.driver import ContractDriver
 from contracting.execution.runtime import rt
 from contracting import config
+from contracting.stdlib.bridge.decimal import ContractingDecimal
 
 driver = rt.env.get('__Driver') or ContractDriver()
 
@@ -47,6 +48,9 @@ class Hash(Datum):
         # Add Python defaultdict behavior for easier smart contracting
         if value is None:
             value = self._default_value
+
+        if type(value) == float or type(value) == ContractingDecimal:
+            return ContractingDecimal(str(value))
 
         return value
 

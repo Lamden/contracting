@@ -3,9 +3,10 @@ from rocks import constants
 from contracting.db.encoder import encode, decode, encode_kv
 from contracting.execution.runtime import rt
 from contracting.stdlib.bridge.time import Datetime
-
+from contracting.stdlib.bridge.decimal import ContractingDecimal
 from datetime import datetime
 import marshal
+import decimal
 # DB maps bytes to bytes
 # Driver maps string to python object
 CODE_KEY = '__code__'
@@ -147,6 +148,8 @@ class CacheDriver:
         v = self.cache.get(key)
         if v is not None:
             rt.deduct_read(*encode_kv(key, v))
+            if type(v) == decimal.Decimal:
+                v = ContractingDecimal(str(v))
             return v
 
         # If it doesn't exist, get from db, add to cache

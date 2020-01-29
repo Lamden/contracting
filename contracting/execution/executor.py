@@ -7,8 +7,9 @@ from contracting.execution import runtime
 from contracting.db.cr.transaction_bag import TransactionBag
 from contracting.db.driver import ContractDriver, CacheDriver
 from contracting.execution.module import install_database_loader, uninstall_builtins
+from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting import config
-
+from copy import deepcopy
 #log = get_logger('Executor')
 
 import inspect
@@ -231,7 +232,7 @@ class Sandbox(object):
             to_deduct = runtime.rt.tracer.get_stamp_used()
             to_deduct /= config.STAMPS_PER_TAU
 
-            to_deduct = decimal.Decimal(to_deduct)
+            to_deduct = ContractingDecimal(to_deduct)
 
             balance = driver.get(balances_key)
             if balance is None:
@@ -251,7 +252,7 @@ class Sandbox(object):
             'status_code': status_code,
             'result': result,
             'stamps_used': stamps_used,
-            'writes': driver.pending_writes,
+            'writes': deepcopy(driver.pending_writes),
         }
 
         return output
