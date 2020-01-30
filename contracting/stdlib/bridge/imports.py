@@ -4,7 +4,8 @@ from contracting.config import PRIVATE_METHOD_PREFIX
 from contracting.db.orm import Datum
 from contracting.db.driver import ContractDriver, OWNER_KEY
 from contracting.execution.runtime import rt
-
+from stdlib_list import stdlib_list
+import sys
 
 def extract_closure(fn):
     closure = fn.__closure__[0]
@@ -45,8 +46,19 @@ class Var:
 
 
 def import_module(name):
-    return importlib.import_module(name, package=None)
+    _driver = rt.env.get('__Driver') or ContractDriver()
+    if name in set(stdlib_list(f'{sys.version_info.major}.{sys.version_info.minor}')):
+        raise ImportError
 
+    if name.startswith('_'):
+        raise ImportError
+
+    if _driver.get_contract(name) is None:
+        raise ImportError
+
+    m = importlib.import_module(name, package=None)
+
+    return m
 
 def enforce_interface(m: ModuleType, interface: list):
     implemented = vars(m)

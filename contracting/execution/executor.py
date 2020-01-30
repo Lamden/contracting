@@ -6,7 +6,7 @@ from contracting.logger import get_logger
 from contracting.execution import runtime
 from contracting.db.cr.transaction_bag import TransactionBag
 from contracting.db.driver import ContractDriver, CacheDriver
-from contracting.execution.module import install_database_loader, uninstall_builtins
+from contracting.execution.module import install_database_loader, uninstall_builtins, enable_restricted_imports, disable_restricted_imports
 from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting import config
 from copy import deepcopy
@@ -172,7 +172,9 @@ class Sandbox(object):
         else:
             driver = runtime.rt.env.get('__Driver')
 
+        uninstall_builtins()
         install_database_loader(driver=driver)
+        enable_restricted_imports()
 
         # __main__ is replaced by the sender of the message in this case
 
@@ -254,6 +256,8 @@ class Sandbox(object):
             'stamps_used': stamps_used,
             'writes': deepcopy(driver.pending_writes),
         }
+
+        disable_restricted_imports()
 
         return output
 

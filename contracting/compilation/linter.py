@@ -6,12 +6,14 @@ from .. import config
 from ..logger import get_logger
 from ..compilation.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS, ILLEGAL_BUILTINS
 
+from contracting.db.driver import ContractDriver
+
 from stdlib_list import stdlib_list
 
 
 class Linter(ast.NodeVisitor):
 
-    def __init__(self):
+    def __init__(self, driver=ContractDriver()):
         self.log = get_logger('Seneca.Parser')
         self._violations = []
         self._functions = []
@@ -20,7 +22,9 @@ class Linter(ast.NodeVisitor):
         self._constructor_visited = False
         self.orm_names = set()
         self.visited_args = set()
-        self.builtins = stdlib_list(f'{sys.version_info.major}.{sys.version_info.minor}')
+
+        self.builtins = set(stdlib_list(f'{sys.version_info.major}.{sys.version_info.minor}'))
+        self.driver = driver
 
     def ast_types(self, t, lnum):
         if type(t) not in ALLOWED_AST_TYPES:
@@ -55,6 +59,10 @@ class Linter(ast.NodeVisitor):
     def visit_Import(self, node):
         for n in node.names:
             if n.name in self.builtins:
+                self._is_success = False
+                str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[13]
+                self._violations.append(str)
+            if self.driver.get_contract(n.name) is None:
                 self._is_success = False
                 str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[13]
                 self._violations.append(str)

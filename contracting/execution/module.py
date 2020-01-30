@@ -6,10 +6,11 @@ from importlib import invalidate_caches, __import__
 from importlib.machinery import ModuleSpec
 from contracting.db.driver import ContractDriver
 from contracting.stdlib import env
+from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting.execution.runtime import rt
 from types import ModuleType
 import marshal
-
+import builtins
 
 # This function overrides the __import__ function, which is the builtin function that is called whenever Python runs
 # an 'import' statement. If the globals dictionary contains {'__contract__': True}, then this function will make sure
@@ -19,6 +20,12 @@ import marshal
 #
 # Note: anything installed with pip or in site-packages will also not work, so contract package names *must* be unique.
 #
+
+def is_valid_import(name):
+    spec = importlib.util.find_spec(name)
+    if not isinstance(spec.loader, DatabaseLoader):
+        raise ImportError("module {} cannot be imported in a smart contract.".format(name))
+
 
 def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
     if globals is not None and globals.get('__contract__') is True:
@@ -30,13 +37,12 @@ def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
 
 
 def enable_restricted_imports():
-    __builtins__['__import__'] = restricted_import
-    __builtins__.float = env['decimal']
+    builtins.__import__ = restricted_import
+#    builtins.float = ContractingDecimal
 
 
 def disable_restricted_imports():
-    __builtins__['__import__'] = __import__
-    __builtins__.float = env['decimal']
+    builtins.__import__ = __import__
 
 
 def uninstall_builtins():
@@ -49,7 +55,8 @@ def uninstall_builtins():
 
 def install_database_loader(driver=ContractDriver()):
     DatabaseFinder.driver = driver
-    sys.meta_path.append(DatabaseFinder)
+    if DatabaseFinder not in sys.meta_path:
+        sys.meta_path.insert(0, DatabaseFinder)
 
 
 def uninstall_database_loader():

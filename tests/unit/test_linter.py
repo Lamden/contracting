@@ -167,7 +167,7 @@ def a():
         c = ast.parse(code)
         chk = self.l.check(c)
         self.l.dump_violations()
-        self.assertEqual(chk, ['Line 2: S3- Illicit use of Nested imports'])
+        self.assertEqual(chk, ['Line 2: S3- Illicit use of Nested imports', 'Line 4: S14- Illegal use of a builtin'])
 
     def test_no_nested_imports_works(self):
         code = '''
