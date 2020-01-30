@@ -72,3 +72,20 @@ class TestDynamicImport(TestCase):
 
         with self.assertRaises(ImportError):
             dynamic_import.import_thing(name='math')
+
+
+class TestFloatIssue(TestCase):
+    def setUp(self):
+        self.c = ContractingClient(signer='stu')
+
+    def tearDown(self):
+        self.c.raw_driver.flush()
+
+    def test_if_builtin_can_be_submitted(self):
+        with open('./test_contracts/float_issue.s.py') as f:
+            contract = f.read()
+            self.c.submit(contract, name='float_issue')
+
+        float_issue = self.c.get_contract('float_issue')
+
+        float_issue.get(x=0.1, y=0.1)
