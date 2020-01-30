@@ -14,8 +14,23 @@ class TestBuiltinsLockedOff(TestCase):
         with open('./test_contracts/builtin_lib.s.py') as f:
             contract = f.read()
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(ImportError):
             self.c.submit(contract, name='builtin')
 
     def test_if_non_builtin_can_be_submitted(self):
         pass
+
+
+class TestMathBuiltinsLockedOff(TestCase):
+    def setUp(self):
+        self.c = ContractingClient(signer='stu')
+
+    def tearDown(self):
+        self.c.raw_driver.flush()
+
+    def test_if_builtin_can_be_submitted(self):
+        with open('./test_contracts/mathtime.s.py') as f:
+            contract = f.read()
+
+        with self.assertRaises(Exception):
+            self.c.submit(contract, name='mathtime')

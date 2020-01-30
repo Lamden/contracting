@@ -165,7 +165,7 @@ class CacheDriver:
     def set(self, key, value, mark=True):
         rt.deduct_write(*encode_kv(key, value))
 
-        if type(value) == decimal.Decimal:
+        if type(value) == decimal.Decimal or type(value) == float:
             value = ContractingDecimal(str(value))
 
         self.cache[key] = value

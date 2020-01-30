@@ -1,9 +1,12 @@
 import ast
+import sys
 
 from .. import config
 
 from ..logger import get_logger
 from ..compilation.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS, ILLEGAL_BUILTINS
+
+from stdlib_list import stdlib_list
 
 
 class Linter(ast.NodeVisitor):
@@ -17,6 +20,7 @@ class Linter(ast.NodeVisitor):
         self._constructor_visited = False
         self.orm_names = set()
         self.visited_args = set()
+        self.builtins = stdlib_list(f'{sys.version_info.major}.{sys.version_info.minor}')
 
     def ast_types(self, t, lnum):
         if type(t) not in ALLOWED_AST_TYPES:
@@ -49,10 +53,12 @@ class Linter(ast.NodeVisitor):
         return node
 
     def visit_Import(self, node):
-        # for n in node.names:
-        #     self.validate_imports(n.name, alias=n.asname, lnum = node.lineno)
+        for n in node.names:
+            if n.name in self.builtins:
+                self._is_success = False
+                str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[13]
+                self._violations.append(str)
         return node
-
 
     def visit_ImportFrom(self, node):
         str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[3]
