@@ -62,10 +62,6 @@ class Linter(ast.NodeVisitor):
                 self._is_success = False
                 str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[13]
                 self._violations.append(str)
-            if self.driver.get_contract(n.name) is None:
-                self._is_success = False
-                str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[13]
-                self._violations.append(str)
         return node
 
     def visit_ImportFrom(self, node):

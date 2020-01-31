@@ -172,9 +172,9 @@ class Sandbox(object):
         else:
             driver = runtime.rt.env.get('__Driver')
 
-        uninstall_builtins()
+        #uninstall_builtins()
         install_database_loader(driver=driver)
-        enable_restricted_imports()
+
 
         # __main__ is replaced by the sender of the message in this case
 
@@ -213,7 +213,9 @@ class Sandbox(object):
 
             func = getattr(module, function_name)
 
+            enable_restricted_imports()
             result = func(**kwargs)
+            disable_restricted_imports()
 
             if auto_commit:
                 driver.commit()
