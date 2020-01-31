@@ -110,7 +110,7 @@ I/O pattern:
     * After all execution is complete, pass the full set of results
       back to the client again to minimize I/O overhead and deadlocks
     * Sandbox blocks on pipe again for new bag of transactions
-"""
+"""""
 
 
 class Sandbox(object):
