@@ -19,10 +19,7 @@ controller = Variable()
 def seed(policy='members', cost=100_000):
     controller.set(policy)
 
-    to_be_relinquished.set([])
-
     member_cost.set(cost)
-
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # STAKING
 @export
@@ -34,11 +31,14 @@ def register():
     candidate_state['registered', ctx.caller] = True
     candidate_state['votes', ctx.caller] = 0
 
+    if top_candidate.get() is None:
+        top_candidate.set(ctx.caller)
 
 @export
 def unregister():
     mns = election_house.current_value_for_policy(controller.get())
     assert candidate_state['registered', ctx.caller], 'Not registered.'
+
     assert ctx.caller not in mns, "Can't unstake if in governance."
 
     currency.transfer(member_cost.get(), ctx.caller)
@@ -62,10 +62,11 @@ def vote_candidate(address):
 
     # Update last voted variable
     candidate_state['last_voted', ctx.caller] = now
-    candidate_state['votes', ctx.caller] += 1
+    candidate_state['votes', address] += 1
 
-    if candidate_state['votes', ctx.caller] > candidate_state['votes', top_candidate.get()]:
-        top_candidate.set(ctx.caller)
+    if top_candidate.get() is not None:
+        if candidate_state['votes', address] > candidate_state['votes', top_candidate.get()]:
+            top_candidate.set(address)
 
 
 @export
@@ -102,15 +103,16 @@ def vote_no_confidence(address):
     # Update last voted variable
     no_confidence_state['last_voted', ctx.caller] = now
 
-    # Update vote dict
-    nc = no_confidence_votes.get()
-
-    if nc.get(address) is None:
-        nc[address] = 1
+    if no_confidence_state['votes', address] is None:
+        no_confidence_state['votes', address] = 1
     else:
-        nc[address] += 1
+        no_confidence_state['votes', address] += 1
 
-    no_confidence_votes.set(nc)
+    if last_candidate.get() is None:
+        last_candidate.set(address)
+    else:
+        if no_confidence_state['votes', address] > no_confidence_state['votes', last_candidate.get()]:
+            last_candidate.set(address)
 
 
 @export
@@ -129,11 +131,11 @@ def pop_last():
     r = to_be_relinquished.get()
 
     if r is not None:
-        r.set(None)
-
+        no_confidence_state['votes', r] = 0
+        to_be_relinquished.set(None)
     else:
-        no_confidence_votes.clear('votes')
-        no_confidence_votes['registered', last] = False
+        no_confidence_state.clear('votes')
+        candidate_state['registered', last_candidate.get()] = False
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # REMOVE!!
@@ -151,4 +153,4 @@ def relinquish():
     r = to_be_relinquished.get()
     assert r is None, 'Someone is already trying to relinquish!'
 
-    r.set(ctx.caller)
+    to_be_relinquished.set(ctx.caller)
