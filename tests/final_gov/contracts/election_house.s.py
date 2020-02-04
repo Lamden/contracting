@@ -31,7 +31,7 @@ def register_policy(contract):
 
 @export
 def current_value_for_policy(policy: str):
-    assert policies.get(policy) is not None, 'Invalid policy.'
+    assert policies.get(policy) is not None, f'Invalid policy: {policy}.'
     p = I.import_module(policy)
 
     return p.current_value()
