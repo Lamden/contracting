@@ -228,7 +228,7 @@ class TestPendingMasters(TestCase):
         q = self.master_candidates.candidate_votes.get()
 
         self.assertEqual(q['stu'], 0)
-        self.assertEqual(self.currency.balances['master_candidates'], 100_000)
+        self.assertEqual(self.currency.balances['elect_members'], 100_000)
         self.assertEqual(self.master_candidates.candidate_state['registered', 'stu'], True)
 
     def test_double_register_raises_assert(self):

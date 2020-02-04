@@ -13,7 +13,7 @@ minimum_nodes = Variable()
 candidate_contract = Variable()
 
 @construct
-def seed(initial_members, minimum=1, candidate='elect_masternodes'):
+def seed(initial_members, minimum=1, candidate='elect_members'):
     S['members'] = initial_members
     minimum_nodes.set(minimum)
     candidate_contract.set(candidate)
@@ -99,6 +99,7 @@ def assert_vk_is_valid(vk):
 
 def introduce_motion(position, arg):
     # If remove member, must be a member that already exists
+    assert position <= REMOVE_SEAT, 'Invalid position.'
     if position == REMOVE_MEMBER:
         assert arg in S['members'], 'member does not exist.'
         assert len
@@ -113,7 +114,7 @@ def pass_current_motion():
     members = S['members']
 
     if current_motion == REMOVE_MEMBER:
-        members.remove(S['members_in_question'])
+        members.remove(S['member_in_question'])
 
     elif current_motion == ADD_SEAT:
         # Get the top member
