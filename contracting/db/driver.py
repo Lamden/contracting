@@ -172,6 +172,9 @@ class CacheDriver:
         if mark:
             self.pending_writes[key] = value
 
+    def delete(self, key):
+        self.set(key, None)
+
     def commit(self):
         for k, v in self.pending_writes.items():
             self.driver.set(k, v)
