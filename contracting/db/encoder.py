@@ -85,4 +85,6 @@ def encode_kv(key, value):
 def decode_kv(key, value):
     k = key.decode()
     v = decode(value)
+    if v == '':
+        v = None
     return k, v

@@ -177,7 +177,10 @@ class CacheDriver:
 
     def commit(self):
         for k, v in self.pending_writes.items():
-            self.driver.set(k, v)
+            if v is None:
+                self.driver.delete(k)
+            else:
+                self.driver.set(k, v)
 
     def clear_pending_state(self):
         self.cache.clear()
@@ -195,7 +198,7 @@ class ContractDriver(CacheDriver):
         _items = {}
         keys = set()
         for k, v in self.cache.items():
-            if k.startswith(prefix):
+            if k.startswith(prefix) and v is not None:
                 _items[k] = v
                 keys.add(k)
 
@@ -267,11 +270,15 @@ class ContractDriver(CacheDriver):
     def get_contract_keys(self, name):
         return self.keys(name)
 
+    # Set cache to None
+    # Set pending writes to none
     def delete(self, key):
-        if self.cache.get(key) is not None:
-            del self.cache[key]
-
-        if self.pending_writes.get(key) is not None:
-            del self.pending_writes[key]
-
-        self.driver.delete(key)
+        # if self.cache.get(key) is not None:
+        #     del self.cache[key]
+        #
+        # if self.pending_writes.get(key) is not None:
+        #     del self.pending_writes[key]
+        #
+        # self.driver.delete(key)
+        self.cache[key] = None
+        self.pending_writes[key] = None
