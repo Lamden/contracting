@@ -154,7 +154,7 @@ class TestRewards(TestCase):
         self.assertEqual(self.rewards.current_votes['masternodes'], 25)
         self.assertEqual(self.rewards.current_votes['delegates'], 25)
         self.assertEqual(self.rewards.current_votes['blackhole'], 25)
-        self.assertEqual(self.rewards.current_votes['masternodes'], 25)
+        self.assertEqual(self.rewards.current_votes['foundation'], 25)
 
     def test_vote_twice_fails(self):
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}

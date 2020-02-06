@@ -65,7 +65,11 @@ class AbstractContract:
         return self.executor.driver.get(k)
 
     def quick_write(self, variable, key=None, value=None, args=None):
-        a = [key]
+        if key is not None:
+            a = [key]
+        else:
+            a = []
+
         if args is not None and isinstance(args, list):
             for arg in args:
                 a.append(arg)
