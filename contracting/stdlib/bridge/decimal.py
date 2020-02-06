@@ -101,6 +101,9 @@ class ContractingDecimal:
     def __float__(self):
         raise Exception('Cannot cast Decimal to float.')
 
+    def __repr__(self):
+        return self._d.__repr__()
+
 
 exports = {
     'decimal': ContractingDecimal,

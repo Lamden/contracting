@@ -172,8 +172,8 @@ class CacheDriver:
         if mark:
             self.pending_writes[key] = value
 
-    def delete(self, key):
-        self.set(key, None)
+    def delete(self, key, mark=True):
+        self.set(key, None, mark=mark)
 
     def commit(self):
         for k, v in self.pending_writes.items():
@@ -272,13 +272,13 @@ class ContractDriver(CacheDriver):
 
     # Set cache to None
     # Set pending writes to none
-    def delete(self, key):
-        # if self.cache.get(key) is not None:
-        #     del self.cache[key]
-        #
-        # if self.pending_writes.get(key) is not None:
-        #     del self.pending_writes[key]
-        #
-        # self.driver.delete(key)
-        self.cache[key] = None
-        self.pending_writes[key] = None
+    # def delete(self, key):
+    #     # if self.cache.get(key) is not None:
+    #     #     del self.cache[key]
+    #     #
+    #     # if self.pending_writes.get(key) is not None:
+    #     #     del self.pending_writes[key]
+    #     #
+    #     # self.driver.delete(key)
+    #     self.cache[key] = None
+    #     self.pending_writes[key] = None
