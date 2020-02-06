@@ -4,7 +4,7 @@ from contracting.stdlib.bridge.time import Timedelta, DAYS, WEEKS, Datetime
 from datetime import datetime as dt, timedelta as td
 
 
-class TestMembers(TestCase):
+class TestRewards(TestCase):
     def setUp(self):
         self.client = ContractingClient()
         self.client.flush()

@@ -13,6 +13,8 @@ def seed(initial_split=[0.5, 0.5, 0, 0],
     S['delegate_contract'] = delegate_contract
     S['election_max_length'] = election_max_length
 
+    S['vote_count'] = 0
+
     reset_current_votes()
 
 
@@ -57,10 +59,10 @@ def vote(vk, obj):
 
 def update_value():
     # Calculate ratio of votes
-    masternode_votes = S['current_votes', 'masternodes'] or 1
-    delegate_votes = S['current_votes', 'delegates'] or 1
-    blackhole_votes = S['current_votes', 'blackhole'] or 1
-    foundation_votes = S['current_votes', 'foundation'] or 1
+    masternode_votes = S['current_votes', 'masternodes'] or 0
+    delegate_votes = S['current_votes', 'delegates'] or 0
+    blackhole_votes = S['current_votes', 'blackhole'] or 0
+    foundation_votes = S['current_votes', 'foundation'] or 0
 
     total_votes = masternode_votes + delegate_votes + blackhole_votes + foundation_votes
 
