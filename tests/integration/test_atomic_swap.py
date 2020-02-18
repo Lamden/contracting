@@ -2,7 +2,7 @@ from unittest import TestCase
 from contracting.db.driver import ContractDriver
 from contracting.execution.executor import Executor
 from contracting.stdlib.bridge.time import Datetime
-
+import contracting
 
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
@@ -34,7 +34,7 @@ class TestAtomicSwapContract(TestCase):
         self.d = ContractDriver()
         self.d.flush()
 
-        with open('../../contracting/contracts/submission.s.py') as f:
+        with open(contracting.__path__[0] + '/contracts/submission.s.py') as f:
             contract = f.read()
 
         self.d.set_contract(name='submission',

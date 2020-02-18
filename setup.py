@@ -19,7 +19,8 @@ requirements = [
     'transitions',
     'astor',
     'rocks',
-    'sanic'
+    'sanic',
+    'stdlib_list'
 ]
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)

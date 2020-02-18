@@ -3,6 +3,7 @@ from contracting.db.driver import ContractDriver
 from contracting.execution.executor import Executor
 from contracting.config import STAMPS_PER_TAU
 from contracting.execution import runtime
+import contracting
 
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
@@ -35,7 +36,7 @@ class TestMetering(TestCase):
         self.d = ContractDriver()
         self.d.flush()
 
-        with open('../../contracting/contracts/submission.s.py') as f:
+        with open(contracting.__path__[0] + '/contracts/submission.s.py') as f:
             contract = f.read()
 
         self.d.set_contract(name='submission',
