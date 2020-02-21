@@ -49,6 +49,8 @@ int cu_costs[] = {2, 4, 5, 2, 4, 0, 0, 0, 2, 2, 3, 2, 0, 0, 4, 1000, 1000, 0, 30
                 4, 0, 2, 2, 2, 5, 8, 7, 4, 4, 38, 126, 4, 4, 4, 4, 4, 4, 3, 0, 0, 2, 4, 2, 3, 0, 2, 2, 2, 1000, 0, 0, 5,
                 9, 7, 12, 0, 7, 2, 2, 2, 0, 0, 12, 12, 15, 2, 8, 8, 5, 2, 5, 7, 9, 2, 8, 15, 30, 7, 8, 4};
 
+int estimate = 0;
+
 static int
 Tracer_init(Tracer *self, PyObject *args, PyObject *kwds)
 {
@@ -108,7 +110,12 @@ Tracer_dealloc(Tracer *self)
              str = PyBytes_AS_STRING(frame->f_code->co_code);
              opcode = str[frame->f_lasti];
              if (opcode < 0) opcode = -opcode;
-             if (self->cost + cu_costs[opcode] > self->stamp_supplied) {
+
+             estimate = (self->cost + cu_costs) / 1000;
+             estimate = estimate + 1;
+             estimate = estimate * 1000;
+
+             if (estimate > self->stamp_supplied) {
                  PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
                  PyEval_SetTrace(NULL, NULL);
                  self->started = 0;
