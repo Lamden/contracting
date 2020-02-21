@@ -254,6 +254,11 @@ class Sandbox(object):
                 driver.commit()
 
         stamps_used = runtime.rt.tracer.get_stamp_used()
+
+        stamps_used = stamps_used // 1000
+        stamps_used += 1
+        stamps_used *= 1000
+
         runtime.rt.clean_up()
         runtime.rt.env.update({'__Driver': driver})
 
