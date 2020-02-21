@@ -234,6 +234,11 @@ class Sandbox(object):
             assert balances_key is not None, 'Balance key was not set properly. Cannot deduct stamps.'
 
             to_deduct = runtime.rt.tracer.get_stamp_used()
+
+            to_deduct = to_deduct // 1000
+            to_deduct += 1
+            to_deduct *= 1000
+
             to_deduct /= config.STAMPS_PER_TAU
 
             to_deduct = ContractingDecimal(to_deduct)
