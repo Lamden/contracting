@@ -7,6 +7,9 @@ from contracting.stdlib.bridge.decimal import ContractingDecimal
 from datetime import datetime
 import marshal
 import decimal
+
+import pymongo
+
 # DB maps bytes to bytes
 # Driver maps string to python object
 CODE_KEY = '__code__'
@@ -79,6 +82,66 @@ class Driver:
         k = key.encode()
         self.db.delete(k)
 
+
+class MongoDriver(Driver):
+    def __init__(self, db='state', collection='state'):
+        super().__init__()
+        self.client = pymongo.MongoClient()
+        self.db = self.client[db][collection]
+
+    def get(self, item: str):
+        k = item.encode()
+        v = self.db.find_one({'_id': k})
+
+        if v is None:
+            return None
+
+        return decode(v['v'])
+
+    def set(self, key, value):
+        k = key.encode()
+        if value is None:
+            self.__delitem__(key)
+        else:
+            v = encode(value)
+            self.db.update_one({'_id': k}, {'$set': {'v': v}}, upsert=True)
+
+    def flush(self):
+        self.db.drop()
+
+    def delete(self, key: str):
+        self.__delitem__(key)
+
+    def iter(self, prefix: str, length=0):
+        cur = self.db.find({'_id': {'$regex': f'^{prefix}'}})
+
+        if length == 0:
+            keys = []
+            for entry in cur:
+                keys.append(entry['_id'])
+            return keys
+
+        return [entry['_id'] for entry in cur]
+
+    def keys(self):
+        k = []
+        for entry in self.db.find({}):
+            k.append(entry['_id'])
+
+        return k
+
+    def __getitem__(self, item: str):
+        value = self.get(item)
+        if value is None:
+            raise KeyError
+        return value
+
+    def __setitem__(self, key: str, value):
+        self.set(key, value)
+
+    def __delitem__(self, key: str):
+        k = key.encode()
+        self.db.delete_one({'_id': k})
 
 class InMemDriver(Driver):
     def __init__(self):
@@ -220,7 +283,7 @@ class ContractDriver(CacheDriver):
     def make_key(self, contract, variable, args=[]):
         contract_variable = self.delimiter.join((contract, variable))
         if args:
-            return ':'.join((contract_variable, *args))
+            return ':'.join((contract_variable, *[str(arg) for arg in args]))
         return contract_variable
 
     def get_var(self, contract, variable, arguments=[], mark=True):
