@@ -197,14 +197,14 @@ class Sandbox(object):
         status_code = 0
         runtime.rt.set_up(stmps=stamps, meter=metering)
 
-        runtime.rt.context._base_state = {
-            'signer': sender,
-            'caller': sender,
-            'this': contract_name,
-            'owner': driver.get_owner(contract_name)
-        }
-
         try:
+            runtime.rt.context._base_state = {
+                'signer': sender,
+                'caller': sender,
+                'this': contract_name,
+                'owner': driver.get_owner(contract_name)
+            }
+
             if runtime.rt.context.owner is not None and runtime.rt.context.owner != runtime.rt.context.caller:
                 raise Exception('Caller is not the owner!')
 
