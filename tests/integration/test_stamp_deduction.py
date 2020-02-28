@@ -111,4 +111,6 @@ class TestMetering(TestCase):
 
         new_balance = self.d.get('currency.balances:stu')
 
+        print(output['stamps_used'])
+
         self.assertEqual(float(prior_balance - new_balance), output['stamps_used'] / STAMPS_PER_TAU)
