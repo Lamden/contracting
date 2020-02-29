@@ -199,7 +199,7 @@ class InMemDriver(Driver):
             pass
 
 class CacheDriver:
-    def __init__(self, driver: Driver=Driver()):
+    def __init__(self, driver: Driver=MongoDriver()):
         self.driver = driver
         self.cache = {}
 
