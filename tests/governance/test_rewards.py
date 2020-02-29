@@ -111,8 +111,7 @@ class TestRewards(TestCase):
         self.election_house = self.c.get_contract('election_house')
         self.rewards = self.c.get_contract('rewards')
 
-        self.election_house.register_policy(policy='rewards',
-                                            contract='rewards')
+        self.election_house.register_policy(contract='rewards')
 
     def tearDown(self):
         self.c.flush()

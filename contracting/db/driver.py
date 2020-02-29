@@ -90,8 +90,7 @@ class MongoDriver(Driver):
         self.db = self.client[db][collection]
 
     def get(self, item: str):
-        k = item.encode()
-        v = self.db.find_one({'_id': k})
+        v = self.db.find_one({'_id': item})
 
         if v is None:
             return None
@@ -99,12 +98,11 @@ class MongoDriver(Driver):
         return decode(v['v'])
 
     def set(self, key, value):
-        k = key.encode()
         if value is None:
             self.__delitem__(key)
         else:
             v = encode(value)
-            self.db.update_one({'_id': k}, {'$set': {'v': v}}, upsert=True)
+            self.db.update_one({'_id': key}, {'$set': {'v': v}}, upsert=True)
 
     def flush(self):
         self.db.drop()
@@ -119,15 +117,18 @@ class MongoDriver(Driver):
             keys = []
             for entry in cur:
                 keys.append(entry['_id'])
+            keys.sort()
             return keys
 
-        return [entry['_id'] for entry in cur]
+        keys = [entry['_id'] for entry in cur]
+        keys.sort()
+        return keys
 
     def keys(self):
         k = []
         for entry in self.db.find({}):
             k.append(entry['_id'])
-
+        k.sort()
         return k
 
     def __getitem__(self, item: str):
@@ -140,8 +141,7 @@ class MongoDriver(Driver):
         self.set(key, value)
 
     def __delitem__(self, key: str):
-        k = key.encode()
-        self.db.delete_one({'_id': k})
+        self.db.delete_one({'_id': key})
 
 class InMemDriver(Driver):
     def __init__(self):
