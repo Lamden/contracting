@@ -177,8 +177,8 @@ class Sandbox(object):
 
 
         # __main__ is replaced by the sender of the message in this case
+        balances_key = None
         try:
-            balances_key = None
             if metering:
                 balances_key = '{}{}{}{}{}'.format(currency_contract,
                                                    config.INDEX_SEPARATOR,
