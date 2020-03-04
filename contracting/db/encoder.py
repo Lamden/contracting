@@ -10,25 +10,36 @@ from contracting.config import INDEX_SEPARATOR, DELIMITER
 # and stored as dicts. Is there a better way? I don't know, maybe.
 ##
 
+
+def safe_repr(obj):
+    r = obj.__repr__()
+    rr = r.split(' at 0x')
+    if len(rr) > 1:
+        return rr[0] + '>'
+    return rr[0]
+
+
 class Encoder(json.JSONEncoder):
     def default(self, o, *args):
         if isinstance(o, Datetime):
             return {
                 '__time__': [o.year, o.month, o.day, o.hour, o.minute, o.second, o.microsecond]
             }
-        if isinstance(o, Timedelta):
+        elif isinstance(o, Timedelta):
             return {
                 '__delta__': [o._timedelta.days, o._timedelta.seconds]
             }
-        if isinstance(o, bytes):
+        elif isinstance(o, bytes):
             return {
                 '__bytes__': o.hex()
             }
-        if isinstance(o, decimal.Decimal):
+        elif isinstance(o, decimal.Decimal):
             return float(o)
 
-        if isinstance(o, ContractingDecimal):
+        elif isinstance(o, ContractingDecimal):
             return float(o._d)
+        #else:
+        #    return safe_repr(o)
 
         return super().default(o)
 

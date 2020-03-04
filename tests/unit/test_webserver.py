@@ -8,10 +8,6 @@ class TestWebserver(TestCase):
     def tearDown(self):
         client.flush()
 
-    def test_ping_api(self):
-        _, response = app.test_client.get('/')
-        self.assertEqual(response.status, 200)
-
     def test_get_all_contracts(self):
         _, response = app.test_client.get('/contracts')
         contracts = response.json.get('contracts')
