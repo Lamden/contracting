@@ -177,27 +177,26 @@ class Sandbox(object):
 
 
         # __main__ is replaced by the sender of the message in this case
-
-        balances_key = None
-        if metering:
-            balances_key = '{}{}{}{}{}'.format(currency_contract,
-                                               config.INDEX_SEPARATOR,
-                                               balances_hash,
-                                               config.DELIMITER,
-                                               sender)
-
-            balance = driver.get(balances_key)
-            if balance is None:
-                balance = 0
-
-            assert balance * config.STAMPS_PER_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
-                                                       Balance at key {} is {}'.format(balances_key, balance)
-
-        runtime.rt.env.update(environment)
-        status_code = 0
-        runtime.rt.set_up(stmps=stamps, meter=metering)
-
         try:
+            balances_key = None
+            if metering:
+                balances_key = '{}{}{}{}{}'.format(currency_contract,
+                                                   config.INDEX_SEPARATOR,
+                                                   balances_hash,
+                                                   config.DELIMITER,
+                                                   sender)
+
+                balance = driver.get(balances_key)
+                if balance is None:
+                    balance = 0
+
+                assert balance * config.STAMPS_PER_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
+                                                           Balance at key {} is {}'.format(balances_key, balance)
+
+            runtime.rt.env.update(environment)
+            status_code = 0
+            runtime.rt.set_up(stmps=stamps, meter=metering)
+
             runtime.rt.context._base_state = {
                 'signer': sender,
                 'caller': sender,
