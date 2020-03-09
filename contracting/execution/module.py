@@ -30,7 +30,7 @@ def is_valid_import(name):
 def restricted_import(name, globals=None, locals=None, fromlist=(), level=0):
     if globals is not None and globals.get('__contract__') is True:
         spec = importlib.util.find_spec(name)
-        if not isinstance(spec.loader, DatabaseLoader):
+        if spec is None or not isinstance(spec.loader, DatabaseLoader):
             raise ImportError("module {} cannot be imported in a smart contract.".format(name))
 
     return __import__(name, globals, locals, fromlist, level)
