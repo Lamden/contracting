@@ -14,7 +14,7 @@ from copy import deepcopy
 
 import inspect
 class Executor:
-    def __init__(self, production=False, driver=None, metering=True,
+    def __init__(self, production=False, driver=None, metering=False,
                  currency_contract='currency', balances_hash='balances', bypass_privates=False):
 
         self.metering = metering
@@ -51,7 +51,7 @@ class Executor:
                 environment={},
                 auto_commit=True,
                 driver=None,
-                stamps=1000000,
+                stamps=100000,
                 metering=None) -> dict:
 
         if not self.bypass_privates:
