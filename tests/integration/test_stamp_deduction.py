@@ -90,7 +90,7 @@ class TestMetering(TestCase):
 
         prior_balance *= STAMPS_PER_TAU
 
-        self.e.execute(
+        output = self.e.execute(
             **TEST_SUBMISSION_KWARGS,
             kwargs=submission_kwargs_for_file('./test_contracts/inf_loop.s.py'),
             stamps=prior_balance,
@@ -99,18 +99,23 @@ class TestMetering(TestCase):
 
         new_balance = self.d.get('currency.balances:stu')
 
+        print(new_balance)
+
         # Not all stamps will be deducted because it will blow up in the middle of execution
         self.assertTrue(new_balance < 0.01)
 
     def test_submitting_contract_succeeds_with_enough_stamps(self):
         prior_balance = self.d.get('currency.balances:stu')
 
+        print(prior_balance)
+
         output = self.e.execute(**TEST_SUBMISSION_KWARGS,
                                                 kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'),
                                                 )
+        print(output)
 
         new_balance = self.d.get('currency.balances:stu')
 
-        print(output['stamps_used'])
+        print(new_balance)
 
         self.assertEqual(float(prior_balance - new_balance), output['stamps_used'] / STAMPS_PER_TAU)

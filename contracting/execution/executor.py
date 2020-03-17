@@ -149,6 +149,7 @@ class Sandbox(object):
                 driver: ContractDriver=None,
                 metering=None,
                 stamps=1000000,
+                stamp_cost=config.STAMPS_PER_TAU,
                 currency_contract=None,
                 balances_hash=None):
 
@@ -190,7 +191,7 @@ class Sandbox(object):
                 if balance is None:
                     balance = 0
 
-                assert balance * config.STAMPS_PER_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
+                assert balance * stamp_cost >= stamps, 'Sender does not have enough stamps for the transaction. \
                                                            Balance at key {} is {}'.format(balances_key, balance)
 
             runtime.rt.env.update(environment)
@@ -238,7 +239,7 @@ class Sandbox(object):
             to_deduct += 1
             to_deduct *= 1000
 
-            to_deduct /= config.STAMPS_PER_TAU
+            to_deduct /= stamp_cost
 
             to_deduct = ContractingDecimal(to_deduct)
 
