@@ -1,7 +1,6 @@
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from distutils.command.build_ext import build_ext, CCompilerError, DistutilsExecError, DistutilsPlatformError
-import os
 from distutils import errors
 import sys
 
@@ -15,6 +14,7 @@ requirements = [
     'astor',
     'sanic',
     'stdlib_list',
+    'requests>=2.21.0'
 ]
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
