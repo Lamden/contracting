@@ -52,6 +52,7 @@ class Executor:
                 auto_commit=True,
                 driver=None,
                 stamps=1000000,
+                stamp_cost=config.STAMPS_PER_TAU,
                 metering=None) -> dict:
 
         if not self.bypass_privates:
@@ -82,6 +83,7 @@ class Executor:
                                                                 driver=driver,
                                                                 metering=metering,
                                                                 stamps=stamps,
+                                                                stamp_cost=stamp_cost,
                                                                 currency_contract=self.currency_contract,
                                                                 balances_hash=self.balances_hash)
 
