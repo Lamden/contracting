@@ -2,10 +2,8 @@
 
 # Local imports
 from contracting.logger import get_logger
-from contracting.db.driver import ContractDriver, CacheDriver
-from contracting import config
+from contracting.db.driver import ContractDriver
 from contracting.db.cr.callback_data import ExecutionData, SBData
-from typing import List
 
 import json
 

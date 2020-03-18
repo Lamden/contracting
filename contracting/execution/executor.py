@@ -1,8 +1,6 @@
 import importlib
 import multiprocessing
 from typing import Dict
-import decimal
-from contracting.logger import get_logger
 from contracting.execution import runtime
 from contracting.db.cr.transaction_bag import TransactionBag
 from contracting.db.driver import ContractDriver, CacheDriver
@@ -10,9 +8,8 @@ from contracting.execution.module import install_database_loader, uninstall_buil
 from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting import config
 from copy import deepcopy
-#log = get_logger('Executor')
 
-import inspect
+
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
                  currency_contract='currency', balances_hash='balances', bypass_privates=False):

@@ -1,9 +1,9 @@
-from collections import deque
 import sys
 from contracting import config
 import contracting
 import os
 from contracting.execution.metering.tracer import Tracer
+
 
 class Context:
     def __init__(self, base_state, maxlen=config.RECURSION_LIMIT):
@@ -109,7 +109,7 @@ class Runtime:
     def deduct_write(cls, key, value):
         if key is not None and rt.tracer.is_started():
             cost = len(key) + len(value)
-            cost *= config.READ_COST_PER_BYTE
+            cost *= config.WRITE_COST_PER_BYTE
             rt.tracer.add_cost(cost)
 
 rt = Runtime()

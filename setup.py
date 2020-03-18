@@ -10,17 +10,11 @@ major = 0
 __version__ = '1.0.1.3'
 
 requirements = [
-    'redis==3.2.0',
-    'python-dotenv==0.9.1',
-    'ujson',
     'autopep8',
     'coloredlogs',
-    'humanfriendly',
-    'transitions',
     'astor',
-    'rocks',
     'sanic',
-    'stdlib_list'
+    'stdlib_list',
 ]
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)

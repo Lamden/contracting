@@ -1,26 +1,9 @@
-DB_TYPE = 'redis'
-
-DB_URL = 'localhost'
-DB_PORT = 6379
-MASTER_DB = 0
 DB_OFFSET = 1
-
-DB_DELIMITER = ':'
-
-# Number of available db's SenecaClients have available to get ahead on the next sub block while other sb's are
-# awaiting a merge confirmation
 NUM_CACHES = 4
 
-# Resource limits
-MEMORY_LIMIT = 32768  # 32kb
 RECURSION_LIMIT = 1024
 
 DELIMITER = ':'
-CODE_KEY = '__code__'
-TYPE_KEY = '__type__'
-AUTHOR_KEY = '__author__'
-OWNER_KEY = '__owner__'
-TIME_KEY = '__submitted__'
 INDEX_SEPARATOR = '.'
 
 DECIMAL_PRECISION = 64

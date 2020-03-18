@@ -1,3 +1,4 @@
+pymongo
 sanic
 rocks
 python-dotenv==0.9.1

@@ -6,7 +6,6 @@ from importlib import invalidate_caches, __import__
 from importlib.machinery import ModuleSpec
 from contracting.db.driver import ContractDriver
 from contracting.stdlib import env
-from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting.execution.runtime import rt
 from types import ModuleType
 import marshal
