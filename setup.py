@@ -1,26 +1,20 @@
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from distutils.command.build_ext import build_ext, CCompilerError, DistutilsExecError, DistutilsPlatformError
-import os
 from distutils import errors
 import sys
 
 major = 0
 
-__version__ = '1.0.1.3'
+__version__ = '1.0.1.4'
 
 requirements = [
-    'redis==3.2.0',
-    'python-dotenv==0.9.1',
-    'ujson',
     'autopep8',
     'coloredlogs',
-    'humanfriendly',
-    'transitions',
     'astor',
-    'rocks',
     'sanic',
-    'stdlib_list'
+    'stdlib_list',
+    'requests>=2.21.0'
 ]
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)

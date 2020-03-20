@@ -1,7 +1,5 @@
 from sanic import Sanic
 from sanic.response import json, text
-# from sanic_cors import CORS, cross_origin
-import json as _json
 from contracting.client import ContractingClient
 from multiprocessing import Queue
 import ast

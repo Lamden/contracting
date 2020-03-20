@@ -1,7 +1,6 @@
 from unittest import TestCase
 from contracting.webserver import app, client
 import json
-import aiohttp
 
 
 class TestWebserver(TestCase):

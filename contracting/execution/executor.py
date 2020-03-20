@@ -1,8 +1,6 @@
 import importlib
 import multiprocessing
 from typing import Dict
-import decimal
-from contracting.logger import get_logger
 from contracting.execution import runtime
 from contracting.db.cr.transaction_bag import TransactionBag
 from contracting.db.driver import ContractDriver, CacheDriver
@@ -10,9 +8,8 @@ from contracting.execution.module import install_database_loader, uninstall_buil
 from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting import config
 from copy import deepcopy
-#log = get_logger('Executor')
 
-import inspect
+
 class Executor:
     def __init__(self, production=False, driver=None, metering=False,
                  currency_contract='currency', balances_hash='balances', bypass_privates=False):
@@ -51,7 +48,8 @@ class Executor:
                 environment={},
                 auto_commit=True,
                 driver=None,
-                stamps=100000,
+                stamps=1000000,
+                stamp_cost=config.STAMPS_PER_TAU,
                 metering=None) -> dict:
 
         if not self.bypass_privates:
@@ -82,6 +80,7 @@ class Executor:
                                                                 driver=driver,
                                                                 metering=metering,
                                                                 stamps=stamps,
+                                                                stamp_cost=stamp_cost,
                                                                 currency_contract=self.currency_contract,
                                                                 balances_hash=self.balances_hash)
 
@@ -149,6 +148,7 @@ class Sandbox(object):
                 driver: ContractDriver=None,
                 metering=None,
                 stamps=1000000,
+                stamp_cost=config.STAMPS_PER_TAU,
                 currency_contract=None,
                 balances_hash=None):
 
@@ -190,7 +190,7 @@ class Sandbox(object):
                 if balance is None:
                     balance = 0
 
-                assert balance * config.STAMPS_PER_TAU >= stamps, 'Sender does not have enough stamps for the transaction. \
+                assert balance * stamp_cost >= stamps, 'Sender does not have enough stamps for the transaction. \
                                                            Balance at key {} is {}'.format(balances_key, balance)
 
             runtime.rt.env.update(environment)
@@ -238,7 +238,7 @@ class Sandbox(object):
             to_deduct += 1
             to_deduct *= 1000
 
-            to_deduct /= config.STAMPS_PER_TAU
+            to_deduct /= stamp_cost
 
             to_deduct = ContractingDecimal(to_deduct)
 
