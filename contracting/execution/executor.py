@@ -9,6 +9,9 @@ from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting import config
 from copy import deepcopy
 
+from logging import getLogger
+
+log = getLogger('CONTRACTING')
 
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
@@ -220,6 +223,7 @@ class Sandbox(object):
                 driver.commit()
         except Exception as e:
             result = e
+            log.error(str(e))
             status_code = 1
             if auto_commit:
                 driver.clear_pending_state()
