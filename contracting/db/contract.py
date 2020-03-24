@@ -13,7 +13,6 @@ class Contract:
         self._driver = driver
 
     def submit(self, name, code, owner=None, constructor_args={}):
-
         if self._driver.get_contract(name) is not None:
             return
 
