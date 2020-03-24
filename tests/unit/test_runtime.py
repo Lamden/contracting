@@ -66,7 +66,7 @@ class TestRuntime(TestCase):
         self.assertGreater(used_1, used_2)
 
     def test_modifying_stamps_during_tracing(self):
-        stamps = 1000
+        stamps = 10000
         runtime.rt.set_up(stmps=stamps, meter=True)
         a = 5
         b = 5
@@ -77,7 +77,7 @@ class TestRuntime(TestCase):
         runtime.rt.clean_up()
         used_1 = runtime.rt.tracer.get_stamp_used()
 
-        stamps = 1000
+        stamps = 5000
         runtime.rt.set_up(stmps=stamps, meter=True)
         a = 5
         b = 5
