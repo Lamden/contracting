@@ -299,7 +299,10 @@ class ContractDriver(CacheDriver):
         return self.get_var(name, CODE_KEY)
 
     def get_owner(self, name):
-        return self.get_var(name, OWNER_KEY)
+        owner = self.get_var(name, OWNER_KEY)
+        if owner == '':
+            owner = None
+        return owner
 
     def get_time_submitted(self, name):
         return self.get_var(name, TIME_KEY)

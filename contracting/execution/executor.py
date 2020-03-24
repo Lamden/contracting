@@ -208,7 +208,7 @@ class Sandbox(object):
             }
 
             if runtime.rt.context.owner is not None and runtime.rt.context.owner != runtime.rt.context.caller:
-                raise Exception('Caller is not the owner!')
+                raise Exception(f'Caller {runtime.rt.context.caller} is not the owner {runtime.rt.context.owner}!')
 
             module = importlib.import_module(contract_name)
             #module = __import__(contract_name)
