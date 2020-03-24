@@ -14,7 +14,7 @@ class Contract:
 
     def submit(self, name, code, owner=None, constructor_args={}):
         if self._driver.get_contract(name) is not None:
-            return
+            raise Exception('Contract already exists.')
 
         c = ContractingCompiler(module_name=name)
 
