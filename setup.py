@@ -14,7 +14,7 @@ requirements = [
     'astor',
     'sanic',
     'stdlib_list',
-    'requests>=2.21.0'
+    'requests>=2.21.0', 'pymongo'
 ]
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)

@@ -1,5 +1,3 @@
-# from rocks.client import RocksDBClient
-# from rocks import constants
 from contracting.db.encoder import encode, decode, encode_kv
 from contracting.execution.runtime import rt
 from contracting.stdlib.bridge.time import Datetime
@@ -18,69 +16,6 @@ AUTHOR_KEY = '__author__'
 OWNER_KEY = '__owner__'
 TIME_KEY = '__submitted__'
 COMPILED_KEY = '__compiled__'
-
-
-# Probably want to put the runtime stuff here, tbh
-# class Driver:
-#     def __init__(self):
-#         self.db = RocksDBClient()
-#
-#     def get(self, item: str):
-#         key = item.encode()
-#         # RT READ
-#         value = self.db.get(key)
-#         return decode(value)
-#
-#     def set(self, key: str, value):
-#         k = key.encode()
-#         if value is None:
-#             self.__delitem__(key)
-#         else:
-#             v = encode(value).encode()
-#             self.db.set(k, v)
-#
-#     def delete(self, key: str):
-#         self.__delitem__(key)
-#
-#     def iter(self, prefix: str, length=0):
-#         p = prefix.encode()
-#
-#         # RT SEEK
-#         self.db.seek(p)
-#
-#         l = []
-#         k = None
-#         while k != constants.STOP_ITER_RESPONSE:
-#             # RT ITER
-#             k = self.db.next()
-#             if not k.startswith(p):
-#                 break
-#             if k != constants.STOP_ITER_RESPONSE:
-#                 # Appends the decoded KEY. Not the value.
-#                 l.append(k.decode())
-#             if 0 < length <= len(l):
-#                 break
-#
-#         return l
-#
-#     def keys(self):
-#         return self.iter('')
-#
-#     def flush(self):
-#         self.db.flush()
-#
-#     def __getitem__(self, item: str):
-#         value = self.get(item)
-#         if value is None:
-#             raise KeyError
-#         return value
-#
-#     def __setitem__(self, key: str, value):
-#         self.set(key, value)
-#
-#     def __delitem__(self, key: str):
-#         k = key.encode()
-#         self.db.delete(k)
 
 
 class Driver:
