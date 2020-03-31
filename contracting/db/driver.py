@@ -144,16 +144,16 @@ class CacheDriver:
 
     def get(self, key: str, mark=True):
         # Try to get from cache
-        v = self.cache.get(key)
-        if v is not None:
-            rt.deduct_read(*encode_kv(key, v))
-            return v
+        #v = self.cache.get(key)
+        #if v is not None:
+        #    rt.deduct_read(*encode_kv(key, v))
+        #    return v
 
         # If it doesn't exist, get from db, add to cache
         dv = self.driver.get(key)
         rt.deduct_read(*encode_kv(key, dv))
 
-        self.cache[key] = dv
+        #self.cache[key] = dv
 
         # Add key to reads
         if mark and not key.endswith('__code__'):
