@@ -156,7 +156,7 @@ class CacheDriver:
         self.cache[key] = dv
 
         # Add key to reads
-        if mark:
+        if mark and not key.endswith('__code__'):
             self.reads.add(key)
 
         return dv

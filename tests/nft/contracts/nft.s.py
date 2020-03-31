@@ -1,8 +1,39 @@
 balances = Hash(default_value=0)
 owners = Hash()
 approvals = Hash()
-
 authorized = Hash()
+controllers = Hash()
+
+@seed
+def construct(vk):
+    controllers[vk] = True
+
+@export
+def add_controller(vk):
+    assert controllers[ctx.caller]
+    controllers[vk] = True
+
+@export
+def revoke_controller(vk):
+    assert controllers[ctx.caller]
+    controllers[vk] = False
+
+@export
+def mint(token_id):
+    assert controllers[ctx.caller]
+    assert owners[token_id] is None, 'Already issued!'
+
+    owners[token_id] = ctx.caller
+    balances[ctx.caller] += 1
+
+@export
+def burn(token_id):
+    assert balances[sender] == ctx.caller or \
+           approvals[token_id] == ctx.caller or \
+           authorized[sender, ctx.caller] is True, 'Access not granted to transfer'
+
+    balances[sender] -= 1
+    owners[token_id] = None
 
 @export
 def balance_of(owner):
@@ -16,19 +47,12 @@ def owner_of(token_id):
 
 @export
 def transfer_from(sender, to, token_id):
-    # If sender if the caller, pass.
-    # If caller is approved, pass.
-    # If caller is authorized, pass.
     assert balances[sender] == ctx.caller or \
            approvals[token_id] == ctx.caller or \
            authorized[sender, ctx.caller] is True, 'Access not granted to transfer'
-
     balances[sender] -= 1
     balances[to] += 1
-
     owners[token_id] = to
-
-    del approvals[token_id]
 
 @export
 def approve(to, token_id):
