@@ -22,6 +22,7 @@ class Driver:
     def __init__(self, db='state', collection='state'):
         self.client = pymongo.MongoClient()
         self.db = self.client[db][collection]
+        self.raw_db = self.client[db]
 
     def get(self, item: str):
         v = self.db.find_one({'_id': item})
@@ -144,16 +145,16 @@ class CacheDriver:
 
     def get(self, key: str, mark=True):
         # Try to get from cache
-        #v = self.cache.get(key)
-        #if v is not None:
-        #    rt.deduct_read(*encode_kv(key, v))
-        #    return v
+        v = self.cache.get(key)
+        if v is not None:
+            rt.deduct_read(*encode_kv(key, v))
+            return v
 
         # If it doesn't exist, get from db, add to cache
         dv = self.driver.get(key)
         rt.deduct_read(*encode_kv(key, dv))
 
-        #self.cache[key] = dv
+        self.cache[key] = dv
 
         # Add key to reads
         if mark and not key.endswith('__code__'):
@@ -170,6 +171,8 @@ class CacheDriver:
         self.cache[key] = value
         if mark:
             self.pending_writes[key] = value
+        # else:
+        #     self.driver.db.delete(key)
 
     def delete(self, key, mark=True):
         self.set(key, None, mark=mark)
@@ -180,6 +183,7 @@ class CacheDriver:
                 self.driver.delete(k)
             else:
                 self.driver.set(k, v)
+        self.pending_writes.clear()
 
     def clear_pending_state(self):
         self.cache.clear()
