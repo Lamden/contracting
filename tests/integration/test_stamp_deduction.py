@@ -119,3 +119,34 @@ class TestMetering(TestCase):
         print(new_balance)
 
         self.assertEqual(float(prior_balance - new_balance), output['stamps_used'] / STAMPS_PER_TAU)
+
+    def test_non_smart_contract_uses_no_stamps(self):
+        runtime.rt.set_up(stmps=100, meter=True)
+
+        a = 123
+        while a > 0:
+            a -= 1
+
+        runtime.rt.tracer.stop()
+
+        stamps_used = runtime.rt.tracer.get_stamp_used()
+
+        runtime.rt.tracer.reset()
+
+        self.assertEqual(stamps_used, 0)
+
+    def test_smart_contract_uses_stamps(self):
+        runtime.rt.set_up(stmps=1000, meter=True)
+
+        globals()['__contract__'] = True
+        a = 123
+        while a > 0:
+            a -= 1
+
+        runtime.rt.tracer.stop()
+
+        stamps_used = runtime.rt.tracer.get_stamp_used()
+
+        runtime.rt.tracer.reset()
+
+        self.assertGreater(stamps_used, 0)
