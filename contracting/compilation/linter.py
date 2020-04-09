@@ -4,7 +4,7 @@ import sys
 from .. import config
 
 from ..logger import get_logger
-from ..compilation.whitelists import ALLOWED_AST_TYPES, VIOLATION_TRIGGERS, ILLEGAL_BUILTINS
+from ..compilation.whitelists import ALLOWED_AST_TYPES, ALLOWED_ANNOTAION_TYPES, VIOLATION_TRIGGERS, ILLEGAL_BUILTINS
 
 from contracting.db.driver import ContractDriver
 
@@ -22,6 +22,8 @@ class Linter(ast.NodeVisitor):
         self._constructor_visited = False
         self.orm_names = set()
         self.visited_args = set()
+        self.return_annotation = set()
+        self.arg_types = set()
 
         self.builtins = set(stdlib_list(f'{sys.version_info.major}.{sys.version_info.minor}'))
         self.driver = driver
@@ -168,9 +170,37 @@ class Linter(ast.NodeVisitor):
         arguments = node.args
         for a in arguments.args:
             self.visited_args.add((a.arg, node.lineno))
+            if a.annotation is not None:
+                self.arg_types.add((a.annotation.id, node.lineno))
+            else:
+                self.arg_types.add((None, node.lineno))
+
+        if node.returns is not None:
+            self.return_annotation.add((node.returns.id, node.lineno))
+        else:
+            self.return_annotation.add((None, node.lineno))
 
         self.generic_visit(node)
         return node
+
+
+    def annotation_types(self, t, lnum):
+        if t is None:
+            str = "Line {}".format(lnum) + " : " + VIOLATION_TRIGGERS[16]
+            self._violations.append(str)
+            self._is_success = False
+        elif t not in ALLOWED_ANNOTAION_TYPES:
+            str = "Line {}".format(lnum) + " : " + VIOLATION_TRIGGERS[15] + " : {}" .format(t)
+            self._violations.append(str)
+            self._is_success = False
+
+
+    def check_return_types(self, t, lnum):
+        if t is not None:
+            str = "Line {}".format(lnum) + " : " + VIOLATION_TRIGGERS[17] + " : {}" .format(t)
+            self._violations.append(str)
+            self._is_success = False
+
 
     def _reset(self):
         self._violations = []
@@ -180,6 +210,8 @@ class Linter(ast.NodeVisitor):
         self._constructor_visited = False
         self.orm_names = set()
         self.visited_args = set()
+        self.return_annotation = set()
+        self.arg_types = set()
 
     def _final_checks(self):
         for name, lineno in self.visited_args:

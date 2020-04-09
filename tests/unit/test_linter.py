@@ -1,7 +1,7 @@
 from unittest import TestCase
 from contracting.compilation.linter import Linter
 import ast
-from contracting.compilation.whitelists import ALLOWED_AST_TYPES
+from contracting.compilation.whitelists import ALLOWED_AST_TYPES, ALLOWED_ANNOTAION_TYPES, VIOLATION_TRIGGERS
 
 
 class TestLinter(TestCase):
@@ -356,3 +356,96 @@ def seed_2():
 
         self.assertEqual(len(chk),2)
         self.assertEqual(self.l._violations, [chk[0], 'Line 0: S13- No valid contracting decorator found'])
+
+    def test_function_str_annotation(self):
+        code = '''
+@export
+def greeting(name: str):
+    return 'Hello ' + name
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+
+        for t, lineno in self.l.arg_types:
+            self.l.annotation_types(t,lineno)
+        self.l.dump_violations()
+
+        self.assertEqual(self.l._violations, [])
+
+    def test_function_dict_annotation(self):
+        code = '''
+@export
+def greeting(name: dict):
+    return 'Hello ' + name
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+
+        for t, lineno in self.l.arg_types:
+            self.l.annotation_types(t,lineno)
+        self.l.dump_violations()
+
+        self.assertEqual(self.l._violations, [])
+
+    def test_function_bad_annotation(self):
+        code = '''
+@export
+def greeting(name: mytype):
+    return 'Hello ' + name
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+
+        for t, lineno in self.l.arg_types:
+            self.l.annotation_types(t,lineno)
+        self.l.dump_violations()
+
+        self.assertEqual(self.l._violations, ['Line 2 : S16- Illegal argument annotation used : mytype'])
+
+
+    def test_function_none_annotation(self):
+        code = '''
+@export
+def greeting(name):
+    return 'Hello ' + name
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+
+        for t, lineno in self.l.arg_types:
+            self.l.annotation_types(t,lineno)
+        self.l.dump_violations()
+
+        self.assertEqual(self.l._violations, ['Line 2 : S17- No valid argument annotation found'])
+
+
+    def test_none_return_annotation(self):
+        code = '''
+@export
+def greeting(name):
+    return 'Hello ' + name
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+
+        for t, lineno in self.l.arg_types:
+            self.l.check_return_types(t,lineno)
+        self.l.dump_violations()
+
+        self.assertEqual(self.l._violations, [])
+
+
+    def test_function_return_annotation(self):
+        code = '''
+@export
+def greeting(name: str) -> str:
+    return 'Hello ' + name
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+
+        for t, lineno in self.l.arg_types:
+            self.l.check_return_types(t,lineno)
+        self.l.dump_violations()
+
+        self.assertEqual(self.l._violations, ['Line 2 : S18- Illegal use of return annotation : str'])
