@@ -1,9 +1,8 @@
 import importlib
-import multiprocessing
 from typing import Dict
 from contracting.execution import runtime
 from contracting.db.cr.transaction_bag import TransactionBag
-from contracting.db.driver import ContractDriver, CacheDriver
+from contracting.db.driver import ContractDriver
 from contracting.execution.module import install_database_loader, uninstall_builtins, enable_restricted_imports, disable_restricted_imports
 from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting import config
