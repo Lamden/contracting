@@ -283,7 +283,7 @@ def test():
 v = Variable()
 
 @export
-def set(i):
+def set(i: int):
     v.set(i)
 '''
         c = ast.parse(code)
@@ -295,7 +295,7 @@ def set(i):
 v = Variable(contract='currency', name='stus_balance')
 
 @export
-def set(i):
+def set(i: int):
     v.set(i)
 '''
         c = ast.parse(code)
@@ -366,11 +366,7 @@ def greeting(name: str):
         c = ast.parse(code)
         chk = self.l.check(c)
 
-        for t, lineno in self.l.arg_types:
-            self.l.annotation_types(t,lineno)
-        self.l.dump_violations()
-
-        self.assertEqual(self.l._violations, [])
+        self.assertEqual(chk, None)
 
     def test_function_dict_annotation(self):
         code = '''
@@ -381,11 +377,7 @@ def greeting(name: dict):
         c = ast.parse(code)
         chk = self.l.check(c)
 
-        for t, lineno in self.l.arg_types:
-            self.l.annotation_types(t,lineno)
-        self.l.dump_violations()
-
-        self.assertEqual(self.l._violations, [])
+        self.assertEqual(chk, None)
 
     def test_function_bad_annotation(self):
         code = '''
@@ -396,11 +388,7 @@ def greeting(name: mytype):
         c = ast.parse(code)
         chk = self.l.check(c)
 
-        for t, lineno in self.l.arg_types:
-            self.l.annotation_types(t,lineno)
-        self.l.dump_violations()
-
-        self.assertEqual(self.l._violations, ['Line 2 : S16- Illegal argument annotation used : mytype'])
+        self.assertEqual(chk, ['Line 2 : S16- Illegal argument annotation used : mytype'])
 
 
     def test_function_none_annotation(self):
@@ -412,25 +400,17 @@ def greeting(name):
         c = ast.parse(code)
         chk = self.l.check(c)
 
-        for t, lineno in self.l.arg_types:
-            self.l.annotation_types(t,lineno)
-        self.l.dump_violations()
-
-        self.assertEqual(self.l._violations, ['Line 2 : S17- No valid argument annotation found'])
+        self.assertEqual(chk, ['Line 2 : S17- No valid argument annotation found'])
 
 
     def test_none_return_annotation(self):
         code = '''
 @export
-def greeting(name):
+def greeting(name: str):
     return 'Hello ' + name
 '''
         c = ast.parse(code)
         chk = self.l.check(c)
-
-        for t, lineno in self.l.arg_types:
-            self.l.check_return_types(t,lineno)
-        self.l.dump_violations()
 
         self.assertEqual(self.l._violations, [])
 
@@ -444,8 +424,23 @@ def greeting(name: str) -> str:
         c = ast.parse(code)
         chk = self.l.check(c)
 
-        for t, lineno in self.l.arg_types:
-            self.l.check_return_types(t,lineno)
-        self.l.dump_violations()
+        self.assertEqual(chk, ['Line 2 : S18- Illegal use of return annotation : str'])
 
-        self.assertEqual(self.l._violations, ['Line 2 : S18- Illegal use of return annotation : str'])
+
+    def test_contract_annotation(self):
+        code ='''
+@export
+def transfer(amount, to):
+    sender = ctx.caller
+    assert balances[sender] >= amount, 'Not enough coins to send!'
+
+    balances[sender] -= amount
+    balances[to] += amount
+
+def greeting(name):
+    return 'Hello ' + name
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+
+        self.assertEqual(chk, ['Line 2 : S17- No valid argument annotation found'])

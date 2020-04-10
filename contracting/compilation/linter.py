@@ -147,7 +147,7 @@ class Linter(ast.NodeVisitor):
                   ": Detected: {} MAX limit: 1".format(len(node.decorator_list))
             self._violations.append(str)
             self._is_success = False
-
+        export_decorator = False
         for d in node.decorator_list:
             # Only allow decorators from the allowed set.
             if d.id not in config.VALID_DECORATORS:
@@ -158,6 +158,7 @@ class Linter(ast.NodeVisitor):
 
             if d.id == config.EXPORT_DECORATOR_STRING:
                 self._is_one_export = True
+                export_decorator = True
 
             if d.id == config.INIT_DECORATOR_STRING:
                 if self._constructor_visited:
@@ -170,19 +171,20 @@ class Linter(ast.NodeVisitor):
         arguments = node.args
         for a in arguments.args:
             self.visited_args.add((a.arg, node.lineno))
-            if a.annotation is not None:
-                self.arg_types.add((a.annotation.id, node.lineno))
-            else:
-                self.arg_types.add((None, node.lineno))
+            if export_decorator:
+                if a.annotation is not None:
+                    self.arg_types.add((a.annotation.id, node.lineno))
+                else:
+                    self.arg_types.add((None, node.lineno))
 
-        if node.returns is not None:
-            self.return_annotation.add((node.returns.id, node.lineno))
-        else:
-            self.return_annotation.add((None, node.lineno))
+        if export_decorator:
+            if node.returns is not None:
+                self.return_annotation.add((node.returns.id, node.lineno))
+            else:
+                self.return_annotation.add((None, node.lineno))
 
         self.generic_visit(node)
         return node
-
 
     def annotation_types(self, t, lnum):
         if t is None:
@@ -194,13 +196,11 @@ class Linter(ast.NodeVisitor):
             self._violations.append(str)
             self._is_success = False
 
-
     def check_return_types(self, t, lnum):
         if t is not None:
             str = "Line {}".format(lnum) + " : " + VIOLATION_TRIGGERS[17] + " : {}" .format(t)
             self._violations.append(str)
             self._is_success = False
-
 
     def _reset(self):
         self._violations = []
@@ -224,7 +224,14 @@ class Linter(ast.NodeVisitor):
             str = "Line 0: " + VIOLATION_TRIGGERS[12]
             self._violations.append(str)
             self._is_success = False
-    
+
+        for t, lineno in self.arg_types:
+            self.annotation_types(t,lineno)
+
+        for t, lineno in self.return_annotation:
+            self.check_return_types(t,lineno)
+
+
     def _collect_function_defs(self, root):
         for node in ast.walk(root):
             if isinstance(node, ast.FunctionDef):
