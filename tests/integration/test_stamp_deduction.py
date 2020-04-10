@@ -46,7 +46,7 @@ class TestMetering(TestCase):
         # Execute the currency contract with metering disabled
         self.e = Executor(driver=self.d)
         self.e.execute(**TEST_SUBMISSION_KWARGS,
-                       kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'), metering=False)
+                       kwargs=submission_kwargs_for_file('./test_contracts/currency.s.py'), metering=False, auto_commit=True)
 
     def tearDown(self):
         self.d.flush()
@@ -80,11 +80,10 @@ class TestMetering(TestCase):
         prior_balance = self.d.get('currency.balances:stu')
         too_many_stamps = (prior_balance + 1000) * STAMPS_PER_TAU
 
-        #too_many_stamps = 2147483648
+        output = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
+                                                stamps=too_many_stamps, auto_commit=True)
 
-        with self.assertRaises(AssertionError):
-            output = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
-                                                    stamps=too_many_stamps, auto_commit=True)
+        self.assertEqual(output['status_code'], 1)
 
     def test_adding_all_stamps_with_infinate_loop_eats_all_balance(self):
         self.d.set('currency.balances:stu', 500)

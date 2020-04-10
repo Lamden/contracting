@@ -50,12 +50,6 @@ class Executor:
 
         runtime.rt.env.update({'__Driver': self.driver})
 
-        if driver is None:
-            driver = runtime.rt.env.get('__Driver')
-
-        if not self.bypass_privates:
-            assert not function_name.startswith(config.PRIVATE_METHOD_PREFIX), 'Private method not callable.'
-
         if driver:
             runtime.rt.env.update({'__Driver': driver})
         else:
