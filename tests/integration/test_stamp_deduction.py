@@ -5,6 +5,7 @@ from contracting.config import STAMPS_PER_TAU
 from contracting.execution import runtime
 import contracting
 
+
 def submission_kwargs_for_file(f):
     # Get the file name only by splitting off directories
     split = f.split('/')

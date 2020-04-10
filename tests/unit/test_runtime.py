@@ -6,6 +6,7 @@ class TestRuntime(TestCase):
     def tearDown(self):
         runtime.rt.tracer.stop()
         runtime.rt.clean_up()
+        globals()['__contract__'] = True
 
     def test_tracer_works_roughly(self):
         stamps = 1000
