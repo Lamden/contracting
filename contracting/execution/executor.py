@@ -130,8 +130,8 @@ class Executor:
 
             balance = max(balance - to_deduct, 0)
 
-            driver.set(balances_key, balance,
-                       mark=False)  # This makes sure that the key isnt modified every time in the block
+            driver.set(balances_key, balance)
+                       #mark=False)  # This makes sure that the key isnt modified every time in the block
             if auto_commit:
                 driver.commit()
 

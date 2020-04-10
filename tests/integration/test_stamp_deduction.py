@@ -122,3 +122,11 @@ class TestMetering(TestCase):
         print(new_balance)
 
         self.assertEqual(float(prior_balance - new_balance), output['stamps_used'] / STAMPS_PER_TAU)
+
+    def test_pending_writes_has_deducted_stamp_amount_prior_to_auto_commit(self):
+        prior_balance = self.d.get('currency.balances:stu')
+
+        output = self.e.execute(**TEST_SUBMISSION_KWARGS,
+                                kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'), auto_commit=False
+                                )
+        self.assertNotEquals(self.e.driver.pending_writes['currency.balances:stu'], prior_balance)
