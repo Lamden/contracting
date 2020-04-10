@@ -54,6 +54,8 @@ class TestComplexContracts(TestCase):
         res = e.execute('stu', 'currency', 'balance', kwargs={'account': 'colin'})
         self.assertEqual(res['result'], 100)
 
+        print(res)
+
         res = e.execute('stu', 'currency', 'balance', kwargs={'account': 'stu'})
         self.assertEqual(res['result'], 1000000)
 

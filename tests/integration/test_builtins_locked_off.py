@@ -53,7 +53,8 @@ class TestDatabaseLoaderLoadsFirst(TestCase):
 
         import_test = self.c.get_contract('import_test')
 
-        print(import_test.woo())
+        with self.assertRaises(ImportError):
+            import_test.woo()
 
 
 class TestDynamicImport(TestCase):

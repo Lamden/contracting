@@ -21,7 +21,10 @@ class Executor:
 
         if not self.driver:
             self.driver = ContractDriver()
+
         self.production = production
+
+        self.sandbox = Sandbox()
 
         self.currency_contract = currency_contract
         self.balances_hash = balances_hash
@@ -29,10 +32,6 @@ class Executor:
         self.bypass_privates = bypass_privates
 
         runtime.rt.env.update({'__Driver': self.driver})
-
-    def wipe_modules(self):
-        uninstall_builtins()
-        install_database_loader()
 
     def execute(self, sender, contract_name, function_name, kwargs,
                 environment={},
@@ -53,6 +52,37 @@ class Executor:
         if driver is None:
             driver = runtime.rt.env.get('__Driver')
 
+        output = self.sandbox.execute(sender, contract_name, function_name, kwargs,
+                                                                auto_commit=auto_commit,
+                                                                environment=environment,
+                                                                driver=driver,
+                                                                metering=metering,
+                                                                stamps=stamps,
+                                                                stamp_cost=stamp_cost,
+                                                                currency_contract=self.currency_contract,
+                                                                balances_hash=self.balances_hash)
+
+        return output
+
+
+class Sandbox(object):
+    def __init__(self, bypass_privates=False):
+        self.bypass_privates = bypass_privates
+
+    def wipe_modules(self):
+        uninstall_builtins()
+        install_database_loader()
+
+    def execute(self, sender, contract_name, function_name, kwargs,
+                auto_commit=False,
+                environment={},
+                driver: ContractDriver=None,
+                metering=None,
+                stamps=1000000,
+                stamp_cost=config.STAMPS_PER_TAU,
+                currency_contract=None,
+                balances_hash=None):
+
         if not self.bypass_privates:
             assert not function_name.startswith(config.PRIVATE_METHOD_PREFIX), 'Private method not callable.'
 
@@ -66,9 +96,9 @@ class Executor:
         balances_key = None
         try:
             if metering:
-                balances_key = '{}{}{}{}{}'.format(self.currency_contract,
+                balances_key = '{}{}{}{}{}'.format(currency_contract,
                                                    config.INDEX_SEPARATOR,
-                                                   self.balances_hash,
+                                                   balances_hash,
                                                    config.DELIMITER,
                                                    sender)
 
@@ -77,8 +107,7 @@ class Executor:
                     balance = 0
 
                 assert balance * stamp_cost >= stamps, 'Sender does not have enough stamps for the transaction. \
-                                                               Balance at key {} is {}'.format(balances_key,
-                                                                                               balance)
+                                                           Balance at key {} is {}'.format(balances_key, balance)
 
             runtime.rt.env.update(environment)
             status_code = 0
@@ -110,7 +139,7 @@ class Executor:
             if auto_commit:
                 driver.clear_pending_state()
 
-        ### EXECUTION END
+### EXECUTION END
 
         runtime.rt.tracer.stop()
 
@@ -134,8 +163,7 @@ class Executor:
 
             balance -= to_deduct
 
-            driver.set(balances_key, balance,
-                       mark=False)  # This makes sure that the key isnt modified every time in the block
+            driver.set(balances_key, balance, mark=False) # This makes sure that the key isnt modified every time in the block
             if auto_commit:
                 driver.commit()
 
@@ -158,4 +186,3 @@ class Executor:
         disable_restricted_imports()
 
         return output
-
