@@ -53,7 +53,6 @@ class TestAtomicSwapContract(TestCase):
 
     def tearDown(self):
         self.e.bypass_privates = False
-        self.e.sandbox.bypass_privates = False
 
         self.d.flush()
 
@@ -87,13 +86,13 @@ class TestAtomicSwapContract(TestCase):
         self.assertEqual(stu_as['result'], 999995)
 
     def test_initiate_writes_to_correct_key_and_properly(self):
-        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'})
+        self.e.execute('stu', 'erc20_clone', 'approve', kwargs={'amount': 1000000, 'to': 'atomic_swaps'}, auto_commit=True)
         self.e.execute('stu', 'atomic_swaps', 'initiate', kwargs={
             'participant': 'raghu',
             'expiration': Datetime(2020, 1, 1),
             'hashlock': 'eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514',
             'amount': 5
-        })
+        }, auto_commit=True)
 
         key = 'atomic_swaps.swaps:raghu:eaf48a02d3a4bb3aeb0ecb337f6efb026ee0bbc460652510cff929de78935514'
 
@@ -281,6 +280,5 @@ class TestAtomicSwapContract(TestCase):
             self.e.execute('stu', 'atomic_swaps', '__test', kwargs={})
 
         self.e.bypass_privates = True
-        self.e.sandbox.bypass_privates = True
 
         self.e.execute('stu', 'atomic_swaps', '__test', kwargs={})

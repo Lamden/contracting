@@ -60,7 +60,7 @@ def d():
             'code': code
         }
 
-        e.execute(**TEST_SUBMISSION_KWARGS, kwargs=kwargs)
+        e.execute(**TEST_SUBMISSION_KWARGS, kwargs=kwargs, auto_commit=True)
 
         self.compiler.module_name = 'stubucks'
         new_code = self.compiler.parse_to_code(code)
@@ -107,9 +107,9 @@ def get_v():
         e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'))
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_variable_contract.s.py'), auto_commit=True)
 
-        e.execute('stu', 'test_orm_variable_contract', 'set_v', kwargs={'i': 1000})
+        e.execute('stu', 'test_orm_variable_contract', 'set_v', kwargs={'i': 1000}, auto_commit=True)
 
         i = self.d.get('test_orm_variable_contract.v')
         self.assertEqual(i, 1000)
@@ -139,10 +139,10 @@ def get_v():
         e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'))
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'), auto_commit=True)
 
-        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'key1', 'v': 1234})
-        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'another_key', 'v': 9999})
+        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'key1', 'v': 1234}, auto_commit=True)
+        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'another_key', 'v': 9999}, auto_commit=True)
 
         key1 = self.d.get('test_orm_hash_contract.h:key1')
         another_key = self.d.get('test_orm_hash_contract.h:another_key')
@@ -212,15 +212,15 @@ def get_v():
         e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'))
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_hash_contract.s.py'), auto_commit=True)
         e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_foreign_hash_contract.s.py'))
+                  kwargs=submission_kwargs_for_file('./test_contracts/test_orm_foreign_hash_contract.s.py'), auto_commit=True)
 
-        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'key1', 'v': 1234})
-        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'another_key', 'v': 9999})
+        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'key1', 'v': 1234}, auto_commit=True)
+        e.execute('stu', 'test_orm_hash_contract', 'set_h', kwargs={'k': 'another_key', 'v': 9999}, auto_commit=True)
 
-        status_1 = e.execute('stu', 'test_orm_foreign_hash_contract', 'set_fh', kwargs={'k': 'key1', 'v': 5555})
-        status_2 = e.execute('stu', 'test_orm_foreign_hash_contract', 'set_fh', kwargs={'k': 'another_key', 'v': 1000})
+        status_1 = e.execute('stu', 'test_orm_foreign_hash_contract', 'set_fh', kwargs={'k': 'key1', 'v': 5555}, auto_commit=True)
+        status_2 = e.execute('stu', 'test_orm_foreign_hash_contract', 'set_fh', kwargs={'k': 'another_key', 'v': 1000}, auto_commit=True)
 
         key1 = self.d.get('test_orm_hash_contract.h:key1')
         another_key = self.d.get('test_orm_hash_contract.h:another_key')

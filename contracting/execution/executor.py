@@ -115,14 +115,16 @@ class Executor:
         runtime.rt.tracer.stop()
 
         # Deduct the stamps if that is enabled
+        stamps_used = runtime.rt.tracer.get_stamp_used()
+
+        stamps_used = stamps_used // 1000
+        stamps_used += 1
+        stamps_used *= 1000
+
         if metering:
             assert balances_key is not None, 'Balance key was not set properly. Cannot deduct stamps.'
 
-            to_deduct = runtime.rt.tracer.get_stamp_used()
-
-            to_deduct = to_deduct // 1000
-            to_deduct += 1
-            to_deduct *= 1000
+            to_deduct = stamps_used
 
             to_deduct /= stamp_cost
 
@@ -132,18 +134,12 @@ class Executor:
             if balance is None:
                 balance = 0
 
-            balance -= to_deduct
+            balance = max(balance - to_deduct, 0)
 
             driver.set(balances_key, balance,
                        mark=False)  # This makes sure that the key isnt modified every time in the block
             if auto_commit:
                 driver.commit()
-
-        stamps_used = runtime.rt.tracer.get_stamp_used()
-
-        stamps_used = stamps_used // 1000
-        stamps_used += 1
-        stamps_used *= 1000
 
         runtime.rt.clean_up()
         runtime.rt.env.update({'__Driver': driver})

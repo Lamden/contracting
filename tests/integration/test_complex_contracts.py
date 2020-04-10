@@ -176,12 +176,12 @@ class TestComplexContracts(TestCase):
         e = Executor(metering=False)
 
         e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/leaky.s.py'))
+                  kwargs=submission_kwargs_for_file('./test_contracts/leaky.s.py'), auto_commit=True)
 
-        e.execute('colin', 'leaky', 'transfer', kwargs={'amount': 1234, 'to': 'raghu'})
+        e.execute('colin', 'leaky', 'transfer', kwargs={'amount': 1234, 'to': 'raghu'}, auto_commit=True)
 
-        raghu = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'raghu'})
-        colin = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'colin'})
+        raghu = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'raghu'}, auto_commit=True)
+        colin = e.execute('stu', 'leaky', 'balance_of', kwargs={'account': 'colin'}, auto_commit=True)
 
         self.assertEqual(raghu['result'], 0)
         self.assertEqual(colin['result'], 100)

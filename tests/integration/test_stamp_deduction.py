@@ -54,7 +54,7 @@ class TestMetering(TestCase):
     def test_simple_execution_deducts_stamps(self):
         prior_balance = self.d.get('currency.balances:stu')
 
-        output = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'})
+        output = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'}, auto_commit=True)
 
         new_balance = self.d.get('currency.balances:stu')
 
@@ -63,10 +63,14 @@ class TestMetering(TestCase):
     def test_too_few_stamps_fails_and_deducts_properly(self):
         prior_balance = self.d.get('currency.balances:stu')
 
+        print(prior_balance)
+
         small_amount_of_stamps = 1 * STAMPS_PER_TAU
 
         output = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
-                                                stamps=small_amount_of_stamps)
+                                                stamps=small_amount_of_stamps, auto_commit=True)
+
+        print(output)
 
         new_balance = self.d.get('currency.balances:stu')
 
@@ -80,7 +84,7 @@ class TestMetering(TestCase):
 
         with self.assertRaises(AssertionError):
             output = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
-                                                    stamps=too_many_stamps)
+                                                    stamps=too_many_stamps, auto_commit=True)
 
     def test_adding_all_stamps_with_infinate_loop_eats_all_balance(self):
         self.d.set('currency.balances:stu', 500)
@@ -94,7 +98,7 @@ class TestMetering(TestCase):
             **TEST_SUBMISSION_KWARGS,
             kwargs=submission_kwargs_for_file('./test_contracts/inf_loop.s.py'),
             stamps=prior_balance,
-            metering=True
+            metering=True, auto_commit=True
         )
 
         new_balance = self.d.get('currency.balances:stu')
@@ -110,7 +114,7 @@ class TestMetering(TestCase):
         print(prior_balance)
 
         output = self.e.execute(**TEST_SUBMISSION_KWARGS,
-                                                kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'),
+                                                kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'), auto_commit=True
                                                 )
         print(output)
 

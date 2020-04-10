@@ -86,7 +86,6 @@ class AbstractContract:
 
         # Let executor access private functions
         self.executor.bypass_privates = True
-        self.executor.sandbox.bypass_privates = True
 
         # Append private method prefix to function name if it isn't there already
         if not f.startswith(config.PRIVATE_METHOD_PREFIX):
@@ -98,7 +97,6 @@ class AbstractContract:
 
         # Set executor back to restricted mode
         self.executor.bypass_privates = False
-        self.executor.sandbox.bypass_privates = False
 
         return result
 
