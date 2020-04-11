@@ -97,6 +97,14 @@ Tracer_dealloc(Tracer *self)
      const char * str;
      int opcode;
 
+     // IF, Frame object globals contains __contract__ and it is true, continue
+     PyObject *kv = PyUnicode_FromString("__contract__");
+     int t = PyDict_Contains(frame->f_globals, kv);
+
+     if (t != 1) {
+        return RET_OK;
+     }
+
      switch (what) {
          // case PyTrace_CALL:      /* 0 */
          //     printf("CALL\n");
@@ -133,6 +141,7 @@ Tracer_dealloc(Tracer *self)
          default:
              break;
      }
+     //}
 
      return RET_OK;
  }
