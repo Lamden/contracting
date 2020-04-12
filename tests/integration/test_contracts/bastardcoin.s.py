@@ -6,7 +6,7 @@ def seed():
     balances['colin'] = 555
 
 @export
-def transfer(amount, to):
+def transfer(amount: int, to: str):
     sender = ctx.caller
     assert balances[sender] >= amount, 'Not enough coins to send!'
 
@@ -14,5 +14,5 @@ def transfer(amount, to):
     balances[to] += amount
 
 @export
-def balance_of(account):
+def balance_of(account: str):
     return balances[account]

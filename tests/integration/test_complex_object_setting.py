@@ -6,14 +6,14 @@ def contract():
     storage = Hash()
 
     @export
-    def create(x, y, color):
+    def create(x: int, y: int, color: str):
         storage[x, y] = {
             'color': color,
             'owner': ctx.caller
         }
 
     @export
-    def update(x, y, color):
+    def update(x: int, y: int, color: str):
         s = storage[x, y]
 
         s['color'] = color

@@ -92,7 +92,7 @@ def d():
         code = '''v = Variable()
 
 @export
-def set_v(i):
+def set_v(i: int):
     v.set(i)
 
 @export
