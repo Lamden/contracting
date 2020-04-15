@@ -82,11 +82,11 @@ def make_key(contract, variable, args=[]):
 
 
 def encode_kv(key, value):
-    if key is None:
-        key = ''
-
-    if value is None:
-        value = ''
+    # if key is None:
+    #     key = ''
+    #
+    # if value is None:
+    #     value = ''
 
     k = key.encode()
     v = encode(value).encode()
@@ -96,6 +96,6 @@ def encode_kv(key, value):
 def decode_kv(key, value):
     k = key.decode()
     v = decode(value)
-    if v == '':
-        v = None
+    # if v == '':
+    #     v = None
     return k, v
