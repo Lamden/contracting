@@ -8,7 +8,7 @@ def seed():
     supply.set(balances['stu'] + balances['colin'])
 
 @export
-def transfer(amount, to):
+def transfer(amount: int, to: str):
     sender = ctx.signer
 
     balances[sender] -= amount
@@ -18,5 +18,5 @@ def transfer(amount, to):
     assert balances[sender] >= amount, 'Not enough coins to send!'
 
 @export
-def balance_of(account):
+def balance_of(account: str):
     return balances[account]

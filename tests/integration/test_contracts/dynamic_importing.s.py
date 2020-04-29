@@ -1,17 +1,17 @@
 @export
-def balance_for_token(tok, account):
+def balance_for_token(tok: str, account: str):
     t = importlib.import_module(tok)
     return t.balance_of(account=account)
 
 @export
-def only_erc20(tok, account):
+def only_erc20(tok: str, account: str):
     t = importlib.import_module(tok)
     assert enforce_erc20(t), 'You cannot use a non-ERC20 standard token!!'
 
     return t.balance_of(account=account)
 
 @export
-def is_erc20_compatible(tok):
+def is_erc20_compatible(tok: str):
     interface = [
         importlib.Func('transfer', args=('amount', 'to')),
         importlib.Func('balance_of', args=('account',)),

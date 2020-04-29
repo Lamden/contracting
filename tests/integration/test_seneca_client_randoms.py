@@ -13,29 +13,29 @@ def random_contract():
     cities = ['Cleveland', 'Detroit', 'Chicago', 'New York', 'San Francisco']
 
     @export
-    def shuffle_cards(**kwargs):
+    def shuffle_cards(**kwargs: dict):
         random.shuffle(cards)
         return cards
 
     @export
-    def random_number(k):
+    def random_number(k: int):
         return random.randrange(k)
 
     @export
-    def random_number_2(k):
+    def random_number_2(k: int):
         # adjust the random state by calling another random function
         shuffle_cards()
         return random.randrange(k)
 
     @export
-    def random_bits(k):
+    def random_bits(k: int):
         shuffle_cards()
         shuffle_cards()
         shuffle_cards()
         return random.getrandbits(k)
 
     @export
-    def int_in_range(a, b):
+    def int_in_range(a: int, b: int):
         shuffle_cards()
         shuffle_cards()
         return random.randint(a, b)
@@ -57,7 +57,7 @@ def random_contract():
         return c
 
     @export
-    def pick_cities(k):
+    def pick_cities(k: int):
         return random.choices(cities, k)
 
 

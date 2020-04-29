@@ -30,7 +30,7 @@ def seed():
     gradients['0'] = 1  # test
 
 @export
-def get(x, y):
+def get(x: float, y: float):
     xf = int(x)
     yf = int(y)
     tl = dot_prod_grid(x, y, xf, yf)

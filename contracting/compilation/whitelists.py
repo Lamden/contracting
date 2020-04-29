@@ -15,6 +15,8 @@ ALLOWED_AST_TYPES = {ast.Module, ast.Eq, ast.Call, ast.Dict, ast.Attribute, ast.
                      ast.NotIn, ast.Gt, ast.Lt, ast.Starred, ast.Mod, ast.NotEq, ast.For, ast.While, ast.ListComp,
                      ast.comprehension, ast.Slice, ast.USub, ast.BoolOp, ast.And, ast.Or, ast.Mult}
 
+ALLOWED_ANNOTAION_TYPES = {'dict', 'list', 'str', 'int', 'float', 'bool', 'timedelta', 'datetime', 'Any'}
+
 VIOLATION_TRIGGERS = [
     "S1- Illegal contracting syntax type used",
     "S2- Illicit use of '_' before variable",
@@ -30,5 +32,8 @@ VIOLATION_TRIGGERS = [
     "S12- Multiple targets to ORM definition detected",
     "S13- No valid contracting decorator found",
     "S14- Illegal use of a builtin",
-    "S15- Reuse of ORM name definition in a function definition argument name"
+    "S15- Reuse of ORM name definition in a function definition argument name",
+    "S16- Illegal argument annotation used",
+    "S17- No valid argument annotation found",
+    "S18- Illegal use of return annotation",
 ]

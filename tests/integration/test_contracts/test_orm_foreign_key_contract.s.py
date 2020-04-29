@@ -1,7 +1,7 @@
 fv = ForeignVariable(foreign_contract='test_orm_variable_contract', foreign_name='v')
 
 @export
-def set_fv(i):
+def set_fv(i: int):
     fv.set(i)
 
 @export

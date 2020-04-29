@@ -14,7 +14,7 @@ def coin():
         supply.set(1000000)
 
     @export
-    def transfer(amount, to):
+    def transfer(amount: int, to: str):
         sender = ctx.caller
         assert balances[sender] >= amount, 'Not enough coins to send!'
 
@@ -22,7 +22,7 @@ def coin():
         balances[to] += amount
 
     @export
-    def balance_of(account):
+    def balance_of(account: str):
         return balances[account]
 
     @export
@@ -30,17 +30,17 @@ def coin():
         return supply.get()
 
     @export
-    def allowance(main, spender):
+    def allowance(main: str, spender: str):
         return balances[main, spender]
 
     @export
-    def approve(amount, to):
+    def approve(amount: int, to: str):
         sender = ctx.caller
         balances[sender, to] += amount
         return balances[sender, to]
 
     @export
-    def transfer_from(amount, to, main_account):
+    def transfer_from(amount: int, to: str, main_account: str):
         sender = ctx.caller
 
         assert balances[main_account, sender] >= amount, 'Not enough coins approved to send! You have {} and are trying to spend {}'\
@@ -53,7 +53,7 @@ def coin():
         balances[to] += amount
 
     @export
-    def mint(amount, to):
+    def mint(amount: int, to: str):
         assert ctx.caller == owner.get(), 'Only the owner can mint!'
 
         balances[to] += amount
@@ -62,7 +62,7 @@ def coin():
         supply.set(s + amount)
 
     @export
-    def change_ownership(new_owner):
+    def change_ownership(new_owner: str):
         assert ctx.caller == owner.get(), 'Only the owner can change ownership!'
 
         owner.set(new_owner)

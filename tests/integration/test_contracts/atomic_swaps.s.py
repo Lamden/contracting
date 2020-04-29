@@ -31,7 +31,7 @@ def redeem(secret: str):
     swaps[ctx.caller, hashlock] = None # change this to respond to the del keyword?
 
 @export
-def refund(participant, secret):
+def refund(participant: str, secret: str):
 
     assert participant != ctx.caller and participant != ctx.signer, \
         'Caller and signer cannot issue a refund.'
