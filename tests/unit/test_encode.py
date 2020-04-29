@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.db.encoder import encode, decode
+from contracting.db.encoder import encode, decode, safe_repr
 from decimal import Decimal as dec
 from contracting.stdlib.bridge.time import Datetime, Timedelta
 from datetime import datetime
@@ -74,3 +74,36 @@ class TestEncode(TestCase):
         t = decode(_t)
 
         self.assertEqual(t, Timedelta(weeks=1, days=1))
+
+    def test_safe_repr_non_object(self):
+        a = str(1)
+        b = safe_repr(1)
+
+        self.assertEqual(a, b)
+
+    def test_safe_repr_arbitrary_object(self):
+        class Object:
+            pass
+
+        a = Object()
+        b = Object()
+
+        self.assertEqual(safe_repr(a), safe_repr(b))
+
+    def test_safe_repr_decimal_object(self):
+        a = Timedelta(weeks=1, days=1)
+        b = Timedelta(weeks=1, days=1)
+
+        self.assertEqual(safe_repr(a), safe_repr(b))
+
+    def test_safe_repr_decimal_object_different_not_equal(self):
+        a = Timedelta(weeks=1, days=1)
+        b = Timedelta(weeks=2, days=1)
+
+        self.assertNotEqual(safe_repr(a), safe_repr(b))
+
+    def test_safe_repr_assertion_error_string(self):
+        a = AssertionError('Hello')
+        b = AssertionError('Hello')
+
+        self.assertEqual(safe_repr(a), safe_repr(b))
