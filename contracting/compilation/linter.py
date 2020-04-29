@@ -10,7 +10,6 @@ from contracting.db.driver import ContractDriver
 
 from stdlib_list import stdlib_list
 
-
 class Linter(ast.NodeVisitor):
 
     def __init__(self, driver=ContractDriver()):

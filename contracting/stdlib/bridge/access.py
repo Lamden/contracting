@@ -1,6 +1,7 @@
 from contracting.execution.runtime import rt
 from contextlib import ContextDecorator
 from contracting.db.driver import ContractDriver
+from typing import Any
 
 class __export(ContextDecorator):
     def __init__(self, contract):
@@ -32,4 +33,5 @@ exports = {
     '__export': __export,
     'ctx': rt.context,
     'rt': rt,
+    'Any': Any
 }
