@@ -4,6 +4,7 @@ from contracting.client import ContractingClient
 from multiprocessing import Queue
 import ast
 import ssl
+import traceback
 
 WEB_SERVER_PORT = 5757
 SSL_WEB_SERVER_PORT = 443
@@ -38,9 +39,14 @@ async def lint_contract(request):
     if code is None:
         return json({'error': 'no code provided'}, status=500)
 
-    violations = client.lint(request.json.get('code'))
+    try:
+        violations = client.lint(request.json.get('code'))
+        print("no errors")
+    except Exception as err:
+        args = err.args
+        violations =  ["line " + str(args[1][1]) + ": " + args[0] + ", '" + args[1][3] + "'"]
+        
     return json({'violations': violations}, status=200)
-
 
 
 def start_webserver(q):
