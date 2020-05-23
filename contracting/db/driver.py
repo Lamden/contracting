@@ -50,12 +50,9 @@ class Driver:
         keys = []
         for entry in cur:
             keys.append(entry['_id'])
-            if length > 0 and len(keys) >= length:
+            if 0 < length <= len(keys):
                 break
-        keys.sort()
-        return keys
 
-        keys = [entry['_id'] for entry in cur]
         keys.sort()
         return keys
 
