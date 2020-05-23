@@ -36,7 +36,7 @@ class Driver:
             self.__delitem__(key)
         else:
             v = encode(value)
-            self.db.update_one({'_id': key}, {'$set': {'v': v}}, upsert=True)
+            self.db.update_one({'_id': key}, {'$set': {'v': v}}, upsert=True, )
 
     def flush(self):
         self.db.drop()
@@ -47,12 +47,13 @@ class Driver:
     def iter(self, prefix: str, length=0):
         cur = self.db.find({'_id': {'$regex': f'^{prefix}'}})
 
-        if length == 0:
-            keys = []
-            for entry in cur:
-                keys.append(entry['_id'])
-            keys.sort()
-            return keys
+        keys = []
+        for entry in cur:
+            keys.append(entry['_id'])
+            if length > 0 and len(keys) >= length:
+                break
+        keys.sort()
+        return keys
 
         keys = [entry['_id'] for entry in cur]
         keys.sort()

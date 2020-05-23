@@ -281,3 +281,9 @@ class ContractingClient:
             if key.endswith('.__code__'):
                 contracts.append(key.replace('.__code__', ''))
         return contracts
+
+    def get_var(self, contract, variable, arguments=[], mark=False):
+        return self.raw_driver.get_var(contract, variable, arguments, mark)
+
+    def set_var(self, contract, variable, arguments=[], value=None, mark=False):
+        self.raw_driver.set_var(contract, variable, arguments, value, mark)
