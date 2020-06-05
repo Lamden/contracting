@@ -46,7 +46,7 @@ class Encoder(json.JSONEncoder):
 
 # JSON library from Python 3 doesn't let you instantiate your custom Encoder. You have to pass it as an obj to json
 def encode(data: str):
-    return json.dumps(data, cls=Encoder)
+    return json.dumps(data, cls=Encoder, separators=(',', ':'))
 
 
 def as_object(d):
