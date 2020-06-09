@@ -6,7 +6,7 @@ import sys
 
 major = 0
 
-__version__ = '1.0.1.4'
+__version__ = '1.0.2'
 
 requirements = [
     'autopep8',
