@@ -11,12 +11,12 @@ from contracting.config import INDEX_SEPARATOR, DELIMITER
 ##
 
 
-def safe_repr(obj):
+def safe_repr(obj, max_len=1024):
     r = obj.__repr__()
     rr = r.split(' at 0x')
     if len(rr) > 1:
         return rr[0] + '>'
-    return rr[0]
+    return rr[0][:max_len]
 
 
 class Encoder(json.JSONEncoder):
@@ -46,7 +46,7 @@ class Encoder(json.JSONEncoder):
 
 # JSON library from Python 3 doesn't let you instantiate your custom Encoder. You have to pass it as an obj to json
 def encode(data: str):
-    return json.dumps(data, cls=Encoder)
+    return json.dumps(data, cls=Encoder, separators=(',', ':'))
 
 
 def as_object(d):

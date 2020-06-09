@@ -9,7 +9,7 @@ from copy import deepcopy
 from logging import getLogger
 
 log = getLogger('CONTRACTING')
-
+import traceback
 
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
@@ -99,7 +99,9 @@ class Executor:
                 driver.commit()
         except Exception as e:
             result = e
+            tb = traceback.format_exc()
             log.error(str(e))
+            log.error(tb)
             status_code = 1
             if auto_commit:
                 driver.clear_pending_state()
