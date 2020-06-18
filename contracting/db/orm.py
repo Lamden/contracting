@@ -63,6 +63,8 @@ class Hash(Datum):
             new_key_str = ''
             for k in key:
                 assert not isinstance(k, slice), 'Slices prohibited in hashes.'
+                assert config.DELIMITER not in k, 'Illegal delimiter in key.'
+                assert config.INDEX_SEPARATOR not in k, 'Illegal separator in key.'
                 new_key_str += '{}{}'.format(k, self._delimiter)
 
             key = new_key_str[:-len(self._delimiter)]
