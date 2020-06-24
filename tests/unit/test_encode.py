@@ -52,7 +52,7 @@ class TestEncode(TestCase):
 
         _d = encode(d)
 
-        self.assertEqual(_d, '{"__time__": [2019, 1, 1, 0, 0, 0, 0]}')
+        self.assertEqual(_d, '{"__time__":[2019,1,1,0,0,0,0]}')
 
     def test_date_decode(self):
         _d = '{"__time__": [2019, 1, 1, 0, 0, 0, 0]}'
@@ -66,7 +66,7 @@ class TestEncode(TestCase):
 
         _t = encode(t)
 
-        self.assertEqual('{"__delta__": [8, 0]}', _t)
+        self.assertEqual('{"__delta__":[8,0]}', _t)
 
     def test_timedelta_decode(self):
         _t = '{"__delta__": [8, 0]}'

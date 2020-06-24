@@ -1,6 +1,7 @@
 from unittest import TestCase
 from contracting.webserver import app, client
 import json
+from http import HTTPStatus
 
 
 class TestWebserver(TestCase):

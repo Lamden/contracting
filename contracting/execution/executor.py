@@ -115,6 +115,7 @@ class Executor:
 
         stamps_used = stamps_used // 1000
         stamps_used += 1
+        #stamps_used *= 1000
 
         if metering:
             assert balances_key is not None, 'Balance key was not set properly. Cannot deduct stamps.'

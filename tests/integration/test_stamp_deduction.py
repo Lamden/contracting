@@ -93,7 +93,7 @@ class TestMetering(TestCase):
 
         prior_balance *= STAMPS_PER_TAU
 
-        output = self.e.execute(
+        self.e.execute(
             **TEST_SUBMISSION_KWARGS,
             kwargs=submission_kwargs_for_file('./test_contracts/inf_loop.s.py'),
             stamps=prior_balance,
@@ -101,8 +101,6 @@ class TestMetering(TestCase):
         )
 
         new_balance = self.d.get('currency.balances:stu')
-
-        print(new_balance)
 
         # Not all stamps will be deducted because it will blow up in the middle of execution
         self.assertTrue(new_balance < 0.01)
