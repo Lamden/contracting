@@ -26,8 +26,7 @@ class TestTokenHacks(TestCase):
         self.c.executor.metering = True
 
     def tearDown(self):
-        #self.c.raw_driver.flush()
-        pass
+        self.c.raw_driver.flush()
 
     def test_orm_rename_hack(self):
         # This hack renames the contract property on its own balances hash to modify the erc20 balances
@@ -72,7 +71,7 @@ class TestTokenHacks(TestCase):
 
         with open('./contracts/double_spend_gas_attack.s.py') as f:
             code = f.read()
-            self.c.submit(code, name='hack', metering=False)
+            self.c.submit(code, name='hack', metering=True)
 
         hack = self.c.get_contract('hack')
         try:
@@ -107,6 +106,9 @@ class TestTokenHacks(TestCase):
         with self.assertRaises(AssertionError):
             with open('./contracts/constructor_infinate_loop.s.py') as f:
                 code = f.read()
+                self.c.executor.execute(
+
+                )
                 self.c.submit(code, name='constructor_infinate_loop')
 
     def test_infinate_loop_of_writes_undos_everything(self):

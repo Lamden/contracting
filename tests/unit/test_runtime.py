@@ -30,7 +30,9 @@ class TestRuntime(TestCase):
         stamps = 1000
         sub = 500
         runtime.rt.set_up(stmps=stamps, meter=True)
+        globals()['__contract__'] = True
         a = 5
+        globals()['__contract__'] = False
         runtime.rt.tracer.stop()
         used_1 = runtime.rt.tracer.get_stamp_used()
         runtime.rt.tracer.set_stamp(stamps - sub)
@@ -42,11 +44,13 @@ class TestRuntime(TestCase):
     def test_starting_and_stopping_tracer_works_roughly(self):
         stamps = 1000
         runtime.rt.set_up(stmps=stamps, meter=True)
+        globals()['__contract__'] = True
         a = 5
         b = 5
         c = 5
         d = 5
         e = 5
+        globals()['__contract__'] = False
         runtime.rt.tracer.stop()
         used_1 = runtime.rt.tracer.get_stamp_used()
         runtime.rt.clean_up()

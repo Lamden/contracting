@@ -86,7 +86,7 @@ class TestHash(TestCase):
 
         h = Hash(contract, name, driver=driver)
 
-        h.set('stu', 1234)
+        h._set('stu', 1234)
 
         driver.commit()
 
@@ -104,7 +104,7 @@ class TestHash(TestCase):
 
         h = Hash(contract, name, driver=driver)
 
-        self.assertEqual(h.get('stu'), 1234)
+        self.assertEqual(h._get('stu'), 1234)
 
     def test_set_get(self):
         contract = 'stustu'
@@ -112,13 +112,13 @@ class TestHash(TestCase):
 
         h = Hash(contract, name, driver=driver)
 
-        h.set('stu', 1234)
-        _h = h.get('stu')
+        h._set('stu', 1234)
+        _h = h._get('stu')
 
         self.assertEqual(_h, 1234)
 
-        h.set('colin', 5678)
-        _h2 = h.get('colin')
+        h._set('colin', 5678)
+        _h2 = h._get('colin')
 
         self.assertEqual(_h2, 5678)
 
@@ -163,6 +163,14 @@ class TestHash(TestCase):
 
         val = driver.get('blah.scoob:stu:raghu')
         self.assertEqual(val, 1000)
+
+    def test_setitem_delimiter_illegal(self):
+        contract = 'blah'
+        name = 'scoob'
+
+        h = Hash(contract, name, driver=driver)
+        with self.assertRaises(AssertionError):
+            h['stu:123'] = 123
 
     def test_setitems_too_many_dimensions_fails(self):
         contract = 'blah'
@@ -558,7 +566,7 @@ class TestForeignHash(TestCase):
         f = ForeignHash(contract, name, f_contract, f_name, driver=driver)
 
         with self.assertRaises(ReferenceError):
-            f.set('stu', 1234)
+            f._set('stu', 1234)
 
     def test_get(self):
         # set up the foreign variable
@@ -571,9 +579,9 @@ class TestForeignHash(TestCase):
         f = ForeignHash(contract, name, f_contract, f_name, driver=driver)
 
         h = Hash(f_contract, f_name, driver=driver)
-        h.set('howdy', 555)
+        h._set('howdy', 555)
 
-        self.assertEqual(f.get('howdy'), 555)
+        self.assertEqual(f._get('howdy'), 555)
 
     def test_setitem(self):
         # set up the foreign variable

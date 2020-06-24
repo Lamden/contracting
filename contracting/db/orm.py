@@ -39,10 +39,10 @@ class Hash(Datum):
         self._delimiter = config.DELIMITER
         self._default_value = default_value
 
-    def set(self, key, value):
+    def _set(self, key, value):
         self._driver.set('{}{}{}'.format(self._key, self._delimiter, key), value)
 
-    def get(self, item):
+    def _get(self, item):
         value = self._driver.get('{}{}{}'.format(self._key, self._delimiter, item))
 
         # Add Python defaultdict behavior for easier smart contracting
@@ -62,15 +62,21 @@ class Hash(Datum):
 
             new_key_str = ''
             for k in key:
-                print(k)
                 assert not isinstance(k, slice), 'Slices prohibited in hashes.'
-                #assert config.DELIMITER not in k, 'Illegal delimiter in key.'
-                #assert config.INDEX_SEPARATOR not in k, 'Illegal separator in key.'
+
+                k = str(k)
+
+                assert config.DELIMITER not in k, 'Illegal delimiter in key.'
+                assert config.INDEX_SEPARATOR not in k, 'Illegal separator in key.'
+
                 new_key_str += '{}{}'.format(k, self._delimiter)
 
             key = new_key_str[:-len(self._delimiter)]
         else:
             key = str(key)
+
+            assert config.DELIMITER not in key, 'Illegal delimiter in key.'
+            assert config.INDEX_SEPARATOR not in key, 'Illegal separator in key.'
 
         assert len(key) <= config.MAX_KEY_SIZE, 'Key is too long ({}). Max is {}.'.format(len(key), config.MAX_KEY_SIZE)
         return key
@@ -99,11 +105,11 @@ class Hash(Datum):
     def __setitem__(self, key, value):
         # handle multiple hashes differently
         key = self._validate_key(key)
-        self.set(key, value)
+        self._set(key, value)
 
     def __getitem__(self, key):
         key = self._validate_key(key)
-        return self.get(key)
+        return self._get(key)
 
 
 class ForeignVariable(Variable):
@@ -125,17 +131,17 @@ class ForeignHash(Hash):
 
         self.foreign_key = self._driver.make_key(foreign_contract, foreign_name)
 
-    def set(self, key, value):
+    def _set(self, key, value):
         raise ReferenceError
 
-    def get(self, item):
+    def _get(self, item):
         return self._driver.get('{}{}{}'.format(self.foreign_key, self.delimiter, item))
 
     def __setitem__(self, key, value):
         raise ReferenceError
 
     def __getitem__(self, item):
-        return self.get(item)
+        return self._get(item)
 
 
 
