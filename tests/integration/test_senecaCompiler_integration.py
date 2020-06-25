@@ -37,8 +37,7 @@ fv = ForeignVariable(foreign_contract='scoob', foreign_name='kumbucha')
 
         fv = scope['__fv']
 
-        self.assertEqual(fv._key, '__main__.fv')
-        self.assertEqual(fv.foreign_key, 'scoob.kumbucha')
+        self.assertEqual(fv._key, 'scoob.kumbucha')
 
     def test_assign_hash_variable(self):
         code = '''
@@ -71,8 +70,8 @@ fv = ForeignHash(foreign_contract='scoob', foreign_name='kumbucha')
 
         fv = scope['__fv']
 
-        self.assertEqual(fv._key, '__main__.fv')
-        self.assertEqual(fv.foreign_key, 'scoob.kumbucha')
+        self.assertEqual(fv._key, 'scoob.kumbucha')
+        # self.assertEqual(fv.foreign_key, 'scoob.kumbucha')
 #
 #     def test_export_decorator_pops(self):
 #         code = '''

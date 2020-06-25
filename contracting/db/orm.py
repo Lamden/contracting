@@ -115,33 +115,25 @@ class Hash(Datum):
 class ForeignVariable(Variable):
     def __init__(self, contract, name, foreign_contract, foreign_name, driver: ContractDriver=driver):
         super().__init__(contract, name, driver=driver)
-        self.foreign_key = self._driver.make_key(foreign_contract, foreign_name)
+        self._key = self._driver.make_key(foreign_contract, foreign_name)
 
     def set(self, value):
         raise ReferenceError
-
-    def get(self):
-        return self._driver.get(self.foreign_key)
 
 
 class ForeignHash(Hash):
     def __init__(self, contract, name, foreign_contract, foreign_name, driver: ContractDriver=driver):
         super().__init__(contract, name, driver=driver)
-        self.delimiter = config.DELIMITER
-
-        self.foreign_key = self._driver.make_key(foreign_contract, foreign_name)
+        self._key = self._driver.make_key(foreign_contract, foreign_name)
 
     def _set(self, key, value):
         raise ReferenceError
-
-    def _get(self, item):
-        return self._driver.get('{}{}{}'.format(self.foreign_key, self.delimiter, item))
 
     def __setitem__(self, key, value):
         raise ReferenceError
 
     def __getitem__(self, item):
-        return self._get(item)
+        return super().__getitem__(item)
 
 
 
