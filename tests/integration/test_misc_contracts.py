@@ -51,3 +51,36 @@ class TestMiscContracts(TestCase):
     def test_V_returns(self):
         output = self.foreign_thing.read_V()
         self.assertEqual(output, 'hi')
+
+
+class TestPassHash(TestCase):
+    def setUp(self):
+        self.c = ContractingClient(signer='stu')
+        self.c.raw_driver.flush()
+
+        with open('../../contracting/contracts/submission.s.py') as f:
+            contract = f.read()
+
+        self.c.raw_driver.set_contract(name='submission', code=contract,)
+
+        self.c.raw_driver.commit()
+
+        submission = self.c.get_contract('submission')
+
+        # submit erc20 clone
+        with open('./test_contracts/pass_hash.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='pass_hash')
+
+        with open('./test_contracts/test_pass_hash.s.py') as f:
+            code = f.read()
+            self.c.submit(code, name='test_pass_hash')
+
+        self.pass_hash = self.c.get_contract('pass_hash')
+        self.test_pass_hash = self.c.get_contract('test_pass_hash')
+
+    def test_store_value(self):
+        self.test_pass_hash.store(k='thing', v='value')
+        output = self.test_pass_hash.get(k='thing')
+
+        self.assertEqual(output, 'value')
