@@ -19,7 +19,7 @@ COMPILED_KEY = '__compiled__'
 
 
 class Driver:
-    def __init__(self, db='state', collection='state'):
+    def __init__(self, db='lamden', collection='state'):
         self.client = pymongo.MongoClient()
         self.db = self.client[db][collection]
 
