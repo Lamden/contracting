@@ -21,11 +21,11 @@ def safe_repr(obj, max_len=1024):
 
 class Encoder(json.JSONEncoder):
     def default(self, o, *args):
-        if isinstance(o, Datetime):
+        if isinstance(o, Datetime) or o.__class__.__name__ == Datetime.__name__:
             return {
                 '__time__': [o.year, o.month, o.day, o.hour, o.minute, o.second, o.microsecond]
             }
-        elif isinstance(o, Timedelta):
+        elif isinstance(o, Timedelta) or o.__class__.__name__ == Timedelta.__name__:
             return {
                 '__delta__': [o._timedelta.days, o._timedelta.seconds]
             }
@@ -33,10 +33,10 @@ class Encoder(json.JSONEncoder):
             return {
                 '__bytes__': o.hex()
             }
-        elif isinstance(o, decimal.Decimal):
+        elif isinstance(o, decimal.Decimal) or o.__class__.__name__ == decimal.Decimal.__name__:
             return float(o)
 
-        elif isinstance(o, ContractingDecimal):
+        elif isinstance(o, ContractingDecimal) or o.__class__.__name__ == ContractingDecimal.__name__:
             return float(o._d)
         #else:
         #    return safe_repr(o)

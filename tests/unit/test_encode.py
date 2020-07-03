@@ -3,6 +3,8 @@ from contracting.db.encoder import encode, decode, safe_repr
 from decimal import Decimal as dec
 from contracting.stdlib.bridge.time import Datetime, Timedelta
 from datetime import datetime
+from contracting.stdlib.bridge.decimal import ContractingDecimal
+
 
 class TestEncode(TestCase):
     def test_int_to_bytes(self):
@@ -107,3 +109,9 @@ class TestEncode(TestCase):
         b = AssertionError('Hello')
 
         self.assertEqual(safe_repr(a), safe_repr(b))
+
+    def test_contracting_decimal(self):
+        c = ContractingDecimal(a=123.456)
+        b = '123.456'
+
+        self.assertEqual(encode(c), b)
