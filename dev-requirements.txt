@@ -1,7 +1,0 @@
-coloredlogs==10.0
-coverage==4.5.1
-pynacl
-# WARNING replace dateutil!
-python-dateutil==2.7.3
-scipy==1.1.0
-numpy==1.15.4
