@@ -164,6 +164,12 @@ class TestRewards(TestCase):
     def tearDown(self):
         self.c.flush()
 
+    def test_invalid_signer_fails(self):
+        env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
+
+        with self.assertRaises(AssertionError):
+            self.election_house.vote(policy='rewards', value=[1, 2, 3, 4, 5], environment=env)
+
     def test_vote_not_list_fails(self):
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
 
