@@ -12,7 +12,7 @@ policy_interface = [
 
 
 @export
-def register_policy(contract):
+def register_policy(contract: str):
     if policies[contract] is None:
         # Attempt to import the contract to make sure it is already submitted
         p = I.import_module(contract)
@@ -31,16 +31,16 @@ def register_policy(contract):
 
 @export
 def current_value_for_policy(policy: str):
-    assert policies.get(policy) is not None, 'Invalid policy.'
+    assert policies[policy] is not None, 'Invalid policy.'
     p = I.import_module(policy)
 
     return p.current_value()
 
 
 @export
-def vote(policy, value):
+def vote(policy: str, value: Any):
     # Verify policy has been registered
-    assert policies.get(policy) is not None, 'Invalid policy.'
+    assert policies[policy] is not None, 'Invalid policy.'
     p = I.import_module(policy)
 
     p.vote(vk=ctx.caller, obj=value)
