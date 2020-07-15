@@ -3,7 +3,6 @@ import sys
 
 from .. import config
 
-from ..logger import get_logger
 from ..compilation.whitelists import ALLOWED_AST_TYPES, ALLOWED_ANNOTAION_TYPES, VIOLATION_TRIGGERS, ILLEGAL_BUILTINS
 
 from contracting.db.driver import ContractDriver
@@ -13,7 +12,6 @@ from stdlib_list import stdlib_list
 class Linter(ast.NodeVisitor):
 
     def __init__(self, driver=ContractDriver()):
-        self.log = get_logger('Seneca.Parser')
         self._violations = []
         self._functions = []
         self._is_one_export = False
