@@ -6,9 +6,9 @@ import sys
 
 major = 0
 
-__version__ = '1.0.4.1'
+__version__ = '1.0.4.2'
 
-requirements = ['astor', 'pymongo', 'autopep8']
+requirements = ['astor', 'pymongo', 'autopep8', 'stdlib_list']
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
 
