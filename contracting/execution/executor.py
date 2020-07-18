@@ -76,7 +76,7 @@ class Executor:
 
             runtime.rt.env.update(environment)
             status_code = 0
-            runtime.rt.set_up(stmps=stamps, meter=metering)
+            runtime.rt.set_up(stmps=stamps * 1000, meter=metering) # Multiply stamps by 1000 because we divide by it later
 
             runtime.rt.context._base_state = {
                 'signer': sender,
