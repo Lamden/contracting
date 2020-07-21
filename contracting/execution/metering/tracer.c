@@ -86,8 +86,6 @@ Tracer_dealloc(Tracer *self)
  static int
  Tracer_trace(Tracer *self, PyFrameObject *frame, int what, PyObject *arg)
  {
-     const char * str;
-
      unsigned long long cu_costs[] = {2, 4, 5, 2, 4, 0, 0, 0, 2, 2, 3, 2, 0, 0, 4, 1000, 1000, 0, 30, 3, 0, 4, 3, 3, 3, 4, 4, 4, 5, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 12, 15, 0, 0, 5, 5, 4, 0, 4, 4, 4, 6, 6, 6, 6, 6, 30,
                 7, 12, 1000, 1610, 4, 7, 0, 6, 6, 6, 6, 6, 2, 15, 15, 2, 126, 1000, 4, 4, 4, 4, 2, 2, 8, 8, 2, 6, 6, 4,
@@ -119,6 +117,7 @@ Tracer_dealloc(Tracer *self)
          //     printf("RETURN\n");
          //     break;
          int opcode;
+         const char * str;
          case PyTrace_LINE:      /* 2 */
              // printf("LINE\n");
              str = PyBytes_AS_STRING(frame->f_code->co_code);
@@ -133,6 +132,7 @@ Tracer_dealloc(Tracer *self)
                  PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
                  PyEval_SetTrace(NULL, NULL);
                  self->started = 0;
+                 free(*str(str));
                  return RET_ERROR;
              }
              self->cost += cu_costs[opcode];
@@ -147,7 +147,7 @@ Tracer_dealloc(Tracer *self)
              break;
      }
      //}
-
+     free(*str(str));
      return RET_OK;
  }
 
