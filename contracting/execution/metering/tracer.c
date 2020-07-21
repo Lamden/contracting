@@ -30,6 +30,7 @@
 #define RET_OK      0
 #define RET_ERROR   -1
 
+
 /* The Tracer type. */
 
 typedef struct {
@@ -86,7 +87,7 @@ Tracer_dealloc(Tracer *self)
  Tracer_trace(Tracer *self, PyFrameObject *frame, int what, PyObject *arg)
  {
      const char * str;
-     int opcode;
+
      unsigned long long cu_costs[] = {2, 4, 5, 2, 4, 0, 0, 0, 2, 2, 3, 2, 0, 0, 4, 1000, 1000, 0, 30, 3, 0, 4, 3, 3, 3, 4, 4, 4, 5, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 12, 15, 0, 0, 5, 5, 4, 0, 4, 4, 4, 6, 6, 6, 6, 6, 30,
                 7, 12, 1000, 1610, 4, 7, 0, 6, 6, 6, 6, 6, 2, 15, 15, 2, 126, 1000, 4, 4, 4, 4, 2, 2, 8, 8, 2, 6, 6, 4,
@@ -98,7 +99,12 @@ Tracer_dealloc(Tracer *self)
 
      // IF, Frame object globals contains __contract__ and it is true, continue
      PyObject *kv = PyUnicode_FromString("__contract__");
+
+     Py_INCREF(kv):
+
      int t = PyDict_Contains(frame->f_globals, kv);
+
+     Py_DECREF(kv);
 
      if (t != 1) {
         return RET_OK;
@@ -112,7 +118,7 @@ Tracer_dealloc(Tracer *self)
          // case PyTrace_RETURN:    /* 3 */
          //     printf("RETURN\n");
          //     break;
-
+         int opcode;
          case PyTrace_LINE:      /* 2 */
              // printf("LINE\n");
              str = PyBytes_AS_STRING(frame->f_code->co_code);
