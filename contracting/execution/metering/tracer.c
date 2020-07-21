@@ -100,7 +100,7 @@ Tracer_dealloc(Tracer *self)
      // IF, Frame object globals contains __contract__ and it is true, continue
      PyObject *kv = PyUnicode_FromString("__contract__");
 
-     Py_INCREF(kv):
+     Py_INCREF(kv);
 
      int t = PyDict_Contains(frame->f_globals, kv);
 
