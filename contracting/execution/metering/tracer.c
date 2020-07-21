@@ -109,16 +109,8 @@ Tracer_dealloc(Tracer *self)
         return RET_OK;
      }
 
+     int opcode;
      switch (what) {
-         // case PyTrace_CALL:      /* 0 */
-         //     printf("CALL\n");
-         //     break;
-         //
-         // case PyTrace_RETURN:    /* 3 */
-         //     printf("RETURN\n");
-         //     break;
-         int opcode;
-
          case PyTrace_LINE:      /* 2 */
              // printf("LINE\n");
              str = PyBytes_AS_STRING(frame->f_code->co_code);
