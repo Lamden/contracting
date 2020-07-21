@@ -1,5 +1,7 @@
 from decimal import Decimal
+import decimal
 
+CONTEXT = decimal.Context(prec=16, rounding=decimal.ROUND_FLOOR, Emin=-100, Emax=100)
 # There is a much better way to do this...
 
 

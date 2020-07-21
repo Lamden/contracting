@@ -2,10 +2,10 @@ import importlib
 from contracting.execution import runtime
 from contracting.db.driver import ContractDriver
 from contracting.execution.module import install_database_loader, uninstall_builtins, enable_restricted_imports, disable_restricted_imports
-from contracting.stdlib.bridge.decimal import ContractingDecimal
+from contracting.stdlib.bridge.decimal import ContractingDecimal, CONTEXT
 from contracting import config
 from copy import deepcopy
-
+import decimal
 from logging import getLogger
 
 log = getLogger('CONTRACTING')
@@ -87,6 +87,8 @@ class Executor:
 
             if runtime.rt.context.owner is not None and runtime.rt.context.owner != runtime.rt.context.caller:
                 raise Exception(f'Caller {runtime.rt.context.caller} is not the owner {runtime.rt.context.owner}!')
+
+            decimal.setcontext(CONTEXT)
 
             module = importlib.import_module(contract_name)
             func = getattr(module, function_name)
