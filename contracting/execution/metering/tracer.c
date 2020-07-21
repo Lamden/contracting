@@ -94,6 +94,7 @@ Tracer_dealloc(Tracer *self)
 
     unsigned long long estimate = 0;
     unsigned long long factor = 1000;
+    char *str;
 
      // IF, Frame object globals contains __contract__ and it is true, continue
      PyObject *kv = PyUnicode_FromString("__contract__");
@@ -117,7 +118,7 @@ Tracer_dealloc(Tracer *self)
          //     printf("RETURN\n");
          //     break;
          int opcode;
-         char *str;
+
          case PyTrace_LINE:      /* 2 */
              // printf("LINE\n");
              str = PyBytes_AS_STRING(frame->f_code->co_code);
