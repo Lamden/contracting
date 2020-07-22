@@ -94,7 +94,7 @@ Tracer_dealloc(Tracer *self)
 
     unsigned long long estimate = 0;
     unsigned long long factor = 1000;
-    char *str;
+    const char *str;
 
      // IF, Frame object globals contains __contract__ and it is true, continue
      PyObject *kv = PyUnicode_FromString("__contract__");
@@ -125,22 +125,14 @@ Tracer_dealloc(Tracer *self)
                  PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
                  PyEval_SetTrace(NULL, NULL);
                  self->started = 0;
-                 free(str);
                  return RET_ERROR;
              }
              self->cost += cu_costs[opcode];
              break;
 
-         // case PyTrace_EXCEPTION:
-         //     printf("EXCEPTION\n");
-         //     // return RET_ERROR;
-         //     break;
-
          default:
              break;
      }
-     //}
-     free(str);
      return RET_OK;
  }
 
