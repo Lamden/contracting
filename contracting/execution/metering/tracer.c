@@ -159,7 +159,7 @@ Tracer_stop(Tracer *self, PyObject *args)
 static PyObject *
 Tracer_set_stamp(Tracer *self, PyObject *args, PyObject *kwds)
 {
-        PyArg_ParseTuple(args, "L", &self->stamp_supplied);
+    PyArg_ParseTuple(args, "L", &self->stamp_supplied);
     return Py_BuildValue("");
 }
 
