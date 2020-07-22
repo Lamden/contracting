@@ -302,16 +302,23 @@ PyInit_tracer(void)
 {
     Py_Initialize();
     PyObject * mod = PyModule_Create(&moduledef);
+    Py_INCREF(mod);
+
     if (mod == NULL) {
+        Py_DECREF(mod);
         return NULL;
     }
+
     TracerType.tp_new = PyType_GenericNew;
+    Py_INCREF(&TracerType);
+
     if (PyType_Ready(&TracerType) < 0) {
         Py_DECREF(mod);
+        Py_DECREF(&TracerType);
         printf("Not ready");
         return NULL;
     }
-    Py_INCREF(&TracerType);
+
     PyModule_AddObject(mod, "Tracer", (PyObject *)&TracerType);
     return mod;
 }
@@ -323,17 +330,22 @@ inittracer(void)
 {
     PyObject * mod;
     mod = Py_InitModule3("contracting.execution.metering.tracer", NULL, MODULE_DOC);
+    Py_INCREF(mod);
 
     if (mod == NULL) {
+        Py_DECREF(mod);
         return;
     }
 
     TracerType.tp_new = PyType_GenericNew;
+    Py_INCREF(&TracerType);
     if (PyType_Ready(&TracerType) < 0) {
+        Py_DECREF(mod);
+        Py_DECREF(&TracerType);
         return;
     }
 
-    Py_INCREF(&TracerType);
+
     PyModule_AddObject(mod, "Tracer", (PyObject *)&TracerType);
 }
 
