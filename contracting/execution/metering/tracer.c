@@ -30,6 +30,11 @@
 #define RET_OK      0
 #define RET_ERROR   -1
 
+unsigned long long cu_costs[] = {2, 4, 5, 2, 4, 0, 0, 0, 2, 2, 3, 2, 0, 0, 4, 1000, 1000, 0, 30, 3, 0, 4, 3, 3, 3, 4, 4, 4, 5, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 12, 15, 0, 0, 5, 5, 4, 0, 4, 4, 4, 6, 6, 6, 6, 6, 30,
+                7, 12, 1000, 1610, 4, 7, 0, 6, 6, 6, 6, 6, 2, 15, 15, 2, 126, 1000, 4, 4, 4, 4, 2, 2, 8, 8, 2, 6, 6, 4,
+                4, 0, 2, 2, 2, 5, 8, 7, 4, 4, 38, 126, 4, 4, 4, 4, 4, 4, 3, 0, 0, 2, 4, 2, 3, 0, 2, 2, 2, 1000, 0, 0, 5,
+                9, 7, 12, 0, 7, 2, 2, 2, 0, 0, 12, 12, 15, 2, 8, 8, 5, 2, 5, 7, 9, 2, 8, 15, 30, 7, 8, 4};
 
 /* The Tracer type. */
 
@@ -86,20 +91,12 @@ Tracer_dealloc(Tracer *self)
  static int
  Tracer_trace(Tracer *self, PyFrameObject *frame, int what, PyObject *arg)
  {
-     unsigned long long cu_costs[] = {2, 4, 5, 2, 4, 0, 0, 0, 2, 2, 3, 2, 0, 0, 4, 1000, 1000, 0, 30, 3, 0, 4, 3, 3, 3, 4, 4, 4, 5, 0, 0, 0, 0,
-                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 12, 15, 0, 0, 5, 5, 4, 0, 4, 4, 4, 6, 6, 6, 6, 6, 30,
-                7, 12, 1000, 1610, 4, 7, 0, 6, 6, 6, 6, 6, 2, 15, 15, 2, 126, 1000, 4, 4, 4, 4, 2, 2, 8, 8, 2, 6, 6, 4,
-                4, 0, 2, 2, 2, 5, 8, 7, 4, 4, 38, 126, 4, 4, 4, 4, 4, 4, 3, 0, 0, 2, 4, 2, 3, 0, 2, 2, 2, 1000, 0, 0, 5,
-                9, 7, 12, 0, 7, 2, 2, 2, 0, 0, 12, 12, 15, 2, 8, 8, 5, 2, 5, 7, 9, 2, 8, 15, 30, 7, 8, 4};
-
     unsigned long long estimate = 0;
     unsigned long long factor = 1000;
     const char *str;
 
      // IF, Frame object globals contains __contract__ and it is true, continue
      PyObject *kv = PyUnicode_FromString("__contract__");
-
-     Py_INCREF(kv);
 
      int t = PyDict_Contains(frame->f_globals, kv);
 
@@ -302,7 +299,6 @@ PyInit_tracer(void)
 {
     Py_Initialize();
     PyObject * mod = PyModule_Create(&moduledef);
-    Py_INCREF(mod);
 
     if (mod == NULL) {
         Py_DECREF(mod);
@@ -310,7 +306,6 @@ PyInit_tracer(void)
     }
 
     TracerType.tp_new = PyType_GenericNew;
-    Py_INCREF(&TracerType);
 
     if (PyType_Ready(&TracerType) < 0) {
         Py_DECREF(mod);
@@ -330,7 +325,6 @@ inittracer(void)
 {
     PyObject * mod;
     mod = Py_InitModule3("contracting.execution.metering.tracer", NULL, MODULE_DOC);
-    Py_INCREF(mod);
 
     if (mod == NULL) {
         Py_DECREF(mod);
@@ -338,7 +332,6 @@ inittracer(void)
     }
 
     TracerType.tp_new = PyType_GenericNew;
-    Py_INCREF(&TracerType);
     if (PyType_Ready(&TracerType) < 0) {
         Py_DECREF(mod);
         Py_DECREF(&TracerType);

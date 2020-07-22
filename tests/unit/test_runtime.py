@@ -1,5 +1,8 @@
 from unittest import TestCase
 from contracting.execution import runtime
+import sys
+import psutil
+import os
 
 
 class TestRuntime(TestCase):
@@ -108,3 +111,28 @@ class TestRuntime(TestCase):
 
         runtime.rt.clean_up()
         print(used_1)
+
+    def test_tracer_memory_leaks(self):
+        process = psutil.Process(os.getpid())
+        for _ in range(10):
+            mem = process.memory_percent()
+            for _ in range(100000):
+                stamps = 1000
+                runtime.rt.set_up(stmps=stamps, meter=True)
+
+                runtime.rt.tracer.add_cost(900)
+                runtime.rt.tracer.stop()
+
+                runtime.rt.clean_up()
+            print(mem)
+
+    def test_tracer_something_else(self):
+        process = psutil.Process(os.getpid())
+        for _ in range(10):
+            mem = process.memory_percent()
+            for _ in range(100000):
+                a = 123
+                b = a
+                c = b
+                d = 12345
+            print(sys.gettotalrefcount())

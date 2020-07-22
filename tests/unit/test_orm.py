@@ -192,6 +192,9 @@ class TestHash(TestCase):
         with self.assertRaises(Exception):
             h[key] = 100
 
+    def test_setitem_value_too_large(self):
+        pass
+
     def test_setitems_keys_too_large(self):
         contract = 'blah'
         name = 'scoob'
