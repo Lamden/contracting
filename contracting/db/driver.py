@@ -161,7 +161,6 @@ class CacheDriver:
         return dv
 
     def set(self, key, value, mark=True):
-        assert len(encode(value)) > config.MAX_VALUE_SIZE, 'Key is too long ({}). Max is {}.'.format(len(encode(value)), config.MAX_KEY_SIZE)
         rt.deduct_write(*encode_kv(key, value))
 
         if type(value) == decimal.Decimal or type(value) == float:
