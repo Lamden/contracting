@@ -170,7 +170,11 @@ class Linter(ast.NodeVisitor):
             self.visited_args.add((a.arg, node.lineno))
             if export_decorator:
                 if a.annotation is not None:
-                    self.arg_types.add((a.annotation.id, node.lineno))
+                    if hasattr(a.annotation, 'id'):
+                        self.arg_types.add((a.annotation.id, node.lineno))
+                    else:
+                        class_type = f'{a.annotation.value.id}.{a.annotation.attr}'
+                        self.arg_types.add((class_type, node.lineno))
                 else:
                     self.arg_types.add((None, node.lineno))
 
