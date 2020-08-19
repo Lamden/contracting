@@ -1,8 +1,21 @@
 from decimal import Decimal
 import decimal
 
+from fpbinary import FpBinary
+
+MAX_BITS_REAL = 256
+MAX_BITS_FRAC = 256
+
+
+def fixed(x):
+    d = Decimal(x)
+    return FpBinary(int_bits=MAX_BITS_REAL, frac_bits=MAX_BITS_FRAC, signed=True, value=d)
+
+
 CONTEXT = decimal.Context(prec=16, rounding=decimal.ROUND_FLOOR, Emin=-100, Emax=100)
 # There is a much better way to do this...
+
+MAX_DECIMAL = 16
 
 
 class ContractingDecimal:
@@ -17,7 +30,7 @@ class ContractingDecimal:
         if type(a) == float:
             a = str(a)
 
-        self._d = Decimal(a)
+        self._d = fixed(a)
 
     def __bool__(self):
         pass
@@ -43,8 +56,8 @@ class ContractingDecimal:
     def __neg__(self):
         return self._d.__neg__()
 
-    def __pos__(self):
-        return self._d.__pos__()
+    #def __pos__(self):
+    #    return self._d.__pos__()
 
     def __abs__(self):
         return self.__abs__()
@@ -73,29 +86,29 @@ class ContractingDecimal:
     def __rtruediv__(self, other):
         return self._d.__rtruediv__(self._get_other(other))
 
-    def __divmod__(self, other):
-        return self._d.__divmod__(self._get_other(other))
-
-    def __rdivmod__(self, other):
-        return self._d.__divmod__(self._get_other(other))
-
-    def __mod__(self, other):
-        return self._d.__mod__(self._get_other(other))
-
-    def __rmod__(self, other):
-        return self._d.__rmod__(self._get_other(other))
-
-    def __floordiv__(self, other):
-        return self._d.__floordiv__(self._get_other(other))
-
-    def __rfloordiv__(self, other):
-        return self._d.__rfloordiv__(self._get_other(other))
-
-    def __pow__(self, other):
-        return self._d.__pow__(self._get_other(other))
-
-    def __rpow__(self, other):
-        return self._d.__rpow__(self._get_other(other))
+    # def __divmod__(self, other):
+    #     return self._d.__divmod__(self._get_other(other))
+    #
+    # def __rdivmod__(self, other):
+    #     return self._d.__divmod__(self._get_other(other))
+    #
+    # def __mod__(self, other):
+    #     return self._d.__mod__(self._get_other(other))
+    #
+    # def __rmod__(self, other):
+    #     return self._d.__rmod__(self._get_other(other))
+    #
+    # def __floordiv__(self, other):
+    #     return self._d.__floordiv__(self._get_other(other))
+    #
+    # def __rfloordiv__(self, other):
+    #     return self._d.__rfloordiv__(self._get_other(other))
+    #
+    # def __pow__(self, other):
+    #     return self._d.__pow__(self._get_other(other))
+    #
+    # def __rpow__(self, other):
+    #     return self._d.__rpow__(self._get_other(other))
 
     def __int__(self):
         return self._d.__int__()
