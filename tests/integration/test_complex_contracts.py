@@ -284,9 +284,3 @@ class TestComplexContracts(TestCase):
         h = sha256()
         h.update(bytes.fromhex(secret))
         self.assertEqual(h.hexdigest(), s3['result'])
-
-    def test_submit_time_objects_in_annotations_works(self):
-        e = Executor(metering=False)
-
-        e.execute(**TEST_SUBMISSION_KWARGS,
-                  kwargs=submission_kwargs_for_file('./test_contracts/time_types.s.py'))

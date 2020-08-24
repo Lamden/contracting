@@ -15,9 +15,7 @@ ALLOWED_AST_TYPES = {ast.Module, ast.Eq, ast.Call, ast.Dict, ast.Attribute, ast.
                      ast.NotIn, ast.Gt, ast.Lt, ast.Starred, ast.Mod, ast.NotEq, ast.For, ast.While, ast.ListComp,
                      ast.comprehension, ast.Slice, ast.USub, ast.BoolOp, ast.And, ast.Or, ast.Mult}
 
-ALLOWED_ANNOTAION_TYPES = {
-    'dict', 'list', 'str', 'int', 'float', 'bool', 'datetime.timedelta', 'datetime.datetime', 'Any'
-}
+ALLOWED_ANNOTAION_TYPES = {'dict', 'list', 'str', 'int', 'float', 'bool', 'timedelta', 'datetime', 'Any'}
 
 VIOLATION_TRIGGERS = [
     "S1- Illegal contracting syntax type used",
