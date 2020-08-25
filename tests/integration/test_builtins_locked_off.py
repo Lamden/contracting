@@ -49,12 +49,13 @@ class TestDatabaseLoaderLoadsFirst(TestCase):
 
         with open('./test_contracts/import_test.s.py') as f:
             contract = f.read()
-            self.c.submit(contract, name='import_test')
+            with self.assertRaises(ImportError):
+                self.c.submit(contract, name='import_test')
 
-        import_test = self.c.get_contract('import_test')
-
-        with self.assertRaises(ImportError):
-            import_test.woo()
+        # import_test = self.c.get_contract('import_test')
+        #
+        # with self.assertRaises(ImportError):
+        #     import_test.woo()
 
 
 class TestDynamicImport(TestCase):

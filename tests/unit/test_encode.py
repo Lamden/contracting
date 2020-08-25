@@ -1,9 +1,8 @@
 from unittest import TestCase
 from contracting.db.encoder import encode, decode, safe_repr
-from decimal import Decimal as dec
 from contracting.stdlib.bridge.time import Datetime, Timedelta
 from datetime import datetime
-from contracting.stdlib.bridge.decimal import ContractingDecimal
+from contracting.stdlib.bridge.decimal import ContractingDecimal, fixed
 
 
 class TestEncode(TestCase):
@@ -39,7 +38,7 @@ class TestEncode(TestCase):
 
     def test_decode_bytes_to_dec(self):
         b = '0.0044997618965276'
-        d = dec('0.0044997618965276')
+        d = fixed('0.0044997618965276')
 
         # _d is the actual Decimal object included in the wrapped stdlib ContractingDecimal
         self.assertEqual(decode(b)._d, d)
