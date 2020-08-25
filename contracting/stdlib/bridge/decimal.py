@@ -129,7 +129,7 @@ class ContractingDecimal:
         return fix_precision(self._d.__rpow__(self._get_other(other)))
 
     def __int__(self):
-        return fix_precision(self._d.__int__())
+        return self._d.__int__()
 
     def __float__(self):
         raise Exception('Cannot cast Decimal to float.')

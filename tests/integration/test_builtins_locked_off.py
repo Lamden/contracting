@@ -89,4 +89,6 @@ class TestFloatIssue(TestCase):
 
         float_issue = self.c.get_contract('float_issue')
 
+        print(float_issue.__code__)
+
         float_issue.get(x=0.1, y=0.1)

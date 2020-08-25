@@ -112,3 +112,9 @@ class ContractingCompiler(ast.NodeTransformer):
     def visit_Expr(self, node):
         self.generic_visit(node)
         return node
+
+    def visit_Num(self, node):
+        if isinstance(node.n, float):
+            return ast.Call(func=ast.Name(id='decimal', ctx=ast.Load()),
+                            args=[ast.Str(str(node.n))], keywords=[])
+        return node
