@@ -1,6 +1,5 @@
 import json
 import decimal
-import fpbinary
 from contracting.stdlib.bridge.time import Datetime, Timedelta
 from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting.config import INDEX_SEPARATOR, DELIMITER
@@ -35,9 +34,6 @@ class Encoder(json.JSONEncoder):
                 '__bytes__': o.hex()
             }
         elif isinstance(o, decimal.Decimal) or o.__class__.__name__ == decimal.Decimal.__name__:
-            return float(o)
-
-        elif isinstance(o, fpbinary.FpBinary) or o.__class__.__name__ == fpbinary.FpBinary.__name__:
             return float(o)
 
         elif isinstance(o, ContractingDecimal) or o.__class__.__name__ == ContractingDecimal.__name__:

@@ -14,7 +14,8 @@ def dot_prod_grid(x, y, vx, vy):
     else:
         g_vect = rand_vect()
         gradients[key] = g_vect
-    return (d_vect['y']) * (g_vect['x']) + (d_vect['y']) * (g_vect['y']);
+
+    return (d_vect['y']) * (g_vect['x']) + (d_vect['y']) * (g_vect['y'])
 
 
 def smootherstep(x):

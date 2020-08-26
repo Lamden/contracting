@@ -93,6 +93,10 @@ class Executor:
             module = importlib.import_module(contract_name)
             func = getattr(module, function_name)
 
+            for k, v in kwargs.items():
+                if type(v) == float:
+                    kwargs[k] = ContractingDecimal(str(v))
+
             enable_restricted_imports()
             result = func(**kwargs)
             disable_restricted_imports()
