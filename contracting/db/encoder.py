@@ -3,6 +3,7 @@ import decimal
 from contracting.stdlib.bridge.time import Datetime, Timedelta
 from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting.config import INDEX_SEPARATOR, DELIMITER
+
 ##
 # ENCODER CLASS
 # Add to this to encode Python types for storage.
