@@ -1,7 +1,7 @@
 import json
 import decimal
 from contracting.stdlib.bridge.time import Datetime, Timedelta
-from contracting.stdlib.bridge.decimal import ContractingDecimal, MAX_LOWER_PRECISION
+from contracting.stdlib.bridge.decimal import ContractingDecimal, MAX_LOWER_PRECISION, fix_precision
 from contracting.config import INDEX_SEPARATOR, DELIMITER
 
 ##
@@ -36,18 +36,19 @@ class Encoder(json.JSONEncoder):
         elif isinstance(o, decimal.Decimal) or o.__class__.__name__ == decimal.Decimal.__name__:
             #return format(o, f'.{MAX_LOWER_PRECISION}f')
             return {
-                '__fixed__': str(o)
+                '__fixed__': str(fix_precision(o))
             }
 
         elif isinstance(o, ContractingDecimal) or o.__class__.__name__ == ContractingDecimal.__name__:
             #return format(o._d, f'.{MAX_LOWER_PRECISION}f')
             return {
-                '__fixed__': str(o)
+                '__fixed__': str(fix_precision(o._d))
             }
         elif isinstance(o, float):
             #return format(o, f'.{MAX_LOWER_PRECISION}f')
+            _o = format(o, f'.{MAX_LOWER_PRECISION}f')
             return {
-                '__fixed__': str(o)
+                '__fixed__': str(fix_precision(decimal.Decimal(_o)))
             }
         #else:
         #    return safe_repr(o)
