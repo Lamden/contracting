@@ -34,14 +34,21 @@ class Encoder(json.JSONEncoder):
                 '__bytes__': o.hex()
             }
         elif isinstance(o, decimal.Decimal) or o.__class__.__name__ == decimal.Decimal.__name__:
-            return format(o, f'.{MAX_LOWER_PRECISION}f')
+            #return format(o, f'.{MAX_LOWER_PRECISION}f')
+            return {
+                '__fixed__': str(o)
+            }
 
         elif isinstance(o, ContractingDecimal) or o.__class__.__name__ == ContractingDecimal.__name__:
-            return format(o._d, f'.{MAX_LOWER_PRECISION}f')
-
+            #return format(o._d, f'.{MAX_LOWER_PRECISION}f')
+            return {
+                '__fixed__': str(o)
+            }
         elif isinstance(o, float):
-            return format(o, f'.{MAX_LOWER_PRECISION}f')
-
+            #return format(o, f'.{MAX_LOWER_PRECISION}f')
+            return {
+                '__fixed__': str(o)
+            }
         #else:
         #    return safe_repr(o)
 
