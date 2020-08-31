@@ -1,7 +1,7 @@
 import json
 import decimal
 from contracting.stdlib.bridge.time import Datetime, Timedelta
-from contracting.stdlib.bridge.decimal import ContractingDecimal
+from contracting.stdlib.bridge.decimal import ContractingDecimal, MAX_LOWER_PRECISION
 from contracting.config import INDEX_SEPARATOR, DELIMITER
 
 ##
@@ -10,7 +10,6 @@ from contracting.config import INDEX_SEPARATOR, DELIMITER
 # Right now, this is only for datetime types. They are passed into the system as ISO strings, cast into Datetime objs
 # and stored as dicts. Is there a better way? I don't know, maybe.
 ##
-
 
 def safe_repr(obj, max_len=1024):
     r = obj.__repr__()
@@ -35,18 +34,14 @@ class Encoder(json.JSONEncoder):
                 '__bytes__': o.hex()
             }
         elif isinstance(o, decimal.Decimal) or o.__class__.__name__ == decimal.Decimal.__name__:
-            return {
-                '__fixed__': str(o)
-            }
+            return format(o, f'.{MAX_LOWER_PRECISION}f')
 
         elif isinstance(o, ContractingDecimal) or o.__class__.__name__ == ContractingDecimal.__name__:
-            return {
-                '__fixed__': str(o)
-            }
+            return format(o._d, f'.{MAX_LOWER_PRECISION}f')
+
         elif isinstance(o, float):
-            return {
-                '__fixed__': str(o)
-            }
+            return format(o, f'.{MAX_LOWER_PRECISION}f')
+
         #else:
         #    return safe_repr(o)
 
