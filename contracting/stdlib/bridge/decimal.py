@@ -77,7 +77,7 @@ class ContractingDecimal:
         return self._d.__pos__()
 
     def __abs__(self):
-        return self.__abs__()
+        return self._d.__abs__()
 
     def __add__(self, other):
         x = self._d.__add__(self._get_other(other))

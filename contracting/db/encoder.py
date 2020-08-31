@@ -34,10 +34,18 @@ class Encoder(json.JSONEncoder):
                 '__bytes__': o.hex()
             }
         elif isinstance(o, decimal.Decimal) or o.__class__.__name__ == decimal.Decimal.__name__:
-            return float(o)
+            return {
+                '__fixed__': str(o)
+            }
 
         elif isinstance(o, ContractingDecimal) or o.__class__.__name__ == ContractingDecimal.__name__:
-            return float(o._d)
+            return {
+                '__fixed__': str(o)
+            }
+        elif isinstance(o, float):
+            return {
+                '__fixed__': str(o)
+            }
         #else:
         #    return safe_repr(o)
 
@@ -56,6 +64,8 @@ def as_object(d):
         return Timedelta(days=d['__delta__'][0], seconds=d['__delta__'][1])
     elif '__bytes__' in d:
         return bytes.fromhex(d['__bytes__'])
+    elif '__fixed__' in d:
+        return ContractingDecimal(d['__fixed__'])
     return dict(d)
 
 
