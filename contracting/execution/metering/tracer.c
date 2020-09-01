@@ -120,7 +120,7 @@ Tracer_dealloc(Tracer *self)
              //estimate = estimate * factor;
              self->cost += cu_costs[opcode];
 
-             if (self->cost > self->stamp_supplied) {
+             if (self->cost >= self->stamp_supplied) {
                  PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
                  PyEval_SetTrace(NULL, NULL);
                  self->started = 0;
