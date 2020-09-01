@@ -95,7 +95,7 @@ class TestTokenHacks(TestCase):
 
         with open('./contracts/call_infinate_loop.s.py') as f:
             code = f.read()
-            self.c.submit(code, name='call_infinate_loop', metering=False)
+            self.c.submit(code, name='call_infinate_loop', metering=True)
 
         loop = self.c.get_contract('call_infinate_loop')
 
@@ -106,16 +106,13 @@ class TestTokenHacks(TestCase):
         with self.assertRaises(AssertionError):
             with open('./contracts/constructor_infinate_loop.s.py') as f:
                 code = f.read()
-                self.c.executor.execute(
-
-                )
-                self.c.submit(code, name='constructor_infinate_loop')
+                self.c.submit(code, name='constructor_infinate_loop', metering=True)
 
     def test_infinate_loop_of_writes_undos_everything(self):
         with self.assertRaises(AssertionError):
             with open('./contracts/con_inf_writes.s.py') as f:
                 code = f.read()
-                self.c.submit(code, name='con_inf_writes')
+                self.c.submit(code, name='con_inf_writes', metering=True)
 
     def test_accessing_variable_on_another_contract(self):
         token = self.c.get_contract('erc20')
