@@ -95,18 +95,13 @@ Tracer_dealloc(Tracer *self)
     unsigned long long estimate = 0;
     unsigned long long factor = 1000;
     const char *str;
-
      // IF, Frame object globals contains __contract__ and it is true, continue
      PyObject *kv = PyUnicode_FromString("__contract__");
-
      int t = PyDict_Contains(frame->f_globals, kv);
-
      Py_DECREF(kv);
-
      if (t != 1) {
         return RET_OK;
      }
-
      int opcode;
      switch (what) {
          case PyTrace_LINE:      /* 2 */
@@ -114,24 +109,17 @@ Tracer_dealloc(Tracer *self)
              str = PyBytes_AS_STRING(frame->f_code->co_code);
              opcode = str[frame->f_lasti];
              if (opcode < 0) opcode = -opcode;
-
              estimate = (self->cost + cu_costs[opcode]) / factor;
              estimate = estimate + 1;
              //estimate = estimate * factor;
-             self->cost += cu_costs[opcode];
-
-             if (self->cost >= self->stamp_supplied) {
+             if (self->cost > self->stamp_supplied) {
                  PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
                  PyEval_SetTrace(NULL, NULL);
-
-                 //self->cost = self->stamp_supplied;
-
                  self->started = 0;
                  return RET_ERROR;
              }
-
+             self->cost += cu_costs[opcode];
              break;
-
          default:
              break;
      }
@@ -187,7 +175,7 @@ Tracer_add_cost(Tracer *self, PyObject *args, PyObject *kwds)
          PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
          PyEval_SetTrace(NULL, NULL);
          self->started = 0;
-         return RET_ERROR;
+         return NULL;
      }
 
     return Py_BuildValue("");
