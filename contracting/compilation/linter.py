@@ -173,7 +173,7 @@ class Linter(ast.NodeVisitor):
                     try:
                         self.arg_types.add((a.annotation.id, node.lineno))
                     except AttributeError:
-                        arg = a.annotation.attr + '.' + a.annotation.value.id
+                        arg = a.annotation.value.id + '.' + a.annotation.attr
                         self.arg_types.add((arg, node.lineno))
                 else:
                     self.arg_types.add((None, node.lineno))
@@ -183,7 +183,7 @@ class Linter(ast.NodeVisitor):
                 try:
                     self.arg_types.add((a.annotation.id, node.lineno))
                 except AttributeError:
-                    arg = a.annotation.attr + '.' + a.annotation.value.id
+                    arg = a.annotation.value.id + '.' + a.annotation.attr
                     self.arg_types.add((arg, node.lineno))
             else:
                 self.return_annotation.add((None, node.lineno))
