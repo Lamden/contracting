@@ -16,9 +16,15 @@ def methods_for_contract(contract_code: str):
         kwargs = []
 
         for arg in definition.args.args:
+
+            try:
+                a = arg.annotation.id
+            except AttributeError:
+                a = arg.annotation.value.id + '.' + a.annotation.attr
+
             kwargs.append({
                 'name': arg.arg,
-                'type': arg.annotation.id
+                'type': a
             })
 
         funcs.append({'name': func_name, 'arguments': kwargs})
