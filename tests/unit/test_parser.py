@@ -34,6 +34,33 @@ def test_func(arg: str, arg2: int):
 
         self.assertListEqual(expected, got)
 
+    def test_methods_for_contract_datetime(self):
+        code = '''
+@export
+def thing(arg: datetime.datetime, arg2: datetime.timedelta):
+    return 123        
+'''
+        compiled = self.compiler.parse_to_code(code)
+        got = parser.methods_for_contract(compiled)
+
+        expected = [
+            {
+                'name': 'thing',
+                'arguments': [
+                    {
+                        'name': 'arg',
+                        'type': 'datetime.datetime'
+                    },
+                    {
+                        'name': 'arg2',
+                        'type': 'datetime.timedelta'
+                    }
+                 ]
+             }
+        ]
+
+        self.assertEqual(expected, got)
+
     def test_methods_for_contract_multiple_functions_and_privates(self):
         code = '''
 @export
@@ -208,3 +235,4 @@ def something():
         }
 
         self.assertDictEqual(got, expected)
+
