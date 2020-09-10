@@ -114,3 +114,15 @@ class TestEncode(TestCase):
         b = '{"__fixed__":"123.456"}'
 
         self.assertEqual(encode(c), b)
+
+    def test_decode_fixed_trailing_doesnt_get_rid_of_zeros_properly(self):
+        b = '{"__fixed__":"1.10"}'
+
+        d = decode(b)
+
+    def test_encoding_fixed_trailing_zeros(self):
+        b = ContractingDecimal('123.000000')
+
+        e = encode(b)
+
+        print(e)

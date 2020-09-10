@@ -29,10 +29,26 @@ MAX_DECIMAL = Decimal(make_max_decimal_str(MAX_UPPER_PRECISION))
 MIN_DECIMAL = Decimal(make_min_decimal_str(MAX_LOWER_PRECISION))
 
 
+def should_round(x: Decimal):
+    s = str(x)
+
+    try:
+        upper, lower = s.split('.')
+    except ValueError:
+        return False
+
+    if len(lower) > MAX_LOWER_PRECISION - 1:
+        return True
+
+
 def fix_precision(x: Decimal):
     if x > MAX_DECIMAL:
         return MAX_DECIMAL
-    return x.quantize(MIN_DECIMAL, rounding=decimal.ROUND_FLOOR).normalize()
+
+    if should_round(x):
+        return x.quantize(MIN_DECIMAL, rounding=decimal.ROUND_FLOOR).normalize()
+
+    return x
 
 
 class ContractingDecimal:

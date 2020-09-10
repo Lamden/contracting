@@ -2,7 +2,7 @@ from decimal import Decimal
 import decimal
 import math
 
-from contracting.stdlib.bridge.decimal import ContractingDecimal
+from contracting.stdlib.bridge.decimal import ContractingDecimal, fix_precision, should_round, MAX_DECIMAL
 from unittest import TestCase
 
 
@@ -124,3 +124,37 @@ class TestDecimal(TestCase):
         c = ContractingDecimal(a) / ContractingDecimal(b)
 
         print(c)
+
+    def test_should_round_false_for_lower_number(self):
+        d = Decimal('1.12345678901234567890123456789')
+
+        self.assertFalse(should_round(d))
+
+    def test_should_round_true_for_too_lower_number(self):
+        d = Decimal('1.123456789012345678901234567890123')
+
+        self.assertTrue(should_round(d))
+
+    def test_fix_precision_cuts_too_low(self):
+        d = Decimal('1.123456789012345678901234567890123')
+        e = Decimal('1.12345678901234567890123456789')
+
+        self.assertEqual(fix_precision(d), e)
+
+    def test_fix_precision_cuts_too_high(self):
+        e = Decimal('123456789012345678901234567890')
+        self.assertEqual(fix_precision(e), MAX_DECIMAL)
+
+    def test_fix_precision_doesnt_cut_high(self):
+        e = Decimal('12345678901234567890123456789')
+        self.assertEqual(fix_precision(e), e)
+
+    def test_fix_precision_cuts_all_decimals_if_too_high(self):
+        e = Decimal('123456789012345678901234567890.123456')
+        self.assertEqual(fix_precision(e), MAX_DECIMAL)
+
+    def test_fix_precision_cuts_decimals_if_high_but_not_too_high(self):
+        e = Decimal('12345678901234567890123456789.123456789012345678901234567890')
+        f = Decimal('12345678901234567890123456789.12345678901234567890123456789')
+
+        self.assertEqual(fix_precision(e), f)
