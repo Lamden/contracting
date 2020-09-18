@@ -185,11 +185,11 @@ class ContractingClient:
 
         self.submission_contract = self.get_contract('submission')
 
+    def set_submission_contract(self, filename=None):
+        if filename is None:
+            filename = self.submission_filename
 
-    def flush(self):
-        # flushes db and resubmits genesis contracts
-        self.raw_driver.flush()
-        with open(self.submission_filename) as f:
+        with open(filename) as f:
             contract = f.read()
 
         self.raw_driver.set_contract(name='submission',
@@ -198,6 +198,11 @@ class ContractingClient:
         self.raw_driver.commit()
 
         self.submission_contract = self.get_contract('submission')
+
+    def flush(self):
+        # flushes db and resubmits genesis contracts
+        self.raw_driver.flush()
+        self.set_submission_contract()
 
     # Returns abstract contract which has partial methods mapped to each exported function.
     def get_contract(self, name):
