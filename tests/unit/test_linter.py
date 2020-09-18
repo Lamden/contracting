@@ -343,11 +343,11 @@ def wont_work():
         code = '''
 @construct
 def seed_1():
-    print('hi')
+    pass
     
 @construct
 def seed_2():
-    print('howdy')
+    pass
 '''
 
         c = ast.parse(code)

@@ -12,7 +12,7 @@ class Contract:
     def __init__(self, driver: ContractDriver=_driver):
         self._driver = driver
 
-    def submit(self, name, code, owner=None, constructor_args={}):
+    def submit(self, name, code, owner=None, constructor_args={}, developer=None):
         if self._driver.get_contract(name) is not None:
             raise Exception('Contract already exists.')
 
@@ -33,6 +33,6 @@ class Contract:
 
         now = scope.get('now')
         if now is not None:
-            self._driver.set_contract(name=name, code=code_obj, owner=owner, overwrite=False, timestamp=now)
+            self._driver.set_contract(name=name, code=code_obj, owner=owner, overwrite=False, timestamp=now, developer=developer)
         else:
-            self._driver.set_contract(name=name, code=code_obj, owner=owner, overwrite=False)
+            self._driver.set_contract(name=name, code=code_obj, owner=owner, overwrite=False, developer=developer)
