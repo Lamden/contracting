@@ -84,3 +84,50 @@ class TestPassHash(TestCase):
         output = self.test_pass_hash.get(k='thing')
 
         self.assertEqual(output, 'value')
+
+
+def test():
+    @export
+    def return_something():
+        return 1
+
+
+class TestDeveloperSubmission(TestCase):
+    def setUp(self):
+        self.c = ContractingClient(signer='stu')
+        self.c.raw_driver.flush()
+
+        with open('../../contracting/contracts/submission.s.py') as f:
+            contract = f.read()
+
+        self.c.raw_driver.set_contract(name='submission', code=contract,)
+
+        self.c.raw_driver.commit()
+
+    def test_submit_sets_developer(self):
+        self.c.submit(test)
+
+        dev = self.c.get_var('test', '__developer__')
+
+        self.assertEqual(dev, 'stu')
+
+    def test_change_developer_if_developer_works(self):
+        self.c.submit(test)
+
+        submission = self.c.get_contract('submission')
+
+        submission.change_developer(contract='test', new_developer='not_stu')
+
+        dev = self.c.get_var('test', '__developer__')
+
+        self.assertEqual(dev, 'not_stu')
+
+    def test_change_developer_prevents_new_change(self):
+        self.c.submit(test)
+
+        submission = self.c.get_contract('submission')
+
+        submission.change_developer(contract='test', new_developer='not_stu')
+
+        with self.assertRaises(AssertionError):
+            submission.change_developer(contract='test', new_developer='woohoo')

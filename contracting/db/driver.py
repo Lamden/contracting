@@ -17,6 +17,7 @@ AUTHOR_KEY = '__author__'
 OWNER_KEY = '__owner__'
 TIME_KEY = '__submitted__'
 COMPILED_KEY = '__compiled__'
+DEVELOPER_KEY = '__developer__'
 
 
 class Driver:
@@ -244,7 +245,7 @@ class ContractDriver(CacheDriver):
     def get_compiled(self, name):
         return self.get_var(name, COMPILED_KEY)
 
-    def set_contract(self, name, code, owner=None, overwrite=False, timestamp=Datetime._from_datetime(datetime.now())):
+    def set_contract(self, name, code, owner=None, overwrite=False, timestamp=Datetime._from_datetime(datetime.now()), developer=None):
         if self.get_contract(name) is None:
             code_obj = compile(code, '', 'exec')
             code_blob = marshal.dumps(code_obj)
@@ -253,6 +254,7 @@ class ContractDriver(CacheDriver):
             self.set_var(name, COMPILED_KEY, value=code_blob)
             self.set_var(name, OWNER_KEY, value=owner)
             self.set_var(name, TIME_KEY, value=timestamp)
+            self.set_var(name, DEVELOPER_KEY, value=developer)
 
     def delete_contract(self, name):
         for key in self.keys(name):
