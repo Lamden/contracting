@@ -246,7 +246,7 @@ class ContractDriver(CacheDriver):
         return self.get_var(name, COMPILED_KEY)
 
     def set_contract(self, name, code, owner=None, overwrite=False, timestamp=Datetime._from_datetime(datetime.now()), developer=None):
-        if self.get_contract(name) is None:
+        if self.get_contract(name) is None or overwrite:
             code_obj = compile(code, '', 'exec')
             code_blob = marshal.dumps(code_obj)
 

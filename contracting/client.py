@@ -279,8 +279,9 @@ class ContractingClient:
 
         assert name is not None, 'No name provided.'
 
-        self.submission_contract.submit_contract(name=name, code=f, owner=owner, constructor_args=constructor_args,
-                                                 metering=metering)
+        if self.raw_driver.get_contract(name) is None:
+            self.submission_contract.submit_contract(name=name, code=f, owner=owner, constructor_args=constructor_args,
+                                                     metering=metering)
 
     def get_contracts(self):
         contracts = []
