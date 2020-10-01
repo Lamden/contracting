@@ -33,7 +33,7 @@ def current_value():
 
 
 @export
-def vote(vk, obj):
+def vote(vk: int, obj: Any):
     assert type(obj) == tuple, 'Pass a tuple!'
 
     arg = None
@@ -69,7 +69,7 @@ def vote(vk, obj):
             reset()
 
 
-def assert_vote_is_valid(vk, action, position, arg=None):
+def assert_vote_is_valid(vk: int, action: str, position: bool, arg=None):
     assert vk in S['masternodes'], 'Not a masternode.'
 
     assert action in [INTRODUCE_MOTION, VOTE_ON_MOTION], 'Invalid action.'
@@ -84,14 +84,14 @@ def assert_vote_is_valid(vk, action, position, arg=None):
         assert type(position) == bool, 'Invalid position'
 
 
-def assert_vk_is_valid(vk):
+def assert_vk_is_valid(vk: str):
     assert vk is not None, 'No VK provided.'
     assert type(vk) == str, 'VK not a string.'
     assert len(vk) == 64, 'VK is not 64 characters.'
     int(vk, 16)
 
 
-def introduce_motion(position, arg):
+def introduce_motion(position: str, arg: str):
     if position == ADD_MASTER or position == REMOVE_SEAT:
         assert S['open_seats'] > 0, 'No open seats to add or remove.'
 

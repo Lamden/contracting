@@ -41,7 +41,7 @@ class AbstractContract:
                                         contract_name=self.name,
                                         executor=self.executor,
                                         func=func,
-                                        environment=self.environment,
+                                        # environment=self.environment,
                                         **default_kwargs))
 
     def keys(self):
@@ -133,9 +133,10 @@ class AbstractContract:
         d = datetime.today()
         return Datetime(d.year, d.month, d.day, hour=d.hour, minute=d.minute)
 
-    def _abstract_function_call(self, signer, executor, contract_name, environment, func, metering=None, now=None, **kwargs):
+    def _abstract_function_call(self, signer, executor, contract_name, func, environment=None, metering=None, now=None, **kwargs):
         # for k, v in kwargs.items():
         #     assert v is not None, 'Keyword "{}" not provided. Must not be None.'.format(k)
+        environment = environment or self.environment
 
         if now is None:
             now = self.now()

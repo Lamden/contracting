@@ -78,6 +78,12 @@ class TestRandomsContract(TestCase):
 
         self.assertEqual(cards_1, cards_2)
 
+    def test_basic_shuffle_different_with_different_seeds(self):
+        cards_1 = self.random_contract.shuffle_cards(environment={'block_num': 999})
+        cards_2 = self.random_contract.shuffle_cards(environment={'block_num': 998})
+
+        self.assertNotEqual(cards_1, cards_2)
+
     def test_random_num_one_vs_two(self):
         k = self.random_contract.random_number(k=1000)
         k2 = self.random_contract.random_number_2(k=1000)

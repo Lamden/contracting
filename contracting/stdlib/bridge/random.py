@@ -15,19 +15,26 @@ import random
 from types import ModuleType
 from contracting.execution.runtime import rt
 
-block_height = '0'
-if rt.env.get('block_num') is not None:
-    block_height = str(rt.env.get('block_num'))
-
-block_hash = rt.env.get('block_hash') or '0'
-__input_hash = rt.env.get('__input_hash') or '0'
-
 
 class Seeded:
     s = False
 
 
-def seed(s=block_height + block_hash + __input_hash):
+def seed(aux_salt=None):
+    block_height = '0'
+    if rt.env.get('block_num') is not None:
+        block_height = str(rt.env.get('block_num'))
+
+    block_hash = rt.env.get('block_hash') or '0'
+    __input_hash = rt.env.get('__input_hash') or '0'
+
+    # Auxillary salt is used to create completely unique random seeds based on some other properties (optional)
+    auxillary_salt = ''
+    if aux_salt is not None and rt.env.get(aux_salt):
+        auxillary_salt = str(rt.env.get(aux_salt))
+
+    s = block_height + block_hash + __input_hash + auxillary_salt
+
     random.seed(s)
     Seeded.s = True
 

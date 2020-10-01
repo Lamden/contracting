@@ -3,6 +3,7 @@ from contracting.client import ContractingClient
 from contracting.stdlib.bridge.time import Timedelta, DAYS, WEEKS, Datetime
 from datetime import datetime as dt, timedelta as td
 
+
 def stamps():
     import election_house
 
@@ -21,7 +22,7 @@ def stamps():
         return S['rate']
 
     @export
-    def vote(vk, obj):
+    def vote(vk: str, obj: int):
         assert_vote_is_valid(vk, obj)
 
         # Check to make sure that there is an election
@@ -40,7 +41,7 @@ def stamps():
                 S['in_election'] = True
                 S['votes', vk] = obj
 
-    def assert_vote_is_valid(vk, obj):
+    def assert_vote_is_valid(vk: str, obj: int):
         current_rate = S['rate']
         assert type(obj) == int, 'Vote is not an int'
         assert current_rate / 2 <= obj <= current_rate * 2, 'Proposed rate is not within proper boundaries.'
@@ -68,6 +69,8 @@ def stamps():
 class TestStamps(TestCase):
     def setUp(self):
         self.client = ContractingClient()
+
+        self.client.flush()
 
         with open('./contracts/election_house.s.py') as f:
             contract = f.read()
@@ -243,7 +246,9 @@ class TestStamps(TestCase):
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
         stamps_contract.run_private_function('reset', environment=env)
 
-        self.assertEqual(stamps_contract.S['votes', 'id1'], None)
+        self.client.raw_driver.commit()
+
+        self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id1']), None)
         self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id2']), None)
         self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id3']), None)
         self.assertEqual(stamps_contract.quick_read('S', 'votes', ['id4']), None)
