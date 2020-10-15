@@ -92,6 +92,19 @@ def test():
         return 1
 
 
+def import_submission():
+    import submission
+
+    @export
+    def haha():
+        code = '''
+@export
+def something():
+    pass
+'''
+        submission.submit_contract(name='something123', code=code)
+
+
 class TestDeveloperSubmission(TestCase):
     def setUp(self):
         self.c = ContractingClient(signer='stu')
@@ -131,3 +144,11 @@ class TestDeveloperSubmission(TestCase):
 
         with self.assertRaises(AssertionError):
             submission.change_developer(contract='test', new_developer='woohoo')
+
+    def test_cannot_import_submission(self):
+        self.c.submit(import_submission)
+
+        imp_con = self.c.get_contract('import_submission')
+
+        with self.assertRaises(AssertionError):
+            imp_con.haha()

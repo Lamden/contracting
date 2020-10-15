@@ -95,7 +95,6 @@ class DatabaseLoader(Loader):
         return None
 
     def exec_module(self, module):
-
         # fetch the individual contract
         code = MODULE_CACHE.get(module.__name__)
 
