@@ -3,6 +3,19 @@ from contracting.stdlib.bridge.time import Datetime
 from contracting.client import ContractingClient
 
 
+def too_many_writes():
+    v = Variable()
+
+    @export
+    def single():
+        v.set('a' * (32 * 1024 + 1))
+
+    @export
+    def multiple():
+        for i in range(32 * 1024 + 1):
+            v.set('a')
+
+
 class TestMiscContracts(TestCase):
     def setUp(self):
         self.c = ContractingClient(signer='stu')
@@ -16,6 +29,8 @@ class TestMiscContracts(TestCase):
         self.c.raw_driver.commit()
 
         submission = self.c.get_contract('submission')
+
+        self.c.submit(too_many_writes)
 
         # submit erc20 clone
         with open('./test_contracts/thing.s.py') as f:
@@ -52,6 +67,21 @@ class TestMiscContracts(TestCase):
         output = self.foreign_thing.read_V()
         self.assertEqual(output, 'hi')
 
+    def test_single_too_many_writes_fails(self):
+        tmwc = self.c.get_contract('too_many_writes')
+        self.c.executor.metering = True
+        self.c.set_var(contract='currency', variable='balances', arguments=['stu'], value=1000000)
+        with self.assertRaises(AssertionError):
+            tmwc.single()
+        self.c.executor.metering = False
+
+    def test_multiple_too_many_writes_fails(self):
+        tmwc = self.c.get_contract('too_many_writes')
+        self.c.executor.metering = True
+        self.c.set_var(contract='currency', variable='balances', arguments=['stu'], value=1000000)
+        with self.assertRaises(AssertionError):
+            tmwc.multiple()
+        self.c.executor.metering = False
 
 class TestPassHash(TestCase):
     def setUp(self):
