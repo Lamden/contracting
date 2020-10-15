@@ -48,7 +48,7 @@ def fix_precision(x: Decimal):
     if should_round(x):
         return x.quantize(MIN_DECIMAL, rounding=decimal.ROUND_FLOOR).normalize()
 
-    return x
+    return ContractingDecimal(x)
 
 
 class ContractingDecimal:
@@ -61,9 +61,11 @@ class ContractingDecimal:
 
     def __init__(self, a):
         if type(a) == float or type(a) == int:
-            a = str(a)
-
-        self._d = Decimal(a)
+            self._d = Decimal(str(a))
+        elif type(a) == Decimal:
+            self._d = a
+        else:
+            self._d = Decimal(a)
 
     def __bool__(self):
         return self._d > 0

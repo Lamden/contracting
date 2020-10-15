@@ -6,7 +6,7 @@ from contracting import config
 from datetime import datetime
 import marshal
 import decimal
-
+import requests
 import pymongo
 
 # DB maps bytes to bytes
@@ -132,6 +132,24 @@ class InMemDriver(Driver):
             del self.db[k]
         except KeyError:
             pass
+
+
+class WebDriver(InMemDriver):
+    def __init__(self, masternode='http://masternode-01.lamden.io'):
+        super().__init__()
+        self.masternode = masternode
+
+    def get(self, item: str):
+        # supports item strings like contract.variable:key1:key2
+
+        contract, args = item.split('.')
+        args = args.split(':')
+        variable = args.pop(0)
+
+        keys = ','.join(args)
+
+        r = requests.get(f'{self.masternode}/contracts/{contract}/{variable}?key={keys}')
+        return decode(r.json()['value'])
 
 
 class CacheDriver:
