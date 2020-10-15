@@ -158,3 +158,6 @@ class TestDecimal(TestCase):
         f = Decimal('12345678901234567890123456789.12345678901234567890123456789')
 
         self.assertEqual(fix_precision(e), f)
+
+    def test_contracting_decimal_can_round(self):
+        pass

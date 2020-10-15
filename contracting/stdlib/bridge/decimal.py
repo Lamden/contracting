@@ -155,6 +155,9 @@ class ContractingDecimal:
     def __repr__(self):
         return self._d.__repr__()
 
+    def __round__(self, n=None):
+        return self._d.__round__(n)
+
 
 exports = {
     'decimal': ContractingDecimal,
