@@ -111,3 +111,32 @@ class TestRuntime(TestCase):
 
         runtime.rt.clean_up()
         print(used_1)
+
+    def test_deduct_write_adjusts_total_writes(self):
+        stamps = 1000
+
+        runtime.rt.set_up(stmps=stamps, meter=True)
+
+        self.assertEqual(runtime.rt.writes, 0)
+
+        runtime.rt.deduct_write('a', 'bad')
+
+        self.assertEqual(runtime.rt.writes, 4)
+
+        runtime.rt.clean_up()
+
+    def test_deduct_write_fails_if_too_many_writes(self):
+        stamps = 1000
+
+        runtime.rt.set_up(stmps=stamps, meter=True)
+
+        self.assertEqual(runtime.rt.writes, 0)
+
+        runtime.rt.deduct_write('a', 'bad')
+
+        self.assertEqual(runtime.rt.writes, 4)
+
+        with self.assertRaises(AssertionError):
+            runtime.rt.deduct_write('a', 'b' * 32 * 1024)
+
+        runtime.rt.clean_up()

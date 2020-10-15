@@ -56,6 +56,7 @@ _context = Context({
         'signer': None
     })
 
+WRITE_MAX = 1024 * 32
 
 class Runtime:
     cu_path = contracting.__path__[0]
@@ -67,6 +68,8 @@ class Runtime:
 
     env = {}
     stamps = 0
+
+    writes = 0
 
     tracer = Tracer()
 
@@ -88,6 +91,7 @@ class Runtime:
         cls.tracer.stop()
         cls.tracer.reset()
         cls.stamps = 0
+        cls.writes = 0
 
         cls.signer = None
 
@@ -109,7 +113,12 @@ class Runtime:
     def deduct_write(cls, key, value):
         if key is not None and rt.tracer.is_started():
             cost = len(key) + len(value)
-            cost *= config.WRITE_COST_PER_BYTE
-            rt.tracer.add_cost(cost)
+            rt.writes += cost
+
+            assert rt.writes < WRITE_MAX, 'You have exceeded the maximum write capacity per transaction!'
+
+            stamp_cost = cost * config.WRITE_COST_PER_BYTE
+            rt.tracer.add_cost(stamp_cost)
+
 
 rt = Runtime()
