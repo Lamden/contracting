@@ -104,6 +104,7 @@ class Executor:
 
             if auto_commit:
                 driver.commit()
+
         except Exception as e:
             result = e
             tb = traceback.format_exc()
