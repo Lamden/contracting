@@ -15,6 +15,10 @@ def too_many_writes():
         for i in range(32 * 1024 + 1):
             v.set('a')
 
+    @export
+    def not_enough():
+        v.set('a' * (30 * 1024))
+
 
 class TestMiscContracts(TestCase):
     def setUp(self):
@@ -82,6 +86,16 @@ class TestMiscContracts(TestCase):
         with self.assertRaises(AssertionError):
             tmwc.multiple()
         self.c.executor.metering = False
+
+    def test_failed_once_doesnt_affect_others(self):
+        tmwc = self.c.get_contract('too_many_writes')
+        self.c.executor.metering = True
+        self.c.set_var(contract='currency', variable='balances', arguments=['stu'], value=1000000)
+        with self.assertRaises(AssertionError):
+            tmwc.multiple()
+        tmwc.not_enough()
+        self.c.executor.metering = False
+
 
 class TestPassHash(TestCase):
     def setUp(self):
