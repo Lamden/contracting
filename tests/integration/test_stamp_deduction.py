@@ -128,3 +128,16 @@ class TestMetering(TestCase):
                                 kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'), auto_commit=False
                                 )
         self.assertNotEquals(self.e.driver.pending_writes['currency.balances:stu'], prior_balance)
+
+    def test_1000_stamps_max_used(self):
+        self.d.set('currency.balances:stu', 500000)
+        self.d.commit()
+
+        output = self.e.execute(
+            **TEST_SUBMISSION_KWARGS,
+            kwargs=submission_kwargs_for_file('./test_contracts/inf_loop.s.py'),
+            stamps=100000,
+            metering=True, auto_commit=True
+        )
+
+        self.assertEqual(output['stamps_used'], 1000)

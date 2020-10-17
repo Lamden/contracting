@@ -12,6 +12,9 @@ from logging import getLogger
 log = getLogger('CONTRACTING')
 import traceback
 
+MAX_STAMPS = 1000
+
+
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
                  currency_contract='currency', balances_hash='balances', bypass_privates=False):
@@ -48,6 +51,8 @@ class Executor:
 
         if metering is None:
             metering = self.metering
+            
+        stamps = min(stamps, MAX_STAMPS)
 
         runtime.rt.env.update({'__Driver': self.driver})
 
