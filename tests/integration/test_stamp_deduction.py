@@ -128,3 +128,4 @@ class TestMetering(TestCase):
                                 kwargs=submission_kwargs_for_file('./test_contracts/erc20_clone.s.py'), auto_commit=False
                                 )
         self.assertNotEquals(self.e.driver.pending_writes['currency.balances:stu'], prior_balance)
+

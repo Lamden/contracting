@@ -106,6 +106,8 @@ class Executor:
                 driver.commit()
 
         except Exception as e:
+            print(f'Local object size: {runtime.rt.tracer.get_locals_size()}')
+            print(f'Stamps used: {runtime.rt.tracer.get_stamp_used()}')
             result = e
             tb = traceback.format_exc()
             log.error(str(e))
@@ -113,6 +115,8 @@ class Executor:
             status_code = 1
             if auto_commit:
                 driver.clear_pending_state()
+
+
 
         ### EXECUTION END
 

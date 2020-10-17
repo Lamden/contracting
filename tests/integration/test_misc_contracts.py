@@ -19,6 +19,38 @@ def too_many_writes():
     def not_enough():
         v.set('a' * (30 * 1024))
 
+    @export
+    def run():
+        a = ""
+        for i in range(1000000):
+            a += "NAME" * 10
+
+        return a
+
+    @export
+    def run2():
+        a = 0
+        b = ""
+        for i in range(1000000):
+            b = b + "wow" + "baseName" * a
+            a += 1
+        return b
+
+
+def exploit():
+    @construct
+    def seed():
+        a = 0
+        b = ""
+        for i in range(10000000):
+            b = b + "wow" + "baseName" * a
+            a += 1
+        return b
+
+    @export
+    def b():
+        pass
+
 
 class TestMiscContracts(TestCase):
     def setUp(self):
@@ -47,6 +79,9 @@ class TestMiscContracts(TestCase):
 
         self.thing = self.c.get_contract('thing')
         self.foreign_thing = self.c.get_contract('foreign_thing')
+
+    def tearDown(self):
+        self.c.flush()
 
     def test_H_values_return(self):
         output = self.foreign_thing.read_H_hello()
@@ -96,6 +131,28 @@ class TestMiscContracts(TestCase):
         tmwc.not_enough()
         self.c.executor.metering = False
 
+    def test_memory_overload(self):
+        tmwc = self.c.get_contract('too_many_writes')
+        self.c.executor.metering = True
+        self.c.set_var(contract='currency', variable='balances', arguments=['stu'], value=1000000)
+        with self.assertRaises(AssertionError):
+            tmwc.run()
+        self.c.executor.metering = False
+
+    def test_memory_overload2(self):
+        tmwc = self.c.get_contract('too_many_writes')
+        self.c.executor.metering = True
+        self.c.set_var(contract='currency', variable='balances', arguments=['stu'], value=1000000)
+        with self.assertRaises(AssertionError):
+            tmwc.run2()
+        self.c.executor.metering = False
+
+    def test_memory_exploit(self):
+        self.c.executor.metering = True
+        self.c.set_var(contract='currency', variable='balances', arguments=['stu'], value=1000000)
+        with self.assertRaises(AssertionError):
+            self.c.submit(exploit)
+        self.c.executor.metering = False
 
 class TestPassHash(TestCase):
     def setUp(self):
