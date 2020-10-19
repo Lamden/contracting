@@ -272,7 +272,7 @@ Tracer_methods[] = {
     { "get_stamp_used",  (PyCFunction) Tracer_get_stamp_used,     METH_VARARGS,
             PyDoc_STR("Get the stamp usage after it's been completed") },
 
-    { "get_locals_used",  (PyCFunction) Tracer_get_last_frame_mem_usage,     METH_VARARGS,
+    { "get_last_frame_mem_usage",  (PyCFunction) Tracer_get_last_frame_mem_usage,     METH_VARARGS,
             PyDoc_STR("Get the memory usage of the last Python frame processed.") },
 
     { "get_total_mem_usage",  (PyCFunction) Tracer_get_total_mem_usage,     METH_VARARGS,
