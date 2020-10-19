@@ -91,6 +91,9 @@ Tracer_dealloc(Tracer *self)
  static long get_memory_usage() {
     struct rusage r_usage;
     getrusage(RUSAGE_SELF,&r_usage);
+
+    printf("%ld\n", r_usage.ru_maxrss);
+
     return r_usage.ru_maxrss;
  }
 
