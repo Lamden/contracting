@@ -91,9 +91,6 @@ Tracer_dealloc(Tracer *self)
  static long get_memory_usage() {
     struct rusage r_usage;
     getrusage(RUSAGE_SELF,&r_usage);
-
-    printf("%ld\n", r_usage.ru_maxrss);
-
     return r_usage.ru_maxrss;
  }
 
@@ -146,7 +143,7 @@ Tracer_dealloc(Tracer *self)
                  return RET_ERROR;
              }
 
-             if (self->total_mem_usage > 2000000) {
+             if (self->total_mem_usage > 20000) {
                  PyErr_SetString(PyExc_AssertionError, "Transaction exceeded memory usage!\n");
                  PyEval_SetTrace(NULL, NULL);
                  self->started = 0;
