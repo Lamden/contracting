@@ -6,6 +6,9 @@
 #include "structmember.h"
 #include "frameobject.h"
 
+#include <sys/resource.h>
+
+
 #include <stdio.h>          /* For reading CU cu_costs */
 #include <stdlib.h>
 #include <string.h>
@@ -39,6 +42,7 @@ unsigned long long cu_costs[] = {2, 4, 5, 2, 4, 1000, 1000, 1000, 2, 2, 3, 2, 10
 
 unsigned long long MAX_STAMPS = 6500000;
 
+
 /* The Tracer type. */
 
 typedef struct {
@@ -47,6 +51,8 @@ typedef struct {
     /* Variables to keep track of metering */
     unsigned long long cost;
     unsigned long long stamp_supplied;
+    long last_frame_mem_usage;
+    long total_mem_usage;
     int started;
     char *cu_cost_fname;
 
@@ -61,6 +67,8 @@ Tracer_init(Tracer *self, PyObject *args, PyObject *kwds)
 
     self->started = 0;
     self->cost = 0;
+    self->last_frame_mem_usage = 0;
+    self->total_mem_usage = 0;
 
     return RET_OK;
 }
@@ -75,21 +83,16 @@ Tracer_dealloc(Tracer *self)
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-//static void reprint(PyObject *obj) {
-//    PyObject * repr = PyObject_Repr(obj);
-//    PyObject * str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");
-//    const char *bytes = PyBytes_AS_STRING(str);
-//
-//    printf("REPR: %s\n", bytes);
-//
-//    Py_XDECREF(repr);
-//    Py_XDECREF(str);
-//}
-
 
 /*
  * The Trace Function
  */
+
+ static long get_memory_usage() {
+    struct rusage r_usage;
+    getrusage(RUSAGE_SELF,&r_usage);
+    return r_usage.ru_maxrss;
+ }
 
  static int
  Tracer_trace(Tracer *self, PyFrameObject *frame, int what, PyObject *arg)
@@ -107,6 +110,10 @@ Tracer_dealloc(Tracer *self)
         return RET_OK;
      }
 
+     if (self->last_frame_mem_usage == 0) {
+        self->last_frame_mem_usage = get_memory_usage();
+     }
+
      int opcode;
 
      switch (what) {
@@ -120,6 +127,14 @@ Tracer_dealloc(Tracer *self)
              estimate = (self->cost + cu_costs[opcode]) / factor;
              estimate = estimate + 1;
 
+             long new_memory_usage = get_memory_usage();
+
+             if (new_memory_usage > self->last_frame_mem_usage) {
+                self->total_mem_usage += (new_memory_usage - self->last_frame_mem_usage);
+             }
+
+             self->last_frame_mem_usage = new_memory_usage;
+
              //estimate = estimate * factor;
              if ((self->cost > self->stamp_supplied) || self->cost > MAX_STAMPS) {
                  PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
@@ -127,6 +142,14 @@ Tracer_dealloc(Tracer *self)
                  self->started = 0;
                  return RET_ERROR;
              }
+
+             if (self->total_mem_usage > 2000000) {
+                 PyErr_SetString(PyExc_AssertionError, "Transaction exceeded memory usage!\n");
+                 PyEval_SetTrace(NULL, NULL);
+                 self->started = 0;
+                 return RET_ERROR;
+             }
+
              self->cost += cu_costs[opcode];
              break;
 
@@ -173,6 +196,8 @@ Tracer_reset(Tracer *self)
     self->cost = 0;
     self->stamp_supplied = 0;
     self->started = 0;
+    self->last_frame_mem_usage = 0;
+    self->total_mem_usage = 0;
 
     return Py_BuildValue("");
 }
@@ -202,6 +227,18 @@ Tracer_get_stamp_used(Tracer *self, PyObject *args, PyObject *kwds)
     return Py_BuildValue("L", self->cost);
 }
 
+
+static PyObject *
+Tracer_get_last_frame_mem_usage(Tracer *self, PyObject *args, PyObject *kwds)
+{
+    return Py_BuildValue("L", self->last_frame_mem_usage);
+}
+
+static PyObject *
+Tracer_get_total_mem_usage(Tracer *self, PyObject *args, PyObject *kwds)
+{
+    return Py_BuildValue("L", self->total_mem_usage);
+}
 
 static PyObject *
 Tracer_is_started(Tracer *self)
@@ -234,6 +271,12 @@ Tracer_methods[] = {
 
     { "get_stamp_used",  (PyCFunction) Tracer_get_stamp_used,     METH_VARARGS,
             PyDoc_STR("Get the stamp usage after it's been completed") },
+
+    { "get_locals_used",  (PyCFunction) Tracer_get_last_frame_mem_usage,     METH_VARARGS,
+            PyDoc_STR("Get the memory usage of the last Python frame processed.") },
+
+    { "get_total_mem_usage",  (PyCFunction) Tracer_get_total_mem_usage,     METH_VARARGS,
+            PyDoc_STR("Get the total memory usage after it's been completed") },
 
     { "is_started",  (PyCFunction) Tracer_is_started,     METH_VARARGS,
             PyDoc_STR("Returns 1 if tracer is started, 0 if not.") },

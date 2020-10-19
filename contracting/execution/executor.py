@@ -114,10 +114,6 @@ class Executor:
             if auto_commit:
                 driver.clear_pending_state()
 
-
-
-        ### EXECUTION END
-
         runtime.rt.tracer.stop()
 
         # Deduct the stamps if that is enabled
