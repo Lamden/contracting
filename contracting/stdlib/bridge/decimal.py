@@ -150,7 +150,7 @@ class ContractingDecimal:
         return self._d.__int__()
 
     def __float__(self):
-        raise Exception('Cannot cast Decimal to float.')
+        return float(self._d)
 
     def __repr__(self):
         return self._d.__repr__()

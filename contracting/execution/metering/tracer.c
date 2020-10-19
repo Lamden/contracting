@@ -37,7 +37,7 @@ unsigned long long cu_costs[] = {2, 4, 5, 2, 4, 1000, 1000, 1000, 2, 2, 3, 2, 10
                                 1000, 2, 2, 2, 1000, 1000, 1000, 5, 9, 7, 12, 1000, 7, 2, 2, 2, 1000, 1000, 12, 12, 15,
                                 2, 8, 8, 5, 2, 5, 7, 9, 2, 8, 15, 30, 7, 8, 4};
 
-unsigned long long MAX_STAMPS = 6500;
+unsigned long long MAX_STAMPS = 6500000;
 
 /* The Tracer type. */
 
@@ -47,7 +47,6 @@ typedef struct {
     /* Variables to keep track of metering */
     unsigned long long cost;
     unsigned long long stamp_supplied;
-    unsigned long long locals_size;
     int started;
     char *cu_cost_fname;
 
@@ -62,7 +61,6 @@ Tracer_init(Tracer *self, PyObject *args, PyObject *kwds)
 
     self->started = 0;
     self->cost = 0;
-    self->locals_size = 0;
 
     return RET_OK;
 }
@@ -122,8 +120,6 @@ Tracer_dealloc(Tracer *self)
              estimate = (self->cost + cu_costs[opcode]) / factor;
              estimate = estimate + 1;
 
-             self->locals_size = Py_SIZE(frame->f_globals);
-
              //estimate = estimate * factor;
              if ((self->cost > self->stamp_supplied) || self->cost > MAX_STAMPS) {
                  PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
@@ -148,7 +144,6 @@ Tracer_start(Tracer *self, PyObject *args)
 {
     PyEval_SetTrace((Py_tracefunc)Tracer_trace, (PyObject*)self);
     self->cost = 0;
-    self->locals_size = 0;
 
     self->started = 1;
     return Py_BuildValue("");
@@ -178,7 +173,6 @@ Tracer_reset(Tracer *self)
     self->cost = 0;
     self->stamp_supplied = 0;
     self->started = 0;
-    self->locals_size = 0;
 
     return Py_BuildValue("");
 }
@@ -208,10 +202,6 @@ Tracer_get_stamp_used(Tracer *self, PyObject *args, PyObject *kwds)
     return Py_BuildValue("L", self->cost);
 }
 
-static PyObject *
-Tracer_get_locals_size(Tracer *self, PyObject *args, PyObject *kwds) {
-    return Py_BuildValue("L", self->locals_size);
-}
 
 static PyObject *
 Tracer_is_started(Tracer *self)
@@ -247,8 +237,6 @@ Tracer_methods[] = {
 
     { "is_started",  (PyCFunction) Tracer_is_started,     METH_VARARGS,
             PyDoc_STR("Returns 1 if tracer is started, 0 if not.") },
-
-    { "get_locals_size", (PyCFunction) Tracer_get_locals_size, METH_VARARGS, PyDoc_STR("Returns size of the locals taken from the last frame traced.")},
 
     { NULL }
 };
