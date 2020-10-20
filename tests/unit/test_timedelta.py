@@ -191,3 +191,70 @@ class TestTimedelta(TestCase):
     def test_multiplication_does_not_work_with_decimal(self):
         with self.assertRaises(TypeError):
             Timedelta(days=10, seconds=10) * decimal.Decimal(0.1)
+
+    def test_get_seconds_works(self):
+        weeks = 0
+        days = 0
+        hours = 0
+        minutes = 0
+        seconds = 10
+
+        t = Timedelta(weeks, days, hours, minutes, seconds)
+
+        self.assertEqual(t.seconds, 10)
+
+    def test_get_minutes_works(self):
+        weeks = 0
+        days = 0
+        hours = 0
+        minutes = 12
+        seconds = 10
+
+        t = Timedelta(weeks, days, hours, minutes, seconds)
+
+        self.assertEqual(t.minutes, 12)
+
+    def test_get_hours_works(self):
+        weeks = 0
+        days = 0
+        hours = 4
+        minutes = 12
+        seconds = 10
+
+        t = Timedelta(weeks, days, hours, minutes, seconds)
+
+        self.assertEqual(t.hours, 4)
+
+    def test_get_days_works(self):
+        weeks = 0
+        days = 8
+        hours = 4
+        minutes = 12
+        seconds = 10
+
+        t = Timedelta(weeks, days, hours, minutes, seconds)
+
+        self.assertEqual(t.days, 8)
+
+    def test_get_weeks_works(self):
+        weeks = 2
+        days = 1
+        hours = 4
+        minutes = 12
+        seconds = 10
+
+        t = Timedelta(weeks, days, hours, minutes, seconds)
+
+        self.assertEqual(t.weeks, 2)
+
+    def test_larger_components_returns_as_expected(self):
+        weeks = 2
+        days = 1
+        hours = 4
+        minutes = 12
+        seconds = 10
+
+        t = Timedelta(weeks, days, hours, minutes, seconds)
+
+        self.assertEqual(t.days, 15)
+        self.assertEqual(t.hours, 364)
