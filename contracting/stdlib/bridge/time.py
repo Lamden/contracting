@@ -8,6 +8,21 @@ from contracting.execution.runtime import rt
 # Redefine a controlled datetime object that feels like a regular Python datetime object but is restricted so that we
 # can regulate the user interaction with it to prevent security attack vectors. It may seem redundant, but it guarantees
 # security.
+SECONDS_IN_MINUTE = 60
+SECONDS_IN_HOUR = 3600
+SECONDS_IN_DAY = 86400
+SECONDS_IN_WEEK = 604800
+
+
+def get_raw_seconds(weeks, days, hours, minutes, seconds):
+    m_sec = minutes * SECONDS_IN_MINUTE
+    h_sec = hours * SECONDS_IN_HOUR
+    d_sec = days * SECONDS_IN_DAY
+    w_sec = weeks * SECONDS_IN_WEEK
+
+    raw_seconds = seconds + m_sec + h_sec + d_sec + w_sec
+
+    return raw_seconds
 
 
 class Datetime:
@@ -90,6 +105,9 @@ class Timedelta:
 
         self._timedelta = td(weeks=weeks, days=days, hours=hours, minutes=minutes, seconds=seconds)
 
+        # For fast access to how many hours are in a timedelta.
+        self.__raw_seconds = get_raw_seconds(weeks=weeks, days=days, hours=hours, minutes=minutes, seconds=seconds)
+
     def __lt__(self, other):
         if type(other) != Timedelta:
             return False
@@ -147,6 +165,27 @@ class Timedelta:
 
     def __repr__(self):
         return self.__str__()
+
+    # Accesses raw seconds and does a simple modulo to get the number of the component in the total seconds
+    @property
+    def seconds(self):
+        return self.__raw_seconds
+
+    @property
+    def minutes(self):
+        return self.__raw_seconds // SECONDS_IN_MINUTE
+
+    @property
+    def hours(self):
+        return self.__raw_seconds // SECONDS_IN_HOUR
+
+    @property
+    def days(self):
+        return self.__raw_seconds // SECONDS_IN_DAY
+
+    @property
+    def weeks(self):
+        return self.__raw_seconds // SECONDS_IN_WEEK
 
 
 WEEKS = Timedelta(weeks=1)
