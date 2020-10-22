@@ -46,6 +46,9 @@ class Var:
 
 
 def import_module(name):
+    assert not name.isdigit() and all(c.isalnum() or c == '_' for c in name), 'Invalid contract name!'
+    assert name.islower(), 'Name must be lowercase!'
+
     _driver = rt.env.get('__Driver') or ContractDriver()
     if name in set(stdlib_list(f'{sys.version_info.major}.{sys.version_info.minor}')):
         raise ImportError
@@ -59,6 +62,7 @@ def import_module(name):
     m = importlib.import_module(name, package=None)
 
     return m
+
 
 def enforce_interface(m: ModuleType, interface: list):
     implemented = vars(m)
