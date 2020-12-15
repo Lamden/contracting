@@ -271,7 +271,7 @@ class ContractingClient:
         code = self.compiler.parse_to_code(f)
         return code
 
-    def submit(self, f, name=None, metering=None, owner=None, constructor_args={}):
+    def submit(self, f, name=None, metering=None, owner=None, constructor_args={}, signer=None):
 
         if isinstance(f, FunctionType):
             f, n = self.closure_to_code_string(f)
@@ -280,8 +280,11 @@ class ContractingClient:
 
         assert name is not None, 'No name provided.'
 
+        if signer is None:
+            signer = self.signer
+
         self.submission_contract.submit_contract(name=name, code=f, owner=owner, constructor_args=constructor_args,
-                                                 metering=metering)
+                                                 metering=metering, signer=signer)
 
     def get_contracts(self):
         contracts = []
