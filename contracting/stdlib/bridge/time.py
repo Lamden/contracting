@@ -40,32 +40,32 @@ class Datetime:
 
     def __lt__(self, other):
         if type(other) != Datetime:
-            return False
+            raise TypeError(f'{type(other)} is not a Datetime!')
         return self._datetime < other._datetime
 
     def __le__(self, other):
         if type(other) != Datetime:
-            return False
+            raise TypeError(f'{type(other)} is not a Datetime!')
         return self._datetime <= other._datetime
 
     def __eq__(self, other):
         if type(other) != Datetime:
-            return False
+            raise TypeError(f'{type(other)} is not a Datetime!')
         return self._datetime == other._datetime
 
     def __ge__(self, other):
         if type(other) != Datetime:
-            return False
+            raise TypeError(f'{type(other)} is not a Datetime!')
         return self._datetime >= other._datetime
 
     def __gt__(self, other):
         if type(other) != Datetime:
-            return False
+            raise TypeError(f'{type(other)} is not a Datetime!')
         return self._datetime > other._datetime
 
     def __ne__(self, other):
         if type(other) != Datetime:
-            return False
+            raise TypeError(f'{type(other)} is not a Datetime!')
         return self._datetime != other._datetime
 
     def __sub__(self, other):
@@ -110,32 +110,32 @@ class Timedelta:
 
     def __lt__(self, other):
         if type(other) != Timedelta:
-            return False
+            raise TypeError(f'{type(other)} is not a Timedelta!')
         return self._timedelta < other._timedelta
 
     def __le__(self, other):
         if type(other) != Timedelta:
-            return False
+            raise TypeError(f'{type(other)} is not a Timedelta!')
         return self._timedelta <= other._timedelta
 
     def __eq__(self, other):
         if type(other) != Timedelta:
-            return False
+            raise TypeError(f'{type(other)} is not a Timedelta!')
         return self._timedelta == other._timedelta
 
     def __ge__(self, other):
         if type(other) != Timedelta:
-            return False
+            raise TypeError(f'{type(other)} is not a Timedelta!')
         return self._timedelta >= other._timedelta
 
     def __gt__(self, other):
         if type(other) != Timedelta:
-            return False
+            raise TypeError(f'{type(other)} is not a Timedelta!')
         return self._timedelta > other._timedelta
 
     def __ne__(self, other):
         if type(other) != Timedelta:
-            return False
+            raise TypeError(f'{type(other)} is not a Timedelta!')
         return self._timedelta != other._timedelta
 
     # Operator implementations inspired by CPython implementations

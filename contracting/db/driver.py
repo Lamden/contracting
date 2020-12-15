@@ -8,6 +8,11 @@ import marshal
 import decimal
 import requests
 import pymongo
+import os
+from pathlib import Path
+import shutil
+
+FILE_EXT = '.d'
 
 # DB maps bytes to bytes
 # Driver maps string to python object
@@ -132,6 +137,133 @@ class InMemDriver(Driver):
             del self.db[k]
         except KeyError:
             pass
+
+
+class FSDriver:
+    def __init__(self, root='fs'):
+        self.root = os.path.join(Path.home(), root)
+
+    def get(self, item: str):
+        try:
+            filename = self._key_to_file(item)
+            with open(filename, 'r') as f:
+                v = f.read()
+
+        except FileNotFoundError:
+            return None
+
+        return decode(v)
+
+    def set(self, key, value):
+        if value is None:
+            self.__delitem__(key)
+        else:
+            v = encode(value)
+            filename = self._key_to_file(key)
+
+            os.makedirs(filename.parents[0], exist_ok=True)
+
+            with open(filename, 'a') as f:
+                f.write(v)
+
+    def flush(self):
+        try:
+            shutil.rmtree(self.root)
+        except FileNotFoundError:
+            pass
+
+    def delete(self, key: str):
+        self.__delitem__(key)
+
+    def iter(self, prefix: str='', length=0):
+        keys = []
+
+        for (r, dirs, files) in os.walk(self.root, topdown=True):
+            base = r[len(self.root):]
+
+            for f in files:
+                if f.endswith(FILE_EXT) and f.startswith(prefix):
+                    keys.append(self.path_to_key(os.path.join(base, f)))
+
+                if 0 < length <= len(keys):
+                    break
+
+            if 0 < length <= len(keys):
+                break
+
+        keys.sort()
+
+        return keys
+
+    def _iter(self, prefix: str='', length=0):
+        keys = []
+
+        for (r, dirs, files) in os.walk(os.path.join(self.root, prefix), topdown=True):
+            base = r[len(self.root):]
+
+            for f in files:
+                if f.endswith(FILE_EXT):
+                    keys.append(self.path_to_key(os.path.join(base, f)))
+
+                if 0 < length <= len(keys):
+                    break
+
+            if 0 < length <= len(keys):
+                break
+
+        keys.sort()
+
+        return keys
+
+    def keys(self):
+        return self.iter()
+
+    def __getitem__(self, item: str):
+        value = self.get(item)
+        if value is None:
+            raise KeyError
+        return value
+
+    def __setitem__(self, key: str, value):
+        self.set(key, value)
+
+    def __delitem__(self, key: str):
+        filename = self._key_to_file(key)
+        try:
+            os.remove(filename)
+        except FileNotFoundError:
+            pass
+
+    def _key_to_file(self, key: str):
+        filename = key.replace(':', '/')
+        filename = filename.replace('.', '/')
+        filename += FILE_EXT
+        filename = os.path.join(self.root, filename)
+        return Path(filename)
+
+    def path_to_key(self, path):
+        if path.endswith(FILE_EXT):
+            path = path[:-len(FILE_EXT)]
+
+        pth = path.split('/')
+
+        pth = [p for p in pth if p != '']
+
+        contract = pth.pop(0)
+
+        if len(pth) == 0:
+            return contract
+
+        variable = pth.pop(0)
+
+        key = '.'.join((contract, variable))
+
+        if len(pth) == 0:
+            return key
+
+        key = ':'.join((key, *pth))
+
+        return key
 
 
 class WebDriver(InMemDriver):
