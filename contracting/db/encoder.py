@@ -11,13 +11,16 @@ from contracting.config import INDEX_SEPARATOR, DELIMITER
 # and stored as dicts. Is there a better way? I don't know, maybe.
 ##
 
-def safe_repr(obj, max_len=1024):
-    r = obj.__repr__()
-    rr = r.split(' at 0x')
-    if len(rr) > 1:
-        return rr[0] + '>'
-    return rr[0][:max_len]
 
+def safe_repr(obj, max_len=1024):
+    try:
+        r = obj.__repr__()
+        rr = r.split(' at 0x')
+        if len(rr) > 1:
+            return rr[0] + '>'
+        return rr[0][:max_len]
+    except:
+        return None
 
 class Encoder(json.JSONEncoder):
     def default(self, o, *args):
