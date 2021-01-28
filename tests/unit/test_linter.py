@@ -103,7 +103,7 @@ def b():
         c = ast.parse(code)
         chk = self.l.check(c)
         self.l.dump_violations()
-        self.assertEqual(len(chk), 2)
+        self.assertEqual(len(chk), 3)
         self.assertMultiLineEqual(err, self.l._violations[0])
 
 #TODO failing
@@ -125,8 +125,23 @@ class Scooby:
         c = ast.parse(code)
         chk = self.l.check(c)
         self.l.dump_violations()
-        self.assertEqual(len(chk), 2)
+        self.assertEqual(len(chk), 3)
         self.assertMultiLineEqual(err, self.l._violations[0])
+
+    def test_visit_try_except_fail_code(self):
+        code = '''
+@export
+def try_it():
+    try:
+        a = 0
+    except:
+        a = 1
+'''
+        c = ast.parse(code)
+        chk = self.l.check(c)
+        self.l.dump_violations()
+
+        print(self.l._violations)
 
     def test_accessing_system_vars(self):
         code = '''

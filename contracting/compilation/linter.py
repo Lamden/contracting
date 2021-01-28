@@ -3,7 +3,7 @@ import sys
 
 from .. import config
 
-from ..compilation.whitelists import ALLOWED_AST_TYPES, ALLOWED_ANNOTAION_TYPES, VIOLATION_TRIGGERS, ILLEGAL_BUILTINS
+from ..compilation.whitelists import ALLOWED_AST_TYPES, ALLOWED_ANNOTAION_TYPES, VIOLATION_TRIGGERS, ILLEGAL_BUILTINS, ILLEGAL_AST_TYPES
 
 from contracting.db.driver import ContractDriver
 
@@ -132,6 +132,16 @@ class Linter(ast.NodeVisitor):
 
         self.generic_visit(node)
         return node
+
+    def generic_visit(self, node):
+        # Prevent calling of illegal builtins
+
+        if type(node) in ILLEGAL_AST_TYPES:
+            self._is_success = False
+            s = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[0]
+            self._violations.append(s)
+
+        return super().generic_visit(node)
 
     def visit_Num(self, node):
         # NOTE: Integers are important for indexing and slicing so we cannot replace them. They also will not suffer

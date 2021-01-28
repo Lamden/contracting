@@ -13,7 +13,28 @@ ALLOWED_AST_TYPES = {ast.Module, ast.Eq, ast.Call, ast.Dict, ast.Attribute, ast.
                      ast.Subscript, ast.Compare, ast.Return, ast.NameConstant, ast.Expr, ast.keyword, ast.Sub,
                      ast.arguments, ast.List, ast.Set, ast.Str, ast.UnaryOp, ast.Pass, ast.Tuple, ast.Div, ast.In,
                      ast.NotIn, ast.Gt, ast.Lt, ast.Starred, ast.Mod, ast.NotEq, ast.For, ast.While, ast.ListComp,
-                     ast.comprehension, ast.Slice, ast.USub, ast.BoolOp, ast.And, ast.Or, ast.Mult}
+                     ast.comprehension, ast.Slice, ast.USub, ast.BoolOp, ast.And, ast.Or, ast.Mult, ast.IsNot, ast.Is}
+
+ILLEGAL_AST_TYPES = {
+    ast.AsyncFor,
+    ast.AsyncFunctionDef,
+    ast.AsyncWith,
+    ast.Await,
+    ast.ClassDef,
+    ast.Ellipsis,
+    ast.GeneratorExp,
+    ast.Global,
+    ast.ImportFrom,
+    ast.Interactive,
+    ast.Lambda,
+    ast.MatMult,
+    ast.Nonlocal,
+    ast.Suite,
+    ast.Try,
+    ast.With,
+    ast.Yield,
+    ast.YieldFrom,
+}
 
 ALLOWED_ANNOTAION_TYPES = {'dict', 'list', 'str', 'int', 'float', 'bool', 'datetime.timedelta', 'datetime.datetime', 'Any'}
 
