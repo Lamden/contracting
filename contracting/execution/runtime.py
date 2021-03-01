@@ -56,7 +56,7 @@ _context = Context({
         'signer': None
     })
 
-WRITE_MAX = 1024 * 32
+WRITE_MAX = 1024 * 64
 
 class Runtime:
     cu_path = contracting.__path__[0]
