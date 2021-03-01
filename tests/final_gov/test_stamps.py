@@ -39,7 +39,7 @@ class TestStamps(TestCase):
         self.stamp_cost = self.client.get_contract('stamp_cost')
 
     def test_initial_value(self):
-        self.assertEqual(self.stamp_cost.current_value(), 100_000)
+        self.assertEqual(self.stamp_cost.current_value(), 100)
 
     def test_validate_vote_fails_if_not_node(self):
         with self.assertRaises(AssertionError):
@@ -47,7 +47,7 @@ class TestStamps(TestCase):
                 f='validate_vote',
                 signer='stu',
                 vk='stu',
-                obj=120_000
+                obj=120
             )
 
     def test_validate_vote_fails_if_not_int(self):
@@ -65,7 +65,7 @@ class TestStamps(TestCase):
                 f='validate_vote',
                 signer='stu',
                 vk='a',
-                obj=-120_000
+                obj=-120
             )
 
     def test_validate_vote_fails_if_too_large(self):
@@ -74,7 +74,7 @@ class TestStamps(TestCase):
                 f='validate_vote',
                 signer='stu',
                 vk='a',
-                obj=250_000
+                obj=250
             )
 
     def test_validate_vote_fails_if_too_small(self):
@@ -83,7 +83,7 @@ class TestStamps(TestCase):
                 f='validate_vote',
                 signer='stu',
                 vk='a',
-                obj=25_000
+                obj=25
             )
 
     def test_validate_vote_if_already_voted(self):
@@ -94,7 +94,7 @@ class TestStamps(TestCase):
                 f='validate_vote',
                 signer='stu',
                 vk='a',
-                obj=100_000
+                obj=100
             )
 
     def test_validate_passes_if_all_good(self):
@@ -102,20 +102,20 @@ class TestStamps(TestCase):
             f='validate_vote',
             signer='stu',
             vk='a',
-            obj=120_000
+            obj=120
         )
 
     def test_tally_vote_adds_to_current_total(self):
-        self.assertEqual(self.stamp_cost.quick_read('S', 'current_total'), 100_000)
+        self.assertEqual(self.stamp_cost.quick_read('S', 'current_total'), 100)
 
         self.stamp_cost.run_private_function(
             f='tally_vote',
             signer='stu',
             vk='a',
-            obj=120_000
+            obj=120
         )
 
-        self.assertEqual(self.stamp_cost.quick_read('S', 'current_total'), 220_000)
+        self.assertEqual(self.stamp_cost.quick_read('S', 'current_total'), 220)
 
     def test_tally_vote_adds_to_vote_count(self):
         self.assertEqual(self.stamp_cost.quick_read('S', 'vote_count'), 1)
@@ -124,7 +124,7 @@ class TestStamps(TestCase):
             f='tally_vote',
             signer='stu',
             vk='a',
-            obj=120_000
+            obj=120
         )
 
         self.assertEqual(self.stamp_cost.quick_read('S', 'vote_count'), 2)
@@ -136,13 +136,13 @@ class TestStamps(TestCase):
             f='tally_vote',
             signer='stu',
             vk='a',
-            obj=120_000
+            obj=120
         )
 
         self.assertEqual(self.stamp_cost.quick_read('S', 'has_voted', ['a']), True)
 
     def test_election_is_over_if_more_than_max_time_past_first_vote(self):
-        self.stamp_cost.vote(vk='a', obj=120_000)
+        self.stamp_cost.vote(vk='a', obj=120)
 
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
 
@@ -155,10 +155,10 @@ class TestStamps(TestCase):
         self.assertTrue(res)
 
     def test_election_over_if_more_than_min_required_vote(self):
-        self.stamp_cost.vote(vk='a', obj=120_000)
-        self.stamp_cost.vote(vk='b', obj=120_000)
-        self.stamp_cost.vote(vk='c', obj=120_000)
-        self.stamp_cost.vote(vk='d', obj=120_000)
+        self.stamp_cost.vote(vk='a', obj=120)
+        self.stamp_cost.vote(vk='b', obj=120)
+        self.stamp_cost.vote(vk='c', obj=120)
+        self.stamp_cost.vote(vk='d', obj=120)
 
         env = {'now': Datetime._from_datetime(dt.today() + td(days=7))}
 
@@ -171,17 +171,17 @@ class TestStamps(TestCase):
         self.assertTrue(res)
 
     def test_second_vote_simply_tallies_vote(self):
-        self.stamp_cost.vote(vk='a', obj=120_000)
-        self.stamp_cost.vote(vk='b', obj=130_000)
+        self.stamp_cost.vote(vk='a', obj=120)
+        self.stamp_cost.vote(vk='b', obj=130)
 
-        self.assertEqual(self.stamp_cost.S['current_total'], 350_000)
+        self.assertEqual(self.stamp_cost.S['current_total'], 350)
 
     def test_complete_election_updates_value(self):
-        self.stamp_cost.vote(vk='a', obj=120_000)
-        self.stamp_cost.vote(vk='b', obj=55_000)
-        self.stamp_cost.vote(vk='c', obj=65_000)
-        self.stamp_cost.vote(vk='d', obj=200_000)
+        self.stamp_cost.vote(vk='a', obj=120)
+        self.stamp_cost.vote(vk='b', obj=55)
+        self.stamp_cost.vote(vk='c', obj=65)
+        self.stamp_cost.vote(vk='d', obj=200)
 
         self.assertIsNone(self.stamp_cost.S['election_start'])
 
-        self.assertEqual(self.stamp_cost.current_value(), 108000)
+        self.assertEqual(self.stamp_cost.current_value(), 108)
