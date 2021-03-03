@@ -253,3 +253,35 @@ class TestDeveloperSubmission(TestCase):
 
         with self.assertRaises(AssertionError):
             imp_con.haha()
+
+
+def float_thing():
+    @export
+    def test(currency_reserve: float, token_reserve: float, currency_amount: float):
+        k = currency_reserve * token_reserve
+
+        new_currency_reserve = currency_reserve + currency_amount
+        new_token_reserve = k / new_currency_reserve
+
+        tokens_purchased = token_reserve - new_token_reserve
+        return tokens_purchased
+
+
+class TestFloatThing(TestCase):
+    def setUp(self):
+        self.c = ContractingClient(signer='stu')
+        self.c.raw_driver.flush()
+
+        with open('../../contracting/contracts/submission.s.py') as f:
+            contract = f.read()
+
+        self.c.raw_driver.set_contract(name='submission', code=contract,)
+
+        self.c.raw_driver.commit()
+
+    def test_can_add(self):
+        self.c.submit(float_thing)
+
+        ft_con = self.c.get_contract('float_thing')
+
+        ft_con.test(currency_reserve=50000.125, token_reserve=52.45, currency_amount=100.25)
