@@ -35,13 +35,6 @@ class Executor:
         uninstall_builtins()
         install_database_loader()
 
-    def kwargs_serialize_floats(self, kwargs: dict):
-        for k, v in kwargs.items():
-            if type(v) == float:
-                kwargs[k] = ContractingDecimal(v)
-
-        return kwargs
-
     def execute(self, sender, contract_name, function_name, kwargs,
                 environment={},
                 auto_commit=False,
@@ -55,8 +48,6 @@ class Executor:
 
         if metering is None:
             metering = self.metering
-
-        kwargs = self.kwargs_serialize_floats(kwargs)
 
         runtime.rt.env.update({'__Driver': self.driver})
 

@@ -64,8 +64,6 @@ class ContractingDecimal:
             self._d = Decimal(str(a))
         elif type(a) == Decimal:
             self._d = a
-        elif type(a) == ContractingDecimal:
-            self._d = a._d
         else:
             self._d = Decimal(a)
 
