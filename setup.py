@@ -6,7 +6,7 @@ import sys
 
 major = 0
 
-__version__ = '1.0.5'
+__version__ = '1.0.5.1'
 
 requirements = ['astor', 'pymongo', 'autopep8', 'stdlib_list']
 
