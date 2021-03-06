@@ -4,8 +4,10 @@ import math
 
 MAX_UPPER_PRECISION = 30
 MAX_LOWER_PRECISION = 30
-CONTEXT = decimal.Context(prec=MAX_UPPER_PRECISION + MAX_LOWER_PRECISION, rounding=decimal.ROUND_FLOOR, Emin=-100, Emax=100)
+CONTEXT = decimal.Context(prec=MAX_UPPER_PRECISION + MAX_LOWER_PRECISION, rounding=decimal.ROUND_FLOOR, Emin=-100,
+                          Emax=100)
 decimal.setcontext(CONTEXT)
+
 
 # There is a much better way to do this...
 
@@ -23,6 +25,25 @@ def make_max_decimal_str(prec):
     for i in range(prec - 1):
         s += '0'
     return s
+
+
+def neg_sci_not(s: str):
+    try:
+        base, exp = s.split('e-')
+
+        if float(base) > 9:
+            return s
+
+        base = base.replace('.', '')
+
+        numbers = ('0' * (int(exp) - 1)) + base
+
+        if int(exp) > 0:
+            numbers = '0.' + numbers
+
+        return numbers
+    except ValueError:
+        return s
 
 
 MAX_DECIMAL = Decimal(make_max_decimal_str(MAX_UPPER_PRECISION))
@@ -56,12 +77,14 @@ class ContractingDecimal:
         if type(other) == ContractingDecimal:
             return other._d
         elif type(other) == float or type(other) == int:
-            return Decimal(str(other))
+            o = str(other)
+            return Decimal(neg_sci_not(o))
         return other
 
     def __init__(self, a):
         if type(a) == float or type(a) == int:
-            self._d = Decimal(str(a))
+            o = str(a)
+            self._d = Decimal(neg_sci_not(o))
         elif type(a) == Decimal:
             self._d = a
         else:

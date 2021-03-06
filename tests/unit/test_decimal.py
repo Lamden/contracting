@@ -2,7 +2,7 @@ from decimal import Decimal
 import decimal
 import math
 
-from contracting.stdlib.bridge.decimal import ContractingDecimal, fix_precision, should_round, MAX_DECIMAL
+from contracting.stdlib.bridge.decimal import ContractingDecimal, fix_precision, should_round, MAX_DECIMAL, neg_sci_not
 from unittest import TestCase
 
 
@@ -162,3 +162,27 @@ class TestDecimal(TestCase):
     def test_contracting_decimal_can_round(self):
         s = '12345678901234567890123456789.123456789012345678901234567890'
         self.assertEqual(round(Decimal(s), 10), round(ContractingDecimal(s), 10))
+
+    def test_sci_not_whole_number(self):
+        s = '2e-5'
+        expected = '0.00002'
+
+        self.assertEqual(neg_sci_not(s), expected)
+
+    def test_sci_not_decimal(self):
+        s = '2.2e-7'
+        expected = '0.00000022'
+
+        self.assertEqual(neg_sci_not(s), expected)
+
+    def test_sci_not_e0(self):
+        s = '2e-0'
+        expected = '2'
+
+        self.assertEqual(neg_sci_not(s), expected)
+
+    def test_sci_not_extra_precision(self):
+        s = '20e-5'
+        expected = '20e-5'
+
+        self.assertEqual(neg_sci_not(s), expected)
