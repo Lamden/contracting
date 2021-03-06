@@ -87,6 +87,8 @@ class ContractingDecimal:
             self._d = Decimal(neg_sci_not(o))
         elif type(a) == Decimal:
             self._d = a
+        elif type(a) == str:
+            self._d = Decimal(neg_sci_not(a))
         else:
             self._d = Decimal(a)
 
