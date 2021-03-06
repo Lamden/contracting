@@ -86,7 +86,7 @@ def decode(data):
         data = data.decode()
 
     try:
-        return json.loads(data, parse_float=ContractingDecimal, object_hook=as_object)
+        return json.loads(data, object_hook=as_object)
     except json.decoder.JSONDecodeError as e:
         return None
 
