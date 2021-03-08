@@ -177,9 +177,6 @@ class ContractingDecimal:
     def __float__(self):
         return float(self._d)
 
-    def __repr__(self):
-        return self._d.__repr__()
-
     def __round__(self, n=None):
         return self._d.__round__(n)
 
