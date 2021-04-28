@@ -14,7 +14,7 @@ import shutil
 
 FILE_EXT = '.d'
 
-STORAGE_HOME = Path().home().joinpath('lamden')
+STORAGE_HOME = Path().home().joinpath('_lamden')
 
 # DB maps bytes to bytes
 # Driver maps string to python object
@@ -142,8 +142,8 @@ class InMemDriver(Driver):
 
 
 class FSDriver:
-    def __init__(self, root='state'):
-        self.root = STORAGE_HOME.joinpath(root)
+    def __init__(self, root='fs'):
+        self.root = os.path.join(Path.home(), root)
 
     def get(self, item: str):
         try:
@@ -288,7 +288,7 @@ class WebDriver(InMemDriver):
 
 
 class CacheDriver:
-    def __init__(self, driver: Driver=FSDriver()):
+    def __init__(self, driver: Driver=Driver()):
         self.driver = driver
         self.cache = {}
 
