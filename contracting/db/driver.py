@@ -14,6 +14,8 @@ import shutil
 
 FILE_EXT = '.d'
 
+STORAGE_HOME = Path().home().joinpath('lamden')
+
 # DB maps bytes to bytes
 # Driver maps string to python object
 CODE_KEY = '__code__'
@@ -140,8 +142,8 @@ class InMemDriver(Driver):
 
 
 class FSDriver:
-    def __init__(self, root='fs'):
-        self.root = os.path.join(Path.home(), root)
+    def __init__(self, root='state'):
+        self.root = STORAGE_HOME.joinpath(root)
 
     def get(self, item: str):
         try:
@@ -163,7 +165,7 @@ class FSDriver:
 
             os.makedirs(filename.parents[0], exist_ok=True)
 
-            with open(filename, 'a') as f:
+            with open(filename, 'w') as f:
                 f.write(v)
 
     def flush(self):
@@ -178,7 +180,8 @@ class FSDriver:
     def iter(self, prefix: str='', length=0):
         keys = []
 
-        for (r, dirs, files) in os.walk(self.root, topdown=True):
+        for (r, dirs, files) in sorted(os.walk(self.root, topdown=True)):
+            files.sort()
             base = r[len(self.root):]
 
             for f in files:
@@ -285,7 +288,7 @@ class WebDriver(InMemDriver):
 
 
 class CacheDriver:
-    def __init__(self, driver: Driver=Driver()):
+    def __init__(self, driver: Driver=FSDriver()):
         self.driver = driver
         self.cache = {}
 
