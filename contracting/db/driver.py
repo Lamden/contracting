@@ -11,8 +11,11 @@ import pymongo
 import os
 from pathlib import Path
 import shutil
+import hashlib
+import lmdb
 
 FILE_EXT = '.d'
+HASH_EXT = '.x'
 
 STORAGE_HOME = Path().home().joinpath('_lamden')
 
@@ -142,6 +145,8 @@ class InMemDriver(Driver):
 
 
 class FSDriver:
+    OS_KEY_LIMIT = (256 - 1) - len(FILE_EXT)
+
     def __init__(self, root='fs'):
         self.root = os.path.join(Path.home(), root)
 
@@ -237,6 +242,13 @@ class FSDriver:
         except FileNotFoundError:
             pass
 
+    @staticmethod
+    def hash_key(key: str):
+        h = hashlib.sha3_256()
+        h.update(key.encode())
+
+        return h.hexdigest()[:-2] + HASH_EXT
+
     def _key_to_file(self, key: str):
         filename = key.replace(':', '/')
         filename = filename.replace('.', '/')
@@ -267,6 +279,82 @@ class FSDriver:
         key = ':'.join((key, *pth))
 
         return key
+
+
+class LMDBDriver:
+    def __init__(self, filename='db'):
+        self.filename = filename
+        self.db = lmdb.open(path=self.filename)
+
+    def get(self, item: str):
+        with self.db.begin() as tx:
+            v = tx.get(item.encode())
+
+        if v is None:
+            return None
+
+        return decode(v)
+
+    def set(self, key, value):
+        if value is None:
+            self.__delitem__(key)
+        else:
+            v = encode(value)
+            with self.db.begin(write=True) as tx:
+                tx.put(key.encode(), v.encode())
+
+    def flush(self):
+        try:
+            shutil.rmtree(self.filename)
+        except FileNotFoundError:
+            pass
+
+    def delete(self, key: str):
+        self.__delitem__(key)
+
+    def iter(self, prefix: str, length=0):
+        keys = []
+
+        with self.db.begin() as tx:
+            cursor = tx.cursor()
+
+            if not cursor.set_range(prefix.encode()):
+                return []
+
+            else:
+                for key, _ in cursor:
+                    if not key.startswith(prefix.encode()):
+                        break
+
+                    keys.append(key.decode())
+
+                    if len(keys) >= length > 0:
+                        break
+
+        return keys
+
+    def keys(self):
+        keys = []
+
+        with self.db.begin() as tx:
+            cursor = tx.cursor()
+            for key, _ in cursor:
+                keys.append(key.decode())
+
+        return keys
+
+    def __getitem__(self, item: str):
+        value = self.get(item)
+        if value is None:
+            raise KeyError
+        return value
+
+    def __setitem__(self, key: str, value):
+        self.set(key, value)
+
+    def __delitem__(self, key: str):
+        with self.db.begin(write=True) as tx:
+            tx.delete(key.encode())
 
 
 class WebDriver(InMemDriver):
