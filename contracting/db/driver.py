@@ -284,7 +284,7 @@ class FSDriver:
 class LMDBDriver:
     def __init__(self, filename='db'):
         self.filename = filename
-        self.db = lmdb.open(path=self.filename)
+        self.db = lmdb.open(path=self.filename, map_size=int(1e12))
 
     def get(self, item: str):
         with self.db.begin() as tx:
