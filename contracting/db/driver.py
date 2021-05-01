@@ -17,7 +17,7 @@ import lmdb
 FILE_EXT = '.d'
 HASH_EXT = '.x'
 
-STORAGE_HOME = Path().home().joinpath('_lamden')
+STORAGE_HOME = Path().home().joinpath('.lamden')
 
 # DB maps bytes to bytes
 # Driver maps string to python object
@@ -282,9 +282,11 @@ class FSDriver:
 
 
 class LMDBDriver:
-    def __init__(self, filename='db'):
+    def __init__(self, filename=STORAGE_HOME.joinpath('state')):
         self.filename = filename
-        self.db = lmdb.open(path=self.filename, map_size=int(1e12))
+        self.filename.mkdir(exist_ok=True, parents=True)
+
+        self.db = lmdb.open(path=str(self.filename), map_size=int(1e12))
 
     def get(self, item: str):
         with self.db.begin() as tx:
