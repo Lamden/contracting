@@ -286,10 +286,11 @@ class LMDBDriver:
         self.filename = filename
         self.filename.mkdir(exist_ok=True, parents=True)
 
-        self.db = lmdb.open(path=str(self.filename), map_size=int(1e12))
+        self.db_reader = lmdb.open(path=str(self.filename), map_size=int(1e12), readonly=True, lock=False)
+        self.db_writer = lmdb.open(path=str(self.filename), map_size=int(1e12), readonly=False)
 
     def get(self, item: str):
-        with self.db.begin() as tx:
+        with self.db_reader.begin() as tx:
             v = tx.get(item.encode())
 
         if v is None:
@@ -302,14 +303,14 @@ class LMDBDriver:
             self.__delitem__(key)
         else:
             v = encode(value)
-            with self.db.begin(write=True) as tx:
+            with self.db_writer.begin(write=True) as tx:
                 tx.put(key.encode(), v.encode())
 
     def flush(self):
-        try:
-            shutil.rmtree(self.filename)
-        except FileNotFoundError:
-            pass
+        with self.db_writer.begin(write=True) as tx:
+            cursor = tx.cursor()
+            for key, _ in cursor:
+                tx.delete(key)
 
     def delete(self, key: str):
         self.__delitem__(key)
@@ -317,7 +318,7 @@ class LMDBDriver:
     def iter(self, prefix: str, length=0):
         keys = []
 
-        with self.db.begin() as tx:
+        with self.db_reader.begin() as tx:
             cursor = tx.cursor()
 
             if not cursor.set_range(prefix.encode()):
@@ -338,7 +339,7 @@ class LMDBDriver:
     def keys(self):
         keys = []
 
-        with self.db.begin() as tx:
+        with self.db_reader.begin() as tx:
             cursor = tx.cursor()
             for key, _ in cursor:
                 keys.append(key.decode())
@@ -355,7 +356,7 @@ class LMDBDriver:
         self.set(key, value)
 
     def __delitem__(self, key: str):
-        with self.db.begin(write=True) as tx:
+        with self.db_writer.begin(write=True) as tx:
             tx.delete(key.encode())
 
 
