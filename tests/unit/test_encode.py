@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.db.encoder import encode, decode, safe_repr, convert_dict, rewrite
+from contracting.db.encoder import encode, decode, safe_repr, convert_dict, convert_dict
 from contracting.stdlib.bridge.time import Datetime, Timedelta
 from datetime import datetime
 from contracting.stdlib.bridge.decimal import ContractingDecimal
@@ -194,7 +194,7 @@ class TestEncode(TestCase):
             'kwargs': b'\x124V'
         }
 
-        self.assertEqual(expected, rewrite(d))
+        self.assertEqual(expected, convert_dict(d))
 
     def test_multiple_conversions(self):
         d = {
@@ -227,7 +227,7 @@ class TestEncode(TestCase):
             'kwargs4': b'\x124V',
         }
 
-        self.assertEqual(expected, rewrite(d))
+        self.assertEqual(expected, convert_dict(d))
 
     def test_nested_dictionaries(self):
         d = {
@@ -256,7 +256,7 @@ class TestEncode(TestCase):
             }
         }
 
-        d2 = rewrite(d)
+        d2 = convert_dict(d)
 
         self.assertEqual(expected, d2)
 
@@ -291,6 +291,6 @@ class TestEncode(TestCase):
             ]
         }
 
-        d2 = rewrite(d)
+        d2 = convert_dict(d)
 
         self.assertEqual(expected, d2)

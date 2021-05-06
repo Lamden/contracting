@@ -118,47 +118,6 @@ def decode_kv(key, value):
     return k, v
 
 
-def convert_value(v):
-    if isinstance(v, dict):
-        if v.get('__fixed__') is not None:
-            v = ContractingDecimal(v.get('__fixed__'))
-
-        elif v.get('__delta__') is not None:
-            v = Timedelta(days=v.get('__delta__')[0], seconds=v.get('__delta__')[1])
-
-        elif v.get('__bytes__') is not None:
-            v = bytes.fromhex(v.get('__bytes__'))
-
-        elif v.get('__time__') is not None:
-            v = Datetime(*v.get('__time__'))
-
-    return v
-
-# Parses a Python dictionary for Contracting objects and converts them
-# Used in Lamden protocol before putting messages into the work layer
-def convert_dict(d):
-    d2 = dict()
-    for k, v in d.items():
-        if isinstance(v, dict):
-            if v.get('__fixed__') is not None:
-                v = ContractingDecimal(v.get('__fixed__'))
-
-            elif v.get('__delta__') is not None:
-                v = Timedelta(days=v.get('__delta__')[0], seconds=v.get('__delta__')[1])
-
-            elif v.get('__bytes__') is not None:
-                v = bytes.fromhex(v.get('__bytes__'))
-
-            elif v.get('__time__') is not None:
-                v = Datetime(*v.get('__time__'))
-
-            else:
-                v = convert_dict(v)
-        d2[k] = v
-
-    return d2
-
-
 TYPES = {'__fixed__', '__delta__', '__bytes__', '__time__'}
 def convert(k, v):
     if k == '__fixed__':
@@ -172,18 +131,21 @@ def convert(k, v):
     return v
 
 
-def rewrite(d):
+def convert_dict(d):
     d2 = dict()
     for k, v in d.items():
         if k in TYPES:
             return convert(k, v)
 
         elif isinstance(v, dict):
-            d2[k] = rewrite(v)
+            d2[k] = convert_dict(v)
 
         elif isinstance(v, list):
             d2[k] = []
             for i in v:
-                d2[k].append(rewrite(i))
+                d2[k].append(convert_dict(i))
+
+        else:
+            d2[k] = v
 
     return d2
