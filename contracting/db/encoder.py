@@ -116,3 +116,29 @@ def decode_kv(key, value):
     # if v == '':
     #     v = None
     return k, v
+
+
+# Parses a Python dictionary for Contracting objects and converts them
+# Used in Lamden protocol before putting messages into the work layer
+def convert_dict(d):
+    d2 = dict()
+    for k, v in d.items():
+        if isinstance(v, dict):
+            if v.get('__fixed__') is not None:
+                v = ContractingDecimal(v.get('__fixed__'))
+
+            elif v.get('__delta__') is not None:
+                v = Timedelta(days=v.get('__delta__')[0], seconds=v.get('__delta__')[1])
+
+            elif v.get('__bytes__') is not None:
+                v = bytes.fromhex(v.get('__bytes__'))
+
+            elif v.get('__time__') is not None:
+                v = Datetime(*v.get('__time__'))
+
+            else:
+                convert_dict(v)
+
+        d2[k] = v
+
+    return d2
