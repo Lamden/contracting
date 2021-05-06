@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.db.encoder import encode, decode, safe_repr
+from contracting.db.encoder import encode, decode, safe_repr, convert_dict, rewrite
 from contracting.stdlib.bridge.time import Datetime, Timedelta
 from datetime import datetime
 from contracting.stdlib.bridge.decimal import ContractingDecimal
@@ -126,3 +126,171 @@ class TestEncode(TestCase):
         e = encode(b)
 
         print(e)
+
+    def test_convert_returns_normal_dict(self):
+        d = {
+            1: 2,
+            "a": "b"
+        }
+
+        d2 = convert_dict(d)
+        self.assertEqual(d, d2)
+
+    def test_convert_contracting_decimal(self):
+        d = {
+            'kwargs': {
+                '__fixed__': '0.1234'
+            }
+        }
+
+        expected = {
+            'kwargs': ContractingDecimal('0.1234')
+        }
+
+        self.assertEqual(expected, convert_dict(d))
+
+    def test_convert_contracting_datetime(self):
+        d = {
+            'kwargs': {
+                    "__time__": [
+                      2021,
+                      4,
+                      29,
+                      21,
+                      30,
+                      54,
+                      0
+                    ]
+                  }
+        }
+
+        expected = {
+            'kwargs': Datetime(2021, 4, 29, 21, 30, 54, 0)
+        }
+
+        self.assertEqual(expected, convert_dict(d))
+
+    def test_convert_contracting_timedelta(self):
+        d = {
+            'kwargs': {
+                    "__delta__": [8, 0]
+            }
+        }
+
+        expected = {
+            'kwargs': Timedelta(days=8, seconds=0)
+        }
+
+        self.assertEqual(expected, convert_dict(d))
+
+    def test_convert_contracting_bytes(self):
+        d = {
+            'kwargs': {
+                    "__bytes__": "123456"
+            }
+        }
+
+        expected = {
+            'kwargs': b'\x124V'
+        }
+
+        self.assertEqual(expected, rewrite(d))
+
+    def test_multiple_conversions(self):
+        d = {
+            'kwargs': {
+                '__fixed__': '0.1234'
+            },
+            'kwargs2': {
+                "__time__": [
+                      2021,
+                      4,
+                      29,
+                      21,
+                      30,
+                      54,
+                      0
+                    ]
+                  },
+            'kwargs3': {
+                "__delta__": [8, 0]
+            },
+            'kwargs4': {
+                "__bytes__": "123456"
+            }
+        }
+
+        expected = {
+            'kwargs': ContractingDecimal('0.1234'),
+            'kwargs2': Datetime(2021, 4, 29, 21, 30, 54, 0),
+            'kwargs3': Timedelta(days=8, seconds=0),
+            'kwargs4': b'\x124V',
+        }
+
+        self.assertEqual(expected, rewrite(d))
+
+    def test_nested_dictionaries(self):
+        d = {
+            'kwargs': {
+                '__fixed__': '0.1234'
+            },
+            'thing': {
+                'thing2': {
+                    "__time__": [
+                        2021,
+                        4,
+                        29,
+                        21,
+                        30,
+                        54,
+                        0
+                    ]
+                },
+            }
+        }
+
+        expected = {
+            'kwargs': ContractingDecimal('0.1234'),
+            'thing': {
+                'thing2': Datetime(2021, 4, 29, 21, 30, 54, 0),
+            }
+        }
+
+        d2 = rewrite(d)
+
+        self.assertEqual(expected, d2)
+
+    def test_lists(self):
+        d = {
+            'kwargs': [
+                {
+                    '__fixed__': '0.1234'
+                },
+                {
+                    '__fixed__': '0.1235'
+                },
+                {
+                    '__fixed__': '0.1236'
+                },
+                {
+                    '__fixed__': '0.1237'
+                },
+                {
+                    '__fixed__': '0.1238'
+                },
+            ]
+        }
+
+        expected = {
+            'kwargs': [
+                ContractingDecimal('0.1234'),
+                ContractingDecimal('0.1235'),
+                ContractingDecimal('0.1236'),
+                ContractingDecimal('0.1237'),
+                ContractingDecimal('0.1238'),
+            ]
+        }
+
+        d2 = rewrite(d)
+
+        self.assertEqual(expected, d2)
