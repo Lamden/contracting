@@ -379,7 +379,7 @@ class WebDriver(InMemDriver):
 
 
 class CacheDriver:
-    def __init__(self, driver: Driver=Driver()):
+    def __init__(self, driver: Driver=LMDBDriver()):
         self.driver = driver
         self.cache = {}
 
