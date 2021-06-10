@@ -386,6 +386,19 @@ class CacheDriver:
         self.reads = set()
         self.pending_writes = {}
 
+        self.pending_deltas = {}
+
+    def soft_apply(self, hcl: str, state_changes: dict):
+        deltas = {}
+
+        for k, v in state_changes.items():
+            current = self.get(k)
+            deltas[k] = (current, v)
+
+            self.set(k, v)
+
+        self.pending_deltas[hcl] = deltas
+
     def get(self, key: str, mark=True):
         # Try to get from cache
         v = self.cache.get(key)
@@ -424,6 +437,42 @@ class CacheDriver:
                 self.driver.delete(k)
             else:
                 self.driver.set(k, v)
+
+    def hard_apply(self, hlc):
+        # see if the HCL even exists
+        if self.pending_deltas.get(hlc) is None:
+            return
+
+        # Run through the sorted HCLs from oldest to newest applying each one until the hcl committed is
+
+        to_delete = []
+        for _hlc, _deltas in sorted(self.pending_deltas.items()):
+
+            # Run through all state changes, taking the second value, which is the post delta
+            for key, delta in _deltas.items():
+                self.driver.set(key, delta[1])
+
+                try:
+                    self.cache.pop(key)
+                except KeyError:
+                    pass
+
+            # Add the key (
+            to_delete.append(_hlc)
+            if _hlc == hlc:
+                break
+
+        # Remove the deltas from the set
+        [self.pending_deltas.pop(key) for key in to_delete]
+
+    def rollback(self):
+        # Run through the state changes in reverse, reversing the newest to the oldest
+        for _hlc, _deltas in reversed(sorted(self.pending_deltas.items())):
+            # Run through all state changes, taking the first value, which is the pre delta
+            for key, delta in _deltas.items():
+                self.set(key, delta[0])
+
+        self.pending_deltas.clear()
 
     def clear_pending_state(self):
         self.cache.clear()
@@ -529,3 +578,4 @@ class ContractDriver(CacheDriver):
     #     # self.driver.delete(key)
     #     self.cache[key] = None
     #     self.pending_writes[key] = None
+

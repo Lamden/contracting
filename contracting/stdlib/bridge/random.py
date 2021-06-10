@@ -41,7 +41,15 @@ def seed(aux_salt=None):
 
 def getrandbits(k):
     assert Seeded.s, 'Random state not seeded. Call seed().'
-    return random.getrandbits(k)
+
+    b_str = ''
+    for i in range(k):
+        if random.random() > 0.5:
+            b_str += '1'
+        else:
+            b_str += '0'
+
+    return int(b_str, 2)
 
 
 def shuffle(l):
