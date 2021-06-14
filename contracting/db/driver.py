@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 import shutil
 import hashlib
-import lmdb
+import lamdb
 
 FILE_EXT = '.d'
 HASH_EXT = '.x'
@@ -286,8 +286,8 @@ class LMDBDriver:
         self.filename = filename
         self.filename.mkdir(exist_ok=True, parents=True)
 
-        self.db_writer = lmdb.open(path=str(self.filename), map_size=int(1e12), readonly=False)
-        self.db_reader = lmdb.open(path=str(self.filename), map_size=int(1e12), readonly=True, lock=False)
+        self.db_writer = lamdb.open(path=str(self.filename), map_size=int(1e12), readonly=False)
+        self.db_reader = lamdb.open(path=str(self.filename), map_size=int(1e12), readonly=True, lock=False)
 
     def get(self, item: str):
         with self.db_reader.begin() as tx:
@@ -478,6 +478,9 @@ class CacheDriver:
         self.cache.clear()
         self.reads.clear()
         self.pending_writes.clear()
+
+    def snapshot(self):
+        pass
 
 
 class ContractDriver(CacheDriver):
