@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.db.driver import CacheDriver, Driver
+from contracting.db.driver import CacheDriver, Driver, NewCacheDriver
 
 
 class TestCacheDriver(TestCase):
@@ -7,25 +7,15 @@ class TestCacheDriver(TestCase):
         self.d = Driver()
         self.d.flush()
 
-        self.c = CacheDriver(self.d)
+        self.c = NewCacheDriver(self.d)
 
     def test_get_adds_to_read(self):
         self.c.get('thing')
-        self.assertTrue('thing' in self.c.reads)
+        self.assertTrue('thing' in self.c.pending_reads)
 
     def test_set_adds_to_cache_and_pending_writes(self):
         self.c.set('thing', 1234)
-        self.assertEqual(self.c.cache['thing'], 1234)
         self.assertEqual(self.c.pending_writes['thing'], 1234)
-
-    def test_object_added_to_cache_if_read_from_db(self):
-        self.assertIsNone(self.c.cache.get('thing'))
-
-        self.d.set('thing', 8999)
-
-        self.c.get('thing')
-
-        self.assertEqual(self.c.cache['thing'], 8999)
 
     def test_object_in_cache_returns_from_cache(self):
         self.d.set('thing', 8999)
@@ -58,24 +48,19 @@ class TestCacheDriver(TestCase):
         self.c.set('thing2', 1235)
         self.c.get('something')
 
-        self.assertTrue(len(self.c.cache) > 0)
-        self.assertTrue(len(self.c.reads) > 0)
+        self.assertTrue(len(self.c.pending_reads) > 0)
         self.assertTrue(len(self.c.pending_writes) > 0)
 
-        self.c.clear_pending_state()
+        self.c.rollback()
 
-        self.assertFalse(len(self.c.cache) > 0)
-        self.assertFalse(len(self.c.reads) > 0)
+        self.assertFalse(len(self.c.pending_reads) > 0)
         self.assertFalse(len(self.c.pending_writes) > 0)
 
     def test_soft_apply_adds_changes_to_pending_deltas(self):
-        self.c.set('thing1', 9999)
+        self.c.driver.set('thing1', 9999)
 
-        state_changes = {
-            'thing1': 8888
-        }
-
-        self.c.soft_apply('0', state_changes)
+        self.c.set('thing1', 8888)
+        self.c.soft_apply('0')
 
         expected_deltas = {
             '0': {
@@ -89,11 +74,8 @@ class TestCacheDriver(TestCase):
         self.c.set('thing1', 9999)
         self.c.commit()
 
-        state_changes = {
-            'thing1': 8888
-        }
-
-        self.c.soft_apply('0', state_changes)
+        self.c.set('thing1', 8888)
+        self.c.soft_apply('0')
 
         res = self.c.get('thing1')
 
@@ -104,11 +86,9 @@ class TestCacheDriver(TestCase):
         self.c.set('thing1', 9999)
         self.c.commit()
 
-        state_changes = {
-            'thing1': 8888
-        }
+        self.c.set('thing1', 8888)
 
-        self.c.soft_apply('0', state_changes)
+        self.c.soft_apply('0')
         self.c.hard_apply('0')
 
         res = self.c.get('thing1')
@@ -121,23 +101,14 @@ class TestCacheDriver(TestCase):
         self.c.set('thing1', 9999)
         self.c.commit()
 
-        state_changes = {
-            'thing1': 8888
-        }
+        self.c.set('thing1', 8888)
+        self.c.soft_apply('0')
 
-        self.c.soft_apply('0', state_changes)
+        self.c.set('thing1', 7777)
+        self.c.soft_apply('1')
 
-        state_changes = {
-            'thing1': 7777
-        }
-
-        self.c.soft_apply('1', state_changes)
-
-        state_changes = {
-            'thing1': 6666
-        }
-
-        self.c.soft_apply('2', state_changes)
+        self.c.set('thing1', 6666)
+        self.c.soft_apply('2')
 
         self.c.hard_apply('1')
 
@@ -151,23 +122,14 @@ class TestCacheDriver(TestCase):
         self.c.set('thing1', 9999)
         self.c.commit()
 
-        state_changes = {
-            'thing1': 8888
-        }
+        self.c.set('thing1', 8888)
+        self.c.soft_apply('0')
 
-        self.c.soft_apply('0', state_changes)
+        self.c.set('thing1', 7777)
+        self.c.soft_apply('1')
 
-        state_changes = {
-            'thing1': 7777
-        }
-
-        self.c.soft_apply('1', state_changes)
-
-        state_changes = {
-            'thing1': 6666
-        }
-
-        self.c.soft_apply('2', state_changes)
+        self.c.set('thing1', 6666)
+        self.c.soft_apply('2')
 
         self.c.hard_apply('0')
 
@@ -186,25 +148,16 @@ class TestCacheDriver(TestCase):
         self.c.set('thing1', 9999)
         self.c.commit()
 
-        state_changes = {
-            'thing1': 8888
-        }
-
-        self.c.soft_apply('0', state_changes)
+        self.c.set('thing1', 8888)
+        self.c.soft_apply('0')
         self.assertEqual(self.c.get('thing1'), 8888)
 
-        state_changes = {
-            'thing1': 7777
-        }
-
-        self.c.soft_apply('1', state_changes)
+        self.c.set('thing1', 7777)
+        self.c.soft_apply('1')
         self.assertEqual(self.c.get('thing1'), 7777)
 
-        state_changes = {
-            'thing1': 6666
-        }
-
-        self.c.soft_apply('2', state_changes)
+        self.c.set('thing1', 6666)
+        self.c.soft_apply('2')
         self.assertEqual(self.c.get('thing1'), 6666)
 
         self.c.rollback()
@@ -216,27 +169,46 @@ class TestCacheDriver(TestCase):
         self.c.set('thing1', 9999)
         self.c.commit()
 
-        state_changes = {
-            'thing1': 8888
-        }
-
-        self.c.soft_apply('0', state_changes)
+        self.c.set('thing1', 8888)
+        self.c.soft_apply('0')
         self.assertEqual(self.c.get('thing1'), 8888)
 
-        state_changes = {
-            'thing1': 7777
-        }
-
-        self.c.soft_apply('1', state_changes)
+        self.c.set('thing1', 7777)
+        self.c.soft_apply('1')
         self.assertEqual(self.c.get('thing1'), 7777)
 
-        state_changes = {
-            'thing1': 6666
-        }
-
-        self.c.soft_apply('2', state_changes)
+        self.c.set('thing1', 6666)
+        self.c.soft_apply('2')
         self.assertEqual(self.c.get('thing1'), 6666)
 
         self.c.rollback()
 
         self.assertDictEqual(self.c.pending_deltas, {})
+
+    def test_find_returns_none(self):
+        x = self.c.find('none')
+        self.assertIsNone(x)
+
+    def test_find_returns_driver(self):
+        self.c.driver.set('none', 123)
+
+        x = self.c.find('none')
+
+        self.assertEqual(x, 123)
+
+    def test_find_returns_cache(self):
+        self.c.driver.set('none', 123)
+        self.c.cache['none'] = 999
+
+        x = self.c.find('none')
+
+        self.assertEqual(x, 999)
+
+    def test_find_returns_pending_writes(self):
+        self.c.driver.set('none', 123)
+        self.c.cache['none'] = 999
+        self.c.pending_writes['none'] = 5555
+
+        x = self.c.find('none')
+
+        self.assertEqual(x, 5555)

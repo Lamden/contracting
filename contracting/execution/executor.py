@@ -155,7 +155,7 @@ class Executor:
             'result': result,
             'stamps_used': stamps_used,
             'writes': deepcopy(driver.pending_writes),
-            'reads': driver.reads
+            'reads': driver.pending_reads
         }
 
         disable_restricted_imports()
