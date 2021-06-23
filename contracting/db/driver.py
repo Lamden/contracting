@@ -392,7 +392,7 @@ class CacheDriver:
         deltas = {}
 
         for k, v in state_changes.items():
-            current = self.get(k)
+            current = self.driver.get(k)
             deltas[k] = (current, v)
 
             self.set(k, v)
