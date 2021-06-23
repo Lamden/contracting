@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.db.driver import CacheDriver, Driver, NewCacheDriver
+from contracting.db.driver import CacheDriver, Driver
 
 
 class TestCacheDriver(TestCase):
@@ -7,7 +7,7 @@ class TestCacheDriver(TestCase):
         self.d = Driver()
         self.d.flush()
 
-        self.c = NewCacheDriver(self.d)
+        self.c = CacheDriver(self.d)
 
     def test_get_adds_to_read(self):
         self.c.get('thing')
