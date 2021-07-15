@@ -163,3 +163,4 @@ class TestDatetime(TestCase):
         e = Datetime(2018, 1, 1)
 
         self.assertEqual((d - e), Timedelta(days=365))
+
