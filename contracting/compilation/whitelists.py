@@ -7,13 +7,14 @@ ALLOWED_BUILTINS = {'Exception', 'False', 'None', 'True', 'abs', 'all', 'any', '
 
 ILLEGAL_BUILTINS = set(dir(builtins)) - ALLOWED_BUILTINS
 
-ALLOWED_AST_TYPES = {ast.Module, ast.Eq, ast.Call, ast.Dict, ast.Attribute, ast.Pow, ast.Index, ast.Not, ast.alias,
+ALLOWED_AST_TYPES = {ast.Module, ast.Eq, ast.Call, ast.Dict, ast.Attribute, ast.Pow, ast.Not, ast.alias,
                      ast.If, ast.FunctionDef, ast.Global, ast.GtE, ast.LtE, ast.Load, ast.arg, ast.Add, ast.Import,
                      ast.ImportFrom, ast.Name, ast.Num, ast.BinOp, ast.Store, ast.Assert, ast.Assign, ast.AugAssign,
                      ast.Subscript, ast.Compare, ast.Return, ast.NameConstant, ast.Expr, ast.keyword, ast.Sub,
                      ast.arguments, ast.List, ast.Set, ast.Str, ast.UnaryOp, ast.Pass, ast.Tuple, ast.Div, ast.In,
                      ast.NotIn, ast.Gt, ast.Lt, ast.Starred, ast.Mod, ast.NotEq, ast.For, ast.While, ast.ListComp,
-                     ast.comprehension, ast.Slice, ast.USub, ast.BoolOp, ast.And, ast.Or, ast.Mult, ast.IsNot, ast.Is}
+                     ast.comprehension, ast.Slice, ast.USub, ast.BoolOp, ast.And, ast.Or, ast.Mult, ast.IsNot, ast.Is,
+                     ast.Constant}
 
 ILLEGAL_AST_TYPES = {
     ast.AsyncFor,

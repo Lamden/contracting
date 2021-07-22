@@ -31,6 +31,7 @@ def a():
     def test_good_ast_type(self):
         for t in ALLOWED_AST_TYPES:
             _t = t()
+
             self.l.ast_types(_t, 1)
             self.assertListEqual([], self.l._violations)
 
@@ -91,8 +92,7 @@ def a():
     #     self.assertMultiLineEqual(err, self.l._violations[0])
 
     def test_visit_async_func_def_fail_code(self):
-        code = '''
-@export
+        code = '''@export
 async def a():
     ruh_roh = 'shaggy'
 def b():
@@ -173,8 +173,7 @@ def a():
 #TODO failed test case
 
     def test_no_nested_imports(self):
-        code = '''
-@export
+        code = '''@export
 def a():
     import something
         '''
@@ -332,8 +331,7 @@ def set(i):
         self.assertEqual(chk[0], 'Line 2: S12- Multiple targets to ORM definition detected')
 
     def test_multi_decorator_fails(self):
-        code = '''
-@construct
+        code = '''@construct
 @export
 def kaboom():
     print('i like to break things')
@@ -344,8 +342,7 @@ def kaboom():
         self.assertEqual(chk[0], 'Line 2: S10- Illicit use of multiple decorators: Detected: 2 MAX limit: 1')
 
     def test_invalid_decorator_fails(self):
-        code = '''
-@contracting_invalid
+        code = '''@contracting_invalid
 def wont_work():
     print('i hope')
 '''
@@ -395,8 +392,7 @@ def greeting(name: dict):
         self.assertEqual(chk, None)
 
     def test_function_bad_annotation(self):
-        code = '''
-@export
+        code = '''@export
 def greeting(name: mytype):
     return 'Hello ' + name
 '''
@@ -407,8 +403,7 @@ def greeting(name: mytype):
 
 
     def test_function_none_annotation(self):
-        code = '''
-@export
+        code = '''@export
 def greeting(name):
     return 'Hello ' + name
 '''
@@ -419,8 +414,7 @@ def greeting(name):
 
 
     def test_none_return_annotation(self):
-        code = '''
-@export
+        code = '''@export
 def greeting(name: str):
     return 'Hello ' + name
 '''
@@ -431,8 +425,7 @@ def greeting(name: str):
 
 
     def test_function_return_annotation(self):
-        code = '''
-@export
+        code = '''@export
 def greeting(name: str) -> str:
     return 'Hello ' + name
 '''
@@ -443,8 +436,7 @@ def greeting(name: str) -> str:
 
 
     def test_contract_annotation(self):
-        code ='''
-@export
+        code ='''@export
 def transfer(amount, to):
     sender = ctx.caller
     assert balances[sender] >= amount, 'Not enough coins to send!'
