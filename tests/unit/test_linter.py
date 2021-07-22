@@ -339,7 +339,7 @@ def kaboom():
         c = ast.parse(code)
         chk = self.l.check(c)
         self.l.dump_violations()
-        self.assertEqual(chk[0], 'Line 2: S10- Illicit use of multiple decorators: Detected: 2 MAX limit: 1')
+        self.assertEqual(chk[0], 'Line 3: S10- Illicit use of multiple decorators: Detected: 2 MAX limit: 1')
 
     def test_invalid_decorator_fails(self):
         code = '''@contracting_invalid

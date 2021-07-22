@@ -121,4 +121,69 @@ class Runtime:
             cls.tracer.add_cost(stamp_cost)
 
 
-rt = Runtime()
+class RuntimeInstance:
+    def __init__(self):
+        self.cu_path = contracting.__path__[0]
+        self.cu_path = os.path.join(self.cu_path, 'execution', 'metering', 'cu_costs.const')
+
+        os.environ['CU_COST_FNAME'] = self.cu_path
+
+        self.loaded_modules = []
+
+        self.env = {}
+        self.stamps = 0
+
+        self.writes = 0
+
+        self.tracer = Tracer()
+
+        self.signer = None
+
+        self.context = Context({
+            'this': None,
+            'caller': None,
+            'owner': None,
+            'signer': None
+        })
+
+    def set_up(self, stmps, meter):
+        if meter:
+            self.stamps = stmps
+            self.tracer.set_stamp(stmps)
+            self.tracer.start()
+
+            self.context._reset()
+
+    def clean_up(self):
+        self.tracer.stop()
+        self.tracer.reset()
+        self.stamps = 0
+        self.writes = 0
+
+        self.signer = None
+
+        for mod in self.loaded_modules:
+            if sys.modules.get(mod) is not None:
+                del sys.modules[mod]
+
+        self.loaded_modules = []
+        self.env = {}
+
+    def deduct_read(self, key, value):
+        if self.tracer.is_started():
+            cost = len(key) + len(value)
+            cost *= config.READ_COST_PER_BYTE
+            self.tracer.add_cost(cost)
+
+    def deduct_write(self, key, value):
+        if key is not None and self.tracer.is_started():
+            cost = len(key) + len(value)
+            self.writes += cost
+
+            assert self.writes < WRITE_MAX, 'You have exceeded the maximum write capacity per transaction!'
+
+            stamp_cost = cost * config.WRITE_COST_PER_BYTE
+            self.tracer.add_cost(stamp_cost)
+
+
+rt = RuntimeInstance()
