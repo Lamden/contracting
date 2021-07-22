@@ -528,7 +528,7 @@ class CacheDriver:
         if type(value) == decimal.Decimal or type(value) == float:
             value = ContractingDecimal(str(value))
 
-        self.pending_writes[key] = value
+        self.pending_writes[key] = value # Encoded here
 
     def delete(self, key):
         self.set(key, None)
