@@ -533,6 +533,7 @@ class CacheDriver:
     def delete(self, key):
         self.set(key, None)
 
+    #TODO: Fix bug where rolling back on a key written to twice rolls back to the initial state instead of the immediate previous value
     def soft_apply(self, hcl: str):
         deltas = {}
 
@@ -561,7 +562,7 @@ class CacheDriver:
             # Run through all state changes, taking the second value, which is the post delta
             for key, delta in _deltas.items():
                 self.driver.set(key, delta[1])
-                self.cache[key] = delta[1]
+                # self.cache[key] = delta[1]
 
             # Add the key (
             to_delete.append(_hlc)
