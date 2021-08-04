@@ -554,7 +554,6 @@ class CacheDriver:
             return
 
         # Run through the sorted HCLs from oldest to newest applying each one until the hcl committed is
-
         to_delete = []
         for _hlc, _deltas in sorted(self.pending_deltas.items()):
 
