@@ -69,9 +69,9 @@ class Executor:
 
                 balance = driver.get(balances_key)
                 if balance is None:
-                    balance = 0
+                    balance = ContractingDecimal(0)
 
-                assert balance * stamp_cost >= stamps, 'Sender does not have enough stamps for the transaction. \
+                assert balance * ContractingDecimal(stamp_cost) >= stamps, 'Sender does not have enough stamps for the transaction. \
                                                                Balance at key {} is {}'.format(balances_key,
                                                                                                balance)
 
