@@ -85,8 +85,6 @@ class Executor:
                                                                Balance at key {} is {}'.format(balances_key,
                                                                                                balance)
 
-                log.info("GOT HERE 1")
-
             runtime.rt.env.update(environment)
             status_code = 0
             runtime.rt.set_up(stmps=stamps * 1000, meter=metering) # Multiply stamps by 1000 because we divide by it later
@@ -111,9 +109,7 @@ class Executor:
                     kwargs[k] = ContractingDecimal(str(v))
 
             enable_restricted_imports()
-            log.info("GOT HERE 2")
             result = func(**kwargs)
-            log.info("GOT HERE 3")
             disable_restricted_imports()
 
             if auto_commit:
