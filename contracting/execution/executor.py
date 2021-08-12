@@ -68,10 +68,17 @@ class Executor:
                                                    sender)
 
                 balance = driver.get(balances_key)
-                if balance is None:
-                    balance = ContractingDecimal(0)
 
-                assert balance * ContractingDecimal(stamp_cost) >= stamps, 'Sender does not have enough stamps for the transaction. \
+                if balance is None:
+                    balance = 0
+
+                log.debug({
+                    'balance':balance,
+                    'stamp_cost': stamp_cost,
+                    'stamps': stamps
+                })
+
+                assert balance * stamp_cost >= stamps, 'Sender does not have enough stamps for the transaction. \
                                                                Balance at key {} is {}'.format(balances_key,
                                                                                                balance)
 
