@@ -69,7 +69,7 @@ class Executor:
 
                 balance = driver.get(balances_key)
 
-                if balance.get('__fixed__') is not None:
+                if type(balance) == dict:
                     balance = ContractingDecimal(balance.get('__fixed__'))
 
                 if balance is None:
