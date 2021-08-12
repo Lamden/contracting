@@ -76,7 +76,7 @@ class Executor:
                     balance = 0
 
                 log.debug({
-                    'balance':balance,
+                    'balance': balance,
                     'stamp_cost': stamp_cost,
                     'stamps': stamps
                 })
@@ -84,6 +84,8 @@ class Executor:
                 assert balance * stamp_cost >= stamps, 'Sender does not have enough stamps for the transaction. \
                                                                Balance at key {} is {}'.format(balances_key,
                                                                                                balance)
+
+                log.info("GOT HERE 1")
 
             runtime.rt.env.update(environment)
             status_code = 0
@@ -109,7 +111,9 @@ class Executor:
                     kwargs[k] = ContractingDecimal(str(v))
 
             enable_restricted_imports()
+            log.info("GOT HERE 2")
             result = func(**kwargs)
+            log.info("GOT HERE 3")
             disable_restricted_imports()
 
             if auto_commit:
