@@ -65,7 +65,7 @@ class TestCacheDriver(TestCase):
         expected_deltas = {
             '0': {
                 'writes': {'thing1': (9999, 8888)},
-                'reads': {}
+                'reads': {'thing1': 9999}
             }
         }
 
@@ -192,9 +192,9 @@ class TestCacheDriver(TestCase):
         self.c.hard_apply('0')
 
         hlcs = {'1':
-                    {'writes': {'thing1': (8888, 7777)}, 'reads': {}},
+                    {'writes': {'thing1': (8888, 7777)}, 'reads': {'thing1': 8888}},
                 '2':
-                    {'writes': {'thing1': (7777, 6666)}, 'reads': {}}
+                    {'writes': {'thing1': (7777, 6666)}, 'reads': {'thing1': 7777}}
                 }
 
         self.assertDictEqual(self.c.pending_deltas, hlcs)
