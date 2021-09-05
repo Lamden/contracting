@@ -486,6 +486,13 @@ class WebDriver(InMemDriver):
 #     def snapshot(self):
 #         pass
 
+
+class Delta:
+    def __init__(self, writes, reads):
+        self.writes = writes
+        self.reads = reads
+
+
 class CacheDriver:
     def __init__(self, driver: Driver=LMDBDriver()):
         self.pending_writes = {}    # L2 cache
@@ -547,7 +554,10 @@ class CacheDriver:
 
             self.cache[k] = v
 
-        self.pending_deltas[hcl] = deltas
+        self.pending_deltas[hcl] = {
+            'writes': deltas,
+            'reads': self.pending_reads
+        }
 
         # Clear the top cache
         self.pending_reads.clear()
@@ -564,7 +574,7 @@ class CacheDriver:
         for _hlc, _deltas in sorted(self.pending_deltas.items()):
 
             # Run through all state changes, taking the second value, which is the post delta
-            for key, delta in _deltas.items():
+            for key, delta in _deltas['writes'].items():
                 self.driver.set(key, delta[1])
                 # self.cache[key] = delta[1]
 
@@ -611,7 +621,7 @@ class CacheDriver:
                 self.pending_writes.clear()
 
                 # Run through all state changes, taking the second value, which is the post delta
-                for key, delta in _deltas.items():
+                for key, delta in _deltas['writes'].items():
                     self.set(key, delta[0])
                     # self.cache[key] = delta[1]
 
