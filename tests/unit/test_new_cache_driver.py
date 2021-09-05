@@ -97,6 +97,60 @@ class TestCacheDriver(TestCase):
 
         self.assertEqual(self.c.driver.get('thing1'), 8888)
 
+    def test_rollback_applies_hcl_if_exists(self):
+        self.c.set('thing1', 9999)
+        self.c.commit()
+
+        self.c.set('thing1', 8888)
+
+        self.c.soft_apply('0')
+        self.c.rollback('0')
+
+        res = self.c.get('thing1')
+
+        self.assertEqual(res, 9999)
+
+        self.assertEqual(self.c.driver.get('thing1'), 9999)
+
+    def test_rollback_twice_returns(self):
+        self.c.set('thing1', 9999)
+        self.c.commit()
+
+        self.c.set('thing1', 8888)
+        self.c.soft_apply('0')
+
+        self.c.set('thing1', 7777)
+        self.c.soft_apply('1')
+
+        self.c.set('thing1', 6666)
+        self.c.soft_apply('2')
+
+        self.c.rollback('1')
+
+        res = self.c.get('thing1')
+
+        self.assertEqual(res, 8888)
+
+        self.assertEqual(self.c.driver.get('thing1'), 9999)
+
+    def test_rollback_removes_hlcs(self):
+        self.c.set('thing1', 9999)
+        self.c.commit()
+
+        self.c.set('thing1', 8888)
+        self.c.soft_apply('0')
+
+        self.c.set('thing1', 7777)
+        self.c.soft_apply('1')
+
+        self.c.set('thing1', 6666)
+        self.c.soft_apply('2')
+
+        self.c.rollback('1')
+
+        self.assertIsNone(self.c.pending_deltas.get('2'))
+        self.assertIsNone(self.c.pending_deltas.get('1'))
+
     def test_hard_apply_only_applies_changes_up_to_delta(self):
         self.c.set('thing1', 9999)
         self.c.commit()
@@ -110,11 +164,14 @@ class TestCacheDriver(TestCase):
         self.c.set('thing1', 6666)
         self.c.soft_apply('2')
 
+        self.c.set('thing1', 5555)
+        self.c.soft_apply('3')
+
         self.c.hard_apply('1')
 
         res = self.c.get('thing1')
 
-        self.assertEqual(res, 7777)
+        self.assertEqual(res, 5555)
 
         self.assertEqual(self.c.driver.get('thing1'), 7777)
 

@@ -586,12 +586,38 @@ class CacheDriver:
         self.pending_writes.clear()
         self.pending_reads.clear()
 
-    def rollback(self):
-        # Returns to disk state which should be whatever it was prior to any write sessions
-        self.cache.clear()
-        self.pending_reads.clear()
-        self.pending_writes.clear()
-        self.pending_deltas.clear()
+    def rollback(self, hlc=None):
+        if hlc is None:
+            # Returns to disk state which should be whatever it was prior to any write sessions
+            self.cache.clear()
+            self.pending_reads.clear()
+            self.pending_writes.clear()
+            self.pending_deltas.clear()
+        else:
+            if self.pending_deltas.get(hlc) is None:
+                return
+
+                # Run through the sorted HCLs from oldest to newest applying each one until the hcl committed is
+
+            to_delete = []
+            for _hlc, _deltas in sorted(self.pending_deltas.items())[::-1]:
+                # Clears the current reads/writes, and the reads/writes that get made when rolling back from the
+                # last HLC
+                self.pending_reads.clear()
+                self.pending_writes.clear()
+
+                # Run through all state changes, taking the second value, which is the post delta
+                for key, delta in _deltas.items():
+                    self.set(key, delta[0])
+                    # self.cache[key] = delta[1]
+
+                # Add the key (
+                to_delete.append(_hlc)
+                if _hlc == hlc:
+                    break
+
+            # Remove the deltas from the set
+            [self.pending_deltas.pop(key) for key in to_delete]
 
     def clear_pending_state(self):
         self.rollback()
