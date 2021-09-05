@@ -178,6 +178,10 @@ class FSDriver:
             shutil.rmtree(self.root)
         except FileNotFoundError:
             pass
+        except OSError as os_err:
+            # TO DO This was causing a "Directory not empty" error so I'm accepting it.
+            # I don't know why the error is happening
+            print(os_err)
 
     def delete(self, key: str):
         self.__delitem__(key)
