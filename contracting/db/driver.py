@@ -608,11 +608,6 @@ class CacheDriver:
             self.pending_writes.clear()
             self.pending_deltas.clear()
         else:
-            if self.pending_deltas.get(hlc) is None:
-                return
-
-                # Run through the sorted HCLs from oldest to newest applying each one until the hcl committed is
-
             to_delete = []
             for _hlc, _deltas in sorted(self.pending_deltas.items())[::-1]:
                 # Clears the current reads/writes, and the reads/writes that get made when rolling back from the
@@ -620,15 +615,17 @@ class CacheDriver:
                 self.pending_reads = {}
                 self.pending_writes.clear()
 
-                # Run through all state changes, taking the second value, which is the post delta
-                for key, delta in _deltas['writes'].items():
-                    self.set(key, delta[0])
-                    # self.cache[key] = delta[1]
 
-                # Add the key (
-                to_delete.append(_hlc)
-                if _hlc == hlc:
+                if _hlc < hlc:
+                    # if we are less than the HLC then top processing anymore, this is our rollback point
                     break
+                else:
+                    # if we are still greater than or equal to then mark this as delete and rollback its changes
+                    to_delete.append(_hlc)
+                    # Run through all state changes, taking the second value, which is the post delta
+                    for key, delta in _deltas['writes'].items():
+                        # self.set(key, delta[0])
+                        self.cache[key] = delta[0]
 
             # Remove the deltas from the set
             [self.pending_deltas.pop(key) for key in to_delete]
