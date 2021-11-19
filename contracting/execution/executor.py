@@ -91,7 +91,12 @@ class Executor:
 
             decimal.setcontext(CONTEXT)
 
-            module = importlib.import_module(contract_name)
+            try:
+                module = importlib.import_module(contract_name)
+            except ModuleNotFoundError:
+                # Assume malicious intent, ding 1000 stamps
+                runtime.rt.tracer.add_cost(1000)
+
             func = getattr(module, function_name)
 
             for k, v in kwargs.items():

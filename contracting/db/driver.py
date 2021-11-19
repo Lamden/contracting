@@ -13,6 +13,8 @@ from pathlib import Path
 import shutil
 import hashlib
 import lmdb
+import motor.motor_asyncio
+import asyncio
 
 FILE_EXT = '.d'
 HASH_EXT = '.x'
@@ -86,6 +88,68 @@ class Driver:
 
     def __delitem__(self, key: str):
         self.db.delete_one({'_id': key})
+
+
+class AsyncDriver:
+    def __init__(self, db='lamden', collection='state'):
+        self.client = motor.motor_asyncio.AsyncIOMotorClient()
+        self.db = self.client[db][collection]
+
+    async def get(self, item: str):
+        v = await self.db.find_one({'_id': item})
+
+        if v is None:
+            return None
+
+        return decode(v['v'])
+
+    async def set(self, key, value):
+        if value is None:
+            await self.db.delete_one({'_id': key})
+        else:
+            v = encode(value)
+            await self.db.update_one({'_id': key}, {'$set': {'v': v}}, upsert=True, )
+
+    async def flush(self):
+        await self.db.drop()
+
+    async def delete(self, key: str):
+        await self.db.delete_one({'_id': key})
+
+    async def iter(self, prefix: str, length=0):
+        cur = await self.db.find({'_id': {'$regex': f'^{prefix}'}})
+
+        keys = []
+        for entry in cur:
+            keys.append(entry['_id'])
+            if 0 < length <= len(keys):
+                break
+
+        keys.sort()
+        return keys
+
+    async def keys(self):
+        k = []
+        for entry in await self.db.find({}):
+            k.append(entry['_id'])
+        k.sort()
+        return k
+
+    def __getitem__(self, item: str):
+        loop = asyncio.get_event_loop()
+        value = loop.run_until_complete(self.get(item))
+
+        if value is None:
+            raise KeyError
+        return value
+
+    def __setitem__(self, key: str, value):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.set(key, value))
+
+    def __delitem__(self, key: str):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.db.delete_one({'_id': key}))
 
 
 class InMemDriver(Driver):
