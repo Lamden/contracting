@@ -117,10 +117,8 @@ class AsyncDriver:
         await self.db.delete_one({'_id': key})
 
     async def iter(self, prefix: str, length=0):
-        cur = await self.db.find({'_id': {'$regex': f'^{prefix}'}})
-
         keys = []
-        for entry in cur:
+        async for entry in self.db.find({'_id': {'$regex': f'^{prefix}'}}):
             keys.append(entry['_id'])
             if 0 < length <= len(keys):
                 break
@@ -130,7 +128,7 @@ class AsyncDriver:
 
     async def keys(self):
         k = []
-        for entry in await self.db.find({}):
+        async for entry in self.db.find({}):
             k.append(entry['_id'])
         k.sort()
         return k
