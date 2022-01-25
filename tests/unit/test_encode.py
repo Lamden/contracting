@@ -79,16 +79,12 @@ class TestEncode(TestCase):
     def test_bigint_encode(self):
         bi = MONGO_MAX_INT + 1
 
-        _bi = encode(bi)
-
-        self.assertEqual('"__big_int__":' + str(bi), _bi)
+        self.assertEqual({"__big_int__": str(bi)}, encode(bi))
 
     def test_bigint_decode(self):
         _bi = '{"__big_int__": ' + str(MONGO_MAX_INT+1) + '}'
 
-        bi = decode(_bi)
-
-        self.assertEqual(bi, MONGO_MAX_INT+1)
+        self.assertEqual(decode(_bi), MONGO_MAX_INT+1)
 
     def test_safe_repr_non_object(self):
         a = str(1)

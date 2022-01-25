@@ -49,26 +49,24 @@ class Encoder(json.JSONEncoder):
             return {
                 '__fixed__': str(fix_precision(o._d))
             }
-        elif isinstance(o, float):
-            #return format(o, f'.{MAX_LOWER_PRECISION}f')
-            _o = format(o, f'.{MAX_LOWER_PRECISION}f')
-            return {
-                '__fixed__': str(fix_precision(decimal.Decimal(_o)))
-            }
-        # NOTE(nikita): for Stuart
-        elif isinstance(o, int) and (o > MONGO_MAX_INT or o < MONGO_MIN_INT):
-            return {
-                '__big_int__': str(o)
-            }
         #else:
         #    return safe_repr(o)
         return super().default(o)
 
+def encode_int(value: int):
+    if MONGO_MIN_INT < value and value < MONGO_MAX_INT:
+        return str(value)
+    else:
+        return {
+            '__big_int__': str(value)
+        }
 
 # JSON library from Python 3 doesn't let you instantiate your custom Encoder. You have to pass it as an obj to json
 def encode(data: str):
+    # NOTE: supported types encoding cannot be overriden in Encoder.default
+    if isinstance(data, int):
+        return encode_int(data)
     return json.dumps(data, cls=Encoder, separators=(',', ':'))
-
 
 def as_object(d):
     if '__time__' in d:
