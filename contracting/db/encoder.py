@@ -4,13 +4,15 @@ from contracting.stdlib.bridge.time import Datetime, Timedelta
 from contracting.stdlib.bridge.decimal import ContractingDecimal, MAX_LOWER_PRECISION, fix_precision
 from contracting.config import INDEX_SEPARATOR, DELIMITER
 
+MONGO_MIN_INT = -9223372036854775808
+MONGO_MAX_INT = 9223372036854775807
+
 ##
 # ENCODER CLASS
 # Add to this to encode Python types for storage.
 # Right now, this is only for datetime types. They are passed into the system as ISO strings, cast into Datetime objs
 # and stored as dicts. Is there a better way? I don't know, maybe.
 ##
-
 
 def safe_repr(obj, max_len=1024):
     try:
@@ -53,9 +55,13 @@ class Encoder(json.JSONEncoder):
             return {
                 '__fixed__': str(fix_precision(decimal.Decimal(_o)))
             }
+        # NOTE(nikita): for Stuart
+        elif isinstance(o, int) and (o > MONGO_MAX_INT or o < MONGO_MIN_INT):
+            return {
+                '__big_int__': str(o)
+            }
         #else:
         #    return safe_repr(o)
-
         return super().default(o)
 
 
@@ -73,6 +79,8 @@ def as_object(d):
         return bytes.fromhex(d['__bytes__'])
     elif '__fixed__' in d:
         return ContractingDecimal(d['__fixed__'])
+    elif '__big_int__' in d:
+        return int(d['__big_int__'])
     return dict(d)
 
 

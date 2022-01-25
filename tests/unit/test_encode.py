@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.db.encoder import encode, decode, safe_repr, convert_dict, convert_dict
+from contracting.db.encoder import encode, decode, safe_repr, convert_dict, MONGO_MAX_INT
 from contracting.stdlib.bridge.time import Datetime, Timedelta
 from datetime import datetime
 from contracting.stdlib.bridge.decimal import ContractingDecimal
@@ -75,6 +75,20 @@ class TestEncode(TestCase):
         t = decode(_t)
 
         self.assertEqual(t, Timedelta(weeks=1, days=1))
+
+    def test_bigint_encode(self):
+        bi = MONGO_MAX_INT + 1
+
+        _bi = encode(bi)
+
+        self.assertEqual('"__big_int__":' + str(bi), _bi)
+
+    def test_bigint_decode(self):
+        _bi = '{"__big_int__": ' + str(MONGO_MAX_INT+1) + '}'
+
+        bi = decode(_bi)
+
+        self.assertEqual(bi, MONGO_MAX_INT+1)
 
     def test_safe_repr_non_object(self):
         a = str(1)
