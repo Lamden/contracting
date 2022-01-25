@@ -76,6 +76,16 @@ class TestEncode(TestCase):
 
         self.assertEqual(t, Timedelta(weeks=1, days=1))
 
+    def test_int_encode(self):
+        i = 10
+
+        self.assertEqual(str(i), encode(i))
+
+    def test_int_decode(self):
+        i = '10'
+
+        self.assertEqual(10, decode(i))
+
     def test_bigint_encode(self):
         si = MONGO_MIN_INT - 1
         bi = MONGO_MAX_INT + 1
