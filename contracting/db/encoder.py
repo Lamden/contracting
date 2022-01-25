@@ -4,8 +4,8 @@ from contracting.stdlib.bridge.time import Datetime, Timedelta
 from contracting.stdlib.bridge.decimal import ContractingDecimal, MAX_LOWER_PRECISION, fix_precision
 from contracting.config import INDEX_SEPARATOR, DELIMITER
 
-MONGO_MIN_INT = -9223372036854775808
-MONGO_MAX_INT = 9223372036854775807
+MONGO_MIN_INT = -(2 ** 63)
+MONGO_MAX_INT = 2 ** 63 - 1
 
 ##
 # ENCODER CLASS
