@@ -98,6 +98,18 @@ class TestEncode(TestCase):
 
         self.assertEqual(decode(_bi), MONGO_MAX_INT+1)
 
+    def test_encode_ints_nested_list(self):
+        d = {'lists':[ {'i': 123,'bi': MONGO_MAX_INT} ]}
+        expected = '{"lists":[{"i":"123","bi":{"__big_int__":"' + str(MONGO_MAX_INT) + '"}}]}'
+
+        self.assertEqual(encode(d), expected)
+
+    def test_encode_ints_nested_dict(self):
+        d = {'d': {'bi': MONGO_MAX_INT, 'str': 'hello'}}
+        expected = '{"d":{"bi":{"__big_int__":"' + str(MONGO_MAX_INT) + '"},"str":"hello"}}'
+
+        self.assertEqual(encode(d), expected)
+
     def test_safe_repr_non_object(self):
         a = str(1)
         b = safe_repr(1)

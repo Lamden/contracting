@@ -61,13 +61,29 @@ def encode_int(value: int):
             '__big_int__': str(value)
         }
 
+def encode_ints_in_dict(data: dict):
+    d = dict()
+    for k, v in data.items():
+        if isinstance(v, int):
+            d[k] = encode_int(v)
+        elif isinstance(v, dict):
+            d[k] = encode_ints_in_dict(v)
+        elif isinstance(v, list):
+            d[k] = []
+            for i in v:
+                d[k].append(encode_ints_in_dict(i))
+        else:
+            d[k] = v
+
+    return d
+
 # JSON library from Python 3 doesn't let you instantiate your custom Encoder. You have to pass it as an obj to json
 def encode(data: str):
     # NOTE: supported types encoding cannot be overriden in Encoder.default
     if isinstance(data, int):
         return encode_int(data)
     elif isinstance(data, dict):
-        data = {k: encode_int(v) if isinstance(v, int) else v for (k, v) in data.items()}
+        data = encode_ints_in_dict(data)
 
     return json.dumps(data, cls=Encoder, separators=(',', ':'))
 
