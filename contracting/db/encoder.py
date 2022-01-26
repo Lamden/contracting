@@ -66,6 +66,8 @@ def encode(data: str):
     # NOTE: supported types encoding cannot be overriden in Encoder.default
     if isinstance(data, int):
         return encode_int(data)
+    elif(isinstance(data, dict)):
+        data = {k: encode_int(v) if isinstance(v, int) else v for (k, v) in data.items()}
     return json.dumps(data, cls=Encoder, separators=(',', ':'))
 
 def as_object(d):
