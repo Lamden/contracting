@@ -158,6 +158,12 @@ class TestEncode(TestCase):
         d2 = convert_dict(d)
         self.assertEqual(d, d2)
 
+    def test_convert_bigint(self):
+        d = {'bigint': {'__big_int__': str(2**65)}}
+        expected = {'bigint': 2**65}
+
+        self.assertDictEqual(convert_dict(d), expected)
+
     def test_convert_contracting_decimal(self):
         d = {
             'kwargs': {

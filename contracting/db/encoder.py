@@ -66,8 +66,9 @@ def encode(data: str):
     # NOTE: supported types encoding cannot be overriden in Encoder.default
     if isinstance(data, int):
         return encode_int(data)
-    elif(isinstance(data, dict)):
+    elif isinstance(data, dict):
         data = {k: encode_int(v) if isinstance(v, int) else v for (k, v) in data.items()}
+
     return json.dumps(data, cls=Encoder, separators=(',', ':'))
 
 def as_object(d):
@@ -126,7 +127,7 @@ def decode_kv(key, value):
     return k, v
 
 
-TYPES = {'__fixed__', '__delta__', '__bytes__', '__time__'}
+TYPES = {'__fixed__', '__delta__', '__bytes__', '__time__', '__big_int__'}
 def convert(k, v):
     if k == '__fixed__':
         return ContractingDecimal(v)
@@ -136,6 +137,8 @@ def convert(k, v):
         return bytes.fromhex(v)
     elif k == '__time__':
         return Datetime(*v)
+    elif k == '__big_int__':
+        return int(v)
     return v
 
 
