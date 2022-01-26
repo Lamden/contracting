@@ -171,8 +171,8 @@ class TestEncode(TestCase):
         self.assertEqual(d, d2)
 
     def test_convert_bigint(self):
-        d = {'bigint': {'__big_int__': str(2**65)}}
-        expected = {'bigint': 2**65}
+        d = {'bigint': {'__big_int__': str(MONGO_MAX_INT)}}
+        expected = {'bigint': MONGO_MAX_INT}
 
         self.assertDictEqual(convert_dict(d), expected)
 
