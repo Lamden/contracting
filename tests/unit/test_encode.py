@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.db.encoder import encode, decode, safe_repr, convert_dict, convert_dict
+from contracting.db.encoder import encode, decode, safe_repr, convert_dict, MONGO_MAX_INT, MONGO_MIN_INT
 from contracting.stdlib.bridge.time import Datetime, Timedelta
 from datetime import datetime
 from contracting.stdlib.bridge.decimal import ContractingDecimal
@@ -76,6 +76,40 @@ class TestEncode(TestCase):
 
         self.assertEqual(t, Timedelta(weeks=1, days=1))
 
+    def test_int_encode(self):
+        i = 10
+
+        self.assertEqual(str(i), encode(i))
+
+    def test_int_decode(self):
+        i = '10'
+
+        self.assertEqual(10, decode(i))
+
+    def test_bigint_encode(self):
+        si = MONGO_MIN_INT - 1
+        bi = MONGO_MAX_INT + 1
+
+        self.assertEqual({"__big_int__": str(bi)}, encode(bi))
+        self.assertEqual({"__big_int__": str(si)}, encode(si))
+
+    def test_bigint_decode(self):
+        _bi = '{"__big_int__": ' + str(MONGO_MAX_INT+1) + '}'
+
+        self.assertEqual(decode(_bi), MONGO_MAX_INT+1)
+
+    def test_encode_ints_nested_list(self):
+        d = {'lists':[ {'i': 123,'bi': MONGO_MAX_INT} ]}
+        expected = '{"lists":[{"i":"123","bi":{"__big_int__":"' + str(MONGO_MAX_INT) + '"}}]}'
+
+        self.assertEqual(encode(d), expected)
+
+    def test_encode_ints_nested_dict(self):
+        d = {'d': {'bi': MONGO_MAX_INT, 'str': 'hello'}}
+        expected = '{"d":{"bi":{"__big_int__":"' + str(MONGO_MAX_INT) + '"},"str":"hello"}}'
+
+        self.assertEqual(encode(d), expected)
+
     def test_safe_repr_non_object(self):
         a = str(1)
         b = safe_repr(1)
@@ -135,6 +169,12 @@ class TestEncode(TestCase):
 
         d2 = convert_dict(d)
         self.assertEqual(d, d2)
+
+    def test_convert_bigint(self):
+        d = {'bigint': {'__big_int__': str(MONGO_MAX_INT)}}
+        expected = {'bigint': MONGO_MAX_INT}
+
+        self.assertDictEqual(convert_dict(d), expected)
 
     def test_convert_contracting_decimal(self):
         d = {
