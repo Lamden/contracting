@@ -1,7 +1,34 @@
 from unittest import TestCase
 from contracting.db.driver import Driver, InMemDriver, FSDriver, LMDBDriver
+from contracting.db.encoder import MONGO_MAX_INT
+from contracting.stdlib.bridge.time import Datetime, Timedelta
+from contracting.stdlib.bridge.decimal import ContractingDecimal
+from decimal import Decimal
 import random
 
+SAMPLE_STRING = 'beef'
+SAMPLE_INT = 123
+SAMPLE_BIGINT = MONGO_MAX_INT
+SAMPLE_DATETIME = Datetime(year=2022, month=1, day=1)
+SAMPLE_CONTRACTING_DECIMAL = ContractingDecimal(123.123)
+SAMPLE_TIMEDELTA = Timedelta(weeks=1, days=1, hours=1)
+SAMPLE_BYTES = bytes(b'0xbeef')
+SAMPLE_DICT = {
+    'a': SAMPLE_INT,
+    'b': False,
+    'c': SAMPLE_BIGINT,
+    'd': SAMPLE_DATETIME,
+    'e': SAMPLE_CONTRACTING_DECIMAL,
+    'f': SAMPLE_TIMEDELTA,
+    'g': SAMPLE_BYTES,
+    'h': SAMPLE_STRING,
+    'x': None
+}
+
+TEST_DATA = [
+    SAMPLE_STRING, SAMPLE_INT, SAMPLE_BIGINT, SAMPLE_DATETIME,
+    SAMPLE_CONTRACTING_DECIMAL, SAMPLE_TIMEDELTA, SAMPLE_BYTES, SAMPLE_DICT
+]
 
 class TestDriver(TestCase):
     # Flush this sucker every test
@@ -13,23 +40,23 @@ class TestDriver(TestCase):
         self.d.flush()
 
     def test_get_set(self):
-        a = 'a'
-        self.d.set('b', a)
+        for v in TEST_DATA:
+            self.d.set('b', v)
 
-        b = self.d.get('b')
-        self.assertEqual(a, b)
+            b = self.d.get('b')
+            self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
 
     def test_delete(self):
-        a = 'a'
-        self.d.set('b', a)
+        for v in TEST_DATA:
+            self.d.set('b', v)
 
-        b = self.d.get('b')
-        self.assertEqual(a, b)
+            b = self.d.get('b')
+            self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
 
-        self.d.delete('b')
+            self.d.delete('b')
 
-        b = self.d.get('b')
-        self.assertIsNone(b)
+            b = self.d.get('b')
+            self.assertIsNone(b)
 
     def test_iter(self):
 
@@ -261,23 +288,23 @@ class TestInMemDriver(TestCase):
         self.d.flush()
 
     def test_get_set(self):
-        a = 'a'
-        self.d.set('b', a)
+        for v in TEST_DATA:
+            self.d.set('b', v)
 
-        b = self.d.get('b')
-        self.assertEqual(a, b)
+            b = self.d.get('b')
+            self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
 
     def test_delete(self):
-        a = 'a'
-        self.d.set('b', a)
+        for v in TEST_DATA:
+            self.d.set('b', v)
 
-        b = self.d.get('b')
-        self.assertEqual(a, b)
+            b = self.d.get('b')
+            self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
 
-        self.d.delete('b')
+            self.d.delete('b')
 
-        b = self.d.get('b')
-        self.assertIsNone(b)
+            b = self.d.get('b')
+            self.assertIsNone(b)
 
     def test_iter(self):
 
@@ -509,23 +536,23 @@ class TestFSDriver(TestCase):
         self.d.flush()
 
     def test_get_set(self):
-        a = 'a'
-        self.d.set('b', a)
+        for v in TEST_DATA:
+            self.d.set('b', v)
 
-        b = self.d.get('b')
-        self.assertEqual(a, b)
+            b = self.d.get('b')
+            self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
 
     def test_delete(self):
-        a = 'a'
-        self.d.set('b', a)
+        for v in TEST_DATA:
+            self.d.set('b', v)
 
-        b = self.d.get('b')
-        self.assertEqual(a, b)
+            b = self.d.get('b')
+            self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
 
-        self.d.delete('b')
+            self.d.delete('b')
 
-        b = self.d.get('b')
-        self.assertIsNone(b)
+            b = self.d.get('b')
+            self.assertIsNone(b)
 
     def test_iter(self):
 
@@ -757,23 +784,23 @@ class TestLMDBDriver(TestCase):
         self.d.flush()
 
     def test_get_set(self):
-        a = 'a'
-        self.d.set('b', a)
+        for v in TEST_DATA:
+            self.d.set('b', v)
 
-        b = self.d.get('b')
-        self.assertEqual(a, b)
+            b = self.d.get('b')
+            self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
 
     def test_delete(self):
-        a = 'a'
-        self.d.set('b', a)
+        for v in TEST_DATA:
+            self.d.set('b', v)
 
-        b = self.d.get('b')
-        self.assertEqual(a, b)
+            b = self.d.get('b')
+            self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
 
-        self.d.delete('b')
+            self.d.delete('b')
 
-        b = self.d.get('b')
-        self.assertIsNone(b)
+            b = self.d.get('b')
+            self.assertIsNone(b)
 
     def test_iter(self):
 

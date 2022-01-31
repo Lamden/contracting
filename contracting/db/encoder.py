@@ -55,11 +55,11 @@ class Encoder(json.JSONEncoder):
 
 def encode_int(value: int):
     if MONGO_MIN_INT < value and value < MONGO_MAX_INT:
-        return str(value)
-    else:
-        return {
-            '__big_int__': str(value)
-        }
+        return value
+
+    return {
+        '__big_int__': str(value)
+    }
 
 def encode_ints_in_dict(data: dict):
     d = dict()
@@ -79,9 +79,15 @@ def encode_ints_in_dict(data: dict):
 
 # JSON library from Python 3 doesn't let you instantiate your custom Encoder. You have to pass it as an obj to json
 def encode(data: str):
-    # NOTE: supported types encoding cannot be overriden in Encoder.default
+    """ NOTE:
+    Normally encoding behavior is overriden in 'default' method inside
+    a class derived from json.JSONEncoder. Unfortunately this can be done only
+    for custom types.
+    
+    Due to MongoDB integer limitation (8 bytes), we need to preprocess 'big' integers.
+    """
     if isinstance(data, int):
-        return encode_int(data)
+        data = encode_int(data)
     elif isinstance(data, dict):
         data = encode_ints_in_dict(data)
 
