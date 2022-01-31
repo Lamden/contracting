@@ -90,17 +90,17 @@ class TestEncode(TestCase):
         si = MONGO_MIN_INT - 1
         bi = MONGO_MAX_INT + 1
 
-        self.assertEqual({"__big_int__": str(bi)}, encode(bi))
-        self.assertEqual({"__big_int__": str(si)}, encode(si))
+        self.assertEqual('{"__big_int__":"' + str(bi) + '"}', encode(bi))
+        self.assertEqual('{"__big_int__":"' + str(si) + '"}', encode(si))
 
     def test_bigint_decode(self):
-        _bi = '{"__big_int__": ' + str(MONGO_MAX_INT+1) + '}'
+        _bi = '{"__big_int__":' + str(MONGO_MAX_INT+1) + '}'
 
         self.assertEqual(decode(_bi), MONGO_MAX_INT+1)
 
     def test_encode_ints_nested_list(self):
         d = {'lists':[ {'i': 123,'bi': MONGO_MAX_INT} ]}
-        expected = '{"lists":[{"i":"123","bi":{"__big_int__":"' + str(MONGO_MAX_INT) + '"}}]}'
+        expected = '{"lists":[{"i":123,"bi":{"__big_int__":"' + str(MONGO_MAX_INT) + '"}}]}'
 
         self.assertEqual(encode(d), expected)
 
