@@ -13,6 +13,8 @@ from pathlib import Path
 import shutil
 import hashlib
 import lmdb
+import motor.motor_asyncio
+import asyncio
 
 FILE_EXT = '.d'
 HASH_EXT = '.x'
@@ -86,6 +88,66 @@ class Driver:
 
     def __delitem__(self, key: str):
         self.db.delete_one({'_id': key})
+
+
+class AsyncDriver:
+    def __init__(self, db='lamden', collection='state'):
+        self.client = motor.motor_asyncio.AsyncIOMotorClient()
+        self.db = self.client[db][collection]
+
+    async def get(self, item: str):
+        v = await self.db.find_one({'_id': item})
+
+        if v is None:
+            return None
+
+        return decode(v['v'])
+
+    async def set(self, key, value):
+        if value is None:
+            await self.db.delete_one({'_id': key})
+        else:
+            v = encode(value)
+            await self.db.update_one({'_id': key}, {'$set': {'v': v}}, upsert=True, )
+
+    async def flush(self):
+        await self.db.drop()
+
+    async def delete(self, key: str):
+        await self.db.delete_one({'_id': key})
+
+    async def iter(self, prefix: str, length=0):
+        keys = []
+        async for entry in self.db.find({'_id': {'$regex': f'^{prefix}'}}):
+            keys.append(entry['_id'])
+            if 0 < length <= len(keys):
+                break
+
+        keys.sort()
+        return keys
+
+    async def keys(self):
+        k = []
+        async for entry in self.db.find({}):
+            k.append(entry['_id'])
+        k.sort()
+        return k
+
+    def __getitem__(self, item: str):
+        loop = asyncio.get_event_loop()
+        value = loop.run_until_complete(self.get(item))
+
+        if value is None:
+            raise KeyError
+        return value
+
+    def __setitem__(self, key: str, value):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.set(key, value))
+
+    def __delitem__(self, key: str):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.db.delete_one({'_id': key}))
 
 
 class InMemDriver(Driver):
@@ -578,4 +640,78 @@ class ContractDriver(CacheDriver):
     #     # self.driver.delete(key)
     #     self.cache[key] = None
     #     self.pending_writes[key] = None
+
+
+class AsyncContractDriver:
+    def __init__(self, driver: AsyncDriver):
+        self.driver = driver
+
+    async def items(self, prefix=''):
+        # Get all of the items in the cache currently
+        _items = {}
+        keys = set()
+        for k, v in self.cache.items():
+            if k.startswith(prefix) and v is not None:
+                _items[k] = v
+                keys.add(k)
+
+        # Get all of the keys we need
+        a = await self.driver.iter(prefix=prefix)
+        db_keys = set(a)
+
+        # Subtract the already gotten keys
+        for k in db_keys - keys:
+            _items[k] = self.get(k) # Cache get will add the keys to the cache
+
+        return _items
+
+    async def keys(self, prefix=''):
+        items = await self.items(prefix)
+        return list(items.keys())
+
+    async def values(self, prefix=''):
+        items = await self.items(prefix)
+        return list(items.values())
+
+    def make_key(self, contract, variable, args=[]):
+        contract_variable = self.delimiter.join((contract, variable))
+        if args:
+            return ':'.join((contract_variable, *[str(arg) for arg in args]))
+        return contract_variable
+
+    def get_var(self, contract, variable, arguments=[], mark=True):
+        key = self.make_key(contract, variable, arguments)
+        return self.get(key, mark=mark)
+
+    def get_contract(self, name):
+        return self.get_var(name, CODE_KEY)
+
+    def get_owner(self, name):
+        owner = self.get_var(name, OWNER_KEY)
+        if owner == '':
+            owner = None
+        return owner
+
+    def get_time_submitted(self, name):
+        return self.get_var(name, TIME_KEY)
+
+    def get_compiled(self, name):
+        return self.get_var(name, COMPILED_KEY)
+
+    def get_contract_keys(self, name):
+        return self.keys(name)
+
+    # Set cache to None
+    # Set pending writes to none
+    # def delete(self, key):
+    #     # if self.cache.get(key) is not None:
+    #     #     del self.cache[key]
+    #     #
+    #     # if self.pending_writes.get(key) is not None:
+    #     #     del self.pending_writes[key]
+    #     #
+    #     # self.driver.delete(key)
+    #     self.cache[key] = None
+    #     self.pending_writes[key] = None
+
 
