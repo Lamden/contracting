@@ -104,6 +104,12 @@ class TestEncode(TestCase):
 
         self.assertEqual(encode(d), expected)
 
+    def test_encode_dict_with_list_containing_different_types(self):
+        d = {'lists':[ {'i': 123,'bi': MONGO_MAX_INT}, 'hello' ]}
+        expected = '{"lists":[{"i":123,"bi":{"__big_int__":"' + str(MONGO_MAX_INT) + '"}},"hello"]}'
+
+        self.assertEqual(encode(d), expected)
+
     def test_encode_ints_nested_dict(self):
         d = {'d': {'bi': MONGO_MAX_INT, 'str': 'hello'}}
         expected = '{"d":{"bi":{"__big_int__":"' + str(MONGO_MAX_INT) + '"},"str":"hello"}}'

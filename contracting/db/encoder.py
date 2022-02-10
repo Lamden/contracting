@@ -71,7 +71,12 @@ def encode_ints_in_dict(data: dict):
         elif isinstance(v, list):
             d[k] = []
             for i in v:
-                d[k].append(encode_ints_in_dict(i))
+                if isinstance(i, dict):
+                    d[k].append(encode_ints_in_dict(i))
+                elif isinstance(i, int):
+                    d[k].append(encode_int(i))
+                else:
+                    d[k].append(i)
         else:
             d[k] = v
 
