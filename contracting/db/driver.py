@@ -211,10 +211,11 @@ class FSDriver:
 
     def __init__(self, root='fs'):
         self.root = os.path.join(Path.home(), root)
+        self.map = {}
 
     def get(self, item: str):
         try:
-            filename = self._key_to_file(item)
+            filename = self._key_to_path(item)
             with open(filename, 'r') as f:
                 v = f.read()
 
@@ -228,10 +229,10 @@ class FSDriver:
             self.__delitem__(key)
         else:
             v = encode(value)
-            filename = self._key_to_file(key)
+            filename = self._key_to_path(key)
+            self.map[str(filename)] = key
 
             os.makedirs(filename.parents[0], exist_ok=True)
-
             with open(filename, 'w') as f:
                 f.write(v)
 
@@ -248,12 +249,10 @@ class FSDriver:
         keys = []
 
         for (r, dirs, files) in sorted(os.walk(self.root, topdown=True)):
-            files.sort()
-            base = r[len(self.root):]
-
             for f in files:
-                if f.endswith(FILE_EXT) and f.startswith(prefix):
-                    keys.append(self.path_to_key(os.path.join(base, f)))
+                key = self.map[r + '/' + f]
+                if key.startswith(prefix):
+                    keys.append(key)
 
                 if 0 < length <= len(keys):
                     break
@@ -298,10 +297,11 @@ class FSDriver:
         self.set(key, value)
 
     def __delitem__(self, key: str):
-        filename = self._key_to_file(key)
+        filename = self._key_to_path(key)
         try:
             os.remove(filename)
-        except FileNotFoundError:
+            del self.map[str(filename)]
+        except:
             pass
 
     @staticmethod
@@ -311,37 +311,13 @@ class FSDriver:
 
         return h.hexdigest()[:-2] + HASH_EXT
 
-    def _key_to_file(self, key: str):
+    def _key_to_path(self, key: str) -> Path:
         filename = key.replace(':', '/')
         filename = filename.replace('.', '/')
-        filename += FILE_EXT
         filename = os.path.join(self.root, filename)
-        return Path(filename)
+        split = filename.rsplit('/', 1)
 
-    def path_to_key(self, path):
-        if path.endswith(FILE_EXT):
-            path = path[:-len(FILE_EXT)]
-
-        pth = path.split('/')
-
-        pth = [p for p in pth if p != '']
-
-        contract = pth.pop(0)
-
-        if len(pth) == 0:
-            return contract
-
-        variable = pth.pop(0)
-
-        key = '.'.join((contract, variable))
-
-        if len(pth) == 0:
-            return key
-
-        key = ':'.join((key, *pth))
-
-        return key
-
+        return Path(split[0] + '/' + self.hash_key(split[-1]))
 
 class LMDBDriver:
     def __init__(self, filename=STORAGE_HOME.joinpath('state')):
