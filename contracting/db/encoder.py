@@ -54,9 +54,11 @@ class Encoder(json.JSONEncoder):
                 '__fixed__': str(fix_precision(decimal.Decimal(_o)))
             }
         else:
-           return safe_repr(o)
+            try:
+                return safe_repr(o)
+            except:
+                return super().default(o)
 
-        return super().default(o)
 
 
 # JSON library from Python 3 doesn't let you instantiate your custom Encoder. You have to pass it as an obj to json
