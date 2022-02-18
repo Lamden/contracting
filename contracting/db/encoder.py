@@ -53,8 +53,8 @@ class Encoder(json.JSONEncoder):
             return {
                 '__fixed__': str(fix_precision(decimal.Decimal(_o)))
             }
-        #else:
-        #    return safe_repr(o)
+        else:
+           return safe_repr(o)
 
         return super().default(o)
 
