@@ -530,7 +530,6 @@ class TestFSDriver(TestCase):
     # Flush this sucker every test
     def setUp(self):
         self.d = FSDriver()
-        self.d.flush()
 
     def tearDown(self):
         self.d.flush()

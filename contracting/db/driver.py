@@ -212,22 +212,25 @@ class FSDriver:
         self.root = root
         self.root.mkdir(exist_ok=True, parents=True)
 
-    def __contract_name_to_path(self, contract_name: str) -> str:
+    def __contract_name_to_path(self, contract_name: str):
         return self.root.joinpath(contract_name)
 
-    def __parse_key(self, key: str) -> tuple:
-        contract_name, variable = key.split('.', 1)
+    def __parse_key(self, key: str):
+        try:
+            contract_name, variable = key.split('.', 1)
+        except ValueError: # NOTE: not enough values to unpack case
+            contract_name, variable = key, key
         group_name = variable.replace(':', '/')
 
         return contract_name, group_name
 
-    def get(self, key: str) -> str:
+    def get(self, key: str):
         contract_name, group_name = self.__parse_key(key)
         try:
             with h5py.File(self.__contract_name_to_path(contract_name), 'r') as f:
                 return decode(f[group_name].attrs.get('value'))
         except:
-            return None
+            raise KeyError
 
     def set(self, key, value):
         contract_name, group_name = self.__parse_key(key)
@@ -248,6 +251,15 @@ class FSDriver:
             if group_name in f:
                 if f[group_name].attrs.__contains__('value'):
                     f[group_name].attrs.__delitem__('value')
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __setitem__(self, key, value):
+        self.set(key, value)
+
+    def __delitem__(self, key):
+        self.delete(key)
 
 class LMDBDriver:
     def __init__(self, filename=STORAGE_HOME.joinpath('state')):
