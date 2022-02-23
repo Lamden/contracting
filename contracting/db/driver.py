@@ -230,7 +230,7 @@ class FSDriver:
             with h5py.File(self.__contract_name_to_path(contract_name), 'r') as f:
                 return decode(f[group_name].attrs.get('value'))
         except:
-            raise KeyError
+            return None
 
     def set(self, key, value):
         contract_name, group_name = self.__parse_key(key)
