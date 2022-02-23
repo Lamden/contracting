@@ -15,6 +15,8 @@ import hashlib
 import lmdb
 import motor.motor_asyncio
 import asyncio
+import h5py
+import json
 
 FILE_EXT = '.d'
 HASH_EXT = '.x'
@@ -205,35 +207,34 @@ class InMemDriver(Driver):
         except KeyError:
             pass
 
-
 class FSDriver:
-    OS_KEY_LIMIT = (256 - 1) - len(FILE_EXT)
+    def __init__(self, root=Path.home().joinpath('fs')):
+        self.root = root
+        self.root.mkdir(exist_ok=True, parents=True)
 
-    def __init__(self, root='fs'):
-        self.root = os.path.join(Path.home(), root)
+    def __contract_name_to_path(self, contract_name: str) -> str:
+        return self.root.joinpath(contract_name)
 
-    def get(self, item: str):
+    def __parse_key(self, key: str) -> tuple:
+        contract_name, variable = key.split('.', 1)
+        group_name = variable.replace(':', '/')
+
+        return contract_name, group_name
+
+    def get(self, key: str) -> str:
+        contract_name, group_name = self.__parse_key(key)
         try:
-            filename = self._key_to_file(item)
-            with open(filename, 'r') as f:
-                v = f.read()
-
-        except FileNotFoundError:
+            with h5py.File(self.__contract_name_to_path(contract_name), 'r') as f:
+                return decode(f[group_name].attrs.get('value'))
+        except:
             return None
 
-        return decode(v)
-
     def set(self, key, value):
-        if value is None:
-            self.__delitem__(key)
-        else:
-            v = encode(value)
-            filename = self._key_to_file(key)
-
-            os.makedirs(filename.parents[0], exist_ok=True)
-
-            with open(filename, 'w') as f:
-                f.write(v)
+        contract_name, group_name = self.__parse_key(key)
+        with h5py.File(self.__contract_name_to_path(contract_name), 'a') as f:
+            if group_name not in f:
+                f.create_group(group_name)
+            f[group_name].attrs.create('value', encode(value))
 
     def flush(self):
         try:
@@ -242,106 +243,11 @@ class FSDriver:
             pass
 
     def delete(self, key: str):
-        self.__delitem__(key)
-
-    def iter(self, prefix: str='', length=0):
-        keys = []
-
-        for (r, dirs, files) in sorted(os.walk(self.root, topdown=True)):
-            files.sort()
-            base = r[len(self.root):]
-
-            for f in files:
-                if f.endswith(FILE_EXT) and f.startswith(prefix):
-                    keys.append(self.path_to_key(os.path.join(base, f)))
-
-                if 0 < length <= len(keys):
-                    break
-
-            if 0 < length <= len(keys):
-                break
-
-        keys.sort()
-
-        return keys
-
-    def _iter(self, prefix: str='', length=0):
-        keys = []
-
-        for (r, dirs, files) in os.walk(os.path.join(self.root, prefix), topdown=True):
-            base = r[len(self.root):]
-
-            for f in files:
-                if f.endswith(FILE_EXT):
-                    keys.append(self.path_to_key(os.path.join(base, f)))
-
-                if 0 < length <= len(keys):
-                    break
-
-            if 0 < length <= len(keys):
-                break
-
-        keys.sort()
-
-        return keys
-
-    def keys(self):
-        return self.iter()
-
-    def __getitem__(self, item: str):
-        value = self.get(item)
-        if value is None:
-            raise KeyError
-        return value
-
-    def __setitem__(self, key: str, value):
-        self.set(key, value)
-
-    def __delitem__(self, key: str):
-        filename = self._key_to_file(key)
-        try:
-            os.remove(filename)
-        except FileNotFoundError:
-            pass
-
-    @staticmethod
-    def hash_key(key: str):
-        h = hashlib.sha3_256()
-        h.update(key.encode())
-
-        return h.hexdigest()[:-2] + HASH_EXT
-
-    def _key_to_file(self, key: str):
-        filename = key.replace(':', '/')
-        filename = filename.replace('.', '/')
-        filename += FILE_EXT
-        filename = os.path.join(self.root, filename)
-        return Path(filename)
-
-    def path_to_key(self, path):
-        if path.endswith(FILE_EXT):
-            path = path[:-len(FILE_EXT)]
-
-        pth = path.split('/')
-
-        pth = [p for p in pth if p != '']
-
-        contract = pth.pop(0)
-
-        if len(pth) == 0:
-            return contract
-
-        variable = pth.pop(0)
-
-        key = '.'.join((contract, variable))
-
-        if len(pth) == 0:
-            return key
-
-        key = ':'.join((key, *pth))
-
-        return key
-
+        contract_name, group_name = self.__parse_key(key)
+        with h5py.File(self.__contract_name_to_path(contract_name), 'a') as f:
+            if group_name in f:
+                if f[group_name].attrs.__contains__('value'):
+                    f[group_name].attrs.__delitem__('value')
 
 class LMDBDriver:
     def __init__(self, filename=STORAGE_HOME.joinpath('state')):
