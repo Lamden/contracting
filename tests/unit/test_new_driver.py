@@ -729,9 +729,8 @@ class TestFSDriver(TestCase):
 
         self.assertListEqual(prefix_2_keys[:5], p2)
 
-    def test_key_error_if_getitem_doesnt_exist(self):
-        with self.assertRaises(KeyError):
-            print(self.d['thing'])
+    def test_key_none_if_getitem_doesnt_exist(self):
+        self.assertIsNone(self.d['thing'])
 
     def test_keys_returns_all_keys(self):
         prefix_1_keys = [

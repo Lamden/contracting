@@ -16,7 +16,6 @@ import lmdb
 import motor.motor_asyncio
 import asyncio
 import h5py
-import json
 
 FILE_EXT = '.d'
 HASH_EXT = '.x'
@@ -212,10 +211,7 @@ class FSDriver:
         self.root = root
         self.root.mkdir(exist_ok=True, parents=True)
 
-    def __contract_name_to_path(self, contract_name: str):
-        return self.root.joinpath(contract_name)
-
-    def __parse_key(self, key: str):
+    def __parse_key(self, key):
         try:
             contract_name, variable = key.split('.', 1)
         except ValueError: # NOTE: not enough values to unpack case
@@ -224,7 +220,10 @@ class FSDriver:
 
         return contract_name, group_name
 
-    def get(self, key: str):
+    def __contract_name_to_path(self, contract_name):
+        return self.root.joinpath(contract_name)
+
+    def get(self, key):
         contract_name, group_name = self.__parse_key(key)
         try:
             with h5py.File(self.__contract_name_to_path(contract_name), 'r') as f:
@@ -237,7 +236,8 @@ class FSDriver:
         with h5py.File(self.__contract_name_to_path(contract_name), 'a') as f:
             if group_name not in f:
                 f.create_group(group_name)
-            f[group_name].attrs.create('value', encode(value))
+            ev = encode(value)
+            f[group_name].attrs.create('value', ev, dtype='S'+str(len(ev)))
 
     def flush(self):
         try:
@@ -248,9 +248,8 @@ class FSDriver:
     def delete(self, key: str):
         contract_name, group_name = self.__parse_key(key)
         with h5py.File(self.__contract_name_to_path(contract_name), 'a') as f:
-            if group_name in f:
-                if f[group_name].attrs.__contains__('value'):
-                    f[group_name].attrs.__delitem__('value')
+            if group_name in f and 'value' in f[group_name].attrs:
+                del f[group_name].attrs['value']
 
     def __getitem__(self, key):
         return self.get(key)
