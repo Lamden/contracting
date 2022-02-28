@@ -226,7 +226,7 @@ class FSDriver:
             self._groups_with_values.append(name)
 
     def __get_contracts(self):
-        return sorted([contract_name for contract_name in os.listdir(self.root)])
+        return sorted(os.listdir(self.root))
 
     def __get_keys_from_contract(self, contract):
         self._groups_with_values = []
