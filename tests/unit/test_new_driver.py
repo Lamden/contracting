@@ -589,7 +589,7 @@ class TestFSDriver(TestCase):
 
         p1 = []
 
-        for k in self.d.keys(prefix='b'):
+        for k in self.d.iter(prefix='b'):
             p1.append(k)
 
         prefix_1_keys.sort()
@@ -599,7 +599,7 @@ class TestFSDriver(TestCase):
 
         p2 = []
 
-        for k in self.d.keys(prefix='x'):
+        for k in self.d.iter(prefix='x'):
             p2.append(k)
 
         prefix_2_keys.sort()
@@ -711,7 +711,7 @@ class TestFSDriver(TestCase):
 
         p1 = []
 
-        for k in self.d.keys(prefix='b', num_keys=3):
+        for k in self.d.iter(prefix='b', length=3):
             p1.append(k)
 
         prefix_1_keys.sort()
@@ -721,7 +721,7 @@ class TestFSDriver(TestCase):
 
         p2 = []
 
-        for k in self.d.keys(prefix='x', num_keys=5):
+        for k in self.d.iter(prefix='x', length=5):
             p2.append(k)
 
         prefix_2_keys.sort()
