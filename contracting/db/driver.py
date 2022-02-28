@@ -210,18 +210,31 @@ class FSDriver:
     def __init__(self, root=Path.home().joinpath('fs')):
         self.root = root
         self.root.mkdir(exist_ok=True, parents=True)
+        self._groups_with_values = []
 
     def __parse_key(self, key):
-        try:
-            contract_name, variable = key.split('.', 1)
-        except ValueError: # NOTE: not enough values to unpack case
-            contract_name, variable = key, key
+        contract_name, variable = key.split('.', 1)
         group_name = variable.replace(':', '/')
 
         return contract_name, group_name
 
     def __contract_name_to_path(self, contract_name):
         return self.root.joinpath(contract_name)
+
+    def __store_group_if_has_value_cb(self, name, obj):
+        if 'value' in obj.attrs:
+            self._groups_with_values.append(name)
+
+    def __get_contracts(self):
+        return sorted([contract_name for contract_name in os.listdir(self.root)])
+
+    def __get_keys_from_contract(self, contract):
+        self._groups_with_values = []
+        with h5py.File(self.__contract_name_to_path(contract), 'r') as f:
+            f.visititems(self.__store_group_if_has_value_cb)
+        keys = [contract + '.' + group.replace('/', ':') for group in self._groups_with_values]
+        
+        return keys
 
     def get(self, key):
         contract_name, group_name = self.__parse_key(key)
@@ -245,11 +258,25 @@ class FSDriver:
         except FileNotFoundError:
             pass
 
-    def delete(self, key: str):
+    def delete(self, key):
         contract_name, group_name = self.__parse_key(key)
         with h5py.File(self.__contract_name_to_path(contract_name), 'a') as f:
             if group_name in f and 'value' in f[group_name].attrs:
                 del f[group_name].attrs['value']
+
+    def iter(self, prefix='', length=0):
+        contracts = self.__get_contracts()
+        keys = []
+        for contract in contracts:
+            if contract.startswith(prefix):
+                keys.extend(self.__get_keys_from_contract(contract))
+            if length > 0 and len(keys) >= length:
+                break
+
+        return keys if length == 0 else keys[:length]
+
+    def keys(self):
+        return self.iter()
 
     def __getitem__(self, key):
         return self.get(key)
