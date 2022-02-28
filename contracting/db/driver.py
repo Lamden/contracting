@@ -253,10 +253,8 @@ class FSDriver:
             f[group_name].attrs.create('value', ev, dtype='S'+str(len(ev)))
 
     def flush(self):
-        try:
-            shutil.rmtree(self.root)
-        except FileNotFoundError:
-            pass
+        for f in os.listdir(self.root):
+            os.remove(self.root.joinpath(f))
 
     def delete(self, key):
         contract_name, group_name = self.__parse_key(key)
