@@ -553,7 +553,7 @@ class TestFSDriver(TestCase):
             b = self.d.get('b.b')
             self.assertIsNone(b)
 
-    def test_iter(self):
+    def test_keys_with_prefix(self):
 
         prefix_1_keys = [
             'b77aa343e339bed78.1c7c2be1267cd597',
@@ -589,7 +589,7 @@ class TestFSDriver(TestCase):
 
         p1 = []
 
-        for k in self.d.iter(prefix='b'):
+        for k in self.d.keys(prefix='b'):
             p1.append(k)
 
         prefix_1_keys.sort()
@@ -599,7 +599,7 @@ class TestFSDriver(TestCase):
 
         p2 = []
 
-        for k in self.d.iter(prefix='x'):
+        for k in self.d.keys(prefix='x'):
             p2.append(k)
 
         prefix_2_keys.sort()
@@ -676,7 +676,7 @@ class TestFSDriver(TestCase):
 
         self.assertEqual(self.d.get('t.t'), None)
 
-    def test_iter_with_length_returns_list_of_size_l(self):
+    def test_keys_with_length_returns_list_of_size_l(self):
         prefix_1_keys = [
             'b77aa343e339bed7.81c7c2be1267cd597',
             'bc22ede6e6fb4046.d78bf2f9d1f8afdb6',
@@ -711,7 +711,7 @@ class TestFSDriver(TestCase):
 
         p1 = []
 
-        for k in self.d.iter(prefix='b', length=3):
+        for k in self.d.keys(prefix='b', num_keys=3):
             p1.append(k)
 
         prefix_1_keys.sort()
@@ -721,7 +721,7 @@ class TestFSDriver(TestCase):
 
         p2 = []
 
-        for k in self.d.iter(prefix='x', length=5):
+        for k in self.d.keys(prefix='x', num_keys=5):
             p2.append(k)
 
         prefix_2_keys.sort()
