@@ -262,7 +262,7 @@ class FSDriver:
             if group_name in f and 'value' in f[group_name].attrs:
                 del f[group_name].attrs['value']
 
-    def keys(self, prefix='', num_keys=0):
+    def iter(self, prefix='', num_keys=0):
         contracts = self.__get_contracts()
         keys = []
         for contract in contracts:
@@ -272,6 +272,9 @@ class FSDriver:
                 break
 
         return keys if num_keys == 0 else keys[:num_keys]
+    
+    def keys(self):
+        return self.iter()
 
     def __getitem__(self, key):
         return self.get(key)
