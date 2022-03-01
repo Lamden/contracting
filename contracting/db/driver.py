@@ -15,7 +15,7 @@ import hashlib
 import lmdb
 import motor.motor_asyncio
 import asyncio
-import h5py
+import contracting.db.hdf5 as hdf5
 
 FILE_EXT = '.d'
 HASH_EXT = '.x'
@@ -210,71 +210,21 @@ class FSDriver:
     def __init__(self, root=Path.home().joinpath('fs')):
         self.root = root
         self.root.mkdir(exist_ok=True, parents=True)
-        self._groups_with_values = []
 
     def __parse_key(self, key):
-        contract_name, variable = key.split('.', 1)
+        filename, variable = key.split('.', 1)
         group_name = variable.replace(':', '/')
 
-        return contract_name, group_name
+        return filename, group_name
 
-    def __contract_name_to_path(self, contract_name):
-        return self.root.joinpath(contract_name)
+    def __filename_to_path(self, filename):
+        return self.root.joinpath(filename)
 
-    def __store_group_if_has_value_cb(self, name, obj):
-        if 'value' in obj.attrs:
-            self._groups_with_values.append(name)
-
-    def __get_contracts(self):
+    def __get_files(self):
         return sorted(os.listdir(self.root))
 
-    def __get_keys_from_contract(self, contract):
-        self._groups_with_values = []
-        with h5py.File(self.__contract_name_to_path(contract), 'r') as f:
-            f.visititems(self.__store_group_if_has_value_cb)
-        keys = [contract + '.' + group.replace('/', ':') for group in self._groups_with_values]
-        
-        return keys
-
-    def get(self, key):
-        contract_name, group_name = self.__parse_key(key)
-        try:
-            with h5py.File(self.__contract_name_to_path(contract_name), 'r') as f:
-                return decode(f[group_name].attrs.get('value'))
-        except:
-            return None
-
-    def set(self, key, value):
-        contract_name, group_name = self.__parse_key(key)
-        with h5py.File(self.__contract_name_to_path(contract_name), 'a') as f:
-            if group_name not in f:
-                f.create_group(group_name)
-            ev = encode(value)
-            f[group_name].attrs.create('value', ev, dtype='S'+str(len(ev)))
-
-    def flush(self):
-        for f in os.listdir(self.root):
-            os.remove(self.root.joinpath(f))
-
-    def delete(self, key):
-        contract_name, group_name = self.__parse_key(key)
-        with h5py.File(self.__contract_name_to_path(contract_name), 'a') as f:
-            if group_name in f and 'value' in f[group_name].attrs:
-                del f[group_name].attrs['value']
-
-    def iter(self, prefix='', length=0):
-        contracts = self.__get_contracts()
-        keys = []
-        for contract in contracts:
-            if contract.startswith(prefix):
-                keys.extend(self.__get_keys_from_contract(contract))
-            if length > 0 and len(keys) >= length:
-                break
-
-        return keys if length == 0 else keys[:length]
-    
-    def keys(self):
-        return self.iter()
+    def __get_keys_from_file(self, filename):
+        return [filename + '.' + group.replace('/', ':') for group in hdf5.get_groups(self.__filename_to_path(filename))]
 
     def __getitem__(self, key):
         return self.get(key)
@@ -284,6 +234,39 @@ class FSDriver:
 
     def __delitem__(self, key):
         self.delete(key)
+
+    def get(self, key):
+        filename, group_name = self.__parse_key(key)
+
+        return hdf5.get_value(self.__filename_to_path(filename), group_name)
+
+    def set(self, key, value):
+        filename, group_name = self.__parse_key(key)
+        hdf5.set_value(self.__filename_to_path(filename), group_name, value)
+
+    def flush(self):
+        try:
+            shutil.rmtree(self.root)
+            self.root.mkdir(exist_ok=True, parents=True)
+        except FileNotFoundError:
+            pass
+
+    def delete(self, key):
+        filename, group_name = self.__parse_key(key)
+        hdf5.del_value(self.__filename_to_path(filename), group_name)
+
+    def iter(self, prefix='', length=0):
+        keys = []
+        for filename in self.__get_files():
+            if filename.startswith(prefix):
+                keys.extend(self.__get_keys_from_file(filename))
+            if length > 0 and len(keys) >= length:
+                break
+
+        return keys if length == 0 else keys[:length]
+    
+    def keys(self):
+        return self.iter()
 
 class LMDBDriver:
     def __init__(self, filename=STORAGE_HOME.joinpath('state')):
@@ -383,7 +366,7 @@ class WebDriver(InMemDriver):
 
 
 class CacheDriver:
-    def __init__(self, driver: Driver=FSDriver()):
+    def __init__(self, driver: FSDriver=FSDriver()):
         self.driver = driver
         self.cache = {}
 
