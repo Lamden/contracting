@@ -213,9 +213,9 @@ class FSDriver:
 
     def __parse_key(self, key):
         filename, variable = key.split('.', 1)
-        group_name = variable.replace(':', '/')
+        variable = variable.replace(':', '/')
 
-        return filename, group_name
+        return filename, variable
 
     def __filename_to_path(self, filename):
         return self.root.joinpath(filename)
@@ -224,7 +224,7 @@ class FSDriver:
         return sorted(os.listdir(self.root))
 
     def __get_keys_from_file(self, filename):
-        return [filename + '.' + group.replace('/', ':') for group in hdf5.get_groups(self.__filename_to_path(filename))]
+        return [filename + '.' + var.replace('/', ':') for var in hdf5.get_vars(self.__filename_to_path(filename))]
 
     def __getitem__(self, key):
         return self.get(key)
@@ -236,13 +236,13 @@ class FSDriver:
         self.delete(key)
 
     def get(self, key):
-        filename, group_name = self.__parse_key(key)
+        filename, variable = self.__parse_key(key)
 
-        return hdf5.get_value(self.__filename_to_path(filename), group_name)
+        return hdf5.get_value(self.__filename_to_path(filename), variable)
 
     def set(self, key, value):
-        filename, group_name = self.__parse_key(key)
-        hdf5.set_value(self.__filename_to_path(filename), group_name, value)
+        filename, variable = self.__parse_key(key)
+        hdf5.set_value(self.__filename_to_path(filename), variable, value)
 
     def flush(self):
         try:
@@ -252,8 +252,8 @@ class FSDriver:
             pass
 
     def delete(self, key):
-        filename, group_name = self.__parse_key(key)
-        hdf5.del_value(self.__filename_to_path(filename), group_name)
+        filename, variable = self.__parse_key(key)
+        hdf5.del_value(self.__filename_to_path(filename), variable)
 
     def iter(self, prefix='', length=0):
         keys = []

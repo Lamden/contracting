@@ -1,36 +1,36 @@
 import h5py
 from contracting.db.encoder import encode, decode
 
-_groups_with_values = []
+_vars_with_values = []
 
-def _store_group_if_has_value_cb(name, obj):
-    global _groups_with_values
+def _store_var_if_has_value_cb(name, obj):
+    global _vars_with_values
     if 'value' in obj.attrs:
-        _groups_with_values.append(name)
+        _vars_with_values.append(name)
 
-def set_value(filename, group_name, value):
+def set_value(filename, variable, value):
     with h5py.File(filename, 'a') as f:
-        if group_name not in f:
-            f.create_group(group_name)
+        if variable not in f:
+            f.create_group(variable)
         ev = encode(value)
-        f[group_name].attrs.create('value', ev, dtype='S'+str(len(ev)))
+        f[variable].attrs.create('value', ev, dtype='S'+str(len(ev)))
 
-def get_value(filename, group_name):
+def get_value(filename, variable):
     try:
         with h5py.File(filename, 'r') as f:
-            return decode(f[group_name].attrs['value'])
+            return decode(f[variable].attrs['value'])
     except:
         return None
 
-def del_value(filename, group_name):
+def del_value(filename, variable):
     with h5py.File(filename, 'a') as f:
-        if group_name in f and 'value' in f[group_name].attrs:
-            del f[group_name].attrs['value']
+        if variable in f and 'value' in f[variable].attrs:
+            del f[variable].attrs['value']
 
-def get_groups(filename):
-    global _groups_with_values
-    _groups_with_values = []
+def get_vars(filename):
+    global _vars_with_values
+    _vars_with_values = []
     with h5py.File(filename, 'r') as f:
-        f.visititems(_store_group_if_has_value_cb)
+        f.visititems(_store_var_if_has_value_cb)
 
-    return _groups_with_values
+    return _vars_with_values
