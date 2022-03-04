@@ -21,6 +21,7 @@ FILE_EXT = '.d'
 HASH_EXT = '.x'
 
 STORAGE_HOME = Path().home().joinpath('.lamden')
+FSDRIVER_HOME = Path.home().joinpath('fs')
 
 # DB maps bytes to bytes
 # Driver maps string to python object
@@ -207,13 +208,13 @@ class InMemDriver(Driver):
             pass
 
 class FSDriver:
-    def __init__(self, root=Path.home().joinpath('fs')):
+    def __init__(self, root=FSDRIVER_HOME):
         self.root = root
         self.root.mkdir(exist_ok=True, parents=True)
 
     def __parse_key(self, key):
-        filename, variable = key.split('.', 1)
-        variable = variable.replace(':', '/')
+        filename, variable = key.split(config.INDEX_SEPARATOR, 1)
+        variable = variable.replace(config.DELIMITER, hdf5.GROUP_SEPARATOR)
 
         return filename, variable
 
@@ -224,7 +225,7 @@ class FSDriver:
         return sorted(os.listdir(self.root))
 
     def __get_keys_from_file(self, filename):
-        return [filename + '.' + var.replace('/', ':') for var in hdf5.get_vars(self.__filename_to_path(filename))]
+        return [filename + config.INDEX_SEPARATOR + g.replace(hdf5.GROUP_SEPARATOR, config.DELIMITER) for g in hdf5.get_groups(self.__filename_to_path(filename))]
 
     def __getitem__(self, key):
         return self.get(key)
