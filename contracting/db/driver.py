@@ -366,65 +366,80 @@ class WebDriver(InMemDriver):
         return decode(r.json()['value'])
 
 
-class CacheDriver:
-    def __init__(self, driver: FSDriver=FSDriver()):
-        self.driver = driver
-        self.cache = {}
+class Delta:
+    def __init__(self, writes, reads):
+        self.writes = writes
+        self.reads = reads
 
-        self.reads = set()
-        self.pending_writes = {}
+class CacheDriver:
+    def __init__(self, driver: Driver=LMDBDriver()):
+        self.pending_writes = {}    # L2 cache
+        self.cache = {}             # L1 cache
+        self.driver = driver        # L0 cache
+
+        self.pending_reads = {}
 
         self.pending_deltas = {}
 
-    def soft_apply(self, hcl: str, state_changes: dict):
-        deltas = {}
+    def find(self, key: str):
+        value = self.pending_writes.get(key)
+        if value is not None:
+            return value
 
-        for k, v in state_changes.items():
-            current = self.get(k)
-            deltas[k] = (current, v)
+        value = self.cache.get(key)
+        if value is not None:
+            return value
 
-            self.set(k, v)
+        value = self.driver.get(key)
+        if value is not None:
+            return value
 
-        self.pending_deltas[hcl] = deltas
+        return None
 
-    def get(self, key: str, mark=True):
-        # Try to get from cache
-        v = self.cache.get(key)
-        if v is not None:
-            rt.deduct_read(*encode_kv(key, v))
-            return v
+    def get(self, key: str):
 
-        # If it doesn't exist, get from db, add to cache
-        dv = self.driver.get(key)
-        rt.deduct_read(*encode_kv(key, dv))
+        value = self.find(key)
 
-        self.cache[key] = dv
+        if self.pending_reads.get(key) is None:
+            self.pending_reads[key] = value
 
-        # Add key to reads
-        if mark:
-            self.reads.add(key)
+        if value is not None:
+            rt.deduct_read(*encode_kv(key, value))
 
-        return dv
+        return value
 
-    def set(self, key, value, mark=True):
+    def set(self, key, value):
         rt.deduct_write(*encode_kv(key, value))
+
+        if self.pending_reads.get(key) is None:
+            self.get(key)
 
         if type(value) == decimal.Decimal or type(value) == float:
             value = ContractingDecimal(str(value))
 
-        self.cache[key] = value
-        if mark:
-            self.pending_writes[key] = value
+        self.pending_writes[key] = value
 
-    def delete(self, key, mark=True):
-        self.set(key, None, mark=mark)
+    def delete(self, key):
+        self.set(key, None)
 
-    def commit(self):
+    #TODO: Fix bug where rolling back on a key written to twice rolls back to the initial state instead of the immediate previous value
+    def soft_apply(self, hcl: str):
+        deltas = {}
+
         for k, v in self.pending_writes.items():
-            if v is None:
-                self.driver.delete(k)
-            else:
-                self.driver.set(k, v)
+            current = self.pending_reads.get(k)
+            deltas[k] = (current, v)
+
+            self.cache[k] = v
+
+        self.pending_deltas[hcl] = {
+            'writes': deltas,
+            'reads': self.pending_reads
+        }
+
+        # Clear the top cache
+        self.pending_reads = {}
+        self.pending_writes.clear()
 
     def hard_apply(self, hlc):
         # see if the HCL even exists
@@ -437,13 +452,9 @@ class CacheDriver:
         for _hlc, _deltas in sorted(self.pending_deltas.items()):
 
             # Run through all state changes, taking the second value, which is the post delta
-            for key, delta in _deltas.items():
+            for key, delta in _deltas['writes'].items():
                 self.driver.set(key, delta[1])
-
-                try:
-                    self.cache.pop(key)
-                except KeyError:
-                    pass
+                # self.cache[key] = delta[1]
 
             # Add the key (
             to_delete.append(_hlc)
@@ -453,19 +464,52 @@ class CacheDriver:
         # Remove the deltas from the set
         [self.pending_deltas.pop(key) for key in to_delete]
 
-    def rollback(self):
-        # Run through the state changes in reverse, reversing the newest to the oldest
-        for _hlc, _deltas in reversed(sorted(self.pending_deltas.items())):
-            # Run through all state changes, taking the first value, which is the pre delta
-            for key, delta in _deltas.items():
-                self.set(key, delta[0])
+    # Same as hard apply but for only the most recent changes and the cache
+    def commit(self):
+        self.cache.update(self.pending_writes)
 
-        self.pending_deltas.clear()
+        for k, v in self.cache.items():
+            if v is None:
+                self.driver.delete(k)
+            else:
+                self.driver.set(k, v)
+
+        self.cache.clear()
+        self.pending_writes.clear()
+        self.pending_reads = {}
+
+    def rollback(self, hlc=None):
+        if hlc is None:
+            # Returns to disk state which should be whatever it was prior to any write sessions
+            self.cache.clear()
+            self.pending_reads = {}
+            self.pending_writes.clear()
+            self.pending_deltas.clear()
+        else:
+            to_delete = []
+            for _hlc, _deltas in sorted(self.pending_deltas.items())[::-1]:
+                # Clears the current reads/writes, and the reads/writes that get made when rolling back from the
+                # last HLC
+                self.pending_reads = {}
+                self.pending_writes.clear()
+
+
+                if _hlc < hlc:
+                    # if we are less than the HLC then top processing anymore, this is our rollback point
+                    break
+                else:
+                    # if we are still greater than or equal to then mark this as delete and rollback its changes
+                    to_delete.append(_hlc)
+                    # Run through all state changes, taking the second value, which is the post delta
+                    for key, delta in _deltas['writes'].items():
+                        # self.set(key, delta[0])
+                        self.cache[key] = delta[0]
+
+            # Remove the deltas from the set
+            [self.pending_deltas.pop(key) for key in to_delete]
 
     def clear_pending_state(self):
-        self.cache.clear()
-        self.reads.clear()
-        self.pending_writes.clear()
+        self.rollback()
 
 
 class ContractDriver(CacheDriver):
