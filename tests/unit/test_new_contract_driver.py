@@ -5,6 +5,7 @@ from contracting.stdlib.bridge.time import Datetime
 import marshal
 from datetime import datetime
 
+
 class TestContractDriver(TestCase):
     def setUp(self):
         self.d = Driver()
@@ -128,6 +129,8 @@ class TestContractDriver(TestCase):
 
         for k, v in kvs_1.items():
             self.c.set(k, v)
+
+        self.c.commit()
 
         for k, v in kvs_2.items():
             self.c.driver.set(k, v)

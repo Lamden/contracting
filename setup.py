@@ -8,7 +8,7 @@ major = 0
 
 __version__ = '1.0.5.2'
 
-requirements = ['astor', 'pymongo', 'autopep8', 'stdlib_list']
+requirements = ['astor', 'pymongo', 'autopep8', 'stdlib_list', 'lamdb']
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
 
