@@ -549,11 +549,11 @@ class ContractDriver(CacheDriver):
 
     def get_var(self, contract, variable, arguments=[], mark=True):
         key = self.make_key(contract, variable, arguments)
-        return self.get(key, mark=mark)
+        return self.get(key)
 
     def set_var(self, contract, variable, arguments=[], value=None, mark=True):
         key = self.make_key(contract, variable, arguments)
-        self.set(key, value, mark=mark)
+        self.set(key, value)
 
     def get_contract(self, name):
         return self.get_var(name, CODE_KEY)
