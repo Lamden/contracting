@@ -552,11 +552,11 @@ class ContractDriver(CacheDriver):
 
     def get_var(self, contract, variable, arguments=[], mark=True):
         key = self.make_key(contract, variable, arguments)
-        return self.get(key, mark=mark)
+        return self.get(key)
 
     def set_var(self, contract, variable, arguments=[], value=None, mark=True):
         key = self.make_key(contract, variable, arguments)
-        self.set(key, value, mark=mark)
+        self.set(key, value)
 
     def get_contract(self, name):
         return self.get_var(name, CODE_KEY)
@@ -609,7 +609,7 @@ class ContractDriver(CacheDriver):
         if hlc_timestamp is None:
             # Returns to disk state which should be whatever it was prior to any write sessions
             self.cache.clear()
-            self.reads = set()
+            self.pending_reads = {}
             self.pending_writes.clear()
             self.pending_deltas.clear()
         else:
@@ -617,7 +617,7 @@ class ContractDriver(CacheDriver):
             for _hlc, _deltas in sorted(self.pending_deltas.items())[::-1]:
                 # Clears the current reads/writes, and the reads/writes that get made when rolling back from the
                 # last HLC
-                self.reads = set()
+                self.pending_reads = {}
                 self.pending_writes.clear()
 
 
