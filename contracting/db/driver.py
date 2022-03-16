@@ -21,7 +21,7 @@ FILE_EXT = '.d'
 HASH_EXT = '.x'
 
 STORAGE_HOME = Path().home().joinpath('.lamden')
-FSDRIVER_HOME = Path.home().joinpath('fs')
+FSDRIVER_HOME = STORAGE_HOME.joinpath('state')
 
 # DB maps bytes to bytes
 # Driver maps string to python object
