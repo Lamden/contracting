@@ -214,8 +214,13 @@ class FSDriver:
         self.root.mkdir(exist_ok=True, parents=True)
 
     def __parse_key(self, key):
-        filename, variable = key.split(config.INDEX_SEPARATOR, 1)
-        variable = variable.replace(config.DELIMITER, hdf5.GROUP_SEPARATOR)
+        try:
+            filename, variable = key.split(config.INDEX_SEPARATOR, 1)
+            variable = variable.replace(config.DELIMITER, hdf5.GROUP_SEPARATOR)
+        except ValueError:
+            filename = '__misc'
+            variable = key
+            variable = variable.replace(config.DELIMITER, hdf5.GROUP_SEPARATOR)
 
         return filename, variable
 
