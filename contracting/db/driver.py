@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import shutil
 import hashlib
+
 import lmdb
 import motor.motor_asyncio
 import asyncio
@@ -280,8 +281,8 @@ class LMDBDriver:
         self.filename = filename
         self.filename.mkdir(exist_ok=True, parents=True)
 
-        self.db_writer = lmdb.open(path=str(self.filename), map_size=int(1e12), readonly=False)
-        self.db_reader = lmdb.open(path=str(self.filename), map_size=int(1e12), readonly=True, lock=False)
+        self.db_writer = lamdb.open(path=str(self.filename), map_size=int(1e12), readonly=False)
+        self.db_reader = lamdb.open(path=str(self.filename), map_size=int(1e12), readonly=True, lock=False)
 
     def get(self, item: str):
         with self.db_reader.begin() as tx:
@@ -370,12 +371,6 @@ class WebDriver(InMemDriver):
 
         r = requests.get(f'{self.masternode}/contracts/{contract}/{variable}?key={keys}')
         return decode(r.json()['value'])
-
-
-class Delta:
-    def __init__(self, writes, reads):
-        self.writes = writes
-        self.reads = reads
 
 class CacheDriver:
     def __init__(self, driver: Driver=LMDBDriver()):
@@ -528,6 +523,12 @@ class ContractDriver(CacheDriver):
         # Get all of the items in the cache currently
         _items = {}
         keys = set()
+
+        for k, v in self.pending_writes.items():
+            if k.startswith(prefix) and v is not None:
+                _items[k] = v
+                keys.add(k)
+
         for k, v in self.cache.items():
             if k.startswith(prefix) and v is not None:
                 _items[k] = v
@@ -645,19 +646,6 @@ class ContractDriver(CacheDriver):
 
         self.log.debug(f"Length of Pending Deltas AFTER {len(self.driver.pending_deltas.keys())}")
 
-    # Set cache to None
-    # Set pending writes to none
-    # def delete(self, key):
-    #     # if self.cache.get(key) is not None:
-    #     #     del self.cache[key]
-    #     #
-    #     # if self.pending_writes.get(key) is not None:
-    #     #     del self.pending_writes[key]
-    #     #
-    #     # self.driver.delete(key)
-    #     self.cache[key] = None
-    #     self.pending_writes[key] = None
-
 
 class AsyncContractDriver:
     def __init__(self, driver: AsyncDriver):
@@ -717,18 +705,3 @@ class AsyncContractDriver:
 
     def get_contract_keys(self, name):
         return self.keys(name)
-
-    # Set cache to None
-    # Set pending writes to none
-    # def delete(self, key):
-    #     # if self.cache.get(key) is not None:
-    #     #     del self.cache[key]
-    #     #
-    #     # if self.pending_writes.get(key) is not None:
-    #     #     del self.pending_writes[key]
-    #     #
-    #     # self.driver.delete(key)
-    #     self.cache[key] = None
-    #     self.pending_writes[key] = None
-
-
