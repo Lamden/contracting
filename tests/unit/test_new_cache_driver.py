@@ -265,5 +265,5 @@ class TestCacheDriver(TestCase):
         self.c.pending_writes['none'] = 5555
 
         x = self.c.find('none')
-
+        
         self.assertEqual(x, 5555)

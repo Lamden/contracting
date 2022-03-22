@@ -4,13 +4,15 @@ from contracting.stdlib.bridge.time import Datetime, Timedelta
 from contracting.stdlib.bridge.decimal import ContractingDecimal, MAX_LOWER_PRECISION, fix_precision
 from contracting.config import INDEX_SEPARATOR, DELIMITER
 
+MONGO_MIN_INT = -(2 ** 63)
+MONGO_MAX_INT = 2 ** 63 - 1
+
 ##
 # ENCODER CLASS
 # Add to this to encode Python types for storage.
 # Right now, this is only for datetime types. They are passed into the system as ISO strings, cast into Datetime objs
 # and stored as dicts. Is there a better way? I don't know, maybe.
 ##
-
 
 def safe_repr(obj, max_len=1024):
     try:
@@ -47,22 +49,54 @@ class Encoder(json.JSONEncoder):
             return {
                 '__fixed__': str(fix_precision(o._d))
             }
-        elif isinstance(o, float):
-            #return format(o, f'.{MAX_LOWER_PRECISION}f')
-            _o = format(o, f'.{MAX_LOWER_PRECISION}f')
-            return {
-                '__fixed__': str(fix_precision(decimal.Decimal(_o)))
-            }
         #else:
         #    return safe_repr(o)
-
         return super().default(o)
 
+def encode_int(value: int):
+    if MONGO_MIN_INT < value and value < MONGO_MAX_INT:
+        return value
+
+    return {
+        '__big_int__': str(value)
+    }
+
+def encode_ints_in_dict(data: dict):
+    d = dict()
+    for k, v in data.items():
+        if isinstance(v, int):
+            d[k] = encode_int(v)
+        elif isinstance(v, dict):
+            d[k] = encode_ints_in_dict(v)
+        elif isinstance(v, list):
+            d[k] = []
+            for i in v:
+                if isinstance(i, dict):
+                    d[k].append(encode_ints_in_dict(i))
+                elif isinstance(i, int):
+                    d[k].append(encode_int(i))
+                else:
+                    d[k].append(i)
+        else:
+            d[k] = v
+
+    return d
 
 # JSON library from Python 3 doesn't let you instantiate your custom Encoder. You have to pass it as an obj to json
 def encode(data: str):
-    return json.dumps(data, cls=Encoder, separators=(',', ':'))
+    """ NOTE:
+    Normally encoding behavior is overriden in 'default' method inside
+    a class derived from json.JSONEncoder. Unfortunately this can be done only
+    for custom types.
+    
+    Due to MongoDB integer limitation (8 bytes), we need to preprocess 'big' integers.
+    """
+    if isinstance(data, int):
+        data = encode_int(data)
+    elif isinstance(data, dict):
+        data = encode_ints_in_dict(data)
 
+    return json.dumps(data, cls=Encoder, separators=(',', ':'))
 
 def as_object(d):
     if '__time__' in d:
@@ -73,6 +107,8 @@ def as_object(d):
         return bytes.fromhex(d['__bytes__'])
     elif '__fixed__' in d:
         return ContractingDecimal(d['__fixed__'])
+    elif '__big_int__' in d:
+        return int(d['__big_int__'])
     return dict(d)
 
 
@@ -118,7 +154,7 @@ def decode_kv(key, value):
     return k, v
 
 
-TYPES = {'__fixed__', '__delta__', '__bytes__', '__time__'}
+TYPES = {'__fixed__', '__delta__', '__bytes__', '__time__', '__big_int__'}
 def convert(k, v):
     if k == '__fixed__':
         return ContractingDecimal(v)
@@ -128,6 +164,8 @@ def convert(k, v):
         return bytes.fromhex(v)
     elif k == '__time__':
         return Datetime(*v)
+    elif k == '__big_int__':
+        return int(v)
     return v
 
 

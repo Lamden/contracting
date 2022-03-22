@@ -103,10 +103,15 @@ class Timedelta:
                        minutes=0,
                        seconds=0):
 
-        self._timedelta = td(weeks=weeks, days=days, hours=hours, minutes=minutes, seconds=seconds)
+        self._timedelta = td(
+            weeks=int(weeks), days=int(days), hours=int(hours), minutes=int(minutes), seconds=int(seconds)
+        )
+
 
         # For fast access to how many hours are in a timedelta.
-        self.__raw_seconds = get_raw_seconds(weeks=weeks, days=days, hours=hours, minutes=minutes, seconds=seconds)
+        self.__raw_seconds = get_raw_seconds(
+            weeks=int(weeks), days=int(days), hours=int(hours), minutes=int(minutes), seconds=int(seconds)
+        )
 
     def __lt__(self, other):
         if type(other) != Timedelta:
@@ -143,12 +148,22 @@ class Timedelta:
         if isinstance(other, Timedelta):
             return Timedelta(days=self._timedelta.days + other._timedelta.days,
                              seconds=self._timedelta.seconds + other._timedelta.seconds)
+
+        if isinstance(other, Datetime):
+            d = other._datetime + self._timedelta
+            return Datetime._from_datetime(d)
+
         return NotImplemented
 
     def __sub__(self, other):
         if isinstance(other, Timedelta):
             return Timedelta(days=self._timedelta.days - other._timedelta.days,
                              seconds=self._timedelta.seconds - other._timedelta.seconds,)
+
+        if isinstance(other, Datetime):
+            d = other._datetime - self._timedelta
+            return Datetime._from_datetime(d)
+
         return NotImplemented
 
     def __mul__(self, other):

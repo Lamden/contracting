@@ -1,5 +1,5 @@
 from unittest import TestCase
-from contracting.stdlib.bridge.time import Timedelta, WEEKS, DAYS, HOURS, MINUTES, SECONDS
+from contracting.stdlib.bridge.time import Timedelta, WEEKS, DAYS, HOURS, MINUTES, SECONDS, Datetime
 from datetime import datetime as dt
 from datetime import timedelta
 import decimal
@@ -258,3 +258,17 @@ class TestTimedelta(TestCase):
 
         self.assertEqual(t.days, 15)
         self.assertEqual(t.hours, 364)
+
+    def test_adding_timedelta_to_datetime_returns_correct(self):
+        t = Timedelta(days=1)
+        d = Datetime(2020, 10, 1)
+        d2 = t + d
+
+        self.assertEqual(d2, Datetime(2020, 10, 2))
+
+    def test_subtracting_timedelta_to_datetime_returns_correct(self):
+        t = Timedelta(days=1)
+        d = Datetime(2020, 10, 1)
+        d2 = t - d
+
+        self.assertEqual(d2, Datetime(2020, 9, 30))
