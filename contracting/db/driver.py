@@ -16,6 +16,7 @@ import lmdb
 import motor.motor_asyncio
 import asyncio
 import contracting.db.hdf5 as hdf5
+import logging
 
 FILE_EXT = '.d'
 HASH_EXT = '.x'
@@ -213,8 +214,13 @@ class FSDriver:
         self.root.mkdir(exist_ok=True, parents=True)
 
     def __parse_key(self, key):
-        filename, variable = key.split(config.INDEX_SEPARATOR, 1)
-        variable = variable.replace(config.DELIMITER, hdf5.GROUP_SEPARATOR)
+        try:
+            filename, variable = key.split(config.INDEX_SEPARATOR, 1)
+            variable = variable.replace(config.DELIMITER, hdf5.GROUP_SEPARATOR)
+        except ValueError:
+            filename = '__misc'
+            variable = key
+            variable = variable.replace(config.DELIMITER, hdf5.GROUP_SEPARATOR)
 
         return filename, variable
 
@@ -516,6 +522,7 @@ class ContractDriver(CacheDriver):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.delimiter = '.'
+        self.log = logging.getLogger('Driver')
 
     def items(self, prefix=''):
         # Get all of the items in the cache currently
@@ -597,6 +604,46 @@ class ContractDriver(CacheDriver):
 
     def get_contract_keys(self, name):
         return self.keys(name)
+
+    def rollback_drivers(self, hlc_timestamp):
+        # Roll back the current state to the point of the last block consensus
+        self.log.debug(f"Length of Pending Deltas BEFORE {len(self.driver.pending_deltas.keys())}")
+        self.log.debug(f"rollback to hlc_timestamp: {hlc_timestamp}")
+
+        if hlc_timestamp is None:
+            # Returns to disk state which should be whatever it was prior to any write sessions
+            self.cache.clear()
+            self.reads = set()
+            self.pending_writes.clear()
+            self.pending_deltas.clear()
+        else:
+            to_delete = []
+            for _hlc, _deltas in sorted(self.pending_deltas.items())[::-1]:
+                # Clears the current reads/writes, and the reads/writes that get made when rolling back from the
+                # last HLC
+                self.reads = set()
+                self.pending_writes.clear()
+
+
+                if _hlc < hlc_timestamp:
+                    self.log.debug(f"{_hlc} is less than {hlc_timestamp}, breaking!")
+                    # if we are less than the HLC then top processing anymore, this is our rollback point
+                    break
+                else:
+                    # if we are still greater than or equal to then mark this as delete and rollback its changes
+                    to_delete.append(_hlc)
+                    # Run through all state changes, taking the second value, which is the post delta
+                    for key, delta in _deltas['writes'].items():
+                        # self.set(key, delta[0])
+                        self.cache[key] = delta[0]
+
+            # Remove the deltas from the set
+            self.log.debug(to_delete)
+            [self.pending_deltas.pop(key) for key in to_delete]
+
+        #self.driver.rollback(hlc=hlc_timestamp)
+
+        self.log.debug(f"Length of Pending Deltas AFTER {len(self.driver.pending_deltas.keys())}")
 
     # Set cache to None
     # Set pending writes to none
