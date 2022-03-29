@@ -11,8 +11,10 @@ def _store_group_if_has_value_cb(name, obj):
 
 def set_value(filename, group, value):
     with h5py.File(filename, 'a') as f:
-        if group not in f:
+        try:
             f.create_group(group)
+        except ValueError:
+            pass
         ev = encode(value)
         f[group].attrs.create('value', ev, dtype='S'+str(len(ev)))
 
@@ -25,8 +27,10 @@ def get_value(filename, group):
 
 def del_value(filename, group):
     with h5py.File(filename, 'a') as f:
-        if group in f and 'value' in f[group].attrs:
+        try:
             del f[group].attrs['value']
+        except KeyError:
+            pass
 
 def get_groups(filename):
     global _groups
