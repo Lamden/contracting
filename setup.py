@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from distutils.command.build_ext import build_ext, CCompilerError, DistutilsExecError, DistutilsPlatformError
 from distutils import errors
-import sys
+import sys, os
 
 major = 0
 
@@ -58,6 +58,7 @@ setup(
     include_package_data=True,
     ext_modules=[
         Extension('contracting.execution.metering.tracer', sources=['contracting/execution/metering/tracer.c']),
+        Extension('contracting.db.hdf5.h5c', sources=['contracting/db/hdf5/h5c.c'], include_dirs=[os.system('pkg-config --cflags hdf5')], libraries=[os.system('pkg-config --libs hdf5')])
     ],
     cmdclass={
         'build_ext': ve_build_ext,

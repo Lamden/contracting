@@ -15,7 +15,7 @@ import hashlib
 import lmdb
 import motor.motor_asyncio
 import asyncio
-import contracting.db.hdf5 as hdf5
+from contracting.db.hdf5 import h5
 
 FILE_EXT = '.d'
 HASH_EXT = '.x'
@@ -213,19 +213,23 @@ class FSDriver:
         self.root.mkdir(exist_ok=True, parents=True)
 
     def __parse_key(self, key):
-        filename, variable = key.split(config.INDEX_SEPARATOR, 1)
-        variable = variable.replace(config.DELIMITER, hdf5.GROUP_SEPARATOR)
+        try:
+            filename, variable = key.split(config.INDEX_SEPARATOR, 1)
+            variable = variable.replace(config.DELIMITER, h5.GROUP_SEPARATOR)
+        except:
+            filename = '__misc'
+            variable = key.replace(config.DELIMITER, h5.GROUP_SEPARATOR)
 
         return filename, variable
 
     def __filename_to_path(self, filename):
-        return self.root.joinpath(filename)
+        return str(self.root.joinpath(filename))
 
     def __get_files(self):
         return sorted(os.listdir(self.root))
 
     def __get_keys_from_file(self, filename):
-        return [filename + config.INDEX_SEPARATOR + g.replace(hdf5.GROUP_SEPARATOR, config.DELIMITER) for g in hdf5.get_groups(self.__filename_to_path(filename))]
+        return [filename + config.INDEX_SEPARATOR + g.replace(h5.GROUP_SEPARATOR, config.DELIMITER) for g in h5.get_groups(self.__filename_to_path(filename))]
 
     def __getitem__(self, key):
         return self.get(key)
@@ -239,11 +243,11 @@ class FSDriver:
     def get(self, key):
         filename, variable = self.__parse_key(key)
 
-        return hdf5.get_value(self.__filename_to_path(filename), variable)
+        return h5.get_value(self.__filename_to_path(filename), variable)
 
     def set(self, key, value):
         filename, variable = self.__parse_key(key)
-        hdf5.set_value(self.__filename_to_path(filename), variable, value)
+        h5.set_value(self.__filename_to_path(filename), variable, value)
 
     def flush(self):
         try:
@@ -254,7 +258,7 @@ class FSDriver:
 
     def delete(self, key):
         filename, variable = self.__parse_key(key)
-        hdf5.del_value(self.__filename_to_path(filename), variable)
+        h5.del_value(self.__filename_to_path(filename), variable)
 
     def iter(self, prefix='', length=0):
         keys = []
