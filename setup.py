@@ -2,13 +2,13 @@ from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from distutils.command.build_ext import build_ext, CCompilerError, DistutilsExecError, DistutilsPlatformError
 from distutils import errors
-import sys
+import sys, subprocess
 
 major = 0
 
 __version__ = '1.0.5.2'
 
-requirements = ['astor', 'pymongo', 'autopep8', 'stdlib_list']
+requirements = ['astor', 'pymongo', 'autopep8', 'stdlib_list', 'h5py==3.1.0']
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
 
@@ -42,6 +42,15 @@ class ve_build_ext(build_ext):
                 raise BuildFailed()
             raise
 
+def pkgconfig(package):
+    flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
+    res = {}
+    output = subprocess.getoutput('pkg-config --cflags --libs {}'.format(package))
+    for token in output.strip().split():
+        res.setdefault(flag_map.get(token[:2]), []).append(token[2:])
+
+    return res
+
 setup(
     name='contracting',
     version=__version__,
@@ -58,6 +67,7 @@ setup(
     include_package_data=True,
     ext_modules=[
         Extension('contracting.execution.metering.tracer', sources=['contracting/execution/metering/tracer.c']),
+        Extension('contracting.db.hdf5.h5c', sources=['contracting/db/hdf5/h5c.c'], **pkgconfig('hdf5'))
     ],
     cmdclass={
         'build_ext': ve_build_ext,

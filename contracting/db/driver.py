@@ -15,11 +15,13 @@ import hashlib
 import lmdb
 import motor.motor_asyncio
 import asyncio
+from contracting.db.hdf5 import h5
 
 FILE_EXT = '.d'
 HASH_EXT = '.x'
 
 STORAGE_HOME = Path().home().joinpath('.lamden')
+FSDRIVER_HOME = STORAGE_HOME.joinpath('state')
 
 # DB maps bytes to bytes
 # Driver maps string to python object
@@ -205,143 +207,71 @@ class InMemDriver(Driver):
         except KeyError:
             pass
 
-
 class FSDriver:
-    OS_KEY_LIMIT = (256 - 1) - len(FILE_EXT)
+    def __init__(self, root=FSDRIVER_HOME):
+        self.root = root
+        self.root.mkdir(exist_ok=True, parents=True)
 
-    def __init__(self, root='fs'):
-        self.root = os.path.join(Path.home(), root)
-
-    def get(self, item: str):
+    def __parse_key(self, key):
         try:
-            filename = self._key_to_file(item)
-            with open(filename, 'r') as f:
-                v = f.read()
+            filename, variable = key.split(config.INDEX_SEPARATOR, 1)
+            variable = variable.replace(config.DELIMITER, h5.GROUP_SEPARATOR)
+        except:
+            filename = '__misc'
+            variable = key.replace(config.DELIMITER, h5.GROUP_SEPARATOR)
 
-        except FileNotFoundError:
-            return None
+        return filename, variable
 
-        return decode(v)
+    def __filename_to_path(self, filename):
+        return str(self.root.joinpath(filename))
+
+    def __get_files(self):
+        return sorted(os.listdir(self.root))
+
+    def __get_keys_from_file(self, filename):
+        return [filename + config.INDEX_SEPARATOR + g.replace(h5.GROUP_SEPARATOR, config.DELIMITER) for g in h5.get_groups(self.__filename_to_path(filename))]
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __setitem__(self, key, value):
+        self.set(key, value)
+
+    def __delitem__(self, key):
+        self.delete(key)
+
+    def get(self, key):
+        filename, variable = self.__parse_key(key)
+
+        return h5.get_value(self.__filename_to_path(filename), variable)
 
     def set(self, key, value):
-        if value is None:
-            self.__delitem__(key)
-        else:
-            v = encode(value)
-            filename = self._key_to_file(key)
-
-            os.makedirs(filename.parents[0], exist_ok=True)
-
-            with open(filename, 'w') as f:
-                f.write(v)
+        filename, variable = self.__parse_key(key)
+        h5.set_value(self.__filename_to_path(filename), variable, value)
 
     def flush(self):
         try:
             shutil.rmtree(self.root)
+            self.root.mkdir(exist_ok=True, parents=True)
         except FileNotFoundError:
             pass
 
-    def delete(self, key: str):
-        self.__delitem__(key)
+    def delete(self, key):
+        filename, variable = self.__parse_key(key)
+        h5.del_value(self.__filename_to_path(filename), variable)
 
-    def iter(self, prefix: str='', length=0):
+    def iter(self, prefix='', length=0):
         keys = []
-
-        for (r, dirs, files) in sorted(os.walk(self.root, topdown=True)):
-            files.sort()
-            base = r[len(self.root):]
-
-            for f in files:
-                if f.endswith(FILE_EXT) and f.startswith(prefix):
-                    keys.append(self.path_to_key(os.path.join(base, f)))
-
-                if 0 < length <= len(keys):
-                    break
-
-            if 0 < length <= len(keys):
+        for filename in self.__get_files():
+            if filename.startswith(prefix):
+                keys.extend(self.__get_keys_from_file(filename))
+            if length > 0 and len(keys) >= length:
                 break
 
-        keys.sort()
-
-        return keys
-
-    def _iter(self, prefix: str='', length=0):
-        keys = []
-
-        for (r, dirs, files) in os.walk(os.path.join(self.root, prefix), topdown=True):
-            base = r[len(self.root):]
-
-            for f in files:
-                if f.endswith(FILE_EXT):
-                    keys.append(self.path_to_key(os.path.join(base, f)))
-
-                if 0 < length <= len(keys):
-                    break
-
-            if 0 < length <= len(keys):
-                break
-
-        keys.sort()
-
-        return keys
-
+        return keys if length == 0 else keys[:length]
+    
     def keys(self):
         return self.iter()
-
-    def __getitem__(self, item: str):
-        value = self.get(item)
-        if value is None:
-            raise KeyError
-        return value
-
-    def __setitem__(self, key: str, value):
-        self.set(key, value)
-
-    def __delitem__(self, key: str):
-        filename = self._key_to_file(key)
-        try:
-            os.remove(filename)
-        except FileNotFoundError:
-            pass
-
-    @staticmethod
-    def hash_key(key: str):
-        h = hashlib.sha3_256()
-        h.update(key.encode())
-
-        return h.hexdigest()[:-2] + HASH_EXT
-
-    def _key_to_file(self, key: str):
-        filename = key.replace(':', '/')
-        filename = filename.replace('.', '/')
-        filename += FILE_EXT
-        filename = os.path.join(self.root, filename)
-        return Path(filename)
-
-    def path_to_key(self, path):
-        if path.endswith(FILE_EXT):
-            path = path[:-len(FILE_EXT)]
-
-        pth = path.split('/')
-
-        pth = [p for p in pth if p != '']
-
-        contract = pth.pop(0)
-
-        if len(pth) == 0:
-            return contract
-
-        variable = pth.pop(0)
-
-        key = '.'.join((contract, variable))
-
-        if len(pth) == 0:
-            return key
-
-        key = ':'.join((key, *pth))
-
-        return key
-
 
 class LMDBDriver:
     def __init__(self, filename=STORAGE_HOME.joinpath('state')):
@@ -441,7 +371,7 @@ class WebDriver(InMemDriver):
 
 
 class CacheDriver:
-    def __init__(self, driver: Driver=Driver()):
+    def __init__(self, driver: FSDriver=FSDriver()):
         self.driver = driver
         self.cache = {}
 
