@@ -371,7 +371,7 @@ class WebDriver(InMemDriver):
 
 
 class CacheDriver:
-    def __init__(self, driver: FSDriver=FSDriver()):
+    def __init__(self, driver: Driver=Driver()):
         self.driver = driver
         self.cache = {}
 
