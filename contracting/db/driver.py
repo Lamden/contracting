@@ -281,8 +281,8 @@ class LMDBDriver:
         self.filename = filename
         self.filename.mkdir(exist_ok=True, parents=True)
 
-        self.db_writer = lamdb.open(path=str(self.filename), map_size=int(1e12), readonly=False)
-        self.db_reader = lamdb.open(path=str(self.filename), map_size=int(1e12), readonly=True, lock=False)
+        self.db_writer = lmdb.open(path=str(self.filename), map_size=int(1e12), readonly=False)
+        self.db_reader = lmdb.open(path=str(self.filename), map_size=int(1e12), readonly=True, lock=False)
 
     def get(self, item: str):
         with self.db_reader.begin() as tx:
@@ -373,7 +373,7 @@ class WebDriver(InMemDriver):
         return decode(r.json()['value'])
 
 class CacheDriver:
-    def __init__(self, driver: Driver=LMDBDriver()):
+    def __init__(self, driver: Driver = FSDriver()):
         self.pending_writes = {}    # L2 cache
         self.cache = {}             # L1 cache
         self.driver = driver        # L0 cache
