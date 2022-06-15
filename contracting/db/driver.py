@@ -159,8 +159,8 @@ class InMemDriver(Driver):
         super().__init__()
         self.db = {}
 
-    def get(self, item):
-        key = item.encode()
+    def get(self, key):
+        key = key.encode()
         value = self.db.get(key)
         return decode(value)
 
@@ -397,15 +397,16 @@ class CacheDriver:
 
         return None
 
-    def get(self, key: str):
+    def get(self, key: str, save: bool = True):
 
         value = self.find(key)
 
-        if self.pending_reads.get(key) is None:
-            self.pending_reads[key] = value
+        if save:
+            if self.pending_reads.get(key) is None:
+                self.pending_reads[key] = value
 
-        if value is not None:
-            rt.deduct_read(*encode_kv(key, value))
+            if value is not None:
+                rt.deduct_read(*encode_kv(key, value))
 
         return value
 
@@ -437,6 +438,21 @@ class CacheDriver:
             'writes': deltas,
             'reads': self.pending_reads
         }
+
+        # Clear the top cache
+        self.pending_reads = {}
+        self.pending_writes.clear()
+
+    def soft_apply_rewards(self, hcl: str):
+        deltas = {}
+
+        for k, v in self.pending_writes.items():
+            current = self.pending_reads.get(k)
+            deltas[k] = (current, v)
+
+            self.cache[k] = v
+
+        self.pending_deltas[hcl]['rewards'] = deltas
 
         # Clear the top cache
         self.pending_reads = {}
