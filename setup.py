@@ -3,12 +3,13 @@ from setuptools.extension import Extension
 from distutils.command.build_ext import build_ext, CCompilerError, DistutilsExecError, DistutilsPlatformError
 from distutils import errors
 import sys, subprocess
+from sys import platform
 
 major = 0
 
 __version__ = '1.0.5.2'
 
-requirements = ['astor', 'pymongo', 'autopep8', 'stdlib_list', 'h5py==3.1.0', 'lamdb']
+requirements = ['astor', 'pymongo', 'autopep8', 'stdlib_list', 'h5py==3.1.0', 'lmdb']
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
 
@@ -45,9 +46,26 @@ class ve_build_ext(build_ext):
 def pkgconfig(package):
     flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
     res = {}
-    output = subprocess.getoutput('pkg-config --cflags --libs {}'.format(package))
-    for token in output.strip().split():
-        res.setdefault(flag_map.get(token[:2]), []).append(token[2:])
+
+    if platform == "linux" or platform == "linux2":
+        output = subprocess.getoutput('pkg-config --cflags --libs {}'.format(package))
+        for token in output.strip().split():
+            res.setdefault(flag_map.get(token[:2]), []).append(token[2:])
+
+    elif platform == "darwin":
+        res['libraries'] = ['hdf5']
+        output = subprocess.getoutput('brew list hdf5')
+        print(output)
+        if 'Error: No sach keg:' in output:
+            raise ModuleNotFoundError('Install HDF5 package using brew. "brew install hdf5"')
+        for token in output.strip().split():
+            if "/include/" in token:
+                res['include_dirs'] = [token.split('/include/')[0] + '/include/']
+            if "/lib/" in token:
+                res['library_dirs'] = [token.split('/lib/')[0] + '/lib/']
+
+    elif platform == "win32":
+        raise NotImplemented("Cannot install on Windows")
 
     return res
 

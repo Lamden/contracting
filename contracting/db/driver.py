@@ -159,8 +159,8 @@ class InMemDriver(Driver):
         super().__init__()
         self.db = {}
 
-    def get(self, key):
-        key = key.encode()
+    def get(self, item: str):
+        key = item.encode()
         value = self.db.get(key)
         return decode(value)
 
@@ -242,8 +242,8 @@ class FSDriver:
     def __delitem__(self, key):
         self.delete(key)
 
-    def get(self, key):
-        filename, variable = self.__parse_key(key)
+    def get(self, item: str):
+        filename, variable = self.__parse_key(item)
 
         return h5.get_value(self.__filename_to_path(filename), variable)
 
