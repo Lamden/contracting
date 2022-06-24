@@ -372,10 +372,10 @@ class WebDriver(InMemDriver):
         return decode(r.json()['value'])
 
 class CacheDriver:
-    def __init__(self, driver: Driver = FSDriver()):
-        self.pending_writes = {}    # L2 cache
-        self.cache = {}             # L1 cache
-        self.driver = driver        # L0 cache
+    def __init__(self, driver=None):
+        self.pending_writes = {}             # L2 cache
+        self.cache = {}                      # L1 cache
+        self.driver = driver or FSDriver()   # L0 cache
 
         self.pending_reads = {}
 
