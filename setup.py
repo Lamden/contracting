@@ -1,9 +1,9 @@
+from distutils import errors
+from distutils.command.build_ext import build_ext, CCompilerError, DistutilsExecError, DistutilsPlatformError
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
-from distutils.command.build_ext import build_ext, CCompilerError, DistutilsExecError, DistutilsPlatformError
-from distutils import errors
-import sys, subprocess
 from sys import platform
+import sys, subprocess, pathlib
 
 major = 0
 
@@ -53,16 +53,12 @@ def pkgconfig(package):
             res.setdefault(flag_map.get(token[:2]), []).append(token[2:])
 
     elif platform == "darwin":
-        res['libraries'] = ['hdf5']
-        output = subprocess.getoutput('brew list hdf5')
-        print(output)
-        if 'Error: No sach keg:' in output:
-            raise ModuleNotFoundError('Install HDF5 package using brew. "brew install hdf5"')
-        for token in output.strip().split():
-            if "/include/" in token:
-                res['include_dirs'] = [token.split('/include/')[0] + '/include/']
-            if "/lib/" in token:
-                res['library_dirs'] = [token.split('/lib/')[0] + '/lib/']
+        res['libraries'] = [f'{package}']
+        output = subprocess.getoutput(f'brew --prefix {package}')
+        if 'Error:' in output or not pathlib.Path(output).is_dir():
+            raise ModuleNotFoundError(f'{output}\nInstall "{package}"" package using brew. "brew install {package}"')
+        res['include_dirs'] = [output + '/include/']
+        res['library_dirs'] = [output + '/lib/']
 
     elif platform == "win32":
         raise NotImplemented("Cannot install on Windows")
