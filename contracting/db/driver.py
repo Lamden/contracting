@@ -254,9 +254,9 @@ class FSDriver:
     def flush(self):
         try:
             shutil.rmtree(self.root)
-            self.root.mkdir(exist_ok=True, parents=True)
         except FileNotFoundError:
             pass
+        self.root.mkdir(exist_ok=True, parents=True)
 
     def delete(self, key):
         filename, variable = self.__parse_key(key)
