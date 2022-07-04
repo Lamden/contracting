@@ -41,7 +41,8 @@ class Executor:
                 driver=None,
                 stamps=1000000,
                 stamp_cost=config.STAMPS_PER_TAU,
-                metering=None) -> dict:
+                metering=None,
+                forward=False) -> dict:
 
         if not self.bypass_privates:
             assert not function_name.startswith(config.PRIVATE_METHOD_PREFIX), 'Private method not callable.'
@@ -61,11 +62,13 @@ class Executor:
         balances_key = None
         try:
             if metering:
+                account_to_use = sender if not forward else contract_name
+
                 balances_key = '{}{}{}{}{}'.format(self.currency_contract,
                                                    config.INDEX_SEPARATOR,
                                                    self.balances_hash,
                                                    config.DELIMITER,
-                                                   sender)
+                                                   account_to_use)
 
                 balance = driver.get(balances_key)
 
