@@ -248,8 +248,14 @@ class FSDriver:
         return h5.get_value(self.__filename_to_path(filename), variable)
 
     def set(self, key, value):
+        if h5.get_value(self.__filename_to_path("currency"), "__code__") is None:
+            raise AttributeError(f"__code__ variable does not exist before this update! KEY={key} VALUE={value}")
+
         filename, variable = self.__parse_key(key)
         h5.set_value(self.__filename_to_path(filename), variable, value)
+
+        if h5.get_value(self.__filename_to_path("currency"), "__code__") is None:
+            raise AttributeError(f"__code__ variable does not exist after this update! KEY={key} VALUE={value}")
 
     def flush(self):
         try:
