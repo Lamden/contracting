@@ -22,7 +22,7 @@ def get_votable():
     return votable.get()
 
 @export
-def vote(v):
+def vote(v: Any):
     # Check to make sure that there is an election
     if in_election.get():
         submit_vote(v)
@@ -45,13 +45,13 @@ def vote(v):
             raise Exception('Outside of governance parameters.')
 
 
-def submit_vote(v):
+def submit_vote(v: Any):
     v = int(v) # Cast to int. Fails if not an int
     assert votes[ctx.caller] is None, '{} has already voted! Cannot vote twice.'.format(ctx.caller)
     votes[ctx.caller] = v
 
 
-def median(vs):
+def median(vs: Any):
     sorted_votes = sorted(vs)
     index = (len(sorted_votes) - 1) // 2
 
