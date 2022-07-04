@@ -129,3 +129,15 @@ class TestMetering(TestCase):
                                 )
         self.assertNotEquals(self.e.driver.pending_writes['currency.balances:stu'], prior_balance)
 
+    def test_forwarding_removes_stamps_from_contract_not_sender(self):
+        # Send money to currency to use
+        self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'currency'}, auto_commit=True)
+
+        prior_balance = self.d.get('currency.balances:currency')
+
+        self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'someone_else'}, auto_commit=True,
+                       forward=True)
+
+        new_balance = self.d.get('currency.balances:currency')
+
+        self.assertGreater(prior_balance, new_balance)
