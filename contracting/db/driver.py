@@ -248,14 +248,17 @@ class FSDriver:
         return h5.get_value(self.__filename_to_path(filename), variable)
 
     def set(self, key, value):
+
+        currency_exists = "currency" in self.__get_files()
+
         filename, variable = self.__parse_key(key)
 
-        if filename == "currency" and h5.get_value(self.__filename_to_path("currency"), "__code__") is None:
+        if currency_exists and filename == "currency" and h5.get_value(self.__filename_to_path("currency"), "__code__") is None:
             raise AttributeError(f"__code__ variable does not exist before this update! KEY={key} VALUE={value}")
 
         h5.set_value(self.__filename_to_path(filename), variable, value)
 
-        if filename == "currency" and h5.get_value(self.__filename_to_path("currency"), "__code__") is None:
+        if currency_exists and filename == "currency" and h5.get_value(self.__filename_to_path("currency"), "__code__") is None:
             raise AttributeError(f"__code__ variable does not exist after this update! KEY={key} VALUE={value}")
 
     def flush(self):
