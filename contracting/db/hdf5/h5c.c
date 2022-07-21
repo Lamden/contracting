@@ -46,7 +46,7 @@ get(PyObject *self, PyObject *args)
 {
     static char buf[BUFSIZE];
 
-    H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
+    //H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
 
     char *filepath, *group;
     if(!PyArg_ParseTuple(args, "ss", &filepath, &group))
@@ -79,7 +79,7 @@ get(PyObject *self, PyObject *args)
 static PyObject *
 delete(PyObject *self, PyObject *args)
 {
-    H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
+    //H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
 
     char *filepath, *group;
     if(!PyArg_ParseTuple(args, "ss", &filepath, &group))
