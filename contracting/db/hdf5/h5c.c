@@ -3,19 +3,30 @@
 #include <hdf5.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 
 #define BUFSIZE 64000
 #define ATT_NAME "value"
+#define DIRBUF_SIZE 4096
+#define LOCK_SUFFIX "-lock"
+
+static char dirbuf[DIRBUF_SIZE];
 
 void lock_acquire(char *filepath)
 {
+    strcat(dirbuf, filepath);
+    strcat(dirbuf, LOCK_SUFFIX);
     while(mkdir(filepath, S_IRWXU) != 0)
         ;
+    memset(dirbuf, 0, DIRBUF_SIZE);
 }
 
 void lock_release(char *filepath)
 {
+    strcat(dirbuf, filepath);
+    strcat(dirbuf, LOCK_SUFFIX);
     rmdir(filepath);
+    memset(dirbuf, 0, DIRBUF_SIZE);
 }
 
 static PyObject *
