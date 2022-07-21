@@ -16,7 +16,7 @@ set(PyObject *self, PyObject *args)
 
     hid_t fid = H5Fopen(filepath, H5F_ACC_RDWR, H5P_DEFAULT);
     if(fid < 0)
-        fid = H5Fcreate(filepath, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+        fid = H5Fcreate(filepath, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
 
     hid_t gid = H5Gopen(fid, group, H5P_DEFAULT);
     if(gid < 0)
