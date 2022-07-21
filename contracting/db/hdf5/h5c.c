@@ -1,33 +1,21 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <hdf5.h>
-#include <libgen.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #define BUFSIZE 64000
 #define ATT_NAME "value"
-#define LOCK_DIR "/tmp/"
-#define PATHBUF_SIZE 4096
-
-static char lock_path[PATHBUF_SIZE];
 
 void lock_acquire(char *filepath)
 {
-    strcat(lock_path, LOCK_DIR);
-    strcat(lock_path, basename(filepath));
-    while(mkdir(lock_path, S_IRWXU) != 0)
+    while(mkdir(filepath, S_IRWXU) != 0)
         ;
-    memset(lock_path, 0, PATHBUF_SIZE);
 }
 
 void lock_release(char *filepath)
 {
-    strcat(lock_path, LOCK_DIR);
-    strcat(lock_path, basename(filepath));
-    rmdir(lock_path);
-    memset(lock_path, 0, PATHBUF_SIZE);
+    rmdir(filepath);
 }
 
 static PyObject *
