@@ -8,7 +8,7 @@
 static PyObject *
 set(PyObject *self, PyObject *args)
 {
-    H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
+    //H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
 
     char *filepath, *group, *value;
     if(!PyArg_ParseTuple(args, "ssz", &filepath, &group, &value))
