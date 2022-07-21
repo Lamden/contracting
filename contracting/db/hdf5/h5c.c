@@ -16,7 +16,7 @@ void lock_acquire(char *filepath)
 {
     strcat(dirbuf, filepath);
     strcat(dirbuf, LOCK_SUFFIX);
-    while(mkdir(filepath, S_IRWXU) != 0)
+    while(mkdir(dirbuf, S_IRWXU) != 0)
         ;
     memset(dirbuf, 0, DIRBUF_SIZE);
 }
@@ -25,7 +25,7 @@ void lock_release(char *filepath)
 {
     strcat(dirbuf, filepath);
     strcat(dirbuf, LOCK_SUFFIX);
-    rmdir(filepath);
+    rmdir(dirbuf);
     memset(dirbuf, 0, DIRBUF_SIZE);
 }
 
