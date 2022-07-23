@@ -16,8 +16,8 @@ import hashlib
 import lmdb
 import motor.motor_asyncio
 import asyncio
-from contracting.db.hdf5 import h5
 import logging
+from contracting.db.hdf5 import h5c
 
 FILE_EXT = '.d'
 HASH_EXT = '.x'
@@ -217,10 +217,10 @@ class FSDriver:
     def __parse_key(self, key):
         try:
             filename, variable = key.split(config.INDEX_SEPARATOR, 1)
-            variable = variable.replace(config.DELIMITER, h5.GROUP_SEPARATOR)
+            variable = variable.replace(config.DELIMITER, config.HDF5_GROUP_SEPARATOR)
         except:
             filename = '__misc'
-            variable = key.replace(config.DELIMITER, h5.GROUP_SEPARATOR)
+            variable = key.replace(config.DELIMITER, config.HDF5_GROUP_SEPARATOR)
 
         return filename, variable
 
@@ -231,7 +231,7 @@ class FSDriver:
         return sorted(os.listdir(self.root))
 
     def __get_keys_from_file(self, filename):
-        return [filename + config.INDEX_SEPARATOR + g.replace(h5.GROUP_SEPARATOR, config.DELIMITER) for g in h5.get_groups(self.__filename_to_path(filename))]
+        return [filename + config.INDEX_SEPARATOR + g.replace(config.HDF5_GROUP_SEPARATOR, config.DELIMITER) for g in h5c.get_groups(self.__filename_to_path(filename))]
 
     def __getitem__(self, key):
         return self.get(key)
@@ -245,11 +245,11 @@ class FSDriver:
     def get(self, item: str):
         filename, variable = self.__parse_key(item)
 
-        return h5.get_value(self.__filename_to_path(filename), variable)
+        return decode(h5c.get(self.__filename_to_path(filename), variable))
 
     def set(self, key, value):
         filename, variable = self.__parse_key(key)
-        h5.set_value(self.__filename_to_path(filename), variable, value)
+        h5c.set(self.__filename_to_path(filename), variable, encode(value))
 
     def flush(self):
         try:
@@ -260,7 +260,7 @@ class FSDriver:
 
     def delete(self, key):
         filename, variable = self.__parse_key(key)
-        h5.del_value(self.__filename_to_path(filename), variable)
+        h5c.delete(self.__filename_to_path(filename), variable)
 
     def iter(self, prefix='', length=0):
         keys = []

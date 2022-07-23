@@ -570,6 +570,7 @@ class TestFSDriver(TestCase):
 
         prefix_2_keys = [
             'x37fbab0bd2e60563.c79469e5be41e515',
+            'x37fbab0bd2e60563.c79469e5be41e515:something',
             'x30c6eb2ad176773b.5ce6d590d2472dfe',
             'x3d4fc9480f0a07b2.8aa7646d5066b54d',
             'x387c3d4ab7f0c1c6.ef549198fc14b525',

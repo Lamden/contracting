@@ -9,7 +9,7 @@ major = 0
 
 __version__ = '1.0.5.2'
 
-requirements = ['astor', 'pymongo', 'autopep8', 'stdlib_list', 'h5py==3.1.0', 'lmdb']
+requirements = ['astor', 'pymongo', 'autopep8', 'stdlib_list', 'lmdb']
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
 
