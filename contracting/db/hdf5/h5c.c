@@ -147,7 +147,7 @@ delete(PyObject *self, PyObject *args)
 }
 
 static herr_t
-store_group_name(hid_t id, const char *name, const H5O_info1_t *object_info, void *op_data)
+store_group_name(hid_t id, const char *name, const H5O_info_t *object_info, void *op_data)
 {
     if(strcmp(name, ".") == 0)
         return 0;
@@ -172,7 +172,7 @@ get_groups(PyObject *self, PyObject *args)
     }
 
     PyObject *group_names = PyList_New(0);
-    if(H5Ovisit1(fid, H5_INDEX_NAME, H5_ITER_NATIVE, store_group_name, group_names) < 0)
+    if(H5Ovisit(fid, H5_INDEX_NAME, H5_ITER_NATIVE, store_group_name, group_names) < 0)
     {
         H5Fclose(fid);
         lock_release(filepath);
