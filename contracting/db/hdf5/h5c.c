@@ -5,34 +5,37 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define BUFSIZE 64000
+#define ATT_LEN_MAX 64000 // http://davis.lbl.gov/Manuals/HDF5-1.8.7/UG/13_Attributes.html#SpecIssues
 #define ATT_NAME "value"
-#define DIRBUF_SIZE 4096
 #define LOCK_SUFFIX "-lock"
 
-static char dirbuf[DIRBUF_SIZE];
+static char dirname_buf[PATH_MAX + 1];
 
-void lock_acquire(char *filepath)
+static void
+lock_acquire(char *filepath)
 {
-    strcat(dirbuf, filepath);
-    strcat(dirbuf, LOCK_SUFFIX);
-    while(mkdir(dirbuf, S_IRWXU) != 0)
+    strcat(dirname_buf, filepath);
+    strcat(dirname_buf, LOCK_SUFFIX);
+    while(mkdir(dirname_buf, S_IRWXU) != 0)
         ;
-    memset(dirbuf, 0, DIRBUF_SIZE);
+    memset(dirname_buf, 0, sizeof(dirname_buf));
 }
 
-void lock_release(char *filepath)
+static void
+lock_release(char *filepath)
 {
-    strcat(dirbuf, filepath);
-    strcat(dirbuf, LOCK_SUFFIX);
-    rmdir(dirbuf);
-    memset(dirbuf, 0, DIRBUF_SIZE);
+    strcat(dirname_buf, filepath);
+    strcat(dirname_buf, LOCK_SUFFIX);
+    rmdir(dirname_buf);
+    memset(dirname_buf, 0, sizeof(dirname_buf));
 }
 
 static PyObject *
 set(PyObject *self, PyObject *args)
 {
+#ifndef DEBUG
     H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
+#endif
 
     char *filepath, *group, *value;
     if(!PyArg_ParseTuple(args, "ssz", &filepath, &group, &value))
@@ -45,8 +48,10 @@ set(PyObject *self, PyObject *args)
     {
         fid = H5Fcreate(filepath, H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
         if(fid < 0)
-            while((fid = H5Fopen(filepath, H5F_ACC_RDWR, H5P_DEFAULT)) < 0)
-                ;
+        {
+            lock_release(filepath);
+            return PyErr_Format(PyExc_OSError, "failed to open/create file \"%s\"", filepath);
+        }
     }
 
     hid_t gid = H5Gopen(fid, group, H5P_DEFAULT);
@@ -77,9 +82,11 @@ set(PyObject *self, PyObject *args)
 static PyObject *
 get(PyObject *self, PyObject *args)
 {
-    static char buf[BUFSIZE];
+    static char buf[ATT_LEN_MAX + 1];
 
+#ifndef DEBUG
     H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
+#endif
 
     char *filepath, *group;
     if(!PyArg_ParseTuple(args, "ss", &filepath, &group))
@@ -103,8 +110,8 @@ get(PyObject *self, PyObject *args)
     }
 
     hid_t atype = H5Tcopy(H5T_C_S1);
-    H5Tset_size(atype, BUFSIZE);
-    memset(buf, 0, BUFSIZE);
+    H5Tset_size(atype, sizeof(buf));
+    memset(buf, 0, sizeof(buf));
     if(H5Aread(aid, atype, buf) < 0)
     {
         H5Tclose(atype);
@@ -126,7 +133,9 @@ get(PyObject *self, PyObject *args)
 static PyObject *
 delete(PyObject *self, PyObject *args)
 {
+#ifndef DEBUG
     H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
+#endif
 
     char *filepath, *group;
     if(!PyArg_ParseTuple(args, "ss", &filepath, &group))
@@ -157,13 +166,16 @@ store_group_name(hid_t id, const char *name, const H5O_info_t *object_info, void
 static PyObject *
 get_groups(PyObject *self, PyObject *args)
 {
+#ifndef DEBUG
     H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
+#endif
 
     char *filepath;
     if(!PyArg_ParseTuple(args, "s", &filepath))
         return NULL;
 
     lock_acquire(filepath);
+
     hid_t fid = H5Fopen(filepath, H5F_ACC_RDONLY, H5P_DEFAULT);
     if(fid < 0)
     {
@@ -172,7 +184,12 @@ get_groups(PyObject *self, PyObject *args)
     }
 
     PyObject *group_names = PyList_New(0);
+    // https://docs.hdfgroup.org/hdf5/develop/group___h5_o.html#ga5ce86255fcc34ceaf84a62551cd24233
+#if (H5_VERS_MAJOR == 1 && ((H5_VERS_MINOR == 10 && H5_VERS_RELEASE >= 3) || H5_VERS_MINOR > 10)) || H5_VERS_MAJOR > 1
+    if(H5Ovisit(fid, H5_INDEX_NAME, H5_ITER_NATIVE, store_group_name, group_names, H5O_INFO_BASIC) < 0)
+#else
     if(H5Ovisit(fid, H5_INDEX_NAME, H5_ITER_NATIVE, store_group_name, group_names) < 0)
+#endif
     {
         H5Fclose(fid);
         lock_release(filepath);
