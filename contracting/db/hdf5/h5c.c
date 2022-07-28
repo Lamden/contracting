@@ -5,6 +5,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+// HDF5 Reference Manual: https://support.hdfgroup.org/HDF5/doc/RM/RM_H5Front.html
+
 #define ATT_LEN_MAX 64000 // http://davis.lbl.gov/Manuals/HDF5-1.8.7/UG/13_Attributes.html#SpecIssues
 #define ATT_NAME "value"
 #define LOCK_SUFFIX "-lock"
@@ -158,7 +160,7 @@ delete(PyObject *self, PyObject *args)
 static herr_t
 store_group_name(hid_t id, const char *name, const H5O_info_t *object_info, void *op_data)
 {
-    if(strcmp(name, ".") == 0)
+    if(strcmp(name, ".") == 0 || object_info->num_attrs == 0)
         return 0;
     return PyList_Append((PyObject *) op_data, PyUnicode_FromString(name));
 }
@@ -184,9 +186,8 @@ get_groups(PyObject *self, PyObject *args)
     }
 
     PyObject *group_names = PyList_New(0);
-    // https://docs.hdfgroup.org/hdf5/develop/group___h5_o.html#ga5ce86255fcc34ceaf84a62551cd24233
 #if (H5_VERS_MAJOR == 1 && ((H5_VERS_MINOR == 10 && H5_VERS_RELEASE >= 3) || H5_VERS_MINOR > 10)) || H5_VERS_MAJOR > 1
-    if(H5Ovisit(fid, H5_INDEX_NAME, H5_ITER_NATIVE, store_group_name, group_names, H5O_INFO_BASIC) < 0)
+    if(H5Ovisit(fid, H5_INDEX_NAME, H5_ITER_NATIVE, store_group_name, group_names, H5O_INFO_ALL) < 0)
 #else
     if(H5Ovisit(fid, H5_INDEX_NAME, H5_ITER_NATIVE, store_group_name, group_names) < 0)
 #endif

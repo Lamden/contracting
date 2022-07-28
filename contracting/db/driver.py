@@ -269,6 +269,7 @@ class FSDriver:
                 keys.extend(self.__get_keys_from_file(filename))
             if length > 0 and len(keys) >= length:
                 break
+        keys.sort()
 
         return keys if length == 0 else keys[:length]
 
