@@ -222,6 +222,9 @@ class FSDriver:
             filename = '__misc'
             variable = key.replace(config.DELIMITER, config.HDF5_GROUP_SEPARATOR)
 
+        if variable[-1] == config.HDF5_GROUP_SEPARATOR:
+            raise ValueError(f'Incomplete variable in "{key}"')
+        
         return filename, variable
 
     def __filename_to_path(self, filename):

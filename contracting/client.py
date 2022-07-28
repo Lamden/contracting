@@ -166,7 +166,8 @@ class ContractingClient:
                  driver=ContractDriver(),
                  metering=False,
                  compiler=ContractingCompiler(),
-                 environment={}):
+                 environment={},
+                 commit=True):
 
         self.executor = Executor(metering=metering, driver=driver)
         self.raw_driver = driver
@@ -182,9 +183,9 @@ class ContractingClient:
         self.raw_driver.set_contract(name='submission',
                                      code=contract)
 
-        self.raw_driver.commit()
-
-        self.submission_contract = self.get_contract('submission')
+        if commit:
+            self.raw_driver.commit()
+            self.submission_contract = self.get_contract('submission')
 
     def set_submission_contract(self, filename=None):
         if filename is None:
@@ -198,7 +199,6 @@ class ContractingClient:
                                      code=contract)
 
         self.raw_driver.commit()
-
         self.submission_contract = self.get_contract('submission')
 
     def flush(self):
