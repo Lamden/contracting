@@ -13,7 +13,6 @@ from pathlib import Path
 import shutil
 import hashlib
 
-import lmdb
 import motor.motor_asyncio
 import asyncio
 import logging
@@ -275,85 +274,6 @@ class FSDriver:
 
     def keys(self):
         return self.iter()
-
-class LMDBDriver:
-    def __init__(self, filename=STORAGE_HOME.joinpath('state')):
-        self.filename = filename
-        self.filename.mkdir(exist_ok=True, parents=True)
-
-        self.db_writer = lmdb.open(path=str(self.filename), map_size=int(1e12), readonly=False)
-        self.db_reader = lmdb.open(path=str(self.filename), map_size=int(1e12), readonly=True, lock=False)
-
-    def get(self, item: str):
-        with self.db_reader.begin() as tx:
-            v = tx.get(item.encode())
-
-        if v is None:
-            return None
-
-        return decode(v)
-
-    def set(self, key, value):
-        if value is None:
-            self.__delitem__(key)
-        else:
-            v = encode(value)
-            with self.db_writer.begin(write=True) as tx:
-                tx.put(key.encode(), v.encode())
-
-    def flush(self):
-        with self.db_writer.begin(write=True) as tx:
-            cursor = tx.cursor()
-            for key, _ in cursor:
-                tx.delete(key)
-
-    def delete(self, key: str):
-        self.__delitem__(key)
-
-    def iter(self, prefix: str, length=0):
-        keys = []
-
-        with self.db_reader.begin() as tx:
-            cursor = tx.cursor()
-
-            if not cursor.set_range(prefix.encode()):
-                return []
-
-            else:
-                for key, _ in cursor:
-                    if not key.startswith(prefix.encode()):
-                        break
-
-                    keys.append(key.decode())
-
-                    if len(keys) >= length > 0:
-                        break
-
-        return keys
-
-    def keys(self):
-        keys = []
-
-        with self.db_reader.begin() as tx:
-            cursor = tx.cursor()
-            for key, _ in cursor:
-                keys.append(key.decode())
-
-        return keys
-
-    def __getitem__(self, item: str):
-        value = self.get(item)
-        if value is None:
-            raise KeyError
-        return value
-
-    def __setitem__(self, key: str, value):
-        self.set(key, value)
-
-    def __delitem__(self, key: str):
-        with self.db_writer.begin(write=True) as tx:
-            tx.delete(key.encode())
-
 
 class WebDriver(InMemDriver):
     def __init__(self, masternode='http://masternode-01.lamden.io'):
