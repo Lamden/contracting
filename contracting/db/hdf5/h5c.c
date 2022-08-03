@@ -186,7 +186,7 @@ get_groups(PyObject *self, PyObject *args)
     }
 
     PyObject *group_names = PyList_New(0);
-#if (H5_VERS_MAJOR == 1 && ((H5_VERS_MINOR == 10 && H5_VERS_RELEASE >= 3) || H5_VERS_MINOR > 10)) || H5_VERS_MAJOR > 1
+#if (H5_VERS_MAJOR == 1 && H5_VERS_MINOR >= 12) || H5_VERS_MAJOR > 1
     if(H5Ovisit(fid, H5_INDEX_NAME, H5_ITER_NATIVE, store_group_name, group_names, H5O_INFO_ALL) < 0)
 #else
     if(H5Ovisit(fid, H5_INDEX_NAME, H5_ITER_NATIVE, store_group_name, group_names) < 0)
