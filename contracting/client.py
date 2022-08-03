@@ -186,7 +186,7 @@ class ContractingClient:
 
         self.submission_contract = self.get_contract('submission')
 
-    def set_submission_contract(self, filename=None):
+    def set_submission_contract(self, filename=None, commit=True):
         if filename is None:
             filename = self.submission_filename
 
@@ -197,9 +197,9 @@ class ContractingClient:
         self.raw_driver.set_contract(name='submission',
                                      code=contract)
 
-        self.raw_driver.commit()
-
-        self.submission_contract = self.get_contract('submission')
+        if commit:
+            self.raw_driver.commit()
+            self.submission_contract = self.get_contract('submission')
 
     def flush(self):
         # flushes db and resubmits genesis contracts
