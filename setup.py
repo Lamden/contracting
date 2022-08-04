@@ -7,7 +7,7 @@ import sys, subprocess, pathlib
 
 major = 0
 
-__version__ = '1.0.5.2'
+__version__ = '1.1.6'
 
 requirements = ['astor==0.8.1', 'pymongo==4.1.1', 'autopep8==1.5.7', "stdlib_list==0.8.0", 'motor==2.5.1']
 
