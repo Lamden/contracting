@@ -1,9 +1,10 @@
-from unittest import TestCase
+from contracting import config
 from contracting.db.driver import Driver, InMemDriver, FSDriver
 from contracting.db.encoder import MONGO_MAX_INT
-from contracting.stdlib.bridge.time import Datetime, Timedelta
 from contracting.stdlib.bridge.decimal import ContractingDecimal
+from contracting.stdlib.bridge.time import Datetime, Timedelta
 from decimal import Decimal
+from unittest import TestCase
 import random
 
 SAMPLE_STRING = 'beef'
@@ -530,6 +531,7 @@ class TestFSDriver(TestCase):
     # Flush this sucker every test
     def setUp(self):
         self.d = FSDriver()
+        self.block_num = 33
 
     def tearDown(self):
         self.d.flush()
@@ -540,6 +542,15 @@ class TestFSDriver(TestCase):
 
             b = self.d.get('b.b')
             self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
+            self.assertEqual(self.d.get_block('b.b'), config.BLOCK_NUM_DEFAULT)
+
+    def test_get_set_with_block_num(self):
+        for v in TEST_DATA:
+            self.d.set('b.b', v, block_num=self.block_num)
+
+            b = self.d.get('b.b')
+            self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
+            self.assertEqual(self.d.get_block('b.b'), self.block_num)
 
     def test_delete(self):
         for v in TEST_DATA:
@@ -547,11 +558,13 @@ class TestFSDriver(TestCase):
 
             b = self.d.get('b.b')
             self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
+            self.assertEqual(self.d.get_block('b.b'), config.BLOCK_NUM_DEFAULT)
 
             self.d.delete('b.b')
 
             b = self.d.get('b.b')
             self.assertIsNone(b)
+            self.assertEqual(self.d.get_block('b.b'), config.BLOCK_NUM_DEFAULT)
 
     def test_keys_with_prefix(self):
 

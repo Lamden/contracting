@@ -34,7 +34,6 @@ TIME_KEY = '__submitted__'
 COMPILED_KEY = '__compiled__'
 DEVELOPER_KEY = '__developer__'
 
-
 class Driver:
     def __init__(self, db='lamden', collection='state'):
         self.client = pymongo.MongoClient()
@@ -244,11 +243,22 @@ class FSDriver:
     def get(self, item: str):
         filename, variable = self.__parse_key(item)
 
-        return decode(h5c.get(self.__filename_to_path(filename), variable))
+        return decode(h5c.get_value(self.__filename_to_path(filename), variable))
 
-    def set(self, key, value):
+    def get_block(self, item: str):
+        filename, variable = self.__parse_key(item)
+        block_num = h5c.get_block(self.__filename_to_path(filename), variable)
+
+        return config.BLOCK_NUM_DEFAULT if block_num is None else int(block_num)
+
+    def set(self, key, value, block_num=None):
         filename, variable = self.__parse_key(key)
-        h5c.set(self.__filename_to_path(filename), variable, encode(value))
+        h5c.set(
+            self.__filename_to_path(filename),
+            variable,
+            encode(value) if value is not None else None,
+            str(block_num) if block_num is not None else None
+        )
 
     def flush(self):
         try:

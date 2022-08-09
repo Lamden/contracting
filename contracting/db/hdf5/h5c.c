@@ -7,8 +7,9 @@
 
 // HDF5 Reference Manual: https://support.hdfgroup.org/HDF5/doc/RM/RM_H5Front.html
 
-#define ATT_LEN_MAX 64000 // http://davis.lbl.gov/Manuals/HDF5-1.8.7/UG/13_Attributes.html#SpecIssues
-#define ATT_NAME "value"
+#define ATTR_LEN_MAX 64000 // http://davis.lbl.gov/Manuals/HDF5-1.8.7/UG/13_Attributes.html#SpecIssues
+#define ATTR_VALUE "value"
+#define ATTR_BLOCK "block"
 #define LOCK_SUFFIX "-lock"
 
 static char dirname_buf[PATH_MAX + 1];
@@ -32,6 +33,21 @@ lock_release(char *filepath)
     memset(dirname_buf, 0, sizeof(dirname_buf));
 }
 
+static void
+write_attr(hid_t gid, char *name, char *value)
+{
+    H5Adelete(gid, name);
+    if(value)
+    {
+        hid_t atype = H5Tcopy(H5T_C_S1);
+        H5Tset_size(atype, strlen(value));
+        hid_t aid = H5Acreate(gid, name, atype, H5Screate(H5S_SCALAR), H5P_DEFAULT, H5P_DEFAULT);
+        H5Awrite(aid, atype, value);
+        H5Aclose(aid);
+        H5Tclose(atype);
+    }
+}
+
 static PyObject *
 set(PyObject *self, PyObject *args)
 {
@@ -39,8 +55,8 @@ set(PyObject *self, PyObject *args)
     H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
 #endif
 
-    char *filepath, *group, *value;
-    if(!PyArg_ParseTuple(args, "ssz", &filepath, &group, &value))
+    char *filepath, *group, *value, *blocknum;
+    if(!PyArg_ParseTuple(args, "sszz", &filepath, &group, &value, &blocknum))
         return NULL;
 
     lock_acquire(filepath);
@@ -65,14 +81,9 @@ set(PyObject *self, PyObject *args)
         H5Pclose(lcpl);
     }
 
-    hid_t atype = H5Tcopy(H5T_C_S1);
-    H5Tset_size(atype, strlen(value));
-    H5Adelete(gid, ATT_NAME);
-    hid_t aid = H5Acreate(gid, ATT_NAME, atype, H5Screate(H5S_SCALAR), H5P_DEFAULT, H5P_DEFAULT);
-    H5Awrite(aid, atype, value);
+    write_attr(gid, ATTR_VALUE, value);
+    write_attr(gid, ATTR_BLOCK, blocknum);
 
-    H5Tclose(atype);
-    H5Aclose(aid);
     H5Gclose(gid);
     H5Fclose(fid);
 
@@ -82,17 +93,9 @@ set(PyObject *self, PyObject *args)
 }
 
 static PyObject *
-get(PyObject *self, PyObject *args)
+get_attr(char *filepath, char *group, char *name)
 {
-    static char buf[ATT_LEN_MAX + 1];
-
-#ifndef DEBUG
-    H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
-#endif
-
-    char *filepath, *group;
-    if(!PyArg_ParseTuple(args, "ss", &filepath, &group))
-        return NULL;
+    static char buf[ATTR_LEN_MAX + 1];
 
     lock_acquire(filepath);
 
@@ -103,7 +106,7 @@ get(PyObject *self, PyObject *args)
         Py_RETURN_NONE;
     }
 
-    hid_t aid = H5Aopen_by_name(fid, group, ATT_NAME, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t aid = H5Aopen_by_name(fid, group, name, H5P_DEFAULT, H5P_DEFAULT);
     if(aid < 0)
     {
         H5Fclose(fid);
@@ -133,6 +136,34 @@ get(PyObject *self, PyObject *args)
 }
 
 static PyObject *
+get_value(PyObject *self, PyObject *args)
+{
+#ifndef DEBUG
+    H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
+#endif
+
+    char *filepath, *group;
+    if(!PyArg_ParseTuple(args, "ss", &filepath, &group))
+        return NULL;
+
+    return get_attr(filepath, group, ATTR_VALUE);
+}
+
+static PyObject *
+get_block(PyObject *self, PyObject *args)
+{
+#ifndef DEBUG
+    H5Eset_auto2(H5P_DEFAULT, NULL, NULL);
+#endif
+
+    char *filepath, *group;
+    if(!PyArg_ParseTuple(args, "ss", &filepath, &group))
+        return NULL;
+
+    return get_attr(filepath, group, ATTR_BLOCK);
+}
+
+static PyObject *
 delete(PyObject *self, PyObject *args)
 {
 #ifndef DEBUG
@@ -147,7 +178,8 @@ delete(PyObject *self, PyObject *args)
 
     hid_t fid = H5Fopen(filepath, H5F_ACC_RDWR, H5P_DEFAULT);
     hid_t gid = H5Gopen(fid, group, H5P_DEFAULT);
-    H5Adelete(gid, ATT_NAME);
+    H5Adelete(gid, ATTR_VALUE);
+    H5Adelete(gid, ATTR_BLOCK);
 
     H5Gclose(gid);
     H5Fclose(fid);
@@ -205,10 +237,11 @@ get_groups(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef methods[] = {
-    {"set", set, METH_VARARGS, "Set value"},
-    {"get", get, METH_VARARGS, "Get value"},
-    {"delete", delete, METH_VARARGS, "Delete value"},
-    {"get_groups", get_groups, METH_VARARGS, "Get groups"}
+    {"set",         set,        METH_VARARGS, "Set value"},
+    {"get_value",   get_value,  METH_VARARGS, "Get value"},
+    {"get_block",   get_block,  METH_VARARGS, "Get block"},
+    {"delete",      delete,     METH_VARARGS, "Delete value & block"},
+    {"get_groups",  get_groups, METH_VARARGS, "Get groups"}
 };
 
 static struct PyModuleDef h5cmodule = {
