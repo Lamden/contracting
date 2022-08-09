@@ -175,16 +175,22 @@ class ContractingClient:
         self.submission_filename = submission_filename
         self.environment = environment
 
-        # Seed the genesis contracts into the instance
-        with open(self.submission_filename) as f:
-            contract = f.read()
+        # Get submission contract from file
+        if submission_filename is not None:
+            # Seed the genesis contracts into the instance
+            with open(self.submission_filename) as f:
+                contract = f.read()
 
-        self.raw_driver.set_contract(name='submission',
-                                     code=contract)
+            self.raw_driver.set_contract(name='submission',
+                                         code=contract)
 
-        self.raw_driver.commit()
+            self.raw_driver.commit()
 
+        # Get submission contract from state
         self.submission_contract = self.get_contract('submission')
+
+        # Asset submission contract exists
+        assert self.submission_contract, "No submission contract provided or found in state."
 
     def set_submission_contract(self, filename=None, commit=True):
         if filename is None:
