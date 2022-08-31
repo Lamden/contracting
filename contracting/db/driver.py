@@ -286,9 +286,12 @@ class FSDriver:
     def iter(self, prefix='', length=0):
         keys = []
         for filename in self.__get_files():
-            for key in self.__get_keys_from_file(filename):
-                if key.startswith(prefix):
-                    keys.append(key)
+            if prefix != '':
+                for key in self.__get_keys_from_file(filename):
+                    if key.startswith(prefix):
+                        keys.append(key)
+            else:
+                keys.extend(self.__get_keys_from_file(filename))
             if length > 0 and len(keys) >= length:
                 break
         keys.sort()
