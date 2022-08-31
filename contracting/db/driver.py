@@ -22,7 +22,6 @@ FILE_EXT = '.d'
 HASH_EXT = '.x'
 
 STORAGE_HOME = Path().home().joinpath('.lamden')
-FSDRIVER_HOME = STORAGE_HOME.joinpath('state')
 
 # DB maps bytes to bytes
 # Driver maps string to python object
@@ -208,9 +207,16 @@ class InMemDriver(Driver):
             pass
 
 class FSDriver:
-    def __init__(self, root=FSDRIVER_HOME):
-        self.root = root
-        self.root.mkdir(exist_ok=True, parents=True)
+    def __init__(self, root=None):
+        self.root = Path(root) if root is not None else STORAGE_HOME
+        self.contract_state = self.root.joinpath('contract_state')
+        self.run_state = self.root.joinpath('run_state')
+
+        self.__build_directories()
+
+    def __build_directories(self):
+        self.contract_state.mkdir(exist_ok=True, parents=True)
+        self.run_state.mkdir(exist_ok=True, parents=True)
 
     def __parse_key(self, key):
         try:
@@ -223,10 +229,10 @@ class FSDriver:
         return filename, variable
 
     def __filename_to_path(self, filename):
-        return str(self.root.joinpath(filename))
+        return str(self.run_state.joinpath(filename)) if filename.startswith('__') else str(self.contract_state.joinpath(filename))
 
     def __get_files(self):
-        return sorted(os.listdir(self.root))
+        return sorted(os.listdir(self.contract_state) + os.listdir(self.run_state))
 
     def __get_keys_from_file(self, filename):
         return [filename + config.INDEX_SEPARATOR + g.replace(config.HDF5_GROUP_SEPARATOR, config.DELIMITER) for g in h5c.get_groups(self.__filename_to_path(filename))]
@@ -261,11 +267,17 @@ class FSDriver:
         )
 
     def flush(self):
-        try:
-            shutil.rmtree(self.root)
-        except FileNotFoundError:
-            pass
-        self.root.mkdir(exist_ok=True, parents=True)
+        if self.run_state.is_dir():
+            shutil.rmtree(self.run_state)
+        if self.contract_state.is_dir():
+            shutil.rmtree(self.contract_state)
+
+        self.__build_directories()
+
+    def flush_file(self, filename):
+        file = Path(self.__filename_to_path(filename))
+        if file.is_file():
+            file.unlink()
 
     def delete(self, key):
         filename, variable = self.__parse_key(key)
@@ -274,8 +286,9 @@ class FSDriver:
     def iter(self, prefix='', length=0):
         keys = []
         for filename in self.__get_files():
-            if filename.startswith(prefix):
-                keys.extend(self.__get_keys_from_file(filename))
+            for key in self.__get_keys_from_file(filename):
+                if key.startswith(prefix):
+                    keys.append(key)
             if length > 0 and len(keys) >= length:
                 break
         keys.sort()

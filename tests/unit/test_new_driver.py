@@ -621,6 +621,17 @@ class TestFSDriver(TestCase):
 
         self.assertListEqual(prefix_2_keys, p2)
 
+    def test_keys_with_prefix_longer_than_just_filename(self):
+        sample_key = 'some.sample:key'
+
+        self.d.set(sample_key, SAMPLE_INT)
+
+        self.assertListEqual([sample_key], self.d.iter(prefix='some'))
+        self.assertListEqual([sample_key], self.d.iter(prefix='some.sample:k'))
+        self.assertListEqual([sample_key], self.d.iter(prefix='some.sample:'))
+        self.assertListEqual([sample_key], self.d.iter())
+        self.assertEqual(0, len(self.d.iter(prefix='invalid')))
+
     def test_set_object_returns_properly(self):
         thing = {
             'a': 123,
