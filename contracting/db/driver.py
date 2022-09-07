@@ -301,6 +301,9 @@ class FSDriver:
     def keys(self):
         return self.iter()
 
+    def get_contracts(self):
+        return sorted(os.listdir(self.contract_state))
+
 class WebDriver(InMemDriver):
     def __init__(self, masternode='http://masternode-01.lamden.io'):
         super().__init__()

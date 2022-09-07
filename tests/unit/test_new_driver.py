@@ -795,3 +795,13 @@ class TestFSDriver(TestCase):
         got_keys = self.d.keys()
 
         self.assertListEqual(keys, got_keys)
+
+    def test_get_contracts(self):
+        self.assertListEqual([], self.d.get_contracts())
+
+        sample_contracts = ['currency', 'something', 'something_else']
+        sample_contracts.sort()
+        for c in sample_contracts:
+            self.d.set(f'{c}.something', SAMPLE_INT)
+
+        self.assertListEqual(sample_contracts, self.d.get_contracts())
