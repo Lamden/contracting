@@ -47,6 +47,11 @@ class Linter(ast.NodeVisitor):
     def visit_Name(self, node):
         self.not_system_variable(node.id, node.lineno)
 
+        if node.id == 'rt':
+            self._is_success = False
+            str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[13]
+            self._violations.append(str)
+
         if node.id in ILLEGAL_BUILTINS and node.id != 'float':
             self._is_success = False
             str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[13]
