@@ -68,8 +68,18 @@ class Executor:
                                                    sender)
 
                 balance = driver.get(balances_key)
+
+                if type(balance) == dict:
+                    balance = ContractingDecimal(balance.get('__fixed__'))
+
                 if balance is None:
                     balance = 0
+
+                log.debug({
+                    'balance': balance,
+                    'stamp_cost': stamp_cost,
+                    'stamps': stamps
+                })
 
                 assert balance * stamp_cost >= stamps, 'Sender does not have enough stamps for the transaction. \
                                                                Balance at key {} is {}'.format(balances_key,
@@ -155,7 +165,7 @@ class Executor:
             'result': result,
             'stamps_used': stamps_used,
             'writes': deepcopy(driver.pending_writes),
-            'reads': driver.reads
+            'reads': driver.pending_reads
         }
 
         disable_restricted_imports()

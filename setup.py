@@ -1,14 +1,15 @@
+from distutils import errors
+from distutils.command.build_ext import build_ext, CCompilerError, DistutilsExecError, DistutilsPlatformError
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
-from distutils.command.build_ext import build_ext, CCompilerError, DistutilsExecError, DistutilsPlatformError
-from distutils import errors
-import sys
+from sys import platform
+import sys, subprocess, pathlib
 
 major = 0
 
-__version__ = '1.0.5.2'
+__version__ = '1.1.6'
 
-requirements = ['astor', 'pymongo', 'autopep8', 'stdlib_list']
+requirements = ['astor==0.8.1', 'pymongo==3.12.3', 'autopep8==1.5.7', "stdlib_list==0.8.0", 'motor==2.5.1']
 
 ext_errors = (CCompilerError, DistutilsExecError, DistutilsPlatformError)
 
@@ -42,6 +43,28 @@ class ve_build_ext(build_ext):
                 raise BuildFailed()
             raise
 
+def pkgconfig(package):
+    flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
+    res = {}
+
+    if platform == "linux" or platform == "linux2":
+        output = subprocess.getoutput('pkg-config --cflags --libs {}'.format(package))
+        for token in output.strip().split():
+            res.setdefault(flag_map.get(token[:2]), []).append(token[2:])
+
+    elif platform == "darwin":
+        res['libraries'] = [f'{package}']
+        output = subprocess.getoutput(f'brew --prefix {package}')
+        if 'Error:' in output or not pathlib.Path(output).is_dir():
+            raise ModuleNotFoundError(f'{output}\nInstall "{package}"" package using brew. "brew install {package}"')
+        res['include_dirs'] = [output + '/include/']
+        res['library_dirs'] = [output + '/lib/']
+
+    elif platform == "win32":
+        raise NotImplemented("Cannot install on Windows")
+
+    return res
+
 setup(
     name='contracting',
     version=__version__,
@@ -58,6 +81,7 @@ setup(
     include_package_data=True,
     ext_modules=[
         Extension('contracting.execution.metering.tracer', sources=['contracting/execution/metering/tracer.c']),
+        Extension('contracting.db.hdf5.h5c', sources=['contracting/db/hdf5/h5c.c'], **pkgconfig('hdf5'))
     ],
     cmdclass={
         'build_ext': ve_build_ext,

@@ -439,7 +439,7 @@ def greeting(name: str) -> str:
         c = ast.parse(code)
         chk = self.l.check(c)
 
-        self.assertEqual(chk, ['Line 2 : S18- Illegal use of return annotation : str'])
+        self.assertEqual(['Line 2 : S18- Illegal use of return annotation : str'], chk)
 
 
     def test_contract_annotation(self):

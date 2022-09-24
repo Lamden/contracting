@@ -5,3 +5,5 @@ build
 .github
 .idea
 logs
+*.so
+.ccls
