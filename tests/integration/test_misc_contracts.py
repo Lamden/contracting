@@ -324,6 +324,33 @@ def exec_contract():
     wExec = builtins__["exec"]
     wExec("print('hello world')")
 
+def type_exploit():
+    @export
+    def attack(to: str):
+        # before
+        # assert amount > 0, 'Cannot send negative balances!'
+        def gt(a, b):
+            print("gt", a, b)
+            return True
+
+        # assert balances[sender] >= amount, 'Not enough coins to send!'
+        def le(a, b):
+            print("lt", a, b)
+            return True
+
+        # balances[sender] -= amount
+        def rsub(a, b):
+            print("rsub", a, b)
+            return b
+
+        # balances[to] += amount
+        def radd(a, b):
+            print("radd", a, b)
+            return 100
+
+        wAmount = type("wAmount", (), {"__gt__": gt, "__le__": le, "__radd__": radd, "__rsub__": rsub})
+        fake_amount_object = wAmount()
+
 class TestHackThing(TestCase):
     def setUp(self):
         self.c = ContractingClient(signer='stu')
@@ -356,3 +383,7 @@ class TestHackThing(TestCase):
     def test_cant_submit_exec(self):
         with self.assertRaises(Exception):
             self.c.submit(exec_contract)
+
+    def test_cant_submit_type(self):
+        with self.assertRaises(Exception):
+            self.c.submit(type_exploit)

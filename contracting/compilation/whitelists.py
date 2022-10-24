@@ -3,7 +3,7 @@ import ast, builtins
 ALLOWED_BUILTINS = {'Exception', 'False', 'None', 'True', 'abs', 'all', 'any', 'ascii', 'bin', 'bool', 'bytearray',
                     'bytes', 'chr', 'dict', 'divmod', 'filter', 'format', 'frozenset', 'hex', 'int', 'isinstance',
                     'issubclass', 'import', 'len', 'list', 'map', 'max', 'min', 'oct', 'ord', 'pow', 'range', 'reversed',
-                    'round', 'set', 'sorted', 'str', 'sum', 'tuple', 'type', 'zip'}
+                    'round', 'set', 'sorted', 'str', 'sum', 'tuple', 'zip'}
 
 ILLEGAL_BUILTINS = set(dir(builtins)) - ALLOWED_BUILTINS
 
