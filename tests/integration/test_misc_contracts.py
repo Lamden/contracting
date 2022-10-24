@@ -1,3 +1,4 @@
+import importlib
 from unittest import TestCase
 from contracting.stdlib.bridge.time import Datetime
 from contracting.client import ContractingClient
@@ -285,3 +286,60 @@ class TestFloatThing(TestCase):
         ft_con = self.c.get_contract('float_thing')
 
         ft_con.test(currency_reserve=50000.125, token_reserve=52.45, currency_amount=100.25)
+
+def a():
+    @export
+    def x():
+        return 1
+
+def module_hack():
+    v = Variable()
+
+    @export
+    def hack():
+        hack.__module__
+        return 1
+
+
+def class_var():
+    @export
+    def hack():
+        v = Variable
+        x = v(contract="currency", name="balances")
+
+
+def class_hash():
+    @export
+    def hack():
+        v = Hash
+        x = v(contract="currency", name="balances")
+
+
+class TestHackThing(TestCase):
+    def setUp(self):
+        self.c = ContractingClient(signer='stu')
+        self.c.raw_driver.flush()
+
+        with open('../../contracting/contracts/submission.s.py') as f:
+            contract = f.read()
+
+        self.c.raw_driver.set_contract(name='submission', code=contract,)
+
+        self.c.raw_driver.commit()
+
+    def test_can_add(self):
+        self.c.submit(a)
+        with self.assertRaises(Exception):
+            self.c.submit(module_hack)
+
+            ft_con = self.c.get_contract('module_hack')
+
+            ft_con.hack()
+
+    def test_cant_submit_class_var(self):
+        with self.assertRaises(Exception):
+            self.c.submit(class_var)
+
+    def test_cant_submit_class_hash(self):
+        with self.assertRaises(Exception):
+            self.c.submit(class_hash)
