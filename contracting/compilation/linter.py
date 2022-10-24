@@ -102,6 +102,12 @@ class Linter(ast.NodeVisitor):
 
     def visit_Assign(self, node):
         # resource_names, func_name = Assert.valid_assign(node, Parser.parser_scope)
+        if isinstance(node.value, ast.Name):
+            if node.value.id == 'Hash' or node.value.id == 'Variable':
+                self._is_success = False
+                str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[13]
+                self._violations.append(str)
+
         if isinstance(node.value, ast.Call) and not isinstance(node.value.func, ast.Attribute) and node.value.func.id in config.ORM_CLASS_NAMES:
             if node.value.func.id in ['Variable', 'Hash']:
                 kwargs = [k.arg for k in node.value.keywords]
