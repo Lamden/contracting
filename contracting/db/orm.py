@@ -135,5 +135,6 @@ class ForeignHash(Hash):
     def __getitem__(self, item):
         return super().__getitem__(item)
 
-
+    def clear(self, *args):
+        raise Exception('Cannot write with a ForeignHash.')
 

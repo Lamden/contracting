@@ -351,6 +351,25 @@ def type_exploit():
         wAmount = type("wAmount", (), {"__gt__": gt, "__le__": le, "__radd__": radd, "__rsub__": rsub})
         fake_amount_object = wAmount()
 
+def test_one():
+    h = Hash()
+
+    @construct
+    def seed():
+        h['a'] = 100
+        h['b'] = 999
+
+    @export
+    def output():
+        return h['a'], h['b']
+
+def test_two():
+    f = ForeignHash(foreign_contract='test_one', foreign_name='h')
+
+    @export
+    def clear():
+        f.clear()
+
 class TestHackThing(TestCase):
     def setUp(self):
         self.c = ContractingClient(signer='stu')
@@ -387,3 +406,12 @@ class TestHackThing(TestCase):
     def test_cant_submit_type(self):
         with self.assertRaises(Exception):
             self.c.submit(type_exploit)
+
+    def test_cant_clear_foreign_hash(self):
+        self.c.submit(test_one)
+        self.c.submit(test_two)
+
+        t2 = self.c.get_contract('test_two')
+
+        with self.assertRaises(Exception):
+            t2.clear()
