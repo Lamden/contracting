@@ -370,6 +370,19 @@ def test_two():
     def clear():
         f.clear()
 
+def test_closure():
+    def export(contract):
+        def decorator(func):
+            def enter(*args, **kwargs):
+                result = func(*args, **kwargs)
+                return result
+            return enter
+        return decorator
+
+    @export
+    def test():
+        return 1
+
 class TestHackThing(TestCase):
     def setUp(self):
         self.c = ContractingClient(signer='stu')
@@ -415,3 +428,7 @@ class TestHackThing(TestCase):
 
         with self.assertRaises(Exception):
             t2.clear()
+
+    def test_no_closures(self):
+        with self.assertRaises(Exception):
+            self.c.submit(test_closure)

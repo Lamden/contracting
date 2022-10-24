@@ -164,6 +164,15 @@ class Linter(ast.NodeVisitor):
     def visit_FunctionDef(self, node):
         self.no_nested_imports(node)
 
+        # Make sure there are no closures
+        try:
+            if isinstance(node.body[0], ast.FunctionDef):
+                str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[18]
+                self._violations.append(str)
+                self._is_success = False
+        except:
+            pass
+
         # Only allow 1 decorator per function definition.
         if len(node.decorator_list) > 1:
             str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[9] + \

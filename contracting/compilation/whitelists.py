@@ -57,4 +57,5 @@ VIOLATION_TRIGGERS = [
     "S16- Illegal argument annotation used",
     "S17- No valid argument annotation found",
     "S18- Illegal use of return annotation",
+    "S19- Illegal use of a nested function definition."
 ]
