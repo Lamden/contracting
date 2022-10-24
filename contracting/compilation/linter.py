@@ -32,7 +32,7 @@ class Linter(ast.NodeVisitor):
             self._is_success = False
 
     def not_system_variable(self, v, lnum):
-        if v.startswith('_'):
+        if v.startswith('_') or v.endswith('_'):
             str = "Line {} : ".format(lnum) + VIOLATION_TRIGGERS[1] + " : {}" .format(v)
             self._violations.append(str)
             self._is_success = False

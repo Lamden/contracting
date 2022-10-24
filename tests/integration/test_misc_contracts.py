@@ -315,6 +315,15 @@ def class_hash():
         x = v(contract="currency", name="balances")
 
 
+def exec_contract():
+    @export
+    def fn():
+        def builtins__():
+            pass
+
+    wExec = builtins__["exec"]
+    wExec("print('hello world')")
+
 class TestHackThing(TestCase):
     def setUp(self):
         self.c = ContractingClient(signer='stu')
@@ -343,3 +352,7 @@ class TestHackThing(TestCase):
     def test_cant_submit_class_hash(self):
         with self.assertRaises(Exception):
             self.c.submit(class_hash)
+
+    def test_cant_submit_exec(self):
+        with self.assertRaises(Exception):
+            self.c.submit(exec_contract)
