@@ -162,7 +162,7 @@ def pixel_game():
     decay = 0.02
     tax_period = datetime.DAYS * 1
 
-    def assert_in_bounds(x, y):
+    def assert_in_bounds(x: int, y: int):
         assert 0 <= x < max_x, 'X coordinate out of bounds.'
         assert 0 <= y < max_y, 'Y coordinate out of bounds.'
 
@@ -175,7 +175,7 @@ def pixel_game():
         landlord.set(ctx.caller)
 
     @export
-    def buy_plot(x, y, amount, price):
+    def buy_plot(x: int, y: int, amount: float, price: float):
         assert_in_bounds(x, y)
 
         plot = plots[x, y]
@@ -201,7 +201,7 @@ def pixel_game():
             plots[x, y] = plot
 
     @export
-    def set_plot(x, y, color_string):
+    def set_plot(x: int, y: int, color_string: str):
         assert_is_hex(color_string)
 
         plot = plots[x, y]
@@ -211,6 +211,7 @@ def pixel_game():
         plot['colors'] = color_string
 
         plots[x, y] = plot
+
 
 class TestPixelGame(TestCase):
     def setUp(self):
@@ -223,3 +224,6 @@ class TestPixelGame(TestCase):
 
     def tearDown(self):
         self.c.flush()
+
+    def test_init(self):
+        self.assertEqual(1, 1)

@@ -166,10 +166,11 @@ class Linter(ast.NodeVisitor):
 
         # Make sure there are no closures
         try:
-            if isinstance(node.body[0], ast.FunctionDef):
-                str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[18]
-                self._violations.append(str)
-                self._is_success = False
+            for n in node.body:
+                if isinstance(n, ast.FunctionDef):
+                    str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[18]
+                    self._violations.append(str)
+                    self._is_success = False
         except:
             pass
 

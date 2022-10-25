@@ -25,3 +25,6 @@ class TestSenecaClientReplacesExecutor(TestCase):
 
         with self.assertRaises(TypeError):
             self.dater.replicate(d=[2025, 11, 15, 21, 47, 14, 0])
+
+    def test_datetime_subtracts(self):
+        self.dater.subtract(d1=Datetime(year=2000, month=1, day=1), d2=Datetime(year=2001, month=1, day=1))
