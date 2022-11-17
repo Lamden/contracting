@@ -140,13 +140,14 @@ Tracer_dealloc(Tracer *self)
 
              //estimate = estimate * factor;
              if ((self->cost > self->stamp_supplied) || self->cost > MAX_STAMPS) {
+                 printf("TOTAL_USAGE: %ld\n", self->total_mem_usage);
                  PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
                  PyEval_SetTrace(NULL, NULL);
                  self->started = 0;
                  return RET_ERROR;
              }
 
-             if (self->total_mem_usage > 2000) {
+             if (self->total_mem_usage > 4000) {
                  PyErr_SetString(PyExc_AssertionError, "Transaction exceeded memory usage!\n");
                  PyEval_SetTrace(NULL, NULL);
                  self->started = 0;
