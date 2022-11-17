@@ -147,7 +147,11 @@ Tracer_dealloc(Tracer *self)
                  return RET_ERROR;
              }
 
+#ifdef unix
              if (self->total_mem_usage > 4000) {
+#else
+             if (self->total_mem_usage > 4000000) {
+#endif
                  PyErr_SetString(PyExc_AssertionError, "Transaction exceeded memory usage!\n");
                  PyEval_SetTrace(NULL, NULL);
                  self->started = 0;
