@@ -134,6 +134,7 @@ Tracer_dealloc(Tracer *self)
 
              if (new_memory_usage > self->last_frame_mem_usage) {
                 self->total_mem_usage += (new_memory_usage - self->last_frame_mem_usage);
+                printf("[TRACER] TX total memory usage: %ld\n", self->total_mem_usage);
              }
 
              self->last_frame_mem_usage = new_memory_usage;
@@ -147,10 +148,10 @@ Tracer_dealloc(Tracer *self)
              }
 
 #ifdef unix
-             if (self->total_mem_usage > 4000) {
+             if (self->total_mem_usage > 500000) {
                  PyErr_Format(PyExc_AssertionError, "Transaction exceeded memory usage! Total usage: %ld kilobytes", self->total_mem_usage);
 #else
-             if (self->total_mem_usage > 4000000) {
+             if (self->total_mem_usage > 500000000) {
                  PyErr_Format(PyExc_AssertionError, "Transaction exceeded memory usage! Total usage: %ld bytes", self->total_mem_usage);
 #endif
                  PyEval_SetTrace(NULL, NULL);
