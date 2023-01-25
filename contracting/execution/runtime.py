@@ -48,12 +48,22 @@ class Context:
     def owner(self):
         return self._get_state()['owner']
 
+    @property
+    def entry(self):
+        return self._get_state()['entry']
+
+    @property
+    def submission_name(self):
+        return self._get_state()['submission_name']
+
 
 _context = Context({
         'this': None,
         'caller': None,
         'owner': None,
-        'signer': None
+        'signer': None,
+        'entry': None,
+        'submission_name': None
     })
 
 WRITE_MAX = 1024 * 64
