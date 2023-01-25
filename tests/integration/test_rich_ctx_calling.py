@@ -1,7 +1,6 @@
 from unittest import TestCase
 from contracting.client import ContractingClient
 
-
 def con_module1():
     @export
     def get_context2():
@@ -10,7 +9,9 @@ def con_module1():
             'owner': ctx.owner,
             'this': ctx.this,
             'signer': ctx.signer,
-            'caller': ctx.caller
+            'caller': ctx.caller,
+            'entry': ctx.entry,
+            'submission_name': ctx.submission_name
         }
 
 
@@ -30,7 +31,9 @@ def con_all_in_one():
             'owner': ctx.owner,
             'this': ctx.this,
             'signer': ctx.signer,
-            'caller': ctx.caller
+            'caller': ctx.caller,
+            'entry': ctx.entry,
+            'submission_name': ctx.submission_name
         })
 
 
@@ -45,7 +48,9 @@ def con_dynamic_import():
             'owner': ctx.owner,
             'this': ctx.this,
             'signer': ctx.signer,
-            'caller': ctx.caller
+            'caller': ctx.caller,
+            'entry': ctx.entry,
+            'submission_name': ctx.submission_name
         }]
 
     @export
@@ -53,16 +58,37 @@ def con_dynamic_import():
         m = importlib.import_module('con_all_in_one')
         return m.call()
 
+def con_submission_name_test():
+    submission_name = Variable()
+
+    @construct
+    def seed():
+        submission_name.set(ctx.submission_name)
+
+    @export
+    def get_submission_context():
+        return submission_name.get()
+
+    @export
+    def get_entry_context():
+        con_name, func_name = ctx.entry
+
+        return {
+            'entry_contract': con_name,
+            'entry_function': func_name
+        }
+
+
 
 class TestRandomsContract(TestCase):
     def setUp(self):
         self.c = ContractingClient(signer='stu')
         self.c.flush()
 
-        self.c.submit(con_module1)
-
-        self.c.submit(con_all_in_one)
-        self.c.submit(con_dynamic_import)
+        self.c.submit(f=con_module1)
+        self.c.submit(f=con_all_in_one)
+        self.c.submit(f=con_dynamic_import)
+        self.c.submit(f=con_submission_name_test)
 
     def tearDown(self):
         self.c.flush()
@@ -72,10 +98,12 @@ class TestRandomsContract(TestCase):
         res = module.get_context2()
         expected = {
             'name': 'get_context2',
+            'entry': ('con_module1', 'get_context2'),
             'owner': None,
             'this': 'con_module1',
             'signer': 'stu',
-            'caller': 'stu'
+            'caller': 'stu',
+            'submission_name': None
         }
         self.assertDictEqual(res, expected)
 
@@ -85,10 +113,12 @@ class TestRandomsContract(TestCase):
 
         expected = {
             'name': 'call_me_again_again',
+            'entry': ('con_all_in_one', 'call_me'),
             'owner': None,
             'this': 'con_all_in_one',
             'signer': 'stu',
-            'caller': 'stu'
+            'caller': 'stu',
+            'submission_name': None
         }
 
         self.assertDictEqual(res, expected)
@@ -99,19 +129,36 @@ class TestRandomsContract(TestCase):
 
         expected1 = {
             'name': 'call_me_again_again',
+            'entry': ('con_dynamic_import', 'called_from_a_far'),
             'owner': None,
             'this': 'con_all_in_one',
             'signer': 'stu',
-            'caller': 'con_dynamic_import'
+            'caller': 'con_dynamic_import',
+            'submission_name': None
         }
 
         expected2 = {
             'name': 'called_from_a_far',
+            'entry': ('con_dynamic_import', 'called_from_a_far'),
             'owner': None,
             'this': 'con_dynamic_import',
             'signer': 'stu',
-            'caller': 'stu'
+            'caller': 'stu',
+            'submission_name': None
         }
 
         self.assertDictEqual(res1, expected1)
         self.assertDictEqual(res2, expected2)
+
+    def test_submission_name_in_construct_function(self):
+        contract = self.c.get_contract('con_submission_name_test')
+        submission_name = contract.get_submission_context()
+
+        self.assertEqual("con_submission_name_test", submission_name)
+
+    def test_entry_context(self):
+        contract = self.c.get_contract('con_submission_name_test')
+        details = contract.get_entry_context()
+
+        self.assertEqual("con_submission_name_test", details.get('entry_contract'))
+        self.assertEqual("get_entry_context", details.get('entry_function'))

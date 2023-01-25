@@ -17,7 +17,9 @@ class __export(ContextDecorator):
                 'owner': driver.get_owner(self.contract),
                 'caller': current_state['this'],
                 'signer': current_state['signer'],
-                'this': self.contract
+                'this': self.contract,
+                'entry': current_state['entry'],
+                'submission_name': current_state['submission_name'],
             }
 
             rt.context._add_state(state)

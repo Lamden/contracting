@@ -93,16 +93,22 @@ class Executor:
                 'signer': sender,
                 'caller': sender,
                 'this': contract_name,
-                'owner': driver.get_owner(contract_name)
+                'entry': (contract_name, function_name),
+                'owner': driver.get_owner(contract_name),
+                'submission_name': None
             }
+
+            module = importlib.import_module(contract_name)
+            func = getattr(module, function_name)
 
             if runtime.rt.context.owner is not None and runtime.rt.context.owner != runtime.rt.context.caller:
                 raise Exception(f'Caller {runtime.rt.context.caller} is not the owner {runtime.rt.context.owner}!')
 
             decimal.setcontext(CONTEXT)
 
-            module = importlib.import_module(contract_name)
-            func = getattr(module, function_name)
+            ## add the contract name to the context on a submission call
+            if contract_name == config.SUBMISSION_CONTRACT_NAME:
+                runtime.rt.context._base_state['submission_name'] = kwargs.get('name')
 
             for k, v in kwargs.items():
                 if type(v) == float:
