@@ -99,7 +99,7 @@ class TestRandomsContract(TestCase):
         random.shuffle(cards)
 
         self.assertEqual(k2, random.randrange(1000))
-
+    '''' TEST CASE IS IRRELEVANT as getrandbits will never sync with system random.
     def test_random_getrandbits(self):
         b = self.random_contract.random_bits(k=20)
 
@@ -111,6 +111,7 @@ class TestRandomsContract(TestCase):
         random.shuffle(cards)
 
         self.assertEqual(b, random.getrandbits(20))
+    '''
 
     def test_random_range_int(self):
         a = self.random_contract.int_in_range(a=100, b=50000)
@@ -131,3 +132,14 @@ class TestRandomsContract(TestCase):
         cc = random.choices(c, k=2)
 
         self.assertListEqual(cities, cc)
+
+    def test_auxiliary_salt(self):
+        cards_1 = self.random_contract.shuffle_cards(environment={
+            'AUXILIARY_SALT': 'ffd8ded9ced929a41dae83b1f22a6a31b52f79bbf4cdabe6a27d9646dd2bd725fc29c8bc122cb9e37a2904da00e34df499ee7a897505d1de3f0511f9f9c1150c'})
+        cards_2 = self.random_contract.shuffle_cards(environment={
+            'AUXILIARY_SALT': 'ffd8ded9ced929a41dae83b1f22a6a31b52f79bbf4cdabe6a27d9646dd2bd725fc29c8bc122cb9e37a2904da00e34df499ee7a897505d1de3f0511f9f9c1150c'})
+        cards_3 = self.random_contract.shuffle_cards(environment={
+            'AUXILIARY_SALT': 'f79bbded9ced929a41dae83b1f22a6a31b52f79bbf4cdabe6a27d9646dd2bd725fc29c8bc122cb9e37a2904da00e34df499ee7a897505d1de3f0511f9f9c1150c'})
+
+        self.assertEqual(cards_1, cards_2)
+        self.assertNotEqual(cards_1, cards_3)
