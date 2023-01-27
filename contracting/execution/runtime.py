@@ -125,7 +125,7 @@ class Runtime:
             cost = len(key) + len(value)
             cls.writes += cost
 
-            #assert cls.writes < WRITE_MAX, 'You have exceeded the maximum write capacity per transaction!'
+            assert cls.writes < WRITE_MAX, 'You have exceeded the maximum write capacity per transaction!'
 
             stamp_cost = cost * config.WRITE_COST_PER_BYTE
             cls.tracer.add_cost(stamp_cost)
