@@ -544,13 +544,23 @@ class TestFSDriver(TestCase):
             self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
             self.assertEqual(self.d.get_block('b.b'), config.BLOCK_NUM_DEFAULT)
 
-    def test_get_set_with_block_num(self):
+    def test_get_set_contract_name_too_long(self):
+        contract = 'b' * 256
         for v in TEST_DATA:
-            self.d.set('b.b', v, block_num=self.block_num)
+            self.d.set(contract + '.b', v)
 
-            b = self.d.get('b.b')
-            self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
-            self.assertEqual(self.d.get_block('b.b'), self.block_num)
+            b = self.d.get(contract + '.b')
+            self.assertIsNone(b)
+            self.assertEqual(self.d.get_block('b.b'), config.BLOCK_NUM_DEFAULT)
+
+    def test_get_set_with_block_num_contract_name_too_long(self):
+        contract = 'b' * 256
+        for v in TEST_DATA:
+            self.d.set(contract + '.b', v, block_num=self.block_num)
+
+            b = self.d.get(contract + '.b')
+            self.assertIsNone(b)
+            self.assertEqual(self.d.get_block(contract + '.b'), config.BLOCK_NUM_DEFAULT)
 
     def test_delete(self):
         for v in TEST_DATA:
@@ -565,6 +575,12 @@ class TestFSDriver(TestCase):
             b = self.d.get('b.b')
             self.assertIsNone(b)
             self.assertEqual(self.d.get_block('b.b'), config.BLOCK_NUM_DEFAULT)
+
+    def test_delete_contract_name_too_long_doesnt_crash(self):
+        contract = 'b' * 256
+        for v in TEST_DATA:
+            self.d.set(contract + '.b', v)
+            self.d.delete(contract + '.b')
 
     def test_keys_with_prefix(self):
 
