@@ -728,11 +728,21 @@ class BlockserviceDriver(Driver):
 
         if isinstance(v['value'], dict):
             return decode(encode(v['value']))
-
-        if decode(v['value']) is None:
-           return v['value']
-
-        return decode(v['value'])
+        
+        if isinstance(v['value'], int):
+            return v['value']
+        
+        if isinstance(v['value'], list):
+            return v['value']
+        
+        try:
+            res = decode(v['value'])
+            if res is None:
+                return v['value']
+            return res
+        except Exception as e:
+            logging.exception(e)
+            return v['value']
 
     def set(self, key, value):
         # Do nothing to keep readonly.
