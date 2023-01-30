@@ -1,5 +1,5 @@
 from contracting.execution.executor import Executor
-from contracting.db.driver import ContractDriver
+from contracting.db.driver import ContractDriver, FSDriver
 from contracting.compilation.compiler import ContractingCompiler
 from contracting.stdlib.bridge.time import Datetime
 from datetime import datetime
@@ -175,37 +175,49 @@ class ContractingClient:
         self.submission_filename = submission_filename
         self.environment = environment
 
-        # Seed the genesis contracts into the instance
-        with open(self.submission_filename) as f:
-            contract = f.read()
+        # Get submission contract from file
+        if submission_filename is not None:
+            # Seed the genesis contracts into the instance
+            with open(self.submission_filename) as f:
+                contract = f.read()
 
-        self.raw_driver.set_contract(name='submission',
-                                     code=contract)
+            self.raw_driver.set_contract(name='submission',
+                                         code=contract)
 
-        self.raw_driver.commit()
+            self.raw_driver.commit()
 
+        # Get submission contract from state
         self.submission_contract = self.get_contract('submission')
 
-    def set_submission_contract(self, filename=None):
+    def set_submission_contract(self, filename=None, commit=True):
+        state_contract = self.get_contract('submission')
+
         if filename is None:
             filename = self.submission_filename
 
-        with open(filename) as f:
-            contract = f.read()
+        if filename is None and state_contract is None:
+            raise AssertionError("No submission contract provided or found in state.")
 
-        self.raw_driver.delete_contract(name='submission')
-        self.raw_driver.set_contract(name='submission',
-                                     code=contract)
+        if filename is not None:
+            with open(filename) as f:
+                contract = f.read()
 
-        self.raw_driver.commit()
+            self.raw_driver.delete_contract(name='submission')
+            self.raw_driver.set_contract(name='submission',
+                                         code=contract)
+            if commit:
+                self.raw_driver.commit()
 
         self.submission_contract = self.get_contract('submission')
+
 
     def flush(self):
         # flushes db and resubmits genesis contracts
         self.raw_driver.flush()
         self.raw_driver.clear_pending_state()
-        self.set_submission_contract()
+
+        if self.submission_filename is not None:
+            self.set_submission_contract()
 
     # Returns abstract contract which has partial methods mapped to each exported function.
     def get_contract(self, name):
@@ -273,6 +285,8 @@ class ContractingClient:
 
     def submit(self, f, name=None, metering=None, owner=None, constructor_args={}, signer=None):
 
+        assert self.submission_contract is not None, "No submission contract set. Try set_submission_contract first."
+
         if isinstance(f, FunctionType):
             f, n = self.closure_to_code_string(f)
             if name is None:
@@ -287,6 +301,9 @@ class ContractingClient:
                                                  metering=metering, signer=signer)
 
     def get_contracts(self):
+        if isinstance(self.raw_driver.driver, FSDriver):
+            return self.raw_driver.driver.get_contracts()
+
         contracts = []
         for key in self.raw_driver.keys():
             if key.endswith('.__code__'):

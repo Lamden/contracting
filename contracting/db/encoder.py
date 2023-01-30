@@ -170,6 +170,9 @@ def convert(k, v):
 
 
 def convert_dict(d):
+    if not isinstance(d, dict):
+        return d
+
     d2 = dict()
     for k, v in d.items():
         if k in TYPES:

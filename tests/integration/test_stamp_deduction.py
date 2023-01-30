@@ -65,10 +65,8 @@ class TestMetering(TestCase):
 
         print(prior_balance)
 
-        small_amount_of_stamps = 1 * STAMPS_PER_TAU
-
         output = self.e.execute('stu', 'currency', 'transfer', kwargs={'amount': 100, 'to': 'colin'},
-                                                stamps=small_amount_of_stamps, auto_commit=True)
+                                                stamps=1, auto_commit=True)
 
         print(output)
 

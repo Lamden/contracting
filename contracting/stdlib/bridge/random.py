@@ -28,12 +28,15 @@ def seed(aux_salt=None):
     block_hash = rt.env.get('block_hash') or '0'
     __input_hash = rt.env.get('__input_hash') or '0'
 
-    # Auxillary salt is used to create completely unique random seeds based on some other properties (optional)
-    auxillary_salt = ''
+    # Auxiliary salt is used to create completely unique random seeds based on some other properties (optional)
+    auxiliary_salt = ''
     if aux_salt is not None and rt.env.get(aux_salt):
-        auxillary_salt = str(rt.env.get(aux_salt))
+        auxiliary_salt = str(rt.env.get(aux_salt))
+    else:
+        if rt.env.get("AUXILIARY_SALT"):
+            auxiliary_salt = str(rt.env.get("AUXILIARY_SALT"))
 
-    s = block_height + block_hash + __input_hash + auxillary_salt
+    s = block_height + block_hash + __input_hash + auxiliary_salt
 
     random.seed(s)
     Seeded.s = True
