@@ -660,6 +660,19 @@ class TestFSDriver(TestCase):
         t = self.d.get('thing.thing')
         self.assertDictEqual(thing, t)
 
+    def test_set_fixed_object_in_list_returns_properly(self):
+        thing = [
+            ContractingDecimal('1111.1111'),
+            ContractingDecimal('2222.2222')
+        ]
+
+        self.d.set('thing', thing)
+
+        decoded = self.d.get('thing')
+
+        self.assertIsInstance(decoded[0], ContractingDecimal)
+        self.assertIsInstance(decoded[1], ContractingDecimal)
+
     def test_set_none_deletes(self):
         t = 123
 

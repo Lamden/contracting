@@ -432,6 +432,44 @@ class CacheDriver:
         # Remove the deltas from the set
         [self.pending_deltas.pop(key) for key in to_delete]
 
+    def hard_apply_one(self, hlc: str) -> dict:
+        pending_delta = self.pending_deltas.pop(hlc)
+
+        # see if the HCL even exists
+        if pending_delta is None:
+            return
+
+        # Run through all state changes, taking the second value, which is the post delta
+        for key, delta in pending_delta['writes'].items():
+            self.driver.set(key, delta[1])
+
+        return pending_delta
+
+
+    def bust_cache(self, writes: dict):
+        if writes:
+            for key in writes.keys():
+                should_clear = True
+                for pd in self.pending_deltas.values():
+                    for pd_key in pd['writes'].keys():
+                        if pd_key == key:
+                            should_clear = False
+                            break
+
+                    if not should_clear:
+                        break
+
+                if should_clear:
+                    try:
+                        # Remove Key from cache
+                        self.cache.pop(key)
+                    except KeyError:
+                        # Key doesn't exist in cache
+                        pass
+
+    def reset_cache(self):
+        self.cache = {}
+
     # Same as hard apply but for only the most recent changes and the cache
     def commit(self):
         self.cache.update(self.pending_writes)
