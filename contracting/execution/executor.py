@@ -120,7 +120,7 @@ class Executor:
 
             if contract_name == 'con_rocketswap_official_v1_1':
                 for key, value in driver.pending_reads.items():
-                    if '.__code__' not in key or '.__compiled__' not in key:
+                    if '.__code__' not in key and '.__compiled__' not in key:
                         log.error(f'PENDING_READS: {key}: {value}')
                         log.error(f'CACHE: {key}: {driver.cache.get(key)}')
 
@@ -134,7 +134,7 @@ class Executor:
             log.error(tb)
             if contract_name == 'con_rocketswap_official_v1_1':
                 for key, value in driver.pending_reads.items():
-                    if '.__code__' not in key or '.__compiled__' not in key:
+                    if '.__code__' not in key and '.__compiled__' not in key:
                         log.error(f'PENDING_READS: {key}: {value}')
                         log.error(f'CACHE: {key}: {driver.cache.get(key)}')
             status_code = 1
