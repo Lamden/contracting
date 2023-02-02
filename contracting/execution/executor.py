@@ -118,6 +118,11 @@ class Executor:
             result = func(**kwargs)
             disable_restricted_imports()
 
+            if contract_name == 'con_rocketswap_official_v1_1':
+                for key, value in driver.pending_reads:
+                    log.error(f'PENDING_READS: {key}: {value}')
+                    log.error(f'CACHE: {key}: {driver.cache.get(key)}')
+
             if auto_commit:
                 driver.commit()
 
@@ -126,6 +131,10 @@ class Executor:
             tb = traceback.format_exc()
             log.error(str(e))
             log.error(tb)
+            if contract_name == 'con_rocketswap_official_v1_1':
+                for key, value in driver.pending_reads:
+                    log.error(f'PENDING_READS: {key}: {value}')
+                    log.error(f'CACHE: {key}: {driver.cache.get(key)}')
             status_code = 1
             if auto_commit:
                 driver.clear_pending_state()
