@@ -447,25 +447,18 @@ class CacheDriver:
 
 
     def bust_cache(self, writes: dict):
-        if writes:
-            for key in writes.keys():
-                should_clear = True
-                for pd in self.pending_deltas.values():
-                    for pd_key in pd['writes'].keys():
-                        if pd_key == key:
-                            should_clear = False
-                            break
+        if not writes:
+            return
 
-                    if not should_clear:
-                        break
+        for key in writes.keys():
+            should_clear = True
+            for pd in self.pending_deltas.values():
+                should_clear = key not in list(pd['writes'].keys())
+                if not should_clear:
+                    break
 
-                if should_clear:
-                    try:
-                        # Remove Key from cache
-                        self.cache.pop(key)
-                    except KeyError:
-                        # Key doesn't exist in cache
-                        pass
+            if should_clear:
+                self.cache.pop(key, None)
 
     def reset_cache(self):
         self.cache = {}
