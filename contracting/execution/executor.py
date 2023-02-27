@@ -69,8 +69,18 @@ class Executor:
                                                    sender)
 
                 balance = driver.get(balances_key)
+
+                if type(balance) == dict:
+                    balance = ContractingDecimal(balance.get('__fixed__'))
+
                 if balance is None:
                     balance = 0
+
+                log.debug({
+                    'balance': balance,
+                    'stamp_cost': stamp_cost,
+                    'stamps': stamps
+                })
 
                 assert balance * stamp_cost >= stamps, 'Sender does not have enough stamps for the transaction. \
                                                                Balance at key {} is {}'.format(balances_key,
@@ -84,7 +94,9 @@ class Executor:
                 'signer': sender,
                 'caller': sender,
                 'this': contract_name,
-                'owner': driver.get_owner(contract_name)
+                'entry': (contract_name, function_name),
+                'owner': driver.get_owner(contract_name),
+                'submission_name': None
             }
 
             if runtime.rt.context.owner is not None and runtime.rt.context.owner != runtime.rt.context.caller:
@@ -94,6 +106,10 @@ class Executor:
 
             module = importlib.import_module(contract_name)
             func = getattr(module, function_name)
+
+            ## add the contract name to the context on a submission call
+            if contract_name == config.SUBMISSION_CONTRACT_NAME:
+                runtime.rt.context._base_state['submission_name'] = kwargs.get('name')
 
             for k, v in kwargs.items():
                 if type(v) == float:
@@ -156,7 +172,7 @@ class Executor:
             'result': result,
             'stamps_used': stamps_used,
             'writes': deepcopy(driver.pending_writes),
-            'reads': driver.reads
+            'reads': driver.pending_reads
         }
 
         disable_restricted_imports()

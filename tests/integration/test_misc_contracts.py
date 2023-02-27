@@ -10,7 +10,7 @@ def too_many_writes():
 
     @export
     def single():
-        v.set('a' * (32 * 1024 + 1))
+        v.set('a' * (64 * 1024 + 1))
 
     @export
     def multiple():

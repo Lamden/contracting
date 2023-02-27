@@ -12,9 +12,11 @@ import os
 from pathlib import Path
 import shutil
 import hashlib
-import lmdb
+
 import motor.motor_asyncio
 import asyncio
+import logging
+from contracting.db.hdf5 import h5c
 
 FILE_EXT = '.d'
 HASH_EXT = '.x'
@@ -30,7 +32,6 @@ OWNER_KEY = '__owner__'
 TIME_KEY = '__submitted__'
 COMPILED_KEY = '__compiled__'
 DEVELOPER_KEY = '__developer__'
-
 
 class Driver:
     def __init__(self, db='lamden', collection='state'):
@@ -155,7 +156,7 @@ class InMemDriver(Driver):
         super().__init__()
         self.db = {}
 
-    def get(self, item):
+    def get(self, item: str):
         key = item.encode()
         value = self.db.get(key)
         return decode(value)
@@ -205,222 +206,105 @@ class InMemDriver(Driver):
         except KeyError:
             pass
 
-
 class FSDriver:
-    OS_KEY_LIMIT = (256 - 1) - len(FILE_EXT)
+    def __init__(self, root=None):
+        self.root = Path(root) if root is not None else STORAGE_HOME
+        self.contract_state = self.root.joinpath('contract_state')
+        self.run_state = self.root.joinpath('run_state')
 
-    def __init__(self, root='fs'):
-        self.root = os.path.join(Path.home(), root)
+        self.__build_directories()
+
+    def __build_directories(self):
+        self.contract_state.mkdir(exist_ok=True, parents=True)
+        self.run_state.mkdir(exist_ok=True, parents=True)
+
+    def __parse_key(self, key):
+        try:
+            filename, variable = key.split(config.INDEX_SEPARATOR, 1)
+            variable = variable.replace(config.DELIMITER, config.HDF5_GROUP_SEPARATOR)
+        except:
+            filename = '__misc'
+            variable = key.replace(config.DELIMITER, config.HDF5_GROUP_SEPARATOR)
+
+        return filename, variable
+
+    def __filename_to_path(self, filename):
+        return str(self.run_state.joinpath(filename)) if filename.startswith('__') else str(self.contract_state.joinpath(filename))
+
+    def __get_files(self):
+        return sorted(os.listdir(self.contract_state) + os.listdir(self.run_state))
+
+    def __get_keys_from_file(self, filename):
+        return [filename + config.INDEX_SEPARATOR + g.replace(config.HDF5_GROUP_SEPARATOR, config.DELIMITER) for g in h5c.get_groups(self.__filename_to_path(filename))]
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __setitem__(self, key, value):
+        self.set(key, value)
+
+    def __delitem__(self, key):
+        self.delete(key)
 
     def get(self, item: str):
-        try:
-            filename = self._key_to_file(item)
-            with open(filename, 'r') as f:
-                v = f.read()
+        filename, variable = self.__parse_key(item)
 
-        except FileNotFoundError:
-            return None
+        return decode(h5c.get_value(self.__filename_to_path(filename), variable)) if len(filename) < config.FILENAME_LEN_MAX else None
 
-        return decode(v)
+    def get_block(self, item: str):
+        filename, variable = self.__parse_key(item)
+        block_num = h5c.get_block(self.__filename_to_path(filename), variable) if len(filename) < config.FILENAME_LEN_MAX else None
 
-    def set(self, key, value):
-        if value is None:
-            self.__delitem__(key)
-        else:
-            v = encode(value)
-            filename = self._key_to_file(key)
+        return config.BLOCK_NUM_DEFAULT if block_num is None else int(block_num)
 
-            os.makedirs(filename.parents[0], exist_ok=True)
-
-            with open(filename, 'w') as f:
-                f.write(v)
+    def set(self, key, value, block_num=None):
+        filename, variable = self.__parse_key(key)
+        if len(filename) < config.FILENAME_LEN_MAX:
+            h5c.set(
+                self.__filename_to_path(filename),
+                variable,
+                encode(value) if value is not None else None,
+                str(block_num) if block_num is not None else None
+            )
 
     def flush(self):
-        try:
-            shutil.rmtree(self.root)
-        except FileNotFoundError:
-            pass
+        if self.run_state.is_dir():
+            shutil.rmtree(self.run_state)
+        if self.contract_state.is_dir():
+            shutil.rmtree(self.contract_state)
 
-    def delete(self, key: str):
-        self.__delitem__(key)
+        self.__build_directories()
 
-    def iter(self, prefix: str='', length=0):
+    def flush_file(self, filename):
+        file = Path(self.__filename_to_path(filename))
+        if file.is_file():
+            file.unlink()
+
+    def delete(self, key):
+        filename, variable = self.__parse_key(key)
+        if len(filename) < config.FILENAME_LEN_MAX:
+            h5c.delete(self.__filename_to_path(filename), variable)
+
+    def iter(self, prefix='', length=0):
         keys = []
-
-        for (r, dirs, files) in sorted(os.walk(self.root, topdown=True)):
-            files.sort()
-            base = r[len(self.root):]
-
-            for f in files:
-                if f.endswith(FILE_EXT) and f.startswith(prefix):
-                    keys.append(self.path_to_key(os.path.join(base, f)))
-
-                if 0 < length <= len(keys):
-                    break
-
-            if 0 < length <= len(keys):
+        for filename in self.__get_files():
+            if prefix != '':
+                for key in self.__get_keys_from_file(filename):
+                    if key.startswith(prefix):
+                        keys.append(key)
+            else:
+                keys.extend(self.__get_keys_from_file(filename))
+            if length > 0 and len(keys) >= length:
                 break
-
         keys.sort()
 
-        return keys
-
-    def _iter(self, prefix: str='', length=0):
-        keys = []
-
-        for (r, dirs, files) in os.walk(os.path.join(self.root, prefix), topdown=True):
-            base = r[len(self.root):]
-
-            for f in files:
-                if f.endswith(FILE_EXT):
-                    keys.append(self.path_to_key(os.path.join(base, f)))
-
-                if 0 < length <= len(keys):
-                    break
-
-            if 0 < length <= len(keys):
-                break
-
-        keys.sort()
-
-        return keys
+        return keys if length == 0 else keys[:length]
 
     def keys(self):
         return self.iter()
 
-    def __getitem__(self, item: str):
-        value = self.get(item)
-        if value is None:
-            raise KeyError
-        return value
-
-    def __setitem__(self, key: str, value):
-        self.set(key, value)
-
-    def __delitem__(self, key: str):
-        filename = self._key_to_file(key)
-        try:
-            os.remove(filename)
-        except FileNotFoundError:
-            pass
-
-    @staticmethod
-    def hash_key(key: str):
-        h = hashlib.sha3_256()
-        h.update(key.encode())
-
-        return h.hexdigest()[:-2] + HASH_EXT
-
-    def _key_to_file(self, key: str):
-        filename = key.replace(':', '/')
-        filename = filename.replace('.', '/')
-        filename += FILE_EXT
-        filename = os.path.join(self.root, filename)
-        return Path(filename)
-
-    def path_to_key(self, path):
-        if path.endswith(FILE_EXT):
-            path = path[:-len(FILE_EXT)]
-
-        pth = path.split('/')
-
-        pth = [p for p in pth if p != '']
-
-        contract = pth.pop(0)
-
-        if len(pth) == 0:
-            return contract
-
-        variable = pth.pop(0)
-
-        key = '.'.join((contract, variable))
-
-        if len(pth) == 0:
-            return key
-
-        key = ':'.join((key, *pth))
-
-        return key
-
-
-class LMDBDriver:
-    def __init__(self, filename=STORAGE_HOME.joinpath('state')):
-        self.filename = filename
-        self.filename.mkdir(exist_ok=True, parents=True)
-
-        self.db_writer = lmdb.open(path=str(self.filename), map_size=int(1e12), readonly=False)
-        self.db_reader = lmdb.open(path=str(self.filename), map_size=int(1e12), readonly=True, lock=False)
-
-    def get(self, item: str):
-        with self.db_reader.begin() as tx:
-            v = tx.get(item.encode())
-
-        if v is None:
-            return None
-
-        return decode(v)
-
-    def set(self, key, value):
-        if value is None:
-            self.__delitem__(key)
-        else:
-            v = encode(value)
-            with self.db_writer.begin(write=True) as tx:
-                tx.put(key.encode(), v.encode())
-
-    def flush(self):
-        with self.db_writer.begin(write=True) as tx:
-            cursor = tx.cursor()
-            for key, _ in cursor:
-                tx.delete(key)
-
-    def delete(self, key: str):
-        self.__delitem__(key)
-
-    def iter(self, prefix: str, length=0):
-        keys = []
-
-        with self.db_reader.begin() as tx:
-            cursor = tx.cursor()
-
-            if not cursor.set_range(prefix.encode()):
-                return []
-
-            else:
-                for key, _ in cursor:
-                    if not key.startswith(prefix.encode()):
-                        break
-
-                    keys.append(key.decode())
-
-                    if len(keys) >= length > 0:
-                        break
-
-        return keys
-
-    def keys(self):
-        keys = []
-
-        with self.db_reader.begin() as tx:
-            cursor = tx.cursor()
-            for key, _ in cursor:
-                keys.append(key.decode())
-
-        return keys
-
-    def __getitem__(self, item: str):
-        value = self.get(item)
-        if value is None:
-            raise KeyError
-        return value
-
-    def __setitem__(self, key: str, value):
-        self.set(key, value)
-
-    def __delitem__(self, key: str):
-        with self.db_writer.begin(write=True) as tx:
-            tx.delete(key.encode())
-
+    def get_contracts(self):
+        return sorted(os.listdir(self.contract_state))
 
 class WebDriver(InMemDriver):
     def __init__(self, masternode='http://masternode-01.lamden.io'):
@@ -439,66 +323,91 @@ class WebDriver(InMemDriver):
         r = requests.get(f'{self.masternode}/contracts/{contract}/{variable}?key={keys}')
         return decode(r.json()['value'])
 
-
 class CacheDriver:
-    def __init__(self, driver: Driver=Driver()):
-        self.driver = driver
-        self.cache = {}
+    def __init__(self, driver=None):
+        self.pending_writes = {}             # L2 cache
+        self.cache = {}                      # L1 cache
+        self.driver = driver or FSDriver()   # L0 cache
 
-        self.reads = set()
-        self.pending_writes = {}
+        self.pending_reads = {}
 
         self.pending_deltas = {}
 
-    def soft_apply(self, hcl: str, state_changes: dict):
-        deltas = {}
+    def find(self, key: str):
+        value = self.pending_writes.get(key)
+        if value is not None:
+            return value
 
-        for k, v in state_changes.items():
-            current = self.get(k)
-            deltas[k] = (current, v)
+        value = self.cache.get(key)
+        if value is not None:
+            return value
 
-            self.set(k, v)
+        value = self.driver.get(key)
+        if value is not None:
+            return value
 
-        self.pending_deltas[hcl] = deltas
+        return None
 
-    def get(self, key: str, mark=True):
-        # Try to get from cache
-        v = self.cache.get(key)
-        if v is not None:
-            rt.deduct_read(*encode_kv(key, v))
-            return v
+    def get(self, key: str, save: bool = True):
 
-        # If it doesn't exist, get from db, add to cache
-        dv = self.driver.get(key)
-        rt.deduct_read(*encode_kv(key, dv))
+        value = self.find(key)
 
-        self.cache[key] = dv
+        if save:
+            if self.pending_reads.get(key) is None:
+                self.pending_reads[key] = value
 
-        # Add key to reads
-        if mark:
-            self.reads.add(key)
+            if value is not None:
+                rt.deduct_read(*encode_kv(key, value))
 
-        return dv
+        return value
 
-    def set(self, key, value, mark=True):
+    def set(self, key, value):
         rt.deduct_write(*encode_kv(key, value))
+
+        if self.pending_reads.get(key) is None:
+            self.get(key)
 
         if type(value) == decimal.Decimal or type(value) == float:
             value = ContractingDecimal(str(value))
 
-        self.cache[key] = value
-        if mark:
-            self.pending_writes[key] = value
+        self.pending_writes[key] = value
 
-    def delete(self, key, mark=True):
-        self.set(key, None, mark=mark)
+    def delete(self, key):
+        self.set(key, None)
 
-    def commit(self):
+    #TODO: Fix bug where rolling back on a key written to twice rolls back to the initial state instead of the immediate previous value
+    def soft_apply(self, hcl: str):
+        deltas = {}
+
         for k, v in self.pending_writes.items():
-            if v is None:
-                self.driver.delete(k)
-            else:
-                self.driver.set(k, v)
+            current = self.pending_reads.get(k)
+            deltas[k] = (current, v)
+
+            self.cache[k] = v
+
+        self.pending_deltas[hcl] = {
+            'writes': deltas,
+            'reads': self.pending_reads
+        }
+
+        # Clear the top cache
+        self.pending_reads = {}
+        self.pending_writes.clear()
+
+    def soft_apply_rewards(self, hcl: str):
+        deltas = {}
+
+        for k, v in self.pending_writes.items():
+            current = self.pending_reads.get(k)
+            deltas[k] = (current, v)
+
+            self.cache[k] = v
+
+        self.pending_deltas[hcl]['rewards'] = deltas
+
+        # Clear the top cache
+        self.pending_reads = {}
+        self.pending_writes.clear()
 
     def hard_apply(self, hlc):
         # see if the HCL even exists
@@ -511,13 +420,9 @@ class CacheDriver:
         for _hlc, _deltas in sorted(self.pending_deltas.items()):
 
             # Run through all state changes, taking the second value, which is the post delta
-            for key, delta in _deltas.items():
+            for key, delta in _deltas['writes'].items():
                 self.driver.set(key, delta[1])
-
-                try:
-                    self.cache.pop(key)
-                except KeyError:
-                    pass
+                # self.cache[key] = delta[1]
 
             # Add the key (
             to_delete.append(_hlc)
@@ -527,30 +432,101 @@ class CacheDriver:
         # Remove the deltas from the set
         [self.pending_deltas.pop(key) for key in to_delete]
 
-    def rollback(self):
-        # Run through the state changes in reverse, reversing the newest to the oldest
-        for _hlc, _deltas in reversed(sorted(self.pending_deltas.items())):
-            # Run through all state changes, taking the first value, which is the pre delta
-            for key, delta in _deltas.items():
-                self.set(key, delta[0])
+    def hard_apply_one(self, hlc: str) -> dict:
+        pending_delta = self.pending_deltas.pop(hlc)
 
-        self.pending_deltas.clear()
+        # see if the HCL even exists
+        if pending_delta is None:
+            return
+
+        # Run through all state changes, taking the second value, which is the post delta
+        for key, delta in pending_delta['writes'].items():
+            self.driver.set(key, delta[1])
+
+        return pending_delta
+
+
+    def bust_cache(self, writes: dict):
+        if not writes:
+            return
+
+        for key in writes.keys():
+            should_clear = True
+            for pd in self.pending_deltas.values():
+                should_clear = key not in list(pd['writes'].keys())
+                if not should_clear:
+                    break
+
+            if should_clear:
+                self.cache.pop(key, None)
+
+    def reset_cache(self):
+        self.cache = {}
+
+    # Same as hard apply but for only the most recent changes and the cache
+    def commit(self):
+        self.cache.update(self.pending_writes)
+
+        for k, v in self.cache.items():
+            if v is None:
+                self.driver.delete(k)
+            else:
+                self.driver.set(k, v)
+
+        self.cache.clear()
+        self.pending_writes.clear()
+        self.pending_reads = {}
+
+    def rollback(self, hlc=None):
+        if hlc is None:
+            # Returns to disk state which should be whatever it was prior to any write sessions
+            self.cache.clear()
+            self.pending_reads = {}
+            self.pending_writes.clear()
+            self.pending_deltas.clear()
+        else:
+            to_delete = []
+            for _hlc, _deltas in sorted(self.pending_deltas.items())[::-1]:
+                # Clears the current reads/writes, and the reads/writes that get made when rolling back from the
+                # last HLC
+                self.pending_reads = {}
+                self.pending_writes.clear()
+
+
+                if _hlc < hlc:
+                    # if we are less than the HLC then top processing anymore, this is our rollback point
+                    break
+                else:
+                    # if we are still greater than or equal to then mark this as delete and rollback its changes
+                    to_delete.append(_hlc)
+                    # Run through all state changes, taking the second value, which is the post delta
+                    for key, delta in _deltas['writes'].items():
+                        # self.set(key, delta[0])
+                        self.cache[key] = delta[0]
+
+            # Remove the deltas from the set
+            [self.pending_deltas.pop(key) for key in to_delete]
 
     def clear_pending_state(self):
-        self.cache.clear()
-        self.reads.clear()
-        self.pending_writes.clear()
+        self.rollback()
 
 
 class ContractDriver(CacheDriver):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.delimiter = '.'
+        self.log = logging.getLogger('Driver')
 
     def items(self, prefix=''):
         # Get all of the items in the cache currently
         _items = {}
         keys = set()
+
+        for k, v in self.pending_writes.items():
+            if k.startswith(prefix) and v is not None:
+                _items[k] = v
+                keys.add(k)
+
         for k, v in self.cache.items():
             if k.startswith(prefix) and v is not None:
                 _items[k] = v
@@ -579,11 +555,11 @@ class ContractDriver(CacheDriver):
 
     def get_var(self, contract, variable, arguments=[], mark=True):
         key = self.make_key(contract, variable, arguments)
-        return self.get(key, mark=mark)
+        return self.get(key)
 
     def set_var(self, contract, variable, arguments=[], value=None, mark=True):
         key = self.make_key(contract, variable, arguments)
-        self.set(key, value, mark=mark)
+        self.set(key, value)
 
     def get_contract(self, name):
         return self.get_var(name, CODE_KEY)
@@ -628,18 +604,45 @@ class ContractDriver(CacheDriver):
     def get_contract_keys(self, name):
         return self.keys(name)
 
-    # Set cache to None
-    # Set pending writes to none
-    # def delete(self, key):
-    #     # if self.cache.get(key) is not None:
-    #     #     del self.cache[key]
-    #     #
-    #     # if self.pending_writes.get(key) is not None:
-    #     #     del self.pending_writes[key]
-    #     #
-    #     # self.driver.delete(key)
-    #     self.cache[key] = None
-    #     self.pending_writes[key] = None
+    def rollback_drivers(self, hlc_timestamp):
+        # Roll back the current state to the point of the last block consensus
+        self.log.debug(f"Length of Pending Deltas BEFORE {len(self.driver.pending_deltas.keys())}")
+        self.log.debug(f"rollback to hlc_timestamp: {hlc_timestamp}")
+
+        if hlc_timestamp is None:
+            # Returns to disk state which should be whatever it was prior to any write sessions
+            self.cache.clear()
+            self.reads = set()
+            self.pending_writes.clear()
+            self.pending_deltas.clear()
+        else:
+            to_delete = []
+            for _hlc, _deltas in sorted(self.pending_deltas.items())[::-1]:
+                # Clears the current reads/writes, and the reads/writes that get made when rolling back from the
+                # last HLC
+                self.reads = set()
+                self.pending_writes.clear()
+
+
+                if _hlc < hlc_timestamp:
+                    self.log.debug(f"{_hlc} is less than {hlc_timestamp}, breaking!")
+                    # if we are less than the HLC then top processing anymore, this is our rollback point
+                    break
+                else:
+                    # if we are still greater than or equal to then mark this as delete and rollback its changes
+                    to_delete.append(_hlc)
+                    # Run through all state changes, taking the second value, which is the post delta
+                    for key, delta in _deltas['writes'].items():
+                        # self.set(key, delta[0])
+                        self.cache[key] = delta[0]
+
+            # Remove the deltas from the set
+            self.log.debug(to_delete)
+            [self.pending_deltas.pop(key) for key in to_delete]
+
+        #self.driver.rollback(hlc=hlc_timestamp)
+
+        self.log.debug(f"Length of Pending Deltas AFTER {len(self.driver.pending_deltas.keys())}")
 
 
 class AsyncContractDriver:
@@ -701,17 +704,52 @@ class AsyncContractDriver:
     def get_contract_keys(self, name):
         return self.keys(name)
 
-    # Set cache to None
-    # Set pending writes to none
-    # def delete(self, key):
-    #     # if self.cache.get(key) is not None:
-    #     #     del self.cache[key]
-    #     #
-    #     # if self.pending_writes.get(key) is not None:
-    #     #     del self.pending_writes[key]
-    #     #
-    #     # self.driver.delete(key)
-    #     self.cache[key] = None
-    #     self.pending_writes[key] = None
+class BlockserviceDriver(Driver):
+    # conn_str see https://www.mongodb.com/docs/manual/reference/connection-string/
+    def __init__(self, conn_str="mongodb://localhost:27017", db='lamden', collection='currentState'):
+        self.client = pymongo.MongoClient(conn_str)
+        self.db = self.client[db][collection]
 
+    def get(self, item: str):
+        v = self.db.find_one({'rawKey': item})
+        if v is None:
+            return None
 
+        if isinstance(v['value'], dict):
+            return decode(encode(v['value']))
+
+        if decode(v['value']) is None:
+           return v['value']
+
+        return decode(v['value'])
+
+    def set(self, key, value):
+        # Do nothing to keep readonly.
+        pass
+
+    def iter(self, prefix: str, length=0):
+        cur = self.db.find({'rawKey': {'$regex': f'^{prefix}'}})
+
+        keys = []
+        for entry in cur:
+            keys.append(entry['rawKey'])
+            if 0 < length <= len(keys):
+                break
+
+        keys.sort()
+        return keys
+
+    def keys(self):
+        k = []
+        for entry in self.db.find({}):
+            k.append(entry['rawKey'])
+        k.sort()
+        return k
+
+    def __delitem__(self, key: str):
+        # Do nothing to keep readonly.
+        pass
+
+    def flush(self):
+        # Do nothing to keep readonly.
+        pass
