@@ -62,6 +62,10 @@ class Linter(ast.NodeVisitor):
 
     def visit_Attribute(self, node):
         self.not_system_variable(node.attr, node.lineno)
+        if node.attr == 'rt':
+            self._is_success = False
+            str = "Line {}: ".format(node.lineno) + VIOLATION_TRIGGERS[13]
+            self._violations.append(str)
         self.generic_visit(node)
         return node
 
@@ -133,7 +137,7 @@ class Linter(ast.NodeVisitor):
         self.generic_visit(node)
         return node
 
-    def visit_Call(self, node):
+    def visit_Call(self, node: ast.Call):
         # Prevent calling of illegal builtins
         if isinstance(node.func, ast.Name):
             if node.func.id in ILLEGAL_BUILTINS:
