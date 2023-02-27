@@ -19,7 +19,7 @@ class TestTokenHacks(TestCase):
         self.c.signer = 'stu'
 
         # submit erc20 clone
-        with open('./contracts/erc20.s.py') as f:
+        with open('../integration/test_contracts/erc20_clone.s.py') as f:
             code = f.read()
             self.c.submit(code, name='erc20', metering=False)
 
@@ -129,3 +129,49 @@ class TestTokenHacks(TestCase):
         post_hack_balance_stu = token.balances['stu']
 
         self.assertEqual(pre_hack_balance_stu, post_hack_balance_stu)
+
+    def test_get_set_driver(self):
+        # This hack uses setattr instead of direct property access to do the same thing as above
+
+        token = self.c.get_contract('erc20')
+        pre_hack_balance = token.balances['stu']
+
+        #with self.assertRaises(Exception):
+        try:
+            with open('./contracts/get_set_driver.py') as f:
+                code = f.read()
+                self.c.submit(code, name='token_hack', metering=False)
+        except Exception as err:
+            print(err)
+            pass
+
+        post_hack_balance = token.balances['stu']
+
+        print()
+        print(post_hack_balance)
+
+        # The balance *should not* change between these tests!
+        self.assertEqual(pre_hack_balance, post_hack_balance)
+
+    def test_get_set_driver_2(self):
+        # This hack uses setattr instead of direct property access to do the same thing as above
+
+        token = self.c.get_contract('erc20')
+        pre_hack_balance = token.balances['stu']
+
+        #with self.assertRaises(Exception):
+        try:
+            with open('./contracts/get_set_driver_2.py') as f:
+                code = f.read()
+                self.c.submit(code, name='token_hack', metering=False)
+        except Exception as err:
+            print(err)
+            pass
+
+        post_hack_balance = token.balances['stu']
+
+        print()
+        print(post_hack_balance)
+
+        # The balance *should not* change between these tests!
+        self.assertEqual(pre_hack_balance, post_hack_balance)
