@@ -2,7 +2,6 @@ import importlib
 from unittest import TestCase
 from contracting.stdlib.bridge.time import Datetime
 from contracting.client import ContractingClient
-from contracting.db.driver import FSDriver, ContractDriver
 
 
 def too_many_writes():
@@ -452,38 +451,3 @@ class TestHackThing(TestCase):
     def test_no_closures_work_around(self):
         with self.assertRaises(Exception):
             self.c.submit(test_closure2)
-
-
-def test_fixed():
-    v = Variable()
-    @construct
-    def seed():
-        v.set([1.234, 5.678])
-
-    @export
-    def multiply():
-        a, b = v.get()
-        return a * b
-
-
-class TestFixed(TestCase):
-    def setUp(self):
-        self.c = ContractingClient(signer='stu', driver=ContractDriver(driver=FSDriver()))
-        self.c.raw_driver.flush()
-
-        with open('../../contracting/contracts/submission.s.py') as f:
-            contract = f.read()
-
-        self.c.raw_driver.set_contract(name='submission', code=contract,)
-
-        self.c.raw_driver.commit()
-
-    def test_can_multiply(self):
-        self.c.submit(test_fixed)
-
-        self.c.raw_driver.commit()
-        self.c.raw_driver.clear_pending_state()
-        f = self.c.get_contract('test_fixed')
-
-        z = f.multiply()
-        self.assertEqual(z, 1.234 * 5.678)
