@@ -545,7 +545,7 @@ class TestFSDriver(TestCase):
             self.assertEqual(self.d.get_block('b.b'), config.BLOCK_NUM_DEFAULT)
 
     def test_safe_set(self):
-        # should only set the value when the block number is higher
+        # should only set the value when the block number is higher or equal
         self.d.set('b.b', "A", "100")
         val = self.d.get('b.b')
         self.assertEqual("A", val)
@@ -558,7 +558,9 @@ class TestFSDriver(TestCase):
         val = self.d.get('b.b')
         self.assertEqual("C", val)
 
-
+        self.d.set('b.b', "D", "101")
+        val = self.d.get('b.b')
+        self.assertEqual("D", val)
 
     def test_get_set_contract_name_too_long(self):
         contract = 'b' * 256

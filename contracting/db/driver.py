@@ -286,7 +286,7 @@ class FSDriver:
                 "current_block": current_block
             })
 
-            if int(block_num) > int(current_block):
+            if int(block_num) >= int(current_block):
                 h5c.set(
                     self.__filename_to_path(filename),
                     variable,
