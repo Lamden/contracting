@@ -544,6 +544,22 @@ class TestFSDriver(TestCase):
             self.assertEqual(v, b) if not isinstance(v, dict) else self.assertDictEqual(v, b)
             self.assertEqual(self.d.get_block('b.b'), config.BLOCK_NUM_DEFAULT)
 
+    def test_safe_set(self):
+        # should only set the value when the block number is higher
+        self.d.set('b.b', "A", "100")
+        val = self.d.get('b.b')
+        self.assertEqual("A", val)
+
+        self.d.set('b.b', "B", "99")
+        val = self.d.get('b.b')
+        self.assertEqual("A", val)
+
+        self.d.set('b.b', "C", "101")
+        val = self.d.get('b.b')
+        self.assertEqual("C", val)
+
+
+
     def test_get_set_contract_name_too_long(self):
         contract = 'b' * 256
         for v in TEST_DATA:

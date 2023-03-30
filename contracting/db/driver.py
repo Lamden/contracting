@@ -258,7 +258,12 @@ class FSDriver:
         return config.BLOCK_NUM_DEFAULT if block_num is None else int(block_num)
 
     def set(self, key, value, block_num=None):
+        if (block_num):
+            self.safe_set(key, value, block_num)
+            return
+
         filename, variable = self.__parse_key(key)
+
         if len(filename) < config.FILENAME_LEN_MAX:
             h5c.set(
                 self.__filename_to_path(filename),
@@ -266,6 +271,28 @@ class FSDriver:
                 encode(value) if value is not None else None,
                 str(block_num) if block_num is not None else None
             )
+
+    def safe_set(self,  key: str, value: any, block_num: str):
+        filename, variable = self.__parse_key(key)
+
+        if len(filename) < config.FILENAME_LEN_MAX:
+            current_block = h5c.get_block(
+                self.__filename_to_path(filename),
+                variable
+            ) or "-1"
+
+            print({
+                "block_num": block_num,
+                "current_block": current_block
+            })
+
+            if int(block_num) > int(current_block):
+                h5c.set(
+                    self.__filename_to_path(filename),
+                    variable,
+                    encode(value) if value is not None else None,
+                    str(block_num) if block_num is not None else None
+                )
 
     def flush(self):
         if self.run_state.is_dir():
@@ -441,7 +468,7 @@ class CacheDriver:
 
         # Run through all state changes, taking the second value, which is the post delta
         for key, delta in pending_delta['writes'].items():
-            self.driver.set(key, delta[1])
+            self.driver.set(key, delta[1] )
 
         return pending_delta
 
