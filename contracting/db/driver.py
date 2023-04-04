@@ -232,6 +232,9 @@ class FSDriver:
         return str(self.run_state.joinpath(filename)) if filename.startswith('__') else str(self.contract_state.joinpath(filename))
 
     def __get_files(self):
+        print('FSDriver - __get_files')
+        print({'contract_state': self.contract_state})
+        print({'run_state': self.run_state})
         return sorted(os.listdir(self.contract_state) + os.listdir(self.run_state))
 
     def __get_keys_from_file(self, filename):
@@ -308,16 +311,21 @@ class FSDriver:
             h5c.delete(self.__filename_to_path(filename), variable)
 
     def iter(self, prefix='', length=0):
+        print('FSDriver - iter')
+        print({'prefix': prefix})
         keys = []
         for filename in self.__get_files():
+            print({'filename': filename})
             if prefix != '':
                 for key in self.__get_keys_from_file(filename):
+                    print({'key': key})
                     if key.startswith(prefix):
                         keys.append(key)
             else:
                 keys.extend(self.__get_keys_from_file(filename))
             if length > 0 and len(keys) >= length:
                 break
+        print({'keys': keys})
         keys.sort()
 
         return keys if length == 0 else keys[:length]
@@ -540,6 +548,8 @@ class ContractDriver(CacheDriver):
         self.log = logging.getLogger('Driver')
 
     def items(self, prefix=''):
+        print('ContractDriver - items')
+        print({'prefix': prefix})
         # Get all of the items in the cache currently
         _items = {}
         keys = set()
@@ -554,12 +564,19 @@ class ContractDriver(CacheDriver):
                 _items[k] = v
                 keys.add(k)
 
+        print({'keys': keys})
+
         # Get all of the keys we need
         db_keys = set(self.driver.iter(prefix=prefix))
 
+        print({'db_keys': db_keys})
+
         # Subtract the already gotten keys
         for k in db_keys - keys:
+            print({'k': k})
             _items[k] = self.get(k) # Cache get will add the keys to the cache
+
+        print({'_items': _items})
 
         return _items
 
