@@ -3,6 +3,7 @@ from contracting.execution.runtime import rt
 from contracting.stdlib.bridge.time import Datetime
 from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting import config
+from contracting.hlcpy import HLC
 from datetime import datetime
 import marshal
 import decimal
@@ -380,10 +381,17 @@ class CacheDriver:
         self.pending_writes = {}             # L2 cache
         self.cache = {}                      # L1 cache
         self.driver = driver or FSDriver()   # L0 cache
+        self.hlc = HLC()
 
         self.pending_reads = {}
 
         self.pending_deltas = {}
+
+    def get_nanos(self, timestamp):
+        # Convert timestamp to HLC clock then to nanoseconds
+        temp_hlc = self.hlc.from_str(timestamp)
+        timestamp_nanoseconds, _ = temp_hlc.tuple()
+        return timestamp_nanoseconds
 
     def find(self, key: str):
         value = self.pending_writes.get(key)
@@ -470,10 +478,16 @@ class CacheDriver:
 
         to_delete = []
         for _hlc, _deltas in sorted(self.pending_deltas.items()):
-
             # Run through all state changes, taking the second value, which is the post delta
             for key, delta in _deltas['writes'].items():
-                self.driver.set(key, delta[1])
+                try:
+                    _block_num = self.get_nanos(_hlc)
+                    self.driver.set(key=key, value=delta[1], block_num=str(_block_num))
+                except (TypeError, ValueError):
+                    # Safe set not supported on selected driver
+                    self.driver.set(key=key, value=delta[1])
+
+
                 # self.cache[key] = delta[1]
 
             # Add the key (
@@ -493,7 +507,12 @@ class CacheDriver:
 
         # Run through all state changes, taking the second value, which is the post delta
         for key, delta in pending_delta['writes'].items():
-            self.driver.set(key, delta[1] )
+            try:
+                block_num = self.get_nanos(hlc)
+                self.driver.set(key=key, value=delta[1], block_num=block_num)
+            except (TypeError, ValueError):
+                # Safe set not supported on selected driver
+                self.driver.set(key=key, value=delta[1])
 
         return pending_delta
 
