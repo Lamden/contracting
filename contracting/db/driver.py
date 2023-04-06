@@ -46,7 +46,7 @@ class Driver:
 
         return decode(v['v'])
 
-    def set(self, key, value):
+    def set(self, key, value, block_num=None):
         if value is None:
             self.__delitem__(key)
         else:
@@ -104,7 +104,7 @@ class AsyncDriver:
 
         return decode(v['v'])
 
-    async def set(self, key, value):
+    async def set(self, key, value, block_num=None):
         if value is None:
             await self.db.delete_one({'_id': key})
         else:
@@ -156,18 +156,48 @@ class InMemDriver(Driver):
         super().__init__()
         self.db = {}
 
-    def get(self, item: str):
-        key = item.encode()
-        value = self.db.get(key)
-        return decode(value)
-
-    def set(self, key: str, value):
+    def _set_state(self, key, value, block_num):
         k = key.encode()
         if value is None:
             self.__delitem__(key)
         else:
             v = encode(value).encode()
-            self.db[k] = v
+            self.db[k] = {'value': v, 'block_num': str(block_num)}
+
+    def get(self, item: str):
+        key = item.encode()
+        res = self.db.get(key)
+        if res is None:
+            return None
+        return decode(res.get('value'))
+
+    def set(self, key: str, value, block_num=None):
+        if block_num is None:
+            self._set_state(key=key, value=value, block_num=None)
+        else:
+            self.safe_set(key=key, value=value, block_num=block_num)
+
+    def safe_set(self, key: str, value, block_num):
+        current_block = self.get_block(key=key)
+
+        if int(block_num) >= current_block:
+            self._set_state(key=key, value=value, block_num=block_num)
+
+
+    def get_block(self, key: str):
+        k = key.encode()
+        res = self.db.get(k)
+
+        if res is None:
+            return config.BLOCK_NUM_DEFAULT
+
+        block_num = res.get('block_num')
+
+        if block_num is None:
+            return config.BLOCK_NUM_DEFAULT
+        else:
+            return int(block_num)
+
 
     def delete(self, key: str):
         self.__delitem__(key)
@@ -258,7 +288,7 @@ class FSDriver:
         return config.BLOCK_NUM_DEFAULT if block_num is None else int(block_num)
 
     def set(self, key, value, block_num=None):
-        if (block_num):
+        if block_num:
             self.safe_set(key, value, block_num)
             return
 
@@ -269,7 +299,7 @@ class FSDriver:
                 self.__filename_to_path(filename),
                 variable,
                 encode(value) if value is not None else None,
-                str(block_num) if block_num is not None else None
+                None
             )
 
     def safe_set(self,  key: str, value: any, block_num: str):
@@ -286,7 +316,7 @@ class FSDriver:
                     self.__filename_to_path(filename),
                     variable,
                     encode(value) if value is not None else None,
-                    str(block_num) if block_num is not None else None
+                    str(block_num)
                 )
 
     def flush(self):
@@ -745,7 +775,7 @@ class BlockserviceDriver(Driver):
 
         return decode(v['value'])
 
-    def set(self, key, value):
+    def set(self, key, value, block_num=None):
         # Do nothing to keep readonly.
         pass
 
