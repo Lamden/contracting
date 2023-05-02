@@ -3,6 +3,7 @@ from contracting.execution.runtime import rt
 from contracting.stdlib.bridge.time import Datetime
 from contracting.stdlib.bridge.decimal import ContractingDecimal
 from contracting import config
+from contracting.hlcpy import HLC
 from datetime import datetime
 import marshal
 import decimal
@@ -46,7 +47,7 @@ class Driver:
 
         return decode(v['v'])
 
-    def set(self, key, value):
+    def set(self, key, value, block_num=None):
         if value is None:
             self.__delitem__(key)
         else:
@@ -104,7 +105,7 @@ class AsyncDriver:
 
         return decode(v['v'])
 
-    async def set(self, key, value):
+    async def set(self, key, value, block_num=None):
         if value is None:
             await self.db.delete_one({'_id': key})
         else:
@@ -156,18 +157,48 @@ class InMemDriver(Driver):
         super().__init__()
         self.db = {}
 
-    def get(self, item: str):
-        key = item.encode()
-        value = self.db.get(key)
-        return decode(value)
-
-    def set(self, key: str, value):
+    def _set_state(self, key, value, block_num):
         k = key.encode()
         if value is None:
             self.__delitem__(key)
         else:
             v = encode(value).encode()
-            self.db[k] = v
+            self.db[k] = {'value': v, 'block_num': str(block_num)}
+
+    def get(self, item: str):
+        key = item.encode()
+        res = self.db.get(key)
+        if res is None:
+            return None
+        return decode(res.get('value'))
+
+    def set(self, key: str, value, block_num=None):
+        if block_num is None:
+            self._set_state(key=key, value=value, block_num=None)
+        else:
+            self.safe_set(key=key, value=value, block_num=block_num)
+
+    def safe_set(self, key: str, value, block_num):
+        current_block = self.get_block(key=key)
+
+        if int(block_num) >= current_block:
+            self._set_state(key=key, value=value, block_num=block_num)
+
+
+    def get_block(self, key: str):
+        k = key.encode()
+        res = self.db.get(k)
+
+        if res is None:
+            return config.BLOCK_NUM_DEFAULT
+
+        block_num = res.get('block_num')
+
+        if block_num is None:
+            return config.BLOCK_NUM_DEFAULT
+        else:
+            return int(block_num)
+
 
     def delete(self, key: str):
         self.__delitem__(key)
@@ -258,7 +289,7 @@ class FSDriver:
         return config.BLOCK_NUM_DEFAULT if block_num is None else int(block_num)
 
     def set(self, key, value, block_num=None):
-        if (block_num):
+        if block_num:
             self.safe_set(key, value, block_num)
             return
 
@@ -269,7 +300,7 @@ class FSDriver:
                 self.__filename_to_path(filename),
                 variable,
                 encode(value) if value is not None else None,
-                str(block_num) if block_num is not None else None
+                None
             )
 
     def safe_set(self,  key: str, value: any, block_num: str):
@@ -286,7 +317,7 @@ class FSDriver:
                     self.__filename_to_path(filename),
                     variable,
                     encode(value) if value is not None else None,
-                    str(block_num) if block_num is not None else None
+                    str(block_num)
                 )
 
     def flush(self):
@@ -350,10 +381,17 @@ class CacheDriver:
         self.pending_writes = {}             # L2 cache
         self.cache = {}                      # L1 cache
         self.driver = driver or FSDriver()   # L0 cache
+        self.hlc = HLC()
 
         self.pending_reads = {}
 
         self.pending_deltas = {}
+
+    def get_nanos(self, timestamp):
+        # Convert timestamp to HLC clock then to nanoseconds
+        temp_hlc = self.hlc.from_str(timestamp)
+        timestamp_nanoseconds, _ = temp_hlc.tuple()
+        return timestamp_nanoseconds
 
     def find(self, key: str):
         value = self.pending_writes.get(key)
@@ -440,10 +478,16 @@ class CacheDriver:
 
         to_delete = []
         for _hlc, _deltas in sorted(self.pending_deltas.items()):
-
             # Run through all state changes, taking the second value, which is the post delta
             for key, delta in _deltas['writes'].items():
-                self.driver.set(key, delta[1])
+                try:
+                    _block_num = self.get_nanos(_hlc)
+                    self.driver.set(key=key, value=delta[1], block_num=str(_block_num))
+                except (TypeError, ValueError):
+                    # Safe set not supported on selected driver
+                    self.driver.set(key=key, value=delta[1])
+
+
                 # self.cache[key] = delta[1]
 
             # Add the key (
@@ -463,7 +507,12 @@ class CacheDriver:
 
         # Run through all state changes, taking the second value, which is the post delta
         for key, delta in pending_delta['writes'].items():
-            self.driver.set(key, delta[1] )
+            try:
+                block_num = self.get_nanos(hlc)
+                self.driver.set(key=key, value=delta[1], block_num=block_num)
+            except (TypeError, ValueError):
+                # Safe set not supported on selected driver
+                self.driver.set(key=key, value=delta[1])
 
         return pending_delta
 
@@ -745,7 +794,7 @@ class BlockserviceDriver(Driver):
 
         return decode(v['value'])
 
-    def set(self, key, value):
+    def set(self, key, value, block_num=None):
         # Do nothing to keep readonly.
         pass
 

@@ -526,6 +526,124 @@ class TestInMemDriver(TestCase):
 
         self.assertListEqual(keys, got_keys)
 
+    def test_get_block__returns_block_number(self):
+        thing = {
+            'a': 123,
+            'b': False,
+            'x': None
+        }
+
+        key = 'this_thing'
+        block_num = 123
+
+        self.d.set(key, thing, block_num)
+
+        block_num_result = self.d.get_block(key)
+
+        self.assertEqual(block_num, block_num_result)
+
+    def test_get_block__no_key_returns_default(self):
+        block_num_result = self.d.get_block('test')
+
+        self.assertEqual(-1, block_num_result)
+
+    def test_safe_set__sets_state(self):
+        thing = {
+            'a': 123,
+            'b': False,
+            'x': None
+        }
+
+        key = 'this_thing'
+        block_num = 123
+
+        self.d.set(key, thing, block_num)
+
+        value_result = self.d.get(key)
+
+        self.assertEqual(thing, value_result)
+
+    def test_safe_set__protects_lower_block_num_from_overwriting_state(self):
+        thing_122 = {
+            'a': 122,
+            'b': False,
+            'x': None
+        }
+
+        thing_123 = {
+            'a': 123,
+            'b': False,
+            'x': None
+        }
+
+        key = 'this_thing'
+
+        self.d.set(key, thing_123, 123)
+
+        value_result_1 = self.d.get(key)
+        self.assertEqual(thing_123, value_result_1)
+
+        self.d.set(key, thing_122, 122)
+
+        value_result_2 = self.d.get(key)
+
+        # State is still equal to the first set and was not overwritten
+        self.assertEqual(thing_123, value_result_2)
+
+    def test_safe_set__overwrites_when_block_num_higher(self):
+        thing_122 = {
+            'a': 122,
+            'b': False,
+            'x': None
+        }
+
+        thing_123 = {
+            'a': 123,
+            'b': False,
+            'x': None
+        }
+
+        key = 'this_thing'
+
+        self.d.set(key, thing_122, 122)
+
+        value_result_1 = self.d.get(key)
+        self.assertEqual(thing_122, value_result_1)
+
+        self.d.set(key, thing_123, 123)
+
+        value_result_2 = self.d.get(key)
+
+        # Overwritten when given a higher block number
+        self.assertEqual(thing_123, value_result_2)
+
+    def test_safe_set__overwrites_when_block_num_equal(self):
+        thing_1 = {
+            'a': 123,
+            'b': False,
+            'x': None
+        }
+
+        thing_2 = {
+            'a': 456,
+            'b': True,
+            'x': None
+        }
+
+        key = 'this_thing'
+
+        self.d.set(key, thing_1, 123)
+
+        value_result_1 = self.d.get(key)
+        self.assertEqual(thing_1, value_result_1)
+
+        self.d.set(key, thing_2, 123)
+
+        value_result_2 = self.d.get(key)
+
+        # Overwritten when given the same block number
+        self.assertEqual(thing_2, value_result_2)
+
 
 class TestFSDriver(TestCase):
     # Flush this sucker every test
