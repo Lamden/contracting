@@ -138,7 +138,9 @@ Tracer_dealloc(Tracer *self)
              }
 
              self->last_frame_mem_usage = new_memory_usage;
-
+             printf("[Tracer_trace] Debug: cost = %llu\n", self->cost);
+             printf("[Tracer_trace] Debug: stamp_supplied = %llu\n", self->stamp_supplied);
+             printf("[Tracer_trace] Debug: MAX_STAMPS = %llu\n", MAX_STAMPS);
              //estimate = estimate * factor;
              if ((self->cost > self->stamp_supplied) || self->cost > MAX_STAMPS) {
                  PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!");
@@ -219,6 +221,9 @@ Tracer_add_cost(Tracer *self, PyObject *args, PyObject *kwds)
     unsigned long long new_cost;
     PyArg_ParseTuple(args, "L", &new_cost);
     self->cost += new_cost;
+
+    printf("[Tracer_add_cost] Debug: cost = %llu\n", self->cost);
+    printf("[Tracer_add_cost] Debug: stamp_supplied = %llu\n", self->stamp_supplied);
 
     if (self->cost > self->stamp_supplied) {
          PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!\n");
