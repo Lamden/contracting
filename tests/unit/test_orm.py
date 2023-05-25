@@ -284,8 +284,8 @@ class TestHash(TestCase):
         name = 'scoob'
 
         h = Hash(contract, name, driver=driver, default_value=0)
-
-        self.assertEqual(h.all(), [])
+        all =h.all()
+        self.assertEqual(all, [])
 
     def test_get_all_after_setting(self):
         contract = 'blah'

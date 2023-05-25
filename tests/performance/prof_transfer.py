@@ -34,8 +34,7 @@ with open('../../contracting/contracts/submission.s.py') as f:
     contract = f.read()
 
 d.set_contract(name='submission',
-                    code=contract,
-                    author='sys')
+                    code=contract)
 d.commit()
 
 recipients = [secrets.token_hex(16) for _ in range(1000)]

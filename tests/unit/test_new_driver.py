@@ -755,7 +755,7 @@ class TestFSDriver(TestCase):
 
         p1 = []
 
-        for k in self.d.iter(prefix='b'):
+        for k in self.d.keys(prefix='b'):
             p1.append(k)
 
         prefix_1_keys.sort()
@@ -765,7 +765,7 @@ class TestFSDriver(TestCase):
 
         p2 = []
 
-        for k in self.d.iter(prefix='x'):
+        for k in self.d.keys(prefix='x'):
             p2.append(k)
 
         prefix_2_keys.sort()
@@ -778,11 +778,11 @@ class TestFSDriver(TestCase):
 
         self.d.set(sample_key, SAMPLE_INT)
 
-        self.assertListEqual([sample_key], self.d.iter(prefix='some'))
-        self.assertListEqual([sample_key], self.d.iter(prefix='some.sample:k'))
-        self.assertListEqual([sample_key], self.d.iter(prefix='some.sample:'))
-        self.assertListEqual([sample_key], self.d.iter())
-        self.assertEqual(0, len(self.d.iter(prefix='invalid')))
+        self.assertListEqual([sample_key], self.d.keys(prefix='some'))
+        self.assertListEqual([sample_key], self.d.keys(prefix='some.sample:k'))
+        self.assertListEqual([sample_key], self.d.keys(prefix='some.sample:'))
+        self.assertListEqual([sample_key], self.d.keys())
+        self.assertEqual(0, len(self.d.keys(prefix='invalid')))
 
     def test_set_object_returns_properly(self):
         thing = {
@@ -802,9 +802,9 @@ class TestFSDriver(TestCase):
             ContractingDecimal('2222.2222')
         ]
 
-        self.d.set('thing', thing)
+        self.d.set('thing.number', thing)
 
-        decoded = self.d.get('thing')
+        decoded = self.d.get('thing.number')
 
         self.assertIsInstance(decoded[0], ContractingDecimal)
         self.assertIsInstance(decoded[1], ContractingDecimal)
@@ -901,7 +901,7 @@ class TestFSDriver(TestCase):
 
         p1 = []
 
-        for k in self.d.iter(prefix='b', length=3):
+        for k in self.d.keys(prefix='b', length=3):
             p1.append(k)
 
         prefix_1_keys.sort()
@@ -911,7 +911,7 @@ class TestFSDriver(TestCase):
 
         p2 = []
 
-        for k in self.d.iter(prefix='x', length=5):
+        for k in self.d.keys(prefix='x', length=5):
             p2.append(k)
 
         prefix_2_keys.sort()
