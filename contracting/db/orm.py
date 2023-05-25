@@ -94,18 +94,13 @@ class Hash(Datum):
         return self._driver.values(prefix=prefix)
 
     def _items(self, *args):
-        print('_items')
-        print('args', args)
         prefix = self._prefix_for_args(args)
-        print('prefix', prefix)
         return self._driver.items(prefix=prefix)
 
     def clear(self, *args):
-        print('clear')
         kvs = self._items(*args)
 
         for k in kvs.keys():
-            print('deleting: ', k)
             self._driver.delete(k)
 
     def __setitem__(self, key, value):
