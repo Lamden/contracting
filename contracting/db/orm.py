@@ -99,6 +99,7 @@ class Hash(Datum):
 
     def clear(self, *args):
         kvs = self._items(*args)
+
         for k in kvs.keys():
             self._driver.delete(k)
 

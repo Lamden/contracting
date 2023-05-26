@@ -430,18 +430,6 @@ def greeting(name: str):
         self.assertEqual(self.l._violations, [])
 
 
-    def test_function_return_annotation(self):
-        code = '''
-@export
-def greeting(name: str) -> str:
-    return 'Hello ' + name
-'''
-        c = ast.parse(code)
-        chk = self.l.check(c)
-
-        self.assertEqual(['Line 2 : S18- Illegal use of return annotation : str'], chk)
-
-
     def test_contract_annotation(self):
         code ='''
 @export
@@ -459,3 +447,17 @@ def greeting(name):
         chk = self.l.check(c)
 
         self.assertEqual(chk, ['Line 2 : S17- No valid argument annotation found'])
+
+
+## ANNOTATIONS ARE OKAY
+#   def test_function_return_annotation(self):
+#       code = '''
+#@export
+#def greeting(name: str) -> str:
+#    return 'Hello ' + name
+#'''
+#        c = ast.parse(code)
+#        chk = self.l.check(c)
+#
+#        self.assertEqual(['Line 2 : S18- Illegal use of return annotation : str'], chk)
+

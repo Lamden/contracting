@@ -13,6 +13,8 @@ from logging import getLogger
 log = getLogger('CONTRACTING')
 import traceback
 
+DEFAULT_STAMPS = 1000000
+
 class Executor:
     def __init__(self, production=False, driver=None, metering=True,
                  currency_contract='currency', balances_hash='balances', bypass_privates=False):
@@ -40,7 +42,7 @@ class Executor:
                 environment={},
                 auto_commit=False,
                 driver=None,
-                stamps=1000000,
+                stamps=DEFAULT_STAMPS,
                 stamp_cost=config.STAMPS_PER_TAU,
                 metering=None) -> dict:
 

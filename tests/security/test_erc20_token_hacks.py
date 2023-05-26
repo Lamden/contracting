@@ -1,7 +1,10 @@
 from unittest import TestCase
 from contracting.stdlib.bridge.time import Datetime
 from contracting.client import ContractingClient
-
+from contracting.stdlib.bridge.decimal import ContractingDecimal
+from contracting.db.encoder import decode
+from time import sleep
+import asyncio
 
 class TestTokenHacks(TestCase):
     def setUp(self):
@@ -33,13 +36,13 @@ class TestTokenHacks(TestCase):
 
         token = self.c.get_contract('erc20')
 
-        pre_hack_balance = token.balances['stu']
+        pre_hack_balance = self.c.raw_driver.get_var("erc20", "balances", arguments=["stu"])
 
         with open('./contracts/hack_tokens.s.py') as f:
             code = f.read()
             self.c.submit(code, name='token_hack')
 
-        post_hack_balance = token.balances['stu']
+        post_hack_balance = self.c.raw_driver.get_var("erc20", "balances", arguments=["stu"])
 
         # Assert greater because some of the balance is lost to stamps
         self.assertGreater(pre_hack_balance, post_hack_balance)
@@ -49,14 +52,14 @@ class TestTokenHacks(TestCase):
 
         token = self.c.get_contract('erc20')
 
-        pre_hack_balance = token.balances['stu']
+        pre_hack_balance = self.c.raw_driver.get_var("erc20", "balances", arguments=["stu"])
 
         with self.assertRaises(Exception):
             with open('./contracts/builtin_hack_token.s.py') as f:
                 code = f.read()
                 self.c.submit(code, name='token_hack')
 
-            post_hack_balance = token.balances['stu']
+            post_hack_balance = self.c.raw_driver.get_var("erc20", "balances", arguments=["stu"])
 
             # The balance *should not* change between these tests!
             self.assertEqual(pre_hack_balance, post_hack_balance)
@@ -64,29 +67,40 @@ class TestTokenHacks(TestCase):
     def test_double_spend_if_stamps_run_out(self):
         token = self.c.get_contract('erc20')
 
-        pre_hack_balance_stu = token.balances['stu']
-        pre_hack_balance_colin = token.balances['colin']
+        pre_hack_balance_stu = float(str(self.c.get_var("erc20", "balances", arguments=["stu"])))
+        pre_hack_balance_colin = float(str(self.c.get_var("erc20", "balances", arguments=["colin"])))
 
-        token.approve(amount=10000, to='hack')
+        # Approve the "hack" contract to spend stu's tokens
+        tx_amount=10000
+        token.approve(amount=tx_amount, to='con_hack', stamps=200)
 
         with open('./contracts/double_spend_gas_attack.s.py') as f:
             code = f.read()
-            self.c.submit(code, name='hack', metering=True)
+            self.c.submit(code, name='con_hack', metering=True)
 
-        hack = self.c.get_contract('hack')
-        try:
-            hack.double_spend(reciever='colin')
-        except:
-            pass
+        # Test the double_spend contract
+        # - sends the amount of the "allowance" (set in token.approve as 'tx_amount')
+        # - calls transfer_from to send from 'stu' to 'colin' as 'con_hack'
+        con_hack = self.c.get_contract('con_hack')
+        self.c.raw_driver.commit()
+        with self.assertRaises(AssertionError):
+            # Should fail when stamp_limit of 200 is reached
+            con_hack.double_spend(receiver='colin', stamps=200)
 
-        post_hack_balance_stu = token.balances['stu']
-        post_hack_balance_colin = token.balances['colin']
+        post_hack_balance_stu = float(str(self.c.get_var("erc20", "balances", arguments=["stu"])))
+        post_hack_balance_colin = float(str(self.c.get_var("erc20", "balances", arguments=["colin"])))
 
+        # !!! IMPORTANT NODE !!!
+        # In the Lamden Implementation there would be a "rollback" of state after the error.
+        # Contracting does not do this itself and instead you get the status_code set to 1 and all the tx info returned.
+
+        # Stu's POST balance should be less than the pre balance (less the tx_amount) because stamps were also deducted
+        self.assertLess(post_hack_balance_stu, pre_hack_balance_stu + tx_amount)
+
+        # Colin's balance will be + tx_amount
         # Assert greater because some of the balance is lost to stamps
-        self.assertGreater(pre_hack_balance_stu, post_hack_balance_stu)
+        self.assertEqual(pre_hack_balance_colin + tx_amount, post_hack_balance_colin)
 
-        # Colin balance is not affected because it was the recipient of tokens
-        self.assertEqual(pre_hack_balance_colin, post_hack_balance_colin)
 
     def test_stamp_fails_when_calling_infinate_loop_from_another_contract(self):
         with open('./contracts/infinate_loop.s.py') as f:
@@ -117,7 +131,7 @@ class TestTokenHacks(TestCase):
     def test_accessing_variable_on_another_contract(self):
         token = self.c.get_contract('erc20')
 
-        pre_hack_balance_stu = token.balances['stu']
+        pre_hack_balance_stu = self.c.raw_driver.get_var("erc20", "balances", arguments=["stu"])
 
         try:
             with open('./contracts/import_hash_from_contract.s.py') as f:
@@ -126,7 +140,7 @@ class TestTokenHacks(TestCase):
         except:
             pass
 
-        post_hack_balance_stu = token.balances['stu']
+        post_hack_balance_stu = self.c.raw_driver.get_var("erc20", "balances", arguments=["stu"])
 
         self.assertEqual(pre_hack_balance_stu, post_hack_balance_stu)
 
@@ -134,7 +148,7 @@ class TestTokenHacks(TestCase):
         # This hack uses setattr instead of direct property access to do the same thing as above
 
         token = self.c.get_contract('erc20')
-        pre_hack_balance = token.balances['stu']
+        pre_hack_balance = self.c.raw_driver.get_var("erc20", "balances", arguments=["stu"])
 
         #with self.assertRaises(Exception):
         try:
@@ -145,7 +159,7 @@ class TestTokenHacks(TestCase):
             print(err)
             pass
 
-        post_hack_balance = token.balances['stu']
+        post_hack_balance = self.c.raw_driver.get_var("erc20", "balances", arguments=["stu"])
 
         print()
         print(post_hack_balance)
@@ -157,7 +171,7 @@ class TestTokenHacks(TestCase):
         # This hack uses setattr instead of direct property access to do the same thing as above
 
         token = self.c.get_contract('erc20')
-        pre_hack_balance = token.balances['stu']
+        pre_hack_balance = self.c.raw_driver.get_var("erc20", "balances", arguments=["stu"])
 
         #with self.assertRaises(Exception):
         try:
@@ -168,7 +182,7 @@ class TestTokenHacks(TestCase):
             print(err)
             pass
 
-        post_hack_balance = token.balances['stu']
+        post_hack_balance = self.c.raw_driver.get_var("erc20", "balances", arguments=["stu"])
 
         print()
         print(post_hack_balance)

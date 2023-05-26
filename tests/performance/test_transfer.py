@@ -38,8 +38,7 @@ class TestSandbox(TestCase):
             contract = f.read()
 
         self.d.set_contract(name='submission',
-                            code=contract,
-                            author='sys')
+                            code=contract)
         self.d.commit()
 
         self.recipients = [secrets.token_hex(16) for _ in range(10000)]

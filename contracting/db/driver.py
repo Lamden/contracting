@@ -328,6 +328,10 @@ class FSDriver:
 
         self.__build_directories()
 
+    def is_file(self, filename):
+        file_path = Path(self.__filename_to_path(filename))
+        return file_path.is_file()
+
     def flush_file(self, filename):
         file = Path(self.__filename_to_path(filename))
         if file.is_file():
@@ -339,22 +343,40 @@ class FSDriver:
             h5c.delete(self.__filename_to_path(filename), variable)
 
     def iter(self, prefix='', length=0):
-        keys = []
-        for filename in self.__get_files():
-            if prefix != '':
-                for key in self.__get_keys_from_file(filename):
-                    if key.startswith(prefix):
-                        keys.append(key)
-            else:
-                keys.extend(self.__get_keys_from_file(filename))
-            if length > 0 and len(keys) >= length:
-                break
+        try:
+            filename, _ = self.__parse_key(prefix)
+        except Exception:
+            return self.keys(prefix=prefix, length=length)
+            raise ValueError('Must provide "contract.variable" at minimum as prefix to iter.')
+
+        if not self.is_file(filename=filename):
+            return []
+
+        keys_from_file = self.__get_keys_from_file(filename)
+
+        keys = [key for key in keys_from_file if key.startswith(prefix)]
         keys.sort()
 
         return keys if length == 0 else keys[:length]
 
-    def keys(self):
-        return self.iter()
+    def keys(self, prefix=None, length=0):
+        keys = set()
+        try:
+            for filename in self.__get_files():
+                for key in self.__get_keys_from_file(filename):
+                    if prefix and key.startswith(prefix):
+                        keys.add(key)
+                    elif not prefix:
+                        keys.add(key)
+
+                    if length > 0 and len(keys) >= length:
+                        raise AssertionError('Length threshold has been hit. Continuing.')
+        except AssertionError:
+            pass
+
+        keys = list(keys)
+        keys.sort()
+        return keys
 
     def get_contracts(self):
         return sorted(os.listdir(self.contract_state))
@@ -616,6 +638,7 @@ class ContractDriver(CacheDriver):
         return list(self.items(prefix).keys())
 
     def values(self, prefix=''):
+        l = list(self.items(prefix).values())
         return list(self.items(prefix).values())
 
     def make_key(self, contract, variable, args=[]):
