@@ -7,7 +7,7 @@ import sys, subprocess, pathlib
 
 major = 0
 
-__version__ = '2.0.9'
+__version__ = '2.0.10'
 
 requirements = [
     'astor==0.8.1',
