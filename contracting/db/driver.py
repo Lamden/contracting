@@ -464,7 +464,7 @@ class CacheDriver:
         deltas = {}
         if self.pending_writes is not None:
             len_writes = len(self.pending_writes)
-            print(f"SOFT APPLYING PENDING WRITES {len}")
+            print(f"SOFT APPLYING PENDING WRITES {len_writes}")
         for k, v in self.pending_writes.items():
             current = self.pending_reads.get(k)
             deltas[k] = (current, v)
