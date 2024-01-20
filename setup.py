@@ -10,12 +10,11 @@ major = 0
 __version__ = '2.0.10'
 
 requirements = [
-    'astor==0.8.1',
-    'pymongo==3.12.3',
-    'pycodestyle==2.10.0',
-    'autopep8==1.5.7',
-    "stdlib_list==0.8.0",
-    'motor==2.5.1',
+    'astor',
+    'pymongo',
+    'pycodestyle',
+    'autopep8',
+    'motor',
     'iso8601'
 ]
 
