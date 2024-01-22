@@ -16,6 +16,13 @@ import asyncio
 import logging
 from contracting.db.hdf5 import h5c
 
+# Logging
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(message)s", level=logging.DEBUG
+)
+logger = logging.getLogger(__name__)
+
+
 FILE_EXT = '.d'
 HASH_EXT = '.x'
 
@@ -403,11 +410,11 @@ class CacheDriver:
 
     #TODO: Fix bug where rolling back on a key written to twice rolls back to the initial state instead of the immediate previous value
     def soft_apply(self, hcl: str):
-        print("SOFT APPLY STATE")
+        logger.debug("SOFT APPLY STATE")
         deltas = {}
         if self.pending_writes is not None:
             len_writes = len(self.pending_writes)
-            print(f"SOFT APPLYING PENDING WRITES {len_writes}")
+            logger.debug(f"SOFT APPLYING PENDING WRITES {len_writes}")
         for k, v in self.pending_writes.items():
             current = self.pending_reads.get(k)
             deltas[k] = (current, v)
@@ -424,7 +431,7 @@ class CacheDriver:
         self.pending_writes.clear()
 
     def soft_apply_rewards(self, hcl: str):
-        print("SOFT APPLY REWARDS")
+        logger.debug("SOFT APPLY REWARDS")
         deltas = {}
 
         for k, v in self.pending_writes.items():
@@ -440,12 +447,12 @@ class CacheDriver:
         self.pending_writes.clear()
 
     def hard_apply(self, hlc):
-        print("HARD APPLY STATE")
+        logger.debug("HARD APPLY STATE")
         # see if the HCL even exists
         pending_deltas = self.pending_deltas.get(hlc)
         if pending_deltas is not None : 
             length_pending_deltas = len(pending_deltas)
-            print(f"purging {length_pending_deltas} from cache")
+            logger.debug(f"purging {length_pending_deltas} from cache")
         if self.pending_deltas.get(hlc) is None:
             return
 
