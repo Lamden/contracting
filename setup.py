@@ -10,12 +10,11 @@ major = 0
 __version__ = '2.0.10'
 
 requirements = [
-    'astor==0.8.1',
-    'pymongo==3.12.3',
-    'pycodestyle==2.10.0',
-    'autopep8==1.5.7',
-    "stdlib_list==0.8.0",
-    'motor==2.5.1',
+    'astor',
+    'pymongo',
+    'pycodestyle',
+    'autopep8',
+    'motor',
     'iso8601'
 ]
 
@@ -83,7 +82,12 @@ setup(
     author='Lamden',
     author_email='team@lamden.io',
     classifiers=[
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ],
     zip_safe=True,
     include_package_data=True,

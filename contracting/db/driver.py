@@ -8,13 +8,10 @@ from datetime import datetime
 import marshal
 import decimal
 import requests
-import pymongo
 import os
 from pathlib import Path
 import shutil
 import hashlib
-
-import motor.motor_asyncio
 import asyncio
 import logging
 from contracting.db.hdf5 import h5c
@@ -36,120 +33,66 @@ DEVELOPER_KEY = '__developer__'
 
 class Driver:
     def __init__(self, db='lamden', collection='state'):
-        self.client = pymongo.MongoClient()
-        self.db = self.client[db][collection]
+        pass
 
     def get(self, item: str):
-        v = self.db.find_one({'_id': item})
-
-        if v is None:
-            return None
-
-        return decode(v['v'])
+        pass
 
     def set(self, key, value, block_num=None):
-        if value is None:
-            self.__delitem__(key)
-        else:
-            v = encode(value)
-            self.db.update_one({'_id': key}, {'$set': {'v': v}}, upsert=True, )
+        pass
 
     def flush(self):
-        self.db.drop()
+        pass
 
     def delete(self, key: str):
-        self.__delitem__(key)
+        pass
 
     def iter(self, prefix: str, length=0):
-        cur = self.db.find({'_id': {'$regex': f'^{prefix}'}})
-
-        keys = []
-        for entry in cur:
-            keys.append(entry['_id'])
-            if 0 < length <= len(keys):
-                break
-
-        keys.sort()
-        return keys
+        pass
 
     def keys(self):
-        k = []
-        for entry in self.db.find({}):
-            k.append(entry['_id'])
-        k.sort()
-        return k
+        pass
 
     def __getitem__(self, item: str):
-        value = self.get(item)
-        if value is None:
-            raise KeyError
-        return value
+        pass
 
     def __setitem__(self, key: str, value):
-        self.set(key, value)
+        pass
 
     def __delitem__(self, key: str):
-        self.db.delete_one({'_id': key})
+        pass
 
 
 class AsyncDriver:
     def __init__(self, db='lamden', collection='state'):
-        self.client = motor.motor_asyncio.AsyncIOMotorClient()
-        self.db = self.client[db][collection]
+        pass
 
     async def get(self, item: str):
-        v = await self.db.find_one({'_id': item})
-
-        if v is None:
-            return None
-
-        return decode(v['v'])
+        pass
 
     async def set(self, key, value, block_num=None):
-        if value is None:
-            await self.db.delete_one({'_id': key})
-        else:
-            v = encode(value)
-            await self.db.update_one({'_id': key}, {'$set': {'v': v}}, upsert=True, )
+        pass
 
     async def flush(self):
-        await self.db.drop()
+        pass
 
     async def delete(self, key: str):
-        await self.db.delete_one({'_id': key})
+        pass
 
     async def iter(self, prefix: str, length=0):
-        keys = []
-        async for entry in self.db.find({'_id': {'$regex': f'^{prefix}'}}):
-            keys.append(entry['_id'])
-            if 0 < length <= len(keys):
-                break
-
-        keys.sort()
-        return keys
+        pass
 
     async def keys(self):
-        k = []
-        async for entry in self.db.find({}):
-            k.append(entry['_id'])
-        k.sort()
-        return k
+        pass
 
     def __getitem__(self, item: str):
-        loop = asyncio.get_event_loop()
-        value = loop.run_until_complete(self.get(item))
-
-        if value is None:
-            raise KeyError
-        return value
+        pass
 
     def __setitem__(self, key: str, value):
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.set(key, value))
+        pass
 
     def __delitem__(self, key: str):
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self.db.delete_one({'_id': key}))
+        pass
 
 
 class InMemDriver(Driver):

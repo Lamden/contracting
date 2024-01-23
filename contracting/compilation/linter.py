@@ -7,7 +7,6 @@ from ..compilation.whitelists import ALLOWED_AST_TYPES, ALLOWED_ANNOTAION_TYPES,
 
 from contracting.db.driver import ContractDriver
 
-from stdlib_list import stdlib_list
 
 class Linter(ast.NodeVisitor):
 
@@ -22,7 +21,7 @@ class Linter(ast.NodeVisitor):
         self.return_annotation = set()
         self.arg_types = set()
 
-        self.builtins = set(stdlib_list(f'{sys.version_info.major}.{sys.version_info.minor}'))
+        self.builtins = set(sys.builtin_module_names)
         self.driver = driver
 
     def ast_types(self, t, lnum):

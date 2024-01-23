@@ -1,12 +1,14 @@
-/* C-based Tracer for Coverage. */
 
-#include "Python.h"
-#include "compile.h"        /* in 2.3, this wasn't part of Python.h */
-#include "eval.h"           /* or this. */
+
+#include "util.h"
+#include "datastack.h"
+#include "filedisp.h"
+#include "tracer.h"
 #include "structmember.h"
 #include "frameobject.h"
-
 #include <sys/resource.h>
+#include "Python.h"
+#include "compile.h"        /* in 2.3, this wasn't part of Python.h */
 
 
 #include <stdio.h>          /* For reading CU cu_costs */
@@ -28,10 +30,6 @@
 #define MyType_HEAD_INIT    PyObject_HEAD_INIT(NULL)  0,
 
 #endif /* Py3k */
-
-/* The values returned to indicate ok or error. */
-#define RET_OK      0
-#define RET_ERROR   -1
 
 unsigned long long cu_costs[] = {2, 4, 5, 2, 4, 1000, 1000, 1000, 2, 2, 3, 2, 1000, 1000, 4, 1000, 1000, 1000, 30, 3,
                                 1000, 4, 3, 3, 3, 4, 4, 4, 5, 1000, 1000, 1000, 1000, 6, 30, 7, 12, 1000, 1610, 4, 7,
@@ -103,11 +101,11 @@ Tracer_dealloc(Tracer *self)
     unsigned long long estimate = 0;
     unsigned long long factor = 1000;
     const char *str;
-     // IF, Frame object globals contains __contract__ and it is true, continue
-
-     PyObject *kv = PyUnicode_FromString("__contract__");
-     int t = PyDict_Contains(frame->f_globals, kv);
-     Py_DECREF(kv);
+    // IF, Frame object globals contains __contract__ and it is true, continue
+    PyObject *kv = PyUnicode_FromString("__contract__");
+    PyObject *globals = PyFrame_GetGlobals(frame);
+    int t = PyDict_Contains(globals, kv);
+    Py_DECREF(globals);
 
      if (t != 1) {
         return RET_OK;
@@ -122,8 +120,11 @@ Tracer_dealloc(Tracer *self)
      switch (what) {
          case PyTrace_LINE:      /* 2 */
              // printf("LINE\n");
-             str = PyBytes_AS_STRING(frame->f_code->co_code);
-             opcode = str[frame->f_lasti];
+            PyObject *code = (PyObject *)PyFrame_GetCode(frame);
+            const char *str = PyBytes_AS_STRING(PyCode_GetCode((PyCodeObject *)code));
+            Py_DECREF(code);
+            int lasti = PyFrame_GetLasti(frame);
+            opcode = str[lasti];
 
              if (opcode < 0) opcode = -opcode;
 
