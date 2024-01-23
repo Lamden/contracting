@@ -15,6 +15,8 @@ import hashlib
 import asyncio
 import logging
 from contracting.db.hdf5 import h5c
+import warnings
+
 
 # Logging
 logging.basicConfig(
@@ -40,66 +42,66 @@ DEVELOPER_KEY = '__developer__'
 
 class Driver:
     def __init__(self, db='lamden', collection='state'):
-        pass
+        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     def get(self, item: str):
-        pass
+        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     def set(self, key, value, block_num=None):
-        pass
+        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     def flush(self):
-        pass
+        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     def delete(self, key: str):
-        pass
+        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     def iter(self, prefix: str, length=0):
-        pass
+        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     def keys(self):
-        pass
+        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     def __getitem__(self, item: str):
-        pass
+        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     def __setitem__(self, key: str, value):
-        pass
+        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     def __delitem__(self, key: str):
-        pass
+        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
 
 class AsyncDriver:
     def __init__(self, db='lamden', collection='state'):
-        pass
+        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     async def get(self, item: str):
-        pass
+        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     async def set(self, key, value, block_num=None):
-        pass
+        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     async def flush(self):
-        pass
+        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     async def delete(self, key: str):
-        pass
+        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     async def iter(self, prefix: str, length=0):
-        pass
+        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     async def keys(self):
-        pass
+        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     def __getitem__(self, item: str):
-        pass
+        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     def __setitem__(self, key: str, value):
-        pass
+        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
     def __delitem__(self, key: str):
-        pass
+        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
 
 
 class InMemDriver(Driver):
@@ -190,7 +192,7 @@ class InMemDriver(Driver):
 class FSDriver:
     def __init__(self, root=None):
         self.root = Path(root) if root is not None else STORAGE_HOME
-        print(f"FSDRIVER INIT - STORAGE PATH : {self.root}")
+        logger.debug(f"Using root {self.root}")
         self.contract_state = self.root.joinpath('contract_state')
         self.run_state = self.root.joinpath('run_state')
 
