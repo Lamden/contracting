@@ -1,7 +1,6 @@
-from distutils import errors
-from distutils.command.build_ext import build_ext, CCompilerError, DistutilsExecError, DistutilsPlatformError
-from setuptools import setup, find_packages
-from setuptools.extension import Extension
+from setuptools import setup, Extension, find_packages
+from setuptools.command.build_ext import build_ext
+from distutils.errors import CCompilerError, DistutilsExecError, DistutilsPlatformError
 from sys import platform
 import sys, subprocess, pathlib
 
@@ -10,11 +9,12 @@ major = 0
 __version__ = '2.0.10'
 
 requirements = [
-    'astor',
-    'pymongo',
-    'pycodestyle',
-    'autopep8',
-    'motor',
+    'astor==0.8.1',
+    'pymongo==3.12.3',
+    'pycodestyle==2.10.0',
+    'autopep8==1.5.7',
+    "stdlib_list==0.8.0",
+    'motor==2.5.1',
     'iso8601'
 ]
 
@@ -33,7 +33,7 @@ class ve_build_ext(build_ext):
         """Wrap `run` with `BuildFailed`."""
         try:
             build_ext.run(self)
-        except errors.DistutilsPlatformError:
+        except DistutilsPlatformError:
             raise BuildFailed()
 
     def build_extension(self, ext):
@@ -57,7 +57,9 @@ def pkgconfig(package):
     if platform == "linux" or platform == "linux2":
         output = subprocess.getoutput('pkg-config --cflags --libs {}'.format(package))
         for token in output.strip().split():
-            res.setdefault(flag_map.get(token[:2]), []).append(token[2:])
+            key = flag_map.get(token[:2])
+            if key:
+                res.setdefault(key, []).append(token[2:])
 
     elif platform == "darwin":
         res['libraries'] = [f'{package}']
@@ -68,9 +70,13 @@ def pkgconfig(package):
         res['library_dirs'] = [output + '/lib/']
 
     elif platform == "win32":
-        raise NotImplemented("Cannot install on Windows")
+        raise NotImplementedError("Cannot install on Windows")
 
+    # Convert values to strings
+    res = {key: [str(value) for value in values] for key, values in res.items()}
     return res
+
+
 
 setup(
     name='contracting',
