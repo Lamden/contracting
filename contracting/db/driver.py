@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 FILE_EXT = '.d'
 HASH_EXT = '.x'
 
-STORAGE_HOME = Path().home().joinpath('.lamden')
+STORAGE_HOME = Path().home().joinpath('.tendermint/xian')
 
 # DB maps bytes to bytes
 # Driver maps string to python object
