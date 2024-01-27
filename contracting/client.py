@@ -277,6 +277,11 @@ class ContractingClient:
             else:
                 return violations
 
+    def estimate_stamps(self, contract_name, function_name, kwargs):
+        return self.executor.simulate_execute_without_writing(contract_name=contract_name,
+                                                              function_name=function_name,
+                                                              kwargs=kwargs)['stamps_used']
+
     def compile(self, f):
         if isinstance(f, FunctionType):
             f, _ = self.closure_to_code_string(f)

@@ -181,7 +181,7 @@ class Executor:
 
         return output
 
-    def simulate_execute_without_writing(self, sender, contract_name, function_name, kwargs,
+    def simulate_execute_without_writing(self, contract_name, function_name, kwargs,
                                      environment={},
                                      auto_commit=False,
                                      driver=None,
