@@ -527,7 +527,6 @@ class CacheDriver:
         self.pending_writes.clear()
 
         # see if the HCL even exists
-        pending_deltas = self.pending_deltas.get(hlc)
         if self.pending_deltas.get(hlc) is None:
             return
 
