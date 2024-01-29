@@ -25,83 +25,144 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-FILE_EXT = '.d'
-HASH_EXT = '.x'
+FILE_EXT = ".d"
+HASH_EXT = ".x"
 
-STORAGE_HOME = Path().home().joinpath('.tendermint/xian')
+STORAGE_HOME = Path().home().joinpath(".tendermint/xian")
 
 # DB maps bytes to bytes
 # Driver maps string to python object
-CODE_KEY = '__code__'
-TYPE_KEY = '__type__'
-AUTHOR_KEY = '__author__'
-OWNER_KEY = '__owner__'
-TIME_KEY = '__submitted__'
-COMPILED_KEY = '__compiled__'
-DEVELOPER_KEY = '__developer__'
+CODE_KEY = "__code__"
+TYPE_KEY = "__type__"
+AUTHOR_KEY = "__author__"
+OWNER_KEY = "__owner__"
+TIME_KEY = "__submitted__"
+COMPILED_KEY = "__compiled__"
+DEVELOPER_KEY = "__developer__"
+
 
 class Driver:
-    def __init__(self, db='lamden', collection='state'):
-        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+    def __init__(self, db="lamden", collection="state"):
+        warnings.warn(
+            "Driver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     def get(self, item: str):
-        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "Driver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     def set(self, key, value, block_num=None):
-        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "Driver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     def flush(self):
-        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "Driver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     def delete(self, key: str):
-        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "Driver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     def iter(self, prefix: str, length=0):
-        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "Driver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     def keys(self):
-        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "Driver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     def __getitem__(self, item: str):
-        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "Driver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     def __setitem__(self, key: str, value):
-        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "Driver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     def __delitem__(self, key: str):
-        warnings.warn("Driver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "Driver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
 
 class AsyncDriver:
-    def __init__(self, db='lamden', collection='state'):
-        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+    def __init__(self, db="lamden", collection="state"):
+        warnings.warn(
+            "AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     async def get(self, item: str):
-        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     async def set(self, key, value, block_num=None):
-        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     async def flush(self):
-        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     async def delete(self, key: str):
-        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     async def iter(self, prefix: str, length=0):
-        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     async def keys(self):
-        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     def __getitem__(self, item: str):
-        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     def __setitem__(self, key: str, value):
-        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
     def __delitem__(self, key: str):
-        warnings.warn("AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.", DeprecationWarning)
+        warnings.warn(
+            "AsyncDriver is deprecated. Use InMemDriver or FSDriver instead.",
+            DeprecationWarning,
+        )
 
 
 class InMemDriver(Driver):
@@ -115,14 +176,14 @@ class InMemDriver(Driver):
             self.__delitem__(key)
         else:
             v = encode(value).encode()
-            self.db[k] = {'value': v, 'block_num': str(block_num)}
+            self.db[k] = {"value": v, "block_num": str(block_num)}
 
     def get(self, item: str):
         key = item.encode()
         res = self.db.get(key)
         if res is None:
             return None
-        return decode(res.get('value'))
+        return decode(res.get("value"))
 
     def set(self, key: str, value, block_num=None):
         if block_num is None:
@@ -136,7 +197,6 @@ class InMemDriver(Driver):
         if int(block_num) >= current_block:
             self._set_state(key=key, value=value, block_num=block_num)
 
-
     def get_block(self, key: str):
         k = key.encode()
         res = self.db.get(k)
@@ -144,13 +204,12 @@ class InMemDriver(Driver):
         if res is None:
             return config.BLOCK_NUM_DEFAULT
 
-        block_num = res.get('block_num')
+        block_num = res.get("block_num")
 
         if block_num is None:
             return config.BLOCK_NUM_DEFAULT
         else:
             return int(block_num)
-
 
     def delete(self, key: str):
         self.__delitem__(key)
@@ -189,12 +248,13 @@ class InMemDriver(Driver):
         except KeyError:
             pass
 
+
 class FSDriver:
     def __init__(self, root=None):
         self.root = Path(root) if root is not None else STORAGE_HOME
         logger.debug(f"Using root {self.root}")
-        self.contract_state = self.root.joinpath('contract_state')
-        self.run_state = self.root.joinpath('run_state')
+        self.contract_state = self.root.joinpath("contract_state")
+        self.run_state = self.root.joinpath("run_state")
 
         self.__build_directories()
 
@@ -207,19 +267,28 @@ class FSDriver:
             filename, variable = key.split(config.INDEX_SEPARATOR, 1)
             variable = variable.replace(config.DELIMITER, config.HDF5_GROUP_SEPARATOR)
         except:
-            filename = '__misc'
+            filename = "__misc"
             variable = key.replace(config.DELIMITER, config.HDF5_GROUP_SEPARATOR)
 
         return filename, variable
 
     def __filename_to_path(self, filename):
-        return str(self.run_state.joinpath(filename)) if filename.startswith('__') else str(self.contract_state.joinpath(filename))
+        return (
+            str(self.run_state.joinpath(filename))
+            if filename.startswith("__")
+            else str(self.contract_state.joinpath(filename))
+        )
 
     def __get_files(self):
         return sorted(os.listdir(self.contract_state) + os.listdir(self.run_state))
 
     def __get_keys_from_file(self, filename):
-        return [filename + config.INDEX_SEPARATOR + g.replace(config.HDF5_GROUP_SEPARATOR, config.DELIMITER) for g in h5c.get_groups(self.__filename_to_path(filename))]
+        return [
+            filename
+            + config.INDEX_SEPARATOR
+            + g.replace(config.HDF5_GROUP_SEPARATOR, config.DELIMITER)
+            for g in h5c.get_groups(self.__filename_to_path(filename))
+        ]
 
     def __getitem__(self, key):
         return self.get(key)
@@ -233,11 +302,19 @@ class FSDriver:
     def get(self, item: str):
         filename, variable = self.__parse_key(item)
 
-        return decode(h5c.get_value(self.__filename_to_path(filename), variable)) if len(filename) < config.FILENAME_LEN_MAX else None
+        return (
+            decode(h5c.get_value(self.__filename_to_path(filename), variable))
+            if len(filename) < config.FILENAME_LEN_MAX
+            else None
+        )
 
     def get_block(self, item: str):
         filename, variable = self.__parse_key(item)
-        block_num = h5c.get_block(self.__filename_to_path(filename), variable) if len(filename) < config.FILENAME_LEN_MAX else None
+        block_num = (
+            h5c.get_block(self.__filename_to_path(filename), variable)
+            if len(filename) < config.FILENAME_LEN_MAX
+            else None
+        )
 
         return config.BLOCK_NUM_DEFAULT if block_num is None else int(block_num)
 
@@ -253,24 +330,23 @@ class FSDriver:
                 self.__filename_to_path(filename),
                 variable,
                 encode(value) if value is not None else None,
-                None
+                None,
             )
 
-    def safe_set(self,  key: str, value: any, block_num: str):
+    def safe_set(self, key: str, value: any, block_num: str):
         filename, variable = self.__parse_key(key)
 
         if len(filename) < config.FILENAME_LEN_MAX:
-            current_block = h5c.get_block(
-                self.__filename_to_path(filename),
-                variable
-            ) or "-1"
+            current_block = (
+                h5c.get_block(self.__filename_to_path(filename), variable) or "-1"
+            )
 
             if int(block_num) >= int(current_block):
                 h5c.set(
                     self.__filename_to_path(filename),
                     variable,
                     encode(value) if value is not None else None,
-                    str(block_num)
+                    str(block_num),
                 )
 
     def flush(self):
@@ -295,12 +371,14 @@ class FSDriver:
         if len(filename) < config.FILENAME_LEN_MAX:
             h5c.delete(self.__filename_to_path(filename), variable)
 
-    def iter(self, prefix='', length=0):
+    def iter(self, prefix="", length=0):
         try:
             filename, _ = self.__parse_key(prefix)
         except Exception:
             return self.keys(prefix=prefix, length=length)
-            raise ValueError('Must provide "contract.variable" at minimum as prefix to iter.')
+            raise ValueError(
+                'Must provide "contract.variable" at minimum as prefix to iter.'
+            )
 
         if not self.is_file(filename=filename):
             return []
@@ -323,7 +401,9 @@ class FSDriver:
                         keys.add(key)
 
                     if length > 0 and len(keys) >= length:
-                        raise AssertionError('Length threshold has been hit. Continuing.')
+                        raise AssertionError(
+                            "Length threshold has been hit. Continuing."
+                        )
         except AssertionError:
             pass
 
@@ -334,28 +414,32 @@ class FSDriver:
     def get_contracts(self):
         return sorted(os.listdir(self.contract_state))
 
+
 class WebDriver(InMemDriver):
-    def __init__(self, masternode='http://masternode-01.lamden.io'):
+    def __init__(self, masternode="http://masternode-01.lamden.io"):
         super().__init__()
         self.masternode = masternode
 
     def get(self, item: str):
         # supports item strings like contract.variable:key1:key2
 
-        contract, args = item.split('.')
-        args = args.split(':')
+        contract, args = item.split(".")
+        args = args.split(":")
         variable = args.pop(0)
 
-        keys = ','.join(args)
+        keys = ",".join(args)
 
-        r = requests.get(f'{self.masternode}/contracts/{contract}/{variable}?key={keys}')
-        return decode(r.json()['value'])
+        r = requests.get(
+            f"{self.masternode}/contracts/{contract}/{variable}?key={keys}"
+        )
+        return decode(r.json()["value"])
+
 
 class CacheDriver:
     def __init__(self, driver=None):
-        self.pending_writes = {}             # L2 cache
-        self.cache = {}                      # L1 cache
-        self.driver = driver or FSDriver()   # L0 cache
+        self.pending_writes = {}  # L2 cache
+        self.cache = {}  # L1 cache
+        self.driver = driver or FSDriver()  # L0 cache
         self.hlc = HLC()
 
         self.pending_reads = {}
@@ -384,7 +468,6 @@ class CacheDriver:
         return None
 
     def get(self, key: str, save: bool = True):
-
         value = self.find(key)
 
         if save:
@@ -410,28 +493,6 @@ class CacheDriver:
     def delete(self, key):
         self.set(key, None)
 
-    #TODO: Fix bug where rolling back on a key written to twice rolls back to the initial state instead of the immediate previous value
-    def soft_apply(self, hcl: str):
-        logger.debug("SOFT APPLY STATE")
-        deltas = {}
-        if self.pending_writes is not None:
-            len_writes = len(self.pending_writes)
-            logger.debug(f"SOFT APPLYING PENDING WRITES {len_writes}")
-        for k, v in self.pending_writes.items():
-            current = self.pending_reads.get(k)
-            deltas[k] = (current, v)
-
-            self.cache[k] = v
-
-        self.pending_deltas[hcl] = {
-            'writes': deltas,
-            'reads': self.pending_reads
-        }
-
-        # Clear the top cache
-        self.pending_reads = {}
-        self.pending_writes.clear()
-
     def soft_apply_rewards(self, hcl: str):
         logger.debug("SOFT APPLY REWARDS")
         deltas = {}
@@ -442,17 +503,32 @@ class CacheDriver:
 
             self.cache[k] = v
 
-        self.pending_deltas[hcl]['rewards'] = deltas
+        self.pending_deltas[hcl]["rewards"] = deltas
 
         # Clear the top cache
         self.pending_reads = {}
         self.pending_writes.clear()
 
     def hard_apply(self, hlc):
-        logger.debug("HARD APPLY STATE")
+        deltas = {}
+        if self.pending_writes is not None:
+            len_writes = len(self.pending_writes)
+            logger.debug(f"APPLYING PENDING WRITES {len_writes}")
+        for k, v in self.pending_writes.items():
+            current = self.pending_reads.get(k)
+            deltas[k] = (current, v)
+
+            self.cache[k] = v
+
+        self.pending_deltas[hlc] = {"writes": deltas, "reads": self.pending_reads}
+
+        # Clear the top cache
+        self.pending_reads = {}
+        self.pending_writes.clear()
+
         # see if the HCL even exists
         pending_deltas = self.pending_deltas.get(hlc)
-        if pending_deltas is not None : 
+        if pending_deltas is not None:
             length_pending_deltas = len(pending_deltas)
             logger.debug(f"purging {length_pending_deltas} from cache")
         if self.pending_deltas.get(hlc) is None:
@@ -463,14 +539,13 @@ class CacheDriver:
         to_delete = []
         for _hlc, _deltas in sorted(self.pending_deltas.items()):
             # Run through all state changes, taking the second value, which is the post delta
-            for key, delta in _deltas['writes'].items():
+            for key, delta in _deltas["writes"].items():
                 try:
                     _block_num = self.get_nanos(_hlc)
                     self.driver.set(key=key, value=delta[1], block_num=str(_block_num))
                 except (TypeError, ValueError):
                     # Safe set not supported on selected driver
                     self.driver.set(key=key, value=delta[1])
-
 
                 # self.cache[key] = delta[1]
 
@@ -482,6 +557,8 @@ class CacheDriver:
         # Remove the deltas from the set
         [self.pending_deltas.pop(key) for key in to_delete]
 
+        logger.debug(f"APPLING PENDING WRITES")
+
     def hard_apply_one(self, hlc: str) -> dict:
         pending_delta = self.pending_deltas.pop(hlc)
 
@@ -490,7 +567,7 @@ class CacheDriver:
             return
 
         # Run through all state changes, taking the second value, which is the post delta
-        for key, delta in pending_delta['writes'].items():
+        for key, delta in pending_delta["writes"].items():
             try:
                 block_num = self.get_nanos(hlc)
                 self.driver.set(key=key, value=delta[1], block_num=block_num)
@@ -500,7 +577,6 @@ class CacheDriver:
 
         return pending_delta
 
-
     def bust_cache(self, writes: dict):
         if not writes:
             return
@@ -508,7 +584,7 @@ class CacheDriver:
         for key in writes.keys():
             should_clear = True
             for pd in self.pending_deltas.values():
-                should_clear = key not in list(pd['writes'].keys())
+                should_clear = key not in list(pd["writes"].keys())
                 if not should_clear:
                     break
 
@@ -547,7 +623,6 @@ class CacheDriver:
                 self.pending_reads = {}
                 self.pending_writes.clear()
 
-
                 if _hlc < hlc:
                     # if we are less than the HLC then top processing anymore, this is our rollback point
                     break
@@ -555,7 +630,7 @@ class CacheDriver:
                     # if we are still greater than or equal to then mark this as delete and rollback its changes
                     to_delete.append(_hlc)
                     # Run through all state changes, taking the second value, which is the post delta
-                    for key, delta in _deltas['writes'].items():
+                    for key, delta in _deltas["writes"].items():
                         # self.set(key, delta[0])
                         self.cache[key] = delta[0]
 
@@ -569,10 +644,10 @@ class CacheDriver:
 class ContractDriver(CacheDriver):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.delimiter = '.'
-        self.log = logging.getLogger('Driver')
+        self.delimiter = "."
+        self.log = logging.getLogger("Driver")
 
-    def items(self, prefix=''):
+    def items(self, prefix=""):
         # Get all of the items in the cache currently
         _items = {}
         keys = set()
@@ -592,21 +667,21 @@ class ContractDriver(CacheDriver):
 
         # Subtract the already gotten keys
         for k in db_keys - keys:
-            _items[k] = self.get(k) # Cache get will add the keys to the cache
+            _items[k] = self.get(k)  # Cache get will add the keys to the cache
 
         return _items
 
-    def keys(self, prefix=''):
+    def keys(self, prefix=""):
         return list(self.items(prefix).keys())
 
-    def values(self, prefix=''):
+    def values(self, prefix=""):
         l = list(self.items(prefix).values())
         return list(self.items(prefix).values())
 
     def make_key(self, contract, variable, args=[]):
         contract_variable = self.delimiter.join((contract, variable))
         if args:
-            return ':'.join((contract_variable, *[str(arg) for arg in args]))
+            return ":".join((contract_variable, *[str(arg) for arg in args]))
         return contract_variable
 
     def get_var(self, contract, variable, arguments=[], mark=True):
@@ -622,7 +697,7 @@ class ContractDriver(CacheDriver):
 
     def get_owner(self, name):
         owner = self.get_var(name, OWNER_KEY)
-        if owner == '':
+        if owner == "":
             owner = None
         return owner
 
@@ -632,9 +707,17 @@ class ContractDriver(CacheDriver):
     def get_compiled(self, name):
         return self.get_var(name, COMPILED_KEY)
 
-    def set_contract(self, name, code, owner=None, overwrite=False, timestamp=Datetime._from_datetime(datetime.now()), developer=None):
+    def set_contract(
+        self,
+        name,
+        code,
+        owner=None,
+        overwrite=False,
+        timestamp=Datetime._from_datetime(datetime.now()),
+        developer=None,
+    ):
         if self.get_contract(name) is None:
-            code_obj = compile(code, '', 'exec')
+            code_obj = compile(code, "", "exec")
             code_blob = marshal.dumps(code_obj)
 
             self.set_var(name, CODE_KEY, value=code)
@@ -662,7 +745,9 @@ class ContractDriver(CacheDriver):
 
     def rollback_drivers(self, hlc_timestamp):
         # Roll back the current state to the point of the last block consensus
-        self.log.debug(f"Length of Pending Deltas BEFORE {len(self.driver.pending_deltas.keys())}")
+        self.log.debug(
+            f"Length of Pending Deltas BEFORE {len(self.driver.pending_deltas.keys())}"
+        )
         self.log.debug(f"rollback to hlc_timestamp: {hlc_timestamp}")
 
         if hlc_timestamp is None:
@@ -679,7 +764,6 @@ class ContractDriver(CacheDriver):
                 self.reads = set()
                 self.pending_writes.clear()
 
-
                 if _hlc < hlc_timestamp:
                     self.log.debug(f"{_hlc} is less than {hlc_timestamp}, breaking!")
                     # if we are less than the HLC then top processing anymore, this is our rollback point
@@ -688,7 +772,7 @@ class ContractDriver(CacheDriver):
                     # if we are still greater than or equal to then mark this as delete and rollback its changes
                     to_delete.append(_hlc)
                     # Run through all state changes, taking the second value, which is the post delta
-                    for key, delta in _deltas['writes'].items():
+                    for key, delta in _deltas["writes"].items():
                         # self.set(key, delta[0])
                         self.cache[key] = delta[0]
 
@@ -696,16 +780,18 @@ class ContractDriver(CacheDriver):
             self.log.debug(to_delete)
             [self.pending_deltas.pop(key) for key in to_delete]
 
-        #self.driver.rollback(hlc=hlc_timestamp)
+        # self.driver.rollback(hlc=hlc_timestamp)
 
-        self.log.debug(f"Length of Pending Deltas AFTER {len(self.driver.pending_deltas.keys())}")
+        self.log.debug(
+            f"Length of Pending Deltas AFTER {len(self.driver.pending_deltas.keys())}"
+        )
 
 
 class AsyncContractDriver:
     def __init__(self, driver: AsyncDriver):
         self.driver = driver
 
-    async def items(self, prefix=''):
+    async def items(self, prefix=""):
         # Get all of the items in the cache currently
         _items = {}
         keys = set()
@@ -720,22 +806,22 @@ class AsyncContractDriver:
 
         # Subtract the already gotten keys
         for k in db_keys - keys:
-            _items[k] = self.get(k) # Cache get will add the keys to the cache
+            _items[k] = self.get(k)  # Cache get will add the keys to the cache
 
         return _items
 
-    async def keys(self, prefix=''):
+    async def keys(self, prefix=""):
         items = await self.items(prefix)
         return list(items.keys())
 
-    async def values(self, prefix=''):
+    async def values(self, prefix=""):
         items = await self.items(prefix)
         return list(items.values())
 
     def make_key(self, contract, variable, args=[]):
         contract_variable = self.delimiter.join((contract, variable))
         if args:
-            return ':'.join((contract_variable, *[str(arg) for arg in args]))
+            return ":".join((contract_variable, *[str(arg) for arg in args]))
         return contract_variable
 
     def get_var(self, contract, variable, arguments=[], mark=True):
@@ -747,7 +833,7 @@ class AsyncContractDriver:
 
     def get_owner(self, name):
         owner = self.get_var(name, OWNER_KEY)
-        if owner == '':
+        if owner == "":
             owner = None
         return owner
 
@@ -760,35 +846,41 @@ class AsyncContractDriver:
     def get_contract_keys(self, name):
         return self.keys(name)
 
+
 class BlockserviceDriver(Driver):
     # conn_str see https://www.mongodb.com/docs/manual/reference/connection-string/
-    def __init__(self, conn_str="mongodb://localhost:27017", db='lamden', collection='currentState'):
+    def __init__(
+        self,
+        conn_str="mongodb://localhost:27017",
+        db="lamden",
+        collection="currentState",
+    ):
         self.client = pymongo.MongoClient(conn_str)
         self.db = self.client[db][collection]
 
     def get(self, item: str):
-        v = self.db.find_one({'rawKey': item})
+        v = self.db.find_one({"rawKey": item})
         if v is None:
             return None
 
-        if isinstance(v['value'], dict):
-            return decode(encode(v['value']))
+        if isinstance(v["value"], dict):
+            return decode(encode(v["value"]))
 
-        if decode(v['value']) is None:
-           return v['value']
+        if decode(v["value"]) is None:
+            return v["value"]
 
-        return decode(v['value'])
+        return decode(v["value"])
 
     def set(self, key, value, block_num=None):
         # Do nothing to keep readonly.
         pass
 
     def iter(self, prefix: str, length=0):
-        cur = self.db.find({'rawKey': {'$regex': f'^{prefix}'}})
+        cur = self.db.find({"rawKey": {"$regex": f"^{prefix}"}})
 
         keys = []
         for entry in cur:
-            keys.append(entry['rawKey'])
+            keys.append(entry["rawKey"])
             if 0 < length <= len(keys):
                 break
 
@@ -798,7 +890,7 @@ class BlockserviceDriver(Driver):
     def keys(self):
         k = []
         for entry in self.db.find({}):
-            k.append(entry['rawKey'])
+            k.append(entry["rawKey"])
         k.sort()
         return k
 
