@@ -528,9 +528,6 @@ class CacheDriver:
 
         # see if the HCL even exists
         pending_deltas = self.pending_deltas.get(hlc)
-        if pending_deltas is not None:
-            length_pending_deltas = len(pending_deltas)
-            logger.debug(f"purging {length_pending_deltas} from cache")
         if self.pending_deltas.get(hlc) is None:
             return
 
@@ -557,7 +554,7 @@ class CacheDriver:
         # Remove the deltas from the set
         [self.pending_deltas.pop(key) for key in to_delete]
 
-        logger.debug(f"APPLING PENDING WRITES")
+        logger.debug(f"APPLIED PENDING WRITES")
 
     def hard_apply_one(self, hlc: str) -> dict:
         pending_delta = self.pending_deltas.pop(hlc)
