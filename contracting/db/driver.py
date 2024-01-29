@@ -511,9 +511,6 @@ class CacheDriver:
 
     def hard_apply(self, hlc):
         deltas = {}
-        if self.pending_writes is not None:
-            len_writes = len(self.pending_writes)
-            logger.debug(f"APPLYING PENDING WRITES {len_writes}")
         for k, v in self.pending_writes.items():
             current = self.pending_reads.get(k)
             deltas[k] = (current, v)
@@ -552,8 +549,6 @@ class CacheDriver:
 
         # Remove the deltas from the set
         [self.pending_deltas.pop(key) for key in to_delete]
-
-        logger.debug(f"APPLIED PENDING WRITES")
 
     def hard_apply_one(self, hlc: str) -> dict:
         pending_delta = self.pending_deltas.pop(hlc)
