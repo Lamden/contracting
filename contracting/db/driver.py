@@ -509,6 +509,10 @@ class CacheDriver:
         self.pending_reads = {}
         self.pending_writes.clear()
 
+    def soft_apply(self, hcl):
+        hlc = hcl # This is because the original writer called it with a typo
+        self.hard_apply(hlc)
+
     def hard_apply(self, hlc):
         deltas = {}
         for k, v in self.pending_writes.items():
