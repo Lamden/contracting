@@ -50,6 +50,9 @@ def import_module(name):
 
     _driver = rt.env.get('__Driver') or ContractDriver()
 
+    if name in set(list(sys.stdlib_module_names) + list(sys.builtin_module_names)):
+        raise ImportError
+
     if name.startswith('_'):
         raise ImportError
 
