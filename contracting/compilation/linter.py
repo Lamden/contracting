@@ -21,7 +21,7 @@ class Linter(ast.NodeVisitor):
         self.return_annotation = set()
         self.arg_types = set()
 
-        self.builtins = set(sys.builtin_module_names)
+        self.builtins = list(set(list(sys.stdlib_module_names) + list(sys.builtin_module_names)))
         self.driver = driver
 
     def ast_types(self, t, lnum):

@@ -13,7 +13,6 @@ requirements = [
     "pymongo==3.12.3",
     "pycodestyle==2.10.0",
     "autopep8==1.5.7",
-    "stdlib_list==0.8.0",
     "motor==2.5.1",
     "iso8601",
 ]
