@@ -117,55 +117,56 @@ Tracer_dealloc(Tracer *self)
 
      int opcode;
 
-     switch (what) {
-         case PyTrace_LINE:      /* 2 */
-             // printf("LINE\n");
-            PyObject *code = (PyObject *)PyFrame_GetCode(frame);
+switch (what) {
+    case PyTrace_LINE:      /* 2 */
+        {
+            PyObject *code = PyFrame_GetCode(frame); // Declare 'code' variable here
             const char *str = PyBytes_AS_STRING(PyCode_GetCode((PyCodeObject *)code));
             Py_DECREF(code);
             int lasti = PyFrame_GetLasti(frame);
             opcode = str[lasti];
 
-             if (opcode < 0) opcode = -opcode;
+            if (opcode < 0) opcode = -opcode;
 
-             estimate = (self->cost + cu_costs[opcode]) / factor;
-             estimate = estimate + 1;
+            estimate = (self->cost + cu_costs[opcode]) / factor;
+            estimate = estimate + 1;
 
-             long new_memory_usage = get_memory_usage();
+            long new_memory_usage = get_memory_usage();
 
-             if (new_memory_usage > self->last_frame_mem_usage) {
+            if (new_memory_usage > self->last_frame_mem_usage) {
                 self->total_mem_usage += (new_memory_usage - self->last_frame_mem_usage);
                 printf("[TRACER] TX total memory usage: %ld\n", self->total_mem_usage);
-             }
+            }
 
-             self->last_frame_mem_usage = new_memory_usage;
+            self->last_frame_mem_usage = new_memory_usage;
 
-             //estimate = estimate * factor;
-             if ((self->cost > self->stamp_supplied) || self->cost > MAX_STAMPS) {
-                 PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!");
-                 PyEval_SetTrace(NULL, NULL);
-                 self->started = 0;
-                 return RET_ERROR;
-             }
+            //estimate = estimate * factor;
+            if ((self->cost > self->stamp_supplied) || self->cost > MAX_STAMPS) {
+                PyErr_SetString(PyExc_AssertionError, "The cost has exceeded the stamp supplied!");
+                PyEval_SetTrace(NULL, NULL);
+                self->started = 0;
+                return RET_ERROR;
+            }
 
 #ifdef unix
-             if (self->total_mem_usage > 500000) {
-                 PyErr_Format(PyExc_AssertionError, "Transaction exceeded memory usage! Total usage: %ld kilobytes", self->total_mem_usage);
+            if (self->total_mem_usage > 500000) {
+                PyErr_Format(PyExc_AssertionError, "Transaction exceeded memory usage! Total usage: %ld kilobytes", self->total_mem_usage);
 #else
-             if (self->total_mem_usage > 500000000) {
-                 PyErr_Format(PyExc_AssertionError, "Transaction exceeded memory usage! Total usage: %ld bytes", self->total_mem_usage);
+            if (self->total_mem_usage > 500000000) {
+                PyErr_Format(PyExc_AssertionError, "Transaction exceeded memory usage! Total usage: %ld bytes", self->total_mem_usage);
 #endif
-                 PyEval_SetTrace(NULL, NULL);
-                 self->started = 0;
-                 return RET_ERROR;
-             }
+                PyEval_SetTrace(NULL, NULL);
+                self->started = 0;
+                return RET_ERROR;
+            }
 
-             self->cost += cu_costs[opcode];
-             break;
+            self->cost += cu_costs[opcode];
+            break;
+        }
+    default:
+        break;
+}
 
-         default:
-             break;
-     }
 
 
 
