@@ -11,8 +11,6 @@ import requests
 import os
 from pathlib import Path
 import shutil
-import hashlib
-import asyncio
 import logging
 from contracting.db.hdf5 import h5c
 import warnings
@@ -841,12 +839,8 @@ class AsyncContractDriver:
 
 class BlockserviceDriver(Driver):
     # conn_str see https://www.mongodb.com/docs/manual/reference/connection-string/
-    def __init__(
-        self,
-        conn_str="mongodb://localhost:27017",
-        db="lamden",
-        collection="currentState",
-    ):
+    def __init__(self, conn_str="mongodb://localhost:27017", db="lamden", collection="currentState"):
+        super().__init__(db, collection)
         self.client = pymongo.MongoClient(conn_str)
         self.db = self.client[db][collection]
 
