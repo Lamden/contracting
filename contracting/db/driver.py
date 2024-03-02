@@ -837,6 +837,7 @@ class AsyncContractDriver:
         return self.keys(name)
 
 
+# TODO: Needs to be switched to some other DB once we have a block service again
 class BlockserviceDriver(Driver):
     # conn_str see https://www.mongodb.com/docs/manual/reference/connection-string/
     def __init__(self, conn_str="mongodb://localhost:27017", db="lamden", collection="currentState"):
