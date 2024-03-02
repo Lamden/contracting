@@ -376,9 +376,6 @@ class FSDriver:
             filename, _ = self.__parse_key(prefix)
         except Exception:
             return self.keys(prefix=prefix, length=length)
-            raise ValueError(
-                'Must provide "contract.variable" at minimum as prefix to iter.'
-            )
 
         if not self.is_file(filename=filename):
             return []
