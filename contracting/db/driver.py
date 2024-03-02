@@ -397,7 +397,7 @@ class FSDriver:
                     elif not prefix:
                         keys.add(key)
 
-                    if length > 0 and len(keys) >= length:
+                    if 0 < length <= len(keys):
                         raise AssertionError(
                             "Length threshold has been hit. Continuing."
                         )
